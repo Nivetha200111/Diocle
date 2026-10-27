@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
+  "title": "VerificationReport",
+  "description": "DRAFT placeholder. Output of services/verifier (GnuCOBOL differential testing).",
+  "type": "object",
+  "required": ["version", "results", "summary"],
+  "properties": {
+    "version": { "type": "string" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["program", "inputId", "match"],
+        "properties": {
+          "program": { "type": "string" },
+          "inputId": { "type": "string" },
+          "match": { "type": "boolean" },
+          "originalOutput": { "type": "string" },
+          "convertedOutput": { "type": "string" },
+          "diff": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "passed", "failed"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sonarqube": {
+      "type": "object",
+      "description": "Optional SonarQube Community results.",
+      "additionalProperties": true
+    }
+  }
+}

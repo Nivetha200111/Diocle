@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/conversion-output.schema.json",
+  "title": "ConversionOutput",
+  "description": "DRAFT placeholder. Output of services/converter.",
+  "type": "object",
+  "required": ["version", "sqlSchemas", "javaServices", "tests"],
+  "properties": {
+    "version": { "type": "string" },
+    "model": { "type": "string", "description": "Model used for conversion (Muse Spark via Meta Model API)." },
+    "sqlSchemas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["copybook", "path"],
+        "properties": {
+          "copybook": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    },
+    "javaServices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["program", "path"],
+        "properties": {
+          "program": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["program", "path"],
+        "properties": {
+          "program": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    }
+  }
+}

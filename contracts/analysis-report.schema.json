@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/analysis-report.schema.json",
+  "title": "AnalysisReport",
+  "description": "DRAFT placeholder. Output of services/analyzer.",
+  "type": "object",
+  "required": ["version", "programs", "dependencies", "findings"],
+  "properties": {
+    "version": { "type": "string" },
+    "programs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "copybooks": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Edges of the dependency graph (e.g. CALL, COPY).",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "kind"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "kind": { "type": "string", "enum": ["call", "copy", "file", "other"] }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Flagged risky logic (e.g. fraud, payment).",
+      "items": {
+        "type": "object",
+        "required": ["program", "category", "severity", "message"],
+        "properties": {
+          "program": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "category": { "type": "string", "enum": ["fraud", "payment", "other"] },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
