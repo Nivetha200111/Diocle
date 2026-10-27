@@ -50,4 +50,5 @@ target/
 
 # Local tooling
 .scannerwork/
+.$*.dtmp
 *.log
