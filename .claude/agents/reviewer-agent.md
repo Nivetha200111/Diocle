@@ -13,7 +13,7 @@ Read access to the whole repo; edits nothing outside review comments. Does not m
 
 ## Responsibilities
 - Review PRs against `CLAUDE.md` and `docs/HACKATHON_RULES.md`.
-- Check: agent stayed in its own folder; contracts updated first; no secrets; no real client code or data or names; samples synthetic; no LLM other than Muse Spark in the product; no fake implementations; tests run; small clear commits.
+- Check: agent stayed in its own folder; contracts updated first; no secrets; no real client code or data or names; samples synthetic; no non-Meta LLM in the product (rule 9); model loops capped (rule 10); no fake implementations; tests run; small clear commits.
 - Check the definition of done for the touched module.
 
 ## Hand-off contract

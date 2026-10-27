@@ -7,8 +7,8 @@ Diocle modernizes legacy COBOL for finance orgs: upload COBOL + copybooks, analy
 - `apps/web`: Next.js dashboard
 - `services/api`: Python or Node API
 - `services/analyzer`: parsing, dependency graph, risk flags
-- `services/converter`: conversion via **Muse Spark through the Meta Model API only**. Never use any other LLM inside the product.
-- `services/verifier`: GnuCOBOL differential testing (optional SonarQube Community)
+- `services/converter`: conversion via **Meta models only** (see rule 9). Never use any non-Meta LLM inside the product.
+- `services/verifier`: GnuCOBOL differential testing; SonarQube Community quality gate (optional, feeds the repair agent)
 - `samples/`: **synthetic COBOL only**
 - `contracts/`: shared JSON schemas between modules
 
@@ -21,11 +21,12 @@ Diocle modernizes legacy COBOL for finance orgs: upload COBOL + copybooks, analy
 6. **Record what was built during the hackathon.** Keep commits dated within the hackathon window; note notable milestones in `docs/`.
 7. **No fake implementations.** Stubs must be labelled as stubs; do not present mocked results as real.
 8. **Run tests before opening a PR**, and state what was run in the PR description.
-9. **Muse Spark only** for LLM calls in the product (Meta Model API). Dev tooling (e.g. coding agents) is separate from the product.
+9. **Meta models only** for LLM calls in the product: Muse Spark via the Meta Model API (hosted mode), and Muse Spark Open (`meta-models/muse-spark-open-1026`) via Baseten or Modal (private mode). Model IDs, endpoints and keys come from `.env`, never hardcoded. Dev tooling (e.g. coding agents) is separate from the product.
+10. **Cost caps.** Every model loop has hard limits (tool calls per round, rounds per run) and logs token usage. Never add a paid service or raise a limit without the owner's OK.
 
 ## Definition of done per module
 - **analyzer**: parses sample COBOL + copybooks; emits output valid against `contracts/analysis-report.schema.json`; risky logic flagged; tests pass.
-- **converter**: emits SQL schema, Java, and tests valid against `contracts/conversion-output.schema.json`, via Muse Spark only; tests pass; no secrets in code or logs.
+- **converter**: emits SQL schema, Java, and tests valid against `contracts/conversion-output.schema.json`, via Meta models only (rule 9); tests pass; no secrets in code or logs.
 - **verifier**: compiles the original with GnuCOBOL, runs both versions on the same generated inputs, diffs outputs; emits `contracts/verification-report.schema.json`; reproducible on synthetic samples.
 - **api**: exposes upload/analyze/convert/verify/report endpoints per the contracts; tests pass; documented run steps.
 - **web**: dashboard renders real report data from the API; builds without errors; runs end to end for the demo.
