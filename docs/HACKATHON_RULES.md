@@ -1,19 +1,45 @@
 # Hackathon rules summary
 
-Meta Global AI Developer Hackathon, Oct 26 to Nov 4 2026. (Summary for the team; the official rules on the event page prevail.)
+Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to Nov 4 2026**. (Summary for the team; the official participant guide prevails.)
 
+## Our entry
+- **Track:** Indie Developer.
+- **Problem statement:** Build for Your World, a problem we know firsthand: COBOL modernization at a major payments company. Never name the employer anywhere.
+- **Bonus prizes we target:**
+  - Best Build on Meta Open Weight Models: Muse Spark Open in private mode.
+  - Best Agentic Use-Case: the tool-using repair agent.
+  - Community Vote and Most Viral: post the demo on X after submitting.
+
+## Rules
 - **Public repo** required.
-- **New work only**: everything is built during the hackathon, from scratch. No code from any employer or client.
+- **New work only:** everything is built during the hackathon. No code from any employer or client.
+- **Clearly identify what was built during the hackathon** in the README and the video. Failing to do so can mean disqualification.
 - **Demo shows only what was built during the hackathon.**
-- **Must incorporate Meta models**: Muse Spark via the Meta Model API.
-- **3-minute demo video.**
-- **Submission**: https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit by **Nov 4, 9 PM ET** (= Nov 5, 6:30 AM IST).
-- **Sample data**: synthetic only; no client names or data anywhere in the repo.
+- **Must incorporate Meta models.** We use Muse Spark (Meta Model API) and Muse Spark Open (`meta-models/muse-spark-open-1026` via Baseten/Modal).
+- **No code, data or assets we don't have rights to.** Avoid anti-project categories (basic RAG, chatbots, simple analyzers, medical advice, etc.).
+- **3-minute demo video.** It's a primary judging artifact, and finalists are ranked by judges watching it live.
+- **Submission:** https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit by **Nov 4, 9 PM ET** (= Nov 5, 6:30 AM IST). Plan to submit the morning of Nov 4.
+- **Sample data:** synthetic only; no client names or data anywhere in the repo.
+
+## Credits and cost
+- Meta Model API: $150 credits. A card is required (temporary pre-authorization hold). **Set a $150 Spend Limit on the Billing page before any call.** Claim by Nov 4 9 PM ET.
+- Baseten ($100) and Modal ($100) credits for Muse Spark Open: request early, per individual, not guaranteed.
+- Every model loop is capped (CLAUDE.md rule 10).
+
+## Useful sessions
+- Oct 27, 12 PM ET: Agents 101: Build a Multimodal AI Agent.
+- **Oct 28, 12 PM ET: Agents 102: Best Practices for Verifiable Agents.** Directly relevant to Diocle.
+- Oct 30, 12 PM ET: Muse Open models on Fireworks.
+- Office hours in Discord #office-hours, weekdays 10–11 AM ET.
 
 ## Judging rubric
+Stage 1 is pass/fail: fits the theme and uses Meta models. Stage 2:
+
 | Criterion | Weight |
 |---|---|
 | Impact | 30% |
 | Use of Meta AI tooling | 25% |
 | Technical depth | 20% |
 | Demo | 25% |
+
+Stage 3: the top 5 per track are ranked live from the videos. Results are announced Nov 9.
