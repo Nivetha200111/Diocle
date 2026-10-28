@@ -1,0 +1,161 @@
+{
+  "name": "txn-posting",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): transaction posting with payment surcharge and overdraft limit.",
+  "program": "TXNPOST",
+  "source": "src/TXNPOST.cbl",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "TXNIN",
+    "output": "POSTOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "TxnPost",
+    "origin": "hand-written naive fixture, not model output"
+  },
+  "layoutsNote": "Hand-written from copybooks/TXNREC.cpy and copybooks/POSTREC.cpy until the analyzer emits layouts[].",
+  "layouts": {
+    "input": {
+      "record": "TXN-REC",
+      "fields": [
+        {
+          "name": "TXN-ID",
+          "kind": "alnum",
+          "length": 9
+        },
+        {
+          "name": "TXN-TYPE",
+          "kind": "alnum",
+          "length": 1,
+          "values": [
+            "P",
+            "F",
+            "I"
+          ]
+        },
+        {
+          "name": "TXN-AMOUNT",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "TXN-BALANCE",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "TXN-OD-LIMIT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 0,
+          "signed": false
+        }
+      ]
+    },
+    "output": {
+      "record": "POST-REC",
+      "fields": [
+        {
+          "name": "POST-TXN-ID",
+          "kind": "alnum",
+          "length": 9
+        },
+        {
+          "name": "POST-CHARGE",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "POST-NEW-BAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "POST-STATUS",
+          "kind": "alnum",
+          "length": 2
+        }
+      ]
+    }
+  },
+  "traps": [
+    {
+      "paragraph": "3000-POST-PAYMENT",
+      "behaviour": "Surcharge COMPUTE has no ROUNDED, so it truncates toward zero to the cent."
+    },
+    {
+      "paragraph": "3000-POST-PAYMENT",
+      "behaviour": "No ON SIZE ERROR: the surcharge drops high-order digits of S9(3)V99 before the cap check, so a large payment can carry a tiny or zero charge."
+    },
+    {
+      "paragraph": "3000-POST-PAYMENT",
+      "behaviour": "A payment may take the balance to exactly -OD-LIMIT; only strictly below is refused (NS)."
+    },
+    {
+      "paragraph": "2000-PROCESS",
+      "behaviour": "Interest credit COMPUTE ROUNDED is half away from zero, including negative credits."
+    },
+    {
+      "paragraph": "2000-PROCESS",
+      "behaviour": "WS-NEW-BAL S9(9)V99 drops high-order digits on overflow."
+    },
+    {
+      "paragraph": "9000-TERM",
+      "behaviour": "DISPLAY of PIC 9(7) COMP prints 10 digits under GnuCOBOL -std=ibm."
+    }
+  ],
+  "fixtureCases": [
+    {
+      "id": "surcharge-truncation",
+      "why": "119.96 x 0.0125 = 1.4995 truncates to 1.49; rounding would give 1.50",
+      "record": "SURTRUNC P+000011996+0000050000000000"
+    },
+    {
+      "id": "surcharge-wraps-under-cap",
+      "why": "surcharge 1000.00 overflows S9(3)V99 to 0.00, so the 15.00 cap never applies",
+      "record": "SURWRAP  P+008000000+0009000000000000"
+    },
+    {
+      "id": "exact-overdraft-limit",
+      "why": "98.77 + 1.23 surcharge lands exactly on -100.00: allowed (OK), not refused",
+      "record": "ODEXACT  P+000009877+0000000000000100"
+    },
+    {
+      "id": "over-overdraft-limit",
+      "why": "one cent past -100.00: refused (NS), balance and charge unchanged",
+      "record": "ODOVER   P+000009878+0000000000000100"
+    },
+    {
+      "id": "interest-tie-negative",
+      "why": "-0.06 / 12 = -0.005: ROUNDED away from zero gives -0.01",
+      "record": "INTNEG   I-000000006+0000000100000000"
+    },
+    {
+      "id": "interest-tie-positive",
+      "why": "0.30 / 12 = 0.025: ROUNDED gives 0.03; half-even gives 0.02",
+      "record": "INTPOS   I+000000030+0000000100000000"
+    },
+    {
+      "id": "balance-overflow",
+      "why": "a negative fee pushes the balance past S9(9)V99; high-order digits are dropped",
+      "record": "BALOVFL  F-999999999+9999999999900000"
+    },
+    {
+      "id": "unknown-type",
+      "why": "unknown transaction types are rejected (RJ) and counted as rejected",
+      "record": "BADTYPE  X+000001000+0000000100000000"
+    }
+  ]
+}

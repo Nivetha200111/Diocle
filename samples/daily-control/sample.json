@@ -1,0 +1,127 @@
+{
+  "name": "daily-control",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): daily interest accrual with a running general-ledger control total.",
+  "program": "DAYCTRL",
+  "source": "src/DAYCTRL.cbl",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "DAYIN",
+    "output": "CTLOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "DayCtrl",
+    "origin": "hand-written naive fixture, not model output"
+  },
+  "layoutsNote": "Hand-written from copybooks/DAYREC.cpy and copybooks/CTLREC.cpy until the analyzer emits layouts[].",
+  "layouts": {
+    "input": {
+      "record": "DAY-REC",
+      "fields": [
+        {
+          "name": "DAY-ACCT-ID",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "DAY-PRINCIPAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "DAY-RATE",
+          "kind": "numeric",
+          "digits": 1,
+          "scale": 4,
+          "signed": false
+        },
+        {
+          "name": "DAY-DAYS",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 0,
+          "signed": false
+        }
+      ]
+    },
+    "output": {
+      "record": "CTL-REC",
+      "fields": [
+        {
+          "name": "CTL-ACCT-ID",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "CTL-INTEREST",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CTL-RUN-TOTAL",
+          "kind": "numeric",
+          "digits": 11,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CTL-FLAG",
+          "kind": "alnum",
+          "length": 1
+        }
+      ]
+    }
+  },
+  "traps": [
+    {
+      "paragraph": "3000-ACCRUE",
+      "behaviour": "COMPUTE ROUNDED is half away from zero, including negative interest (-0.005 -> -0.01)."
+    },
+    {
+      "paragraph": "3000-ACCRUE",
+      "behaviour": "The control total adds each account's rounded interest; summing unrounded amounts and rounding once gives a different total."
+    },
+    {
+      "paragraph": "3000-ACCRUE",
+      "behaviour": "No ON SIZE ERROR: WS-INTEREST S9(7)V99 drops high-order digits on overflow, and the wrapped amount is what enters the control total."
+    },
+    {
+      "paragraph": "9000-TERM",
+      "behaviour": "The control total is DISPLAYed through the edited picture -(11)9.99 (floating minus, leading spaces), and PIC 9(7) COMP counters print 10 digits."
+    }
+  ],
+  "fixtureCases": [
+    {
+      "id": "tie-positive",
+      "why": "36.50 x 0.0500 / 365 = 0.005: ROUNDED gives 0.01 (Quillmark leap-day control)",
+      "record": "99Q0000001+0000000365000500001"
+    },
+    {
+      "id": "tie-negative",
+      "why": "-0.005 rounds away from zero to -0.01; the pair cancels in the control total",
+      "record": "99Q0000002-0000000365000500001"
+    },
+    {
+      "id": "tie-third",
+      "why": "0.025 gives 0.03 per record; summing unrounded amounts gives a control total 0.01 lower",
+      "record": "99Q0000003+0000001825000500001"
+    },
+    {
+      "id": "lost-to-rounding",
+      "why": "0.000274 rounds to zero: flagged Z and counted as lost",
+      "record": "LOSTROUND +0000000100000100001"
+    },
+    {
+      "id": "interest-overflow",
+      "why": "interest overflows S9(7)V99; the wrapped amount goes into the control total",
+      "record": "INTOVFL   +9999999999999999999"
+    }
+  ]
+}

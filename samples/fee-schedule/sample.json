@@ -1,0 +1,162 @@
+{
+  "name": "fee-schedule",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): monthly account charges by product with waiver, excess-transaction fee, overdraft interest and cap.",
+  "program": "FEESCHD",
+  "source": "src/FEESCHD.cbl",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "FEEIN",
+    "output": "CHGOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "FeeSchd",
+    "origin": "hand-written naive fixture, not model output"
+  },
+  "layoutsNote": "Hand-written from copybooks/FEEREC.cpy and copybooks/CHGREC.cpy until the analyzer emits layouts[].",
+  "layouts": {
+    "input": {
+      "record": "FEE-REC",
+      "fields": [
+        {
+          "name": "FEE-ACCT-ID",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "FEE-PRODUCT",
+          "kind": "alnum",
+          "length": 1,
+          "values": [
+            "A",
+            "B",
+            "C"
+          ]
+        },
+        {
+          "name": "FEE-AVG-BAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "FEE-TXN-COUNT",
+          "kind": "numeric",
+          "digits": 4,
+          "scale": 0,
+          "signed": false
+        },
+        {
+          "name": "FEE-MONTH-DAYS",
+          "kind": "numeric",
+          "digits": 2,
+          "scale": 0,
+          "signed": false
+        }
+      ]
+    },
+    "output": {
+      "record": "CHG-REC",
+      "fields": [
+        {
+          "name": "CHG-ACCT-ID",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "CHG-BASE",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CHG-TXN-FEE",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CHG-OD-INT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CHG-TOTAL",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CHG-CODE",
+          "kind": "alnum",
+          "length": 2
+        }
+      ]
+    }
+  },
+  "traps": [
+    {
+      "paragraph": "3000-BASE-FEE",
+      "behaviour": "The base fee is waived when the average balance is at or above 5000.00 (NOT <), not only strictly above."
+    },
+    {
+      "paragraph": "4000-TXN-FEE",
+      "behaviour": "No ON SIZE ERROR: the excess-transaction fee drops high-order digits of S9(3)V99."
+    },
+    {
+      "paragraph": "5000-OD-INTEREST",
+      "behaviour": "COMPUTE ROUNDED is half away from zero on exact half-cent ties; S9(5)V99 drops high-order digits on overflow."
+    },
+    {
+      "paragraph": "6000-TOTAL",
+      "behaviour": "The total wraps in S9(3)V99 before the cap check, so a huge charge can come out small and uncapped; product C is never capped."
+    },
+    {
+      "paragraph": "9000-TERM",
+      "behaviour": "DISPLAY of PIC 9(7) COMP prints 10 digits under GnuCOBOL -std=ibm."
+    }
+  ],
+  "fixtureCases": [
+    {
+      "id": "waiver-at-threshold",
+      "why": "an average of exactly 5000.00 waives the base fee (WV)",
+      "record": "WAIVEXACT A+00000500000000030"
+    },
+    {
+      "id": "txn-fee-wraps-under-cap",
+      "why": "2859 excess x 0.35 = 1000.65 wraps to 0.65, so the total is 6.65 and the cap never applies",
+      "record": "TXNWRAP   A+00000010000286930"
+    },
+    {
+      "id": "od-interest-tie",
+      "why": "111325.00 x 0.1899 x 10 / 365 = 579.195 exactly: ROUNDED gives 579.20; double arithmetic gives 579.19",
+      "record": "ODTIE     C-00011132500000010"
+    },
+    {
+      "id": "od-interest-overflow",
+      "why": "overdraft interest overflows S9(5)V99 and the total overflows S9(3)V99",
+      "record": "ODOVFL    B-99999999999000031"
+    },
+    {
+      "id": "private-total-wraps",
+      "why": "private accounts are uncapped, so the 1612.85 total wraps to 612.85",
+      "record": "PRIVWRAP  C-00010000000000031"
+    },
+    {
+      "id": "capped",
+      "why": "6.00 + 31.50 + 78.04 is capped at 40.00 (CP)",
+      "record": "CAPPED    A-00000500000010030"
+    }
+  ]
+}
