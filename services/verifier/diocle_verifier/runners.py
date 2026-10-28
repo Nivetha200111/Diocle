@@ -30,7 +30,28 @@ def safe_env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None = None, timeout: int = 120):
+    if os.environ.get("DIOCLE_SANDBOX_URL"):
+        return _exec_sandboxed(cmd, safe_env(env), cwd, timeout)
     return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout)
+
+
+def _exec_sandboxed(cmd: list[str], env: dict[str, str], cwd: Path | None, timeout: int):
+    """Run in the sandbox container (diocle_verifier.sandbox): no secrets, no internet. Same result type."""
+    import json
+    import urllib.error
+    import urllib.request
+
+    job = {"cmd": [str(c) for c in cmd], "env": env, "cwd": str(cwd) if cwd else None, "timeout": timeout}
+    req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/exec", data=json.dumps(job).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout + 30) as resp:
+            out = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"sandbox refused {cmd[0]}: {e.read().decode(errors='replace')[:300]}") from e
+    if "timeout" in out:
+        raise subprocess.TimeoutExpired(cmd, out["timeout"])
+    return subprocess.CompletedProcess(cmd, out["returncode"], out["stdout"], out["stderr"])
 
 
 # IBM Enterprise COBOL defaults that GnuCOBOL's -std=ibm leaves off: TRUNC(STD) (binary values are truncated to
