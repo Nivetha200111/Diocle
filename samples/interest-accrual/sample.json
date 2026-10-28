@@ -1,0 +1,162 @@
+{
+  "name": "interest-accrual",
+  "description": "SYNTHETIC. Daily interest accrual and maintenance fee batch program (fictional bank).",
+  "program": "INTACCR",
+  "source": "src/INTACCR.cbl",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "ACCTIN",
+    "output": "INTOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "IntAccr",
+    "origin": "hand-written naive fixture, not model output"
+  },
+  "layoutsNote": "Hand-written from copybooks/ACCTREC.cpy and copybooks/INTREC.cpy until the analyzer emits layouts[].",
+  "layouts": {
+    "input": {
+      "record": "ACCT-REC",
+      "fields": [
+        {
+          "name": "ACCT-ID",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "ACCT-BALANCE",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "ACCT-RATE",
+          "kind": "numeric",
+          "digits": 1,
+          "scale": 4,
+          "signed": false
+        },
+        {
+          "name": "ACCT-DAYS",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 0,
+          "signed": false
+        },
+        {
+          "name": "ACCT-TIER",
+          "kind": "alnum",
+          "length": 1,
+          "values": [
+            "P",
+            "S"
+          ]
+        }
+      ]
+    },
+    "output": {
+      "record": "OUT-REC",
+      "fields": [
+        {
+          "name": "OUT-ACCT-ID",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "OUT-INTEREST",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "OUT-FEE",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "OUT-NEW-BAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "OUT-STATUS",
+          "kind": "alnum",
+          "length": 2
+        }
+      ]
+    }
+  },
+  "traps": [
+    {
+      "paragraph": "3000-CALC-INTEREST",
+      "behaviour": "COMPUTE ROUNDED rounds half away from zero, including negatives (-0.005 -> -0.01)."
+    },
+    {
+      "paragraph": "4000-CALC-FEE",
+      "behaviour": "Fee COMPUTE has no ROUNDED, so it truncates toward zero to the cent."
+    },
+    {
+      "paragraph": "3000-CALC-INTEREST",
+      "behaviour": "No ON SIZE ERROR: overflow silently drops high-order digits of WS-INTEREST S9(7)V99."
+    },
+    {
+      "paragraph": "4000-CALC-FEE",
+      "behaviour": "Fee overflow truncates high-order digits before the cap check, so a huge shortfall can yield a small fee."
+    },
+    {
+      "paragraph": "5000-WRITE-RESULT",
+      "behaviour": "WS-NEW-BAL S9(9)V99 also truncates high-order digits on overflow."
+    },
+    {
+      "paragraph": "9000-TERM",
+      "behaviour": "DISPLAY of PIC 9(7) COMP prints 10 digits under GnuCOBOL -std=ibm."
+    }
+  ],
+  "fixtureCases": [
+    {
+      "id": "tie-positive",
+      "record": "TIEPOS    +0000003650000001050S",
+      "why": "365.00 x 0.0001 x 50/365 = 0.005 exactly: ROUNDED gives 0.01"
+    },
+    {
+      "id": "tie-negative",
+      "record": "TIENEG    -0000000365000000001S",
+      "why": "-36.50 x 0.05 / 365 = -0.005: ROUNDED away from zero gives -0.01"
+    },
+    {
+      "id": "negative-zero",
+      "record": "NEGZERO   -0000000000100000001S",
+      "why": "-0.01 x 0.05 / 365 rounds to zero: checks the sign of a zero result"
+    },
+    {
+      "id": "fee-truncation",
+      "record": "FEETRUNC  +0000000000100425030S",
+      "why": "fee (1000.00 - 0.01) x 0.0015 = 1.499985 truncates to 1.49; rounding would give 1.50"
+    },
+    {
+      "id": "fee-overflow-dodges-cap",
+      "record": "FEEOVFL   -9999999999999999999S",
+      "why": "fee 1500001.49 overflows S9(5)V99 to 1.49, which is below the 25.00 cap"
+    },
+    {
+      "id": "interest-overflow",
+      "record": "INTOVFL   +9999999999999999999S",
+      "why": "interest overflows S9(7)V99 and new balance overflows S9(9)V99"
+    },
+    {
+      "id": "premium-waiver",
+      "record": "PREMIUM   +0000005000000425030P",
+      "why": "premium tier pays no fee even below the floor"
+    }
+  ]
+}
