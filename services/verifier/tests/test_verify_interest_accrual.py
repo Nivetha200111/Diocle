@@ -59,3 +59,12 @@ def test_programs_under_test_do_not_inherit_secrets(monkeypatch):
     env = safe_env({"DD_IN": "/tmp/in"})
     assert "META_MODEL_API_KEY" not in env and env["COB_LIBRARY_PATH"] == "/x" and env["DD_IN"] == "/tmp/in"
     assert "PATH" in env
+
+
+def test_packed_binary_and_overpunch_records_are_verified_byte_for_byte():
+    packed = SAMPLE.parent / "packed-posting"
+    good = verify_sample(packed, Path(__file__).parent / "fixtures" / "reference", random_count=150)
+    assert good["summary"]["failed"] == 0 and good["runs"]["stdoutMatch"] and good["runs"]["exitCodeMatch"]
+    naive = verify_sample(packed, random_count=50)
+    fields = {d["field"] for r in naive["results"] for d in r.get("fieldDiffs", [])}
+    assert {"PO-INT", "PO-NEW-BAL", "PO-HEADROOM", "PO-ITEM-UNITS", "PO-REVERSAL"} <= fields

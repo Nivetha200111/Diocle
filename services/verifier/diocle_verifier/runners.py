@@ -37,27 +37,43 @@ CLOCK = "2000-02-29T13:45:10.00Z"
 CLOCK_ENV = {"COB_CURRENT_DATE": "2000/02/29 13:45:10.00", "DIOCLE_CLOCK": CLOCK, "TZ": "UTC"}
 
 
-def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str) -> Run:
+def read_records(path: Path, fmt: str = "line", length: int = 0) -> list[str]:
+    """Output records as latin-1 strings: text lines, or fixed-length byte records with no separators."""
+    if not path.exists():
+        return []
+    data = path.read_bytes().decode("latin-1")
+    if fmt == "fixed":
+        return [data[i : i + length] for i in range(0, len(data), length)] if length else []
+    return data.splitlines()
+
+
+def write_records(path: Path, records: list[str], fmt: str = "line") -> None:
+    path.write_bytes(("".join(records) if fmt == "fixed" else "".join(r + "\n" for r in records)).encode("latin-1"))
+
+
+def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str,
+                 out_format: tuple[str, int] = ("line", 0)) -> Run:
     output_path = workdir / f"{label}.out"
     env = {**CLOCK_ENV, f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
     proc = _exec(cmd, env=env, cwd=workdir)
-    lines = output_path.read_text().splitlines() if output_path.exists() else []
-    return Run(True, proc.returncode, proc.stdout, proc.stderr, lines)
+    return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
 
 
-def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: Path, workdir: Path) -> Run:
+def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: Path, workdir: Path,
+              out_format: tuple[str, int] = ("line", 0)) -> Run:
     exe = workdir / "original"
     build = _exec(["cobc", "-x", "-std=ibm", "-I", str(copybook_dir), "-o", str(exe), str(source)])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
-    return _run_program([str(exe)], dd, input_path, workdir, "original")
+    return _run_program([str(exe)], dd, input_path, workdir, "original", out_format)
 
 
-def run_java(src_dir: Path, main_class: str, dd: dict[str, str], input_path: Path, workdir: Path) -> Run:
+def run_java(src_dir: Path, main_class: str, dd: dict[str, str], input_path: Path, workdir: Path,
+             out_format: tuple[str, int] = ("line", 0)) -> Run:
     classes = workdir / "classes"
     classes.mkdir(exist_ok=True)
     sources = sorted(str(p) for p in src_dir.rglob("*.java"))
     build = _exec(["javac", "-d", str(classes), *sources])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
-    return _run_program(["java", "-cp", str(classes), main_class], dd, input_path, workdir, "converted")
+    return _run_program(["java", "-cp", str(classes), main_class], dd, input_path, workdir, "converted", out_format)

@@ -20,7 +20,7 @@ def _boundaries(f: Field) -> list[Decimal | str]:
     if f.kind == "alnum":
         return list(f.values) + [" " * f.length] if f.values else []
     values = [Decimal(0), f.unit, f.max_value]
-    if f.digits > 0:
+    if f.digits > 0 and f.scale >= 0:  # 1 is not representable in a P-scaled field
         values.append(Decimal(1))
     if f.signed:
         values += [-v for v in values if v != 0]

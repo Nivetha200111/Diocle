@@ -9,8 +9,8 @@ from pathlib import Path
 from . import REPORT_VERSION
 from .diff import compare
 from .inputs import Case, generate_cases
-from .layout import load_fields
-from .runners import CLOCK, Run, run_cobol, run_java
+from .layout import load_fields, record_format, record_length
+from .runners import CLOCK, Run, run_cobol, run_java, write_records
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
 
@@ -33,9 +33,11 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
         input_path = work / "input.dat"
-        input_path.write_text("".join(c.record + "\n" for c in cases))
-        original = run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work)
-        converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, work)
+        write_records(input_path, [c.record for c in cases], record_format(meta["layouts"]["input"]))
+        out_format = (record_format(meta["layouts"]["output"]), record_length(out_fields))
+        original = run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work,
+                             out_format)
+        converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, work, out_format)
 
     results = []
     if original.compiled and converted.compiled:
