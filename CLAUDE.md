@@ -21,7 +21,7 @@ Diocle modernizes legacy COBOL for finance orgs: upload COBOL + copybooks, analy
 6. **Record what was built during the hackathon.** Keep commits dated within the hackathon window; note notable milestones in `docs/`.
 7. **No fake implementations.** Stubs must be labelled as stubs; do not present mocked results as real.
 8. **Run tests before opening a PR**, and state what was run in the PR description.
-9. **Meta models only** for LLM calls in the product: Muse Spark via the Meta Model API (hosted mode), and Muse Spark Open (`meta-models/muse-spark-open-1026`) via Baseten or Modal (private mode). Model IDs, endpoints and keys come from `.env`, never hardcoded. Dev tooling (e.g. coding agents) is separate from the product.
+9. **Meta models only** for LLM calls in the product: Muse Spark via the Meta Model API (hosted mode), and Muse Spark Open via a partner host: Fireworks, Baseten (`meta-models/muse-spark-open-1026`) or Modal (private mode). Model IDs, endpoints and keys come from `.env`, never hardcoded. Dev tooling (e.g. coding agents) is separate from the product.
 10. **Cost caps.** Every model loop has hard limits (tool calls per round, rounds per run) and logs token usage. Never add a paid service or raise a limit without the owner's OK.
 
 ## Definition of done per module
