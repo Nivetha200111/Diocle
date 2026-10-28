@@ -57,7 +57,7 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
       <ol className="trace-list dlv-log">
         {!run && <li className="dlv-idle">{p.status === "queued" ? "waiting for its turn…" : "no run recorded"}</li>}
         {run?.events.map((e, i) => (
-          <li key={i} className="dlv-line">
+          <li key={i} className={`dlv-line dlv-${e.type}${e.type === "breaker" && e.broke ? " dlv-broke" : ""}`}>
             {e.type === "agent-step" ? (
               <><span className="trace-tool">{e.tool}</span> {e.rationale ? <span className="trace-why">{e.rationale}</span> : null}</>
             ) : e.type === "certification" ? (
