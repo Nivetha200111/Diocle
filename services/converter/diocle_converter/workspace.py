@@ -62,6 +62,6 @@ class Workspace:
         if not sources:
             return False, "no .java files in workspace"
         with tempfile.TemporaryDirectory() as out:
-            proc = subprocess.run(["javac", "-d", out, *sources], capture_output=True, text=True, timeout=120,
+            proc = subprocess.run(["javac", "-proc:none", "-d", out, *sources], capture_output=True, text=True, timeout=120,
                                   env=safe_env())
         return proc.returncode == 0, (proc.stderr or proc.stdout).replace(str(self.root) + "/", "")[-4000:]
