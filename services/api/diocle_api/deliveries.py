@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import subprocess
 import threading
@@ -20,17 +21,37 @@ def _deliveries_dir():
     return runs_dir() / "deliveries"
 
 
+def _github(path: str) -> dict | list:
+    """GitHub REST API (public repositories need no token; GH_TOKEN, if set, raises the rate limit)."""
+    import urllib.request
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "diocle"}
+    if os.environ.get("GH_TOKEN"):
+        headers["Authorization"] = f"Bearer {os.environ['GH_TOKEN']}"
+    req = urllib.request.Request(f"https://api.github.com{path}", headers=headers)
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read())
+
+
 def pr_checks(url: str) -> list[dict]:
-    """CI checks on a pull request via the gh CLI, cached for 15 seconds; empty if gh is unavailable."""
+    """CI checks on a pull request's head commit, as {name, state, link} with gh's state names. Cached: 30 s
+    while anything is pending, an hour once all are finished (the unauthenticated limit is 60 requests an hour)."""
     cached = _checks_cache.get(url)
-    if cached and time.time() - cached[0] < 15:
-        return cached[1]
+    if cached:
+        done = cached[1] and all(c["state"] not in ("PENDING", "IN_PROGRESS", "QUEUED") for c in cached[1])
+        if time.time() - cached[0] < (3600 if done else 30):
+            return cached[1]
+    m = re.match(r"^https://github\.com/([\w.-]+)/([\w.-]+)/pull/(\d+)$", url)
+    if not m:
+        return []
+    owner, repo, number = m.groups()
     try:
-        out = subprocess.run(["gh", "pr", "checks", url, "--json", "name,state,link"],
-                             capture_output=True, text=True, timeout=20).stdout
-        checks = json.loads(out) if out.strip() else []
-    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
-        checks = []
+        sha = _github(f"/repos/{owner}/{repo}/pulls/{number}")["head"]["sha"]
+        runs = _github(f"/repos/{owner}/{repo}/commits/{sha}/check-runs")["check_runs"]
+        checks = [{"name": r["name"], "link": r.get("html_url") or "",
+                   "state": (r.get("conclusion") or "").upper() if r["status"] == "completed" else r["status"].upper()}
+                  for r in runs]
+    except (OSError, ValueError, KeyError):
+        return cached[1] if cached else []
     _checks_cache[url] = (time.time(), checks)
     return checks
 
