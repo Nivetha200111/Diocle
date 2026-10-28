@@ -1,0 +1,12 @@
+# The public site: a static export of the dashboard in hosted mode, served by Caddy with automatic HTTPS.
+FROM node:22-alpine AS build
+WORKDIR /web
+COPY apps/web/package.json apps/web/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY apps/web ./
+ENV NEXT_OUTPUT=export NEXT_DIST_DIR=.next-export NEXT_PUBLIC_DIOCLE_HOSTED=1 NEXT_PUBLIC_DIOCLE_API_URL=/api
+RUN npx next build
+
+FROM caddy:2-alpine
+COPY --from=build /web/.next-export /srv/www
+COPY deploy/Caddyfile /etc/caddy/Caddyfile

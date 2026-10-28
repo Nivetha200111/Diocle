@@ -56,3 +56,6 @@ target/
 # Diocle run outputs (generated Java, events, reports)
 runs/
 .next-hosted/
+.next-export/
+out/
+deploy/diocle.env
