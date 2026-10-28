@@ -89,24 +89,32 @@ function EfficiencyPanel({ e }: { e: Efficiency }) {
 function EfficiencyTable({ runs, selected, onSelect }: {
   runs: RunListItem[]; selected: string | null; onSelect: (id: string) => void;
 }) {
+  const [showStopped, setShowStopped] = useState(false);
+  const stopped = (r: RunListItem) => !r.certified && r.efficiency.modelCalls === 0;  // interrupted before any model call
+  const shown = [...runs].filter((r) => showStopped || !stopped(r))
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+  const hidden = runs.filter(stopped).length;
   return (
     <section className="panel">
       <div className="panel-heading">
         <div>
           <h2>Agent efficiency across runs</h2>
-          <p>Every saved run, oldest first. Click a row to open it.</p>
+          <p>Newest first. Click a row to open it.{hidden > 0 && <> {" "}
+            <button type="button" className="text-button" onClick={() => setShowStopped(!showStopped)}>
+              {showStopped ? "Hide" : "Show"} {hidden} interrupted
+            </button></>}</p>
         </div>
       </div>
-      <div className="table-scroll">
+      <div className="table-scroll eff-scroll">
         <table className="data-table eff-table">
           <thead>
             <tr><th>Run</th><th>Model</th><th>Result</th><th>Memory</th><th>Calls</th><th>Steps</th><th>Cache</th>
               <th>Tokens</th><th>Model time</th><th>Cost</th><th>$ / 1k lines</th></tr>
           </thead>
           <tbody>
-            {[...runs].reverse().map((r) => (
+            {shown.map((r) => (
               <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
-                <td className="mono">{r.program} · {r.createdAt?.slice(11, 16)} · {r.command === "run" ? "translate" : "repair"}</td>
+                <td className="mono">{r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.command === "run" ? "translate" : "repair"}</td>
                 <td className="mono">{shortModel(r.model)}</td>
                 <td>{r.certified ? "certified" : "not certified"}</td>
                 <td className="mono">{memoryLabel(r.memory)}</td>

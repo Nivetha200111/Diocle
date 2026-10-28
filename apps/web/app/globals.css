@@ -4782,3 +4782,14 @@ main {
 .dlv-ev-memory { color: #3f6573; }
 .nav-label-mock { margin-top: 14px; }
 .nav-item-mock { opacity: 0.75; }
+.eff-scroll { max-height: 340px; }
+.eff-scroll th { position: sticky; top: 0; z-index: 1; }
+.dlv-form { display: flex; flex-direction: column; gap: 10px; padding: 4px 21px 16px; }
+.dlv-form label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
+.dlv-form input:not([type]) { padding: 6px 8px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; }
+.dlv-form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.dlv-form-row .button { margin-left: auto; }
+.dlv-check { flex-direction: row !important; align-items: center; gap: 6px !important; }
+.dlv-note { font-size: 11px; color: var(--muted); }
+.dlv-error { font-size: 12px; color: #a03020; }
+.sidebar { overflow-y: auto; }

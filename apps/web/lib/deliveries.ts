@@ -46,3 +46,16 @@ async function getJson<T>(path: string): Promise<T> {
 
 export const fetchDeliveries = () => getJson<DeliveryListItem[]>("/deliveries");
 export const fetchDelivery = (id: string) => getJson<Delivery>(`/deliveries/${encodeURIComponent(id)}`);
+
+export type DeliveryRequest = { legacy: string; target: string; parallel: boolean; breaker: boolean };
+
+export async function startDelivery(body: DeliveryRequest): Promise<string> {
+  const response = await fetch(`${API_URL}/deliveries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail ?? `HTTP ${response.status}`);
+  return data.id as string;
+}

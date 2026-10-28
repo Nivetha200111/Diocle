@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, GitPullRequest, TriangleAlert } from "lucide-react";
 import { API_URL } from "@/lib/runs";
-import { fetchDeliveries, fetchDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
+import { fetchDeliveries, fetchDelivery, startDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
 
@@ -80,6 +80,61 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
   );
 }
 
+function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: string) => void }) {
+  const [legacy, setLegacy] = useState("https://github.com/Nivetha200111/quillmark-mainframe");
+  const [target, setTarget] = useState("https://github.com/Nivetha200111/quillmark-java");
+  const [parallel, setParallel] = useState(true);
+  const [breaker, setBreaker] = useState(true);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+  return (
+    <section className="panel dlv-start" id="new-delivery">
+      <div className="panel-heading">
+        <div>
+          <h2>Start a delivery</h2>
+          <p>Paste the legacy repository and the repository that should receive the pull request.</p>
+        </div>
+      </div>
+      <form
+        className="dlv-form"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setError("");
+          setSending(true);
+          try {
+            onStarted(await startDelivery({ legacy, target, parallel, breaker }));
+          } catch (err) {
+            setError((err as Error).message);
+          } finally {
+            setSending(false);
+          }
+        }}
+      >
+        <label>
+          <span>Legacy repository (COBOL in)</span>
+          <input value={legacy} onChange={(e) => setLegacy(e.target.value)} spellCheck={false} />
+        </label>
+        <label>
+          <span>Target repository (pull request out)</span>
+          <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
+        </label>
+        <div className="dlv-form-row">
+          <label className="dlv-check"><input type="checkbox" checked={parallel} onChange={(e) => setParallel(e.target.checked)} /> Swarm: convert programs in parallel</label>
+          <label className="dlv-check"><input type="checkbox" checked={breaker} onChange={(e) => setBreaker(e.target.checked)} /> Breaker: attack each certified program</label>
+          <button className="button primary" type="submit" disabled={busy || sending}>
+            {busy ? "A delivery is running" : sending ? "Starting…" : "Start delivery"}
+          </button>
+        </div>
+        <p className="dlv-note">
+          Uses Meta Muse Spark within the caps in <span className="mono">.env</span> (calls per run, programs per delivery, parallel agents).
+          Only allowed GitHub owners; one delivery at a time.
+        </p>
+        {error && <p className="dlv-error">{error}</p>}
+      </form>
+    </section>
+  );
+}
+
 export default function DeliveryView() {
   const [list, setList] = useState<DeliveryListItem[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -87,15 +142,22 @@ export default function DeliveryView() {
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
+  const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     const load = () => fetchDeliveries().then((items) => {
       setList(items);
       setSelected((current) => current ?? items[0]?.id ?? null);
     }).catch(() => setError("unreachable"));
     load();
-    const t = setInterval(load, 10000);
+    const t = setInterval(load, 5000);
     return () => clearInterval(t);
-  }, []);
+  }, [refresh]);
+  const started = (id: string) => {
+    setSelected(id);
+    setDelivery(null);
+    setRefresh((n) => n + 1);
+  };
+  const anyRunning = (list ?? []).some((d) => !["done", "failed"].includes(d.stage));
 
   useEffect(() => {
     if (!selected) return;
@@ -105,7 +167,8 @@ export default function DeliveryView() {
         const d = await fetchDelivery(selected);
         if (!stop) setDelivery(d);
       } catch (e) {
-        if (!stop) setError((e as Error).message);
+        const message = (e as Error).message;
+        if (!stop && !message.includes("HTTP 404")) setError(message);  // a just-started delivery appears within seconds
       }
     };
     tick();
@@ -123,18 +186,14 @@ export default function DeliveryView() {
     );
   }
   if (list === null) return <div className="panel runs-empty"><p>Loading deliveries…</p></div>;
-  if (list.length === 0) {
-    return (
-      <div className="panel runs-empty">
-        <p>No deliveries yet. Start one with <span className="mono">python -m diocle_api.deliver LEGACY_URL TARGET_URL</span>.</p>
-      </div>
-    );
-  }
-  if (!delivery) return <div className="panel runs-empty"><p>Loading delivery…</p></div>;
+  const form = <StartDelivery busy={anyRunning} onStarted={started} />;
+  if (list.length === 0) return form;
+  if (!delivery) return <>{form}<div className="panel runs-empty"><p>Starting… the first stage appears in a few seconds.</p></div></>;
 
   const running = !["done", "failed"].includes(delivery.stage);
   return (
     <>
+      {form}
       <section className="panel runs-header dlv-header">
         <div>
           <div className="runs-badges">
