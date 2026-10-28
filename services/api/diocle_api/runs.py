@@ -60,7 +60,7 @@ def _cobol_lines(sample: Path) -> int:
     files = [sample / info["source"]]
     if info.get("copybookDir"):
         files += sorted((sample / info["copybookDir"]).glob("*.cpy"))
-    lines = [line for f in files if f.exists() for line in f.read_text().splitlines()]
+    lines = [line for f in files if f.exists() for line in f.read_text(encoding="latin-1").splitlines()]
     return sum(1 for line in lines if line.strip() and line[6:7] not in ("*", "/"))
 
 
