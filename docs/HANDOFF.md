@@ -85,6 +85,13 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
   started 22:12, before the change). Publish it as-is in `docs/EVALUATION.md`, then run a corrected follow-up
   with the new comparator and report both; LOANAMRT's round-3 failures are "extra output record" (fan-out).
 
+### In flight (started 2026-10-28 ~23:45 IST on the original Mac)
+- Evaluation re-run: tag `eval-freeze-2` (commit 3bcccfb), `eval/run_eval.py --no-memory` (cold start: the first
+  run taught fix memory a lesson from CHQCLR, an evaluation program). Writes `eval/results-eval-freeze-2.json`.
+  Do not change `services/` while it runs. Then add the results to `docs/EVALUATION.md` next to freeze-1.
+- INTACCR re-delivery to quillmark-modern: fresh conversion from quillmark-legacy (the clean run came from
+  quillmark-mainframe, a different source, so it was not reused), `--breaker`, opens a new PR.
+
 ## Open work (priority order)
 1. Deploy the comparator/CI-status commits; owner decides on re-delivering INTACCR to quillmark-modern and on
    switching visitor imports on.
