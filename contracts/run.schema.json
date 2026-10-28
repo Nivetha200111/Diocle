@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.5 (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.6 (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": ["id", "program", "command", "certified", "javaOrigin", "events", "usage"],
   "properties": {
@@ -11,6 +11,8 @@
     "command": { "type": "string", "enum": ["repair", "run"] },
     "createdAt": { "type": "string", "description": "ISO 8601, from the run directory name" },
     "certified": { "type": "boolean" },
+    "certificationSeed": { "type": ["integer", "null"], "description": "Seed of the held-out inputs that certified the run" },
+    "error": { "type": ["string", "null"], "description": "Set when the converter crashed; the run is then not certified" },
     "status": { "type": "string", "enum": ["running", "certified", "not-certified"], "description": "running while the converter is still working; events grow as it goes" },
     "javaOrigin": { "type": "string", "description": "Where the Java started: a copied conversion or a model translation" },
     "rounds": { "type": "array", "items": { "type": "object" } },
@@ -62,6 +64,7 @@
         "tried": { "type": "integer" },
         "broke": { "type": "integer" },
         "fixed": { "type": "boolean" },
+        "repairCycles": { "type": "integer" },
         "recheckBroke": { "type": "integer" },
         "counterexamples": { "type": "array", "items": { "type": "object" } }
       }
