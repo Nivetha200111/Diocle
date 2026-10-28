@@ -8,6 +8,7 @@ only for your own agent on your own machine.
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import tempfile
 from collections import Counter
@@ -20,6 +21,21 @@ from diocle_analyzer.github import clone
 from diocle_verifier.verify import verify_sample
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def allowed_roots() -> list[Path]:
+    """Local paths the tools may read and execute: DIOCLE_MCP_ROOTS (comma-separated), default the Diocle repo.
+    The verify tools run the code they are pointed at, so an agent steered by a prompt injection must not be able
+    to aim them anywhere on the machine."""
+    raw = os.environ.get("DIOCLE_MCP_ROOTS", str(REPO_ROOT))
+    return [Path(p).expanduser().resolve() for p in raw.split(",") if p.strip()]
+
+
+def _local(path: str) -> Path:
+    resolved = Path(path).expanduser().resolve()
+    if not any(resolved.is_relative_to(root) for root in allowed_roots()):
+        raise PermissionError(f"{path} is outside DIOCLE_MCP_ROOTS")
+    return resolved
 SKILL = REPO_ROOT / "skills" / "cobol-to-java-semantics" / "SKILL.md"
 
 mcp = FastMCP("diocle", instructions=(
@@ -32,7 +48,7 @@ def _source(source: str) -> tuple[Path, dict]:
     if source.startswith("https://"):
         root, sha = clone(source, REPO_ROOT / "runs" / "imports")
         return root, analyze(root, kind="github", location=source.rstrip("/"), commit=sha)
-    root = Path(source).expanduser()
+    root = _local(source)
     if not root.is_dir():
         raise ValueError(f"not a directory: {source}")
     return root, analyze(root)
@@ -68,7 +84,7 @@ def _verify(legacy: str, program: str, java_dir: str, main_class: str | None, se
             meta = json.loads((sample / "sample.json").read_text())
             meta["javaConversion"]["mainClass"] = main_class
             (sample / "sample.json").write_text(json.dumps(meta))
-        result = verify_sample(sample, Path(java_dir).expanduser(), seed=seed, random_count=cases)
+        result = verify_sample(sample, _local(java_dir), seed=seed, random_count=cases)
     return _summary(result)
 
 
