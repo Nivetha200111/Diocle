@@ -1,0 +1,9 @@
+# SYNTHETIC SAMPLE - written for the Diocle hackathon project.
+# Fictional company. Not derived from any real system, employer, or client.
+!out/
+out/*
+!out/small/
+/out/medium/
+/out/large/
+/.work/
+__pycache__/
