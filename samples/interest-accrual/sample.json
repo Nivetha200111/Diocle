@@ -116,10 +116,6 @@
     {
       "paragraph": "5000-WRITE-RESULT",
       "behaviour": "WS-NEW-BAL S9(9)V99 also truncates high-order digits on overflow."
-    },
-    {
-      "paragraph": "9000-TERM",
-      "behaviour": "DISPLAY of PIC 9(7) COMP prints 10 digits under GnuCOBOL -std=ibm."
     }
   ],
   "fixtureCases": [

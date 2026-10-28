@@ -102,5 +102,5 @@ def find_risks(program: str, text: str) -> list[dict]:
             shown = [name for name in comp if re.search(rf"\b{re.escape(name)}\b", stmt)]
             if shown:
                 findings.append({**base, "category": "display", "severity": "low",
-                                 "message": f"DISPLAY of binary field(s) {', '.join(sorted(shown))}: GnuCOBOL prints the full binary width, not the PIC digit count."})
+                                 "message": f"DISPLAY of binary field(s) {', '.join(sorted(shown))}: IBM COBOL shows the PIC digits, not the binary width. Diocle's oracle is compiled to match (-fpretty-display)."})
     return findings

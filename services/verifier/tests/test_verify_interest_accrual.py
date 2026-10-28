@@ -36,7 +36,9 @@ def test_naive_conversion_fails_and_report_is_valid(naive_report):
     validate_report(naive_report)
     assert naive_report["runs"]["original"]["compiled"] and naive_report["runs"]["converted"]["compiled"]
     assert naive_report["summary"]["failed"] > 0
-    assert not naive_report["runs"]["stdoutMatch"]  # COMP counter displays 10 digits in COBOL
+    # PIC 9(7) COMP counters DISPLAY with their 7 PIC digits under IBM's defaults (the oracle is compiled with them),
+    # so the naive port's "%07d" counter line is right; its failures are in the records.
+    assert naive_report["runs"]["stdoutMatch"]
 
 
 def test_planted_traps_are_caught(naive_report):

@@ -40,7 +40,7 @@ public class PkdPost {
             out.write(overpunchOut(reversal, 7));
         }
         Files.write(Path.of(System.getenv("DD_PKOUT")), out.toByteArray());
-        System.out.println("PKDPOST READ=" + String.format("%010d", read));
+        System.out.println("PKDPOST READ=" + String.format("%07d", read));
     }
 
     static BigDecimal truncateHigh(BigDecimal v, int integerDigits) {

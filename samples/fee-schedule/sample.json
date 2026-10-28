@@ -121,10 +121,6 @@
     {
       "paragraph": "6000-TOTAL",
       "behaviour": "The total wraps in S9(3)V99 before the cap check, so a huge charge can come out small and uncapped; product C is never capped."
-    },
-    {
-      "paragraph": "9000-TERM",
-      "behaviour": "DISPLAY of PIC 9(7) COMP prints 10 digits under GnuCOBOL -std=ibm."
     }
   ],
   "fixtureCases": [

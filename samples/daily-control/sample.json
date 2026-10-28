@@ -91,10 +91,6 @@
     {
       "paragraph": "3000-ACCRUE",
       "behaviour": "No ON SIZE ERROR: WS-INTEREST S9(7)V99 drops high-order digits on overflow, and the wrapped amount is what enters the control total."
-    },
-    {
-      "paragraph": "9000-TERM",
-      "behaviour": "The control total is DISPLAYed through the edited picture -(11)9.99 (floating minus, leading spaces), and PIC 9(7) COMP counters print 10 digits."
     }
   ],
   "fixtureCases": [

@@ -41,16 +41,6 @@ Treat them as rules of thumb, not proof: after converting, run the original and 
 - **Java:** Format sign plus zero-padded absolute value truncated modulo 10^width to the fixed field width.
 - *Learned from DAYCTRL, run `daily-control-20261028-173205`*
 
-### DISPLAY width and decimal exactness
-- **COBOL:** DISPLAY of binary counters and edited numerics uses wider zero-padded or space-padded widths than the picture digit count, with sign handling for edited pictures.
-- **Java:** Match observed DISPLAY widths with explicit zero-padded counters and space-padded edited-numeric formatting.
-- *Learned from DAYCTRL, run `daily-control-20261028-173205`*
-
-### COMP counter DISPLAY width
-- **COBOL:** DISPLAY of a binary COMP integer renders with a wider zero-padded decimal width than the digit count in its PICTURE.
-- **Java:** Format binary counters with an explicit wider zero-padded width matching observed output instead of using the PICTURE digit count.
-- *Learned from DAYCTRL, run `dayctrl-20261028-174138`*
-
 ## Always
 - Use `java.math.BigDecimal` for every decimal value; never `float`, `double` or `Math.round`.
 - Never special-case particular inputs or expected outputs.
