@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD).",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note).",
   "type": "object",
   "required": [
     "version",
@@ -54,9 +54,10 @@
               "fixture",
               "golden",
               "corpus",
-              "files"
+              "files",
+              "output"
             ],
-            "description": "How the input was generated. 'files': an output record of a multi-file run, whose inputs are whole generated files."
+            "description": "How the input was generated. 'files': an output record of a multi-file run, whose inputs are whole generated files. 'output': a record of a program whose outputs do not map one to one to its inputs (aggregation, fan-out); compared by position in the output."
           },
           "fieldDiffs": {
             "type": "array",
@@ -77,6 +78,10 @@
                 },
                 "converted": {
                   "type": "string"
+                },
+                "note": {
+                  "type": "string",
+                  "description": "e.g. 'same value, different bytes' (+00 vs -00): records must match byte for byte"
                 }
               }
             }
