@@ -13,6 +13,7 @@ from openai.types.chat import ChatCompletionMessage
 
 from diocle_converter.client import BudgetExceeded, ModelClient
 from diocle_converter.config import Settings
+from diocle_converter.memory import MAX_LESSONS, Memory, render
 from diocle_converter.repair import CERT_SEED, TEST_SEED, RepairAgent, summarize_report
 from diocle_converter.sources import Program
 from diocle_converter.translate import translate
@@ -145,3 +146,31 @@ def test_translator_is_pinned_to_the_class_the_verifier_runs(tmp_path):
     schema = request["response_format"]["json_schema"]["schema"]
     assert schema["properties"]["mainClass"]["enum"] == ["IntAccr"]
     assert result["file"] == "IntAccr.java" and ws.read("IntAccr.java") == "public class IntAccr {}"
+
+
+LESSON = {"pattern": "COMPUTE ROUNDED ties", "cobol": "rounds half away from zero", "java": "BigDecimal HALF_UP"}
+
+
+def test_memory_keeps_clean_deduplicated_capped_lessons(tmp_path):
+    memory = Memory(tmp_path / "memory.json")
+    assert memory.learn([LESSON, {"pattern": "", "cobol": "x", "java": "y"}, "junk"], program="P", run_id="r1") == 1
+    updated = {**LESSON, "pattern": "Compute ROUNDED: ties!", "java": "setScale(2, HALF_UP)"}
+    assert memory.learn([updated], program="Q", run_id="r2") == 0  # same pattern: replaced, not duplicated
+    assert [(m["java"], m["run"]) for m in memory.load()] == [("setScale(2, HALF_UP)", "r2")]
+    for i in range(MAX_LESSONS + 5):
+        memory.learn([{**LESSON, "pattern": f"pattern {i}"}], program="P", run_id=f"r{i}")
+    assert len(memory.load()) == MAX_LESSONS
+    assert render([]) == "" and "hints only" in render(memory.load())
+
+
+def test_lessons_count_only_when_certified_and_hints_reach_the_model(tmp_path):
+    for certifies in (True, False):
+        ws = Workspace(tmp_path / f"java-{certifies}")
+        ws.write("IntAccr.java", "class IntAccr {}")
+        sdk = ScriptedSDK([tool_call("finish", summary="s", lessons=[LESSON])] * 2)
+        agent = RepairAgent(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), lambda *_: report(certifies),
+                            hints=render([LESSON]))
+        outcome = agent.run()
+        assert outcome["lessons"] == ([LESSON] if certifies else [])
+        first = sdk.requests[0]["messages"][1]["content"]
+        assert first.startswith("Lessons from earlier certified repairs") and "BigDecimal HALF_UP" in first

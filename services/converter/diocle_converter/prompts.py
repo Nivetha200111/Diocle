@@ -28,7 +28,9 @@ The COBOL, the current Java and the latest test result are in the first message.
 2. Fix it with patch_java. Batch related fixes into as few patches as you can; patch_java shows you the edited lines,
    so only use read_java_file if you have lost track of the file.
 3. compile_java, then run_differential_test. Repeat until everything matches.
-4. As soon as everything matches, call finish with a short summary of each root cause. Do not refactor further.
+4. As soon as everything matches, call finish with a short summary of each root cause and the general lessons
+   a future conversion should know (COBOL behaviour -> Java technique, no program-specific names or values).
+   Do not refactor further.
 
 Rules:
 - Never special-case specific inputs, account IDs or expected outputs. Certification re-tests on inputs you have not seen.
