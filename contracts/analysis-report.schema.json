@@ -2,48 +2,104 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/analysis-report.schema.json",
   "title": "AnalysisReport",
-  "description": "DRAFT placeholder. Output of services/analyzer.",
+  "description": "v0.1. Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
   "type": "object",
-  "required": ["version", "programs", "dependencies", "findings"],
+  "required": ["version", "source", "programs", "dependencies", "findings"],
   "properties": {
     "version": { "type": "string" },
+    "source": {
+      "type": "object",
+      "description": "Where the code came from",
+      "required": ["kind", "location"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["github", "directory"] },
+        "location": { "type": "string", "description": "Repository URL or local path" },
+        "commit": { "type": ["string", "null"], "description": "Commit SHA analyzed, when known" }
+      }
+    },
     "programs": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "path"],
+        "required": ["name", "path", "copybooks", "files", "convertible"],
         "properties": {
-          "name": { "type": "string" },
-          "path": { "type": "string" },
-          "copybooks": { "type": "array", "items": { "type": "string" } }
+          "name": { "type": "string", "description": "PROGRAM-ID" },
+          "path": { "type": "string", "description": "Source path relative to the repository root" },
+          "copybooks": { "type": "array", "items": { "type": "string" } },
+          "job": { "type": ["string", "null"], "description": "JCL member that runs this program, if found" },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["dd", "direction", "copybook", "layout"],
+              "properties": {
+                "dd": { "type": "string", "description": "DD name from SELECT ... ASSIGN TO" },
+                "direction": { "type": "string", "enum": ["input", "output", "unknown"] },
+                "dsn": { "type": ["string", "null"], "description": "Dataset name from the JCL DD statement" },
+                "copybook": { "type": ["string", "null"] },
+                "layout": { "$ref": "#/$defs/layout" }
+              }
+            }
+          },
+          "convertible": { "type": "boolean", "description": "True when Diocle can run it end to end: one input and one output file with supported layouts" },
+          "notConvertibleReason": { "type": ["string", "null"] }
         }
       }
     },
     "dependencies": {
       "type": "array",
-      "description": "Edges of the dependency graph (e.g. CALL, COPY).",
+      "description": "Edges of the dependency graph.",
       "items": {
         "type": "object",
         "required": ["from", "to", "kind"],
         "properties": {
           "from": { "type": "string" },
           "to": { "type": "string" },
-          "kind": { "type": "string", "enum": ["call", "copy", "file", "other"] }
+          "kind": { "type": "string", "enum": ["call", "copy", "file", "job", "other"] }
         }
       }
     },
     "findings": {
       "type": "array",
-      "description": "Flagged risky logic (e.g. fraud, payment).",
+      "description": "Legacy behaviour a conversion must preserve.",
       "items": {
         "type": "object",
         "required": ["program", "category", "severity", "message"],
         "properties": {
           "program": { "type": "string" },
           "line": { "type": "integer", "minimum": 1 },
-          "category": { "type": "string", "enum": ["fraud", "payment", "other"] },
+          "paragraph": { "type": ["string", "null"] },
+          "category": { "type": "string", "enum": ["rounding", "truncation", "overflow", "display", "fraud", "payment", "other"] },
           "severity": { "type": "string", "enum": ["low", "medium", "high"] },
           "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "layout": {
+      "type": ["object", "null"],
+      "description": "Fixed-width record layout, same shape as samples/*/sample.json layouts. Null when the copybook uses features the layout model does not support.",
+      "required": ["record", "fields"],
+      "properties": {
+        "record": { "type": "string" },
+        "unsupported": { "type": ["string", "null"] },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "kind"],
+            "properties": {
+              "name": { "type": "string" },
+              "kind": { "type": "string", "enum": ["alnum", "numeric"] },
+              "length": { "type": "integer", "minimum": 1 },
+              "values": { "type": "array", "items": { "type": "string" } },
+              "digits": { "type": "integer", "minimum": 0 },
+              "scale": { "type": "integer", "minimum": 0 },
+              "signed": { "type": "boolean" },
+              "sign": { "type": "string", "enum": ["leading-separate"] }
+            }
+          }
         }
       }
     }
