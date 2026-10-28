@@ -1,48 +1,56 @@
-# Architecture (PLANNED)
+# Architecture
 
-> **Status: planned, not implemented.** This describes the target design for the hackathon build. Sections will be marked as implemented as modules land. Diagram: [architecture.drawio](architecture.drawio). Open it in [diagrams.net](https://app.diagrams.net) or the VS Code Draw.io Integration extension.
+> The first section describes what is **implemented and tested**. Everything from "Overview" down is the original target design; where it differs from what was built, the first section wins. Diagram of the target design: [architecture.drawio](architecture.drawio) (open in [diagrams.net](https://app.diagrams.net) or the VS Code Draw.io Integration extension).
 
 ## Flow that runs today (implemented)
-This is what works end to end right now on the synthetic `interest-accrual` sample. Everything below this section is the full target design.
 
 ```mermaid
 flowchart LR
-    SRC["COBOL + copybooks<br/>samples/"]
-    JAVA["Starting Java<br/>(existing conversion, or a<br/>Muse Spark translation)"]
+    REPO["Legacy GitHub repo<br/>COBOL, copybooks, JCL"]
+    ANA["services/analyzer<br/>layouts from copybooks,<br/>file wiring, CALLs, findings"]
 
-    subgraph VER["services/verifier"]
-        GEN["Generate inputs<br/>trap cases + PIC boundaries + random"]
-        RUN["Run GnuCOBOL original and Java<br/>on the same inputs"]
-        DIFF["Field-by-field diff"]
-        GEN --> RUN --> DIFF
+    subgraph CONV["services/converter (Meta Muse Spark)"]
+        TR["Translator"]
+        AGENT["Repair agent<br/>read, patch, compile, re-test"]
+        BRK["Breaker agent<br/>designs inputs to break it"]
+        MEM[("Fix memory<br/>certified lessons only")]
     end
 
-    subgraph CONV["services/converter (Meta models)"]
-        AGENT["Repair agent<br/>reads COBOL, patches Java,<br/>compiles, re-tests"]
+    subgraph VER["services/verifier (the oracle)"]
+        RUN["GnuCOBOL vs Java<br/>same inputs, every field,<br/>byte, exit code, stdout"]
+        GOLD["Golden replay<br/>mainframe output wins"]
     end
 
-    CERT{"Certification<br/>1,000 held-out inputs"}
-    STORE[("runs/&lt;id&gt;/<br/>trace, reports, cost")]
-    API["services/api<br/>GET /runs"]
-    UI["apps/web<br/>Live runs view"]
+    CERT{"Held-out certification<br/>1,000 unseen inputs"}
+    PR["Pull request on target repo<br/>Java + certificate"]
+    CI["Target repo CI<br/>reverify on a fresh seed"]
+    UI["apps/web<br/>Live runs, Delivery"]
 
-    SRC --> GEN
-    JAVA --> RUN
-    DIFF -- "mismatches" --> AGENT
+    REPO --> ANA --> TR --> AGENT
     AGENT -- "tool calls" --> RUN
+    RUN --- GOLD
     AGENT -- "finish" --> CERT
-    CERT -- "fail (max 3 rounds)" --> AGENT
-    CERT -- "pass" --> STORE
-    STORE --> API --> UI
+    CERT -- "fail" --> AGENT
+    CERT -- "pass" --> BRK
+    BRK -- "breaking input becomes a test" --> AGENT
+    CERT -- "lessons" --> MEM --> AGENT
+    BRK -- "nothing breaks" --> PR --> CI
+    CONV -. "runs, events, cost" .-> UI
 ```
 
-1. **Inputs:** a synthetic COBOL program and a starting Java version, either an existing conversion or one translated by Muse Spark.
-2. **Verify:** the verifier compiles both, runs them on the same generated inputs, and diffs every output field. GnuCOBOL is the source of truth.
-3. **Repair:** the Muse Spark agent sees the mismatches and fixes the Java with tools (read, patch, compile, re-test). It can only edit the run's Java files.
-4. **Certify:** when the agent finishes, the verifier re-tests on 1,000 inputs the agent never saw. If that fails, the agent gets another round (at most 3).
-5. **Show:** the run (trace, before/after results, Java diff, tokens and cost) is saved under `runs/`, served by the API, and shown in the portal's **Live runs** view.
+1. **Import and analyze** (`services/analyzer`, deterministic): clone an allowed GitHub repo at a pinned commit; derive record layouts from copybooks (DISPLAY, COMP-3, COMP, COMP-5, COMP-1/2, every sign mode, P scaling, OCCURS, REDEFINES, edited PICs, COPY REPLACING); wire DD names through SELECT/FD/OPEN and JCL; resolve CALLed programs; flag ROUNDED, truncation, silent overflow, column-72 cuts, clock reads, EBCDIC-sensitive comparisons and hex floats. Programs Diocle cannot run (EXEC SQL/CICS/DLI, INDEXED/RELATIVE files, several files or record types, OCCURS DEPENDING ON, PIC N) are reported as not convertible.
+2. **Translate** with Muse Spark (hosted, or Muse Spark Open on Fireworks in private mode). The translator is told GnuCOBOL's storage rules, the pinned clock and the collating sequence.
+3. **Repair** with a tool-using agent that can only edit the run's Java. Every test compares the Java with the original compiled by GnuCOBOL 3.2 (-std=ibm): output records field by field and byte by byte (text lines or fixed-length byte records), RETURN-CODE and stdout, with the clock pinned and EBCDIC collation for mainframe code. Inputs: PIC boundaries, seeded random values, fixtures, corpus files, and golden files captured from the mainframe, where the mainframe's output is the oracle.
+4. **Certify** on 1,000 held-out inputs from a seed the agent never saw. Failure gives the agent another round, up to `MODEL_MAX_ROUNDS`.
+5. **Attack** (optional `--breaker`): a second Muse Spark agent designs inputs to break the certified Java. Any input that breaks it becomes a standing test case and the agent resumes (`MODEL_MAX_BREAKER_CYCLES`); if it is still broken, the run is not certified.
+6. **Learn**: lessons from certified runs go into fix memory (proof-gated) and are offered as hints to later runs; in swarm mode, parallel agents receive them mid-run. Memory exports as a skill (`skills/cobol-to-java-semantics/SKILL.md`).
+7. **Deliver** (`services/api` `deliver`): each certified program goes to the target repo as `programs/<PROGRAM>/` with the Java, the derived layouts and `certificate.json` (pinned legacy commit, modules, verifier commit, seed, cost). Uncertified programs are listed, never delivered.
+8. **Re-prove in CI**: the target repo's workflow pins the legacy repo and the Diocle branch, re-derives layouts from the copybooks, and runs `reverify` on a fresh seed. It does not trust files in the pull request.
+9. **Show**: runs and deliveries are served by `services/api` and shown live in the dashboard. `services/mcp` exposes analyze, verify and certify to any agent.
 
-Not built yet: analyzer, Class Designer, SonarQube gate, starting runs from the browser, live streaming.
+Caps (CLAUDE.md rule 10, all from `.env`): calls per run and per round, repair rounds, breaker attack rounds and cycles, programs per delivery and parallel agents.
+
+Not built from the target design below: the Class Designer and paragraph-level translation, the SonarQube quality gate, LLM-as-a-judge, starting runs from the browser, and support for the program shapes listed as not convertible in step 1.
 
 ## Overview
 Diocle is an "understand first, convert second" pipeline: **upload > analyze > design > convert > verify ⇄ repair > report**.
