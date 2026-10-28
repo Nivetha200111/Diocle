@@ -34,25 +34,38 @@ Keep the employer unnamed ("a large migration I worked on"), and the bank fictio
 - [ ] Browser: full screen, 1920x1080, zoom 110-125 %, bookmarks bar hidden, one tab, notifications off
       (Focus mode), cursor highlight on if available.
 
-## The submission cut (merged): `demo/promo/out/diocle-submission.mp4`, 1:40
-Composition `Submission`: promo hook, brand and "how it checks", then the YouTube click-through (bridge title and
-the live clicks), then the evaluation scene and the outro. Each beat is told once; well under 3:00.
+## The submission cut: `demo/promo/out/diocle-submission.mp4`, 2:05
+Shaped for how judges watch (many videos back to back; a rubric; the final round watched live in a room):
+- **First 5 seconds earn attention:** cold open on the climax ("It passed 1,004 tests." → 20.00 ≠ 0.00 → "It was
+  still wrong."), a question the viewer wants answered, before any context.
+- **One clear beat per rubric criterion:** Impact (firsthand migration story; today vs with Diocle), Use of Meta AI
+  (three Muse Spark agents: one writes, one attacks, one repairs; private mode on Muse Spark Open), Technical depth
+  (the judge is the original program, byte for byte), Demo (real clicks, a live PASS).
+- **Novelty over "AI converts COBOL":** agents attacking their own code is what most entries won't have.
+- **Credibility:** real numbers only, the honest evaluation and our own bug stay in (admitting a flaw raises trust).
+- **Peak and end:** the breaker reveal is the peak; the end is impact plus "Try it now", not just a logo.
+- **Rules:** "Built Oct 27 – Nov 4" at both ends.
 
-Narration timed to it (about 250 words; read calmly, the picture carries the rest):
+Composition `Submission`: ColdOpen · Hook · Brand · Agents · HowItWorks · live click-through · PrivateMode · Honest
+· Impact · TryNow.
+
+Narration timed to it (about 280 words, calm; the picture carries the rest):
 
 | Time | Narration |
 |---|---|
-| 0:00 | "Banks still run on COBOL. On a migration I worked on, hundreds of people re-checked converted code by hand. AI can translate it in minutes, but would you ship that to production?" |
-| 0:09 | "This is Diocle. AI writes the code; Diocle checks it against the original." |
-| 0:15 | "Meta's Muse Spark translates each program. Diocle compiles the original COBOL with GnuCOBOL and runs it next to the Java on the same inputs. Every byte, every exit code, every line on screen must match. If anything differs, a repair agent fixes the Java." |
-| 0:30 | "So we let AI rewrite a bank's programs, and tried to break them." |
-| 0:34 | "This is the live product. A cheque-clearing program Diocle had never seen: Muse Spark's Java passed one thousand and four tests it had never seen." |
-| 0:46 | "Then a second Muse Spark agent, the breaker, designed inputs to break it. Two did: the COBOL charges a twenty-dollar fee; the Java charges nothing. The repair agent fixed it, and it re-certified on fresh inputs." |
-| 0:58 | "You don't have to trust us: press Re-verify, and both programs run again on a seed chosen right now." |
-| 1:05 | "Certified code ships as a pull request with a certificate, and the target repository's own CI checks it again." |
-| 1:15 | "Or paste any public COBOL repository and watch it convert, in a sandbox." |
-| 1:22 | "We test ourselves too: a frozen evaluation on unseen programs, failures published, including a bug our own stricter check caught." |
-| 1:32 | "Diocle. AI writes the code; Diocle checks it. Built during the hackathon, with Meta Muse Spark." |
+| 0:00 | (no voice; let the cold open hit) |
+| 0:05 | "Banks still run on COBOL. On a migration I worked on, hundreds of people re-checked converted code by hand. AI can write the Java in minutes. So who checks the AI?" |
+| 0:13 | "This is Diocle." |
+| 0:17 | "Three Meta Muse Spark agents. One writes the Java. One attacks it. One repairs it. And the judge isn't a model: it's the original program, run next to the Java, where every byte must match." |
+| 0:27 | "Muse Spark translates; GnuCOBOL runs the original; if anything differs, the repair agent fixes the Java until it certifies on inputs it has never seen." |
+| 0:39 | "We let AI rewrite a bank's programs, then tried to break them. This is the live product: a cheque-clearing program passed one thousand and four unseen tests." |
+| 0:58 | "Then the breaker designed inputs to break it. Two did: the COBOL charges a twenty-dollar fee; the Java charges nothing. The repair agent fixed it, and it re-certified." |
+| 1:10 | "Don't trust us: press Re-verify, and both programs run again on a seed chosen right now." |
+| 1:17 | "Certified code ships as a pull request with a certificate, and the target repository's own CI checks it again. Or paste any public COBOL repository and watch it convert." |
+| 1:31 | "Banks can't send code to a hosted API, so the same agents run on Muse Spark Open, Meta's open weights." |
+| 1:39 | "We test ourselves too: a frozen evaluation with failures published, including a bug our own stricter check caught." |
+| 1:48 | "Today, people re-check converted code by hand. With Diocle, every program arrives with proof anyone can re-run in seconds." |
+| 1:57 | "Diocle. Try it now. Built during the hackathon, with Meta Muse Spark." |
 
 Then: `demo/finish.sh voiceover.m4a` (captions from the voice, sound effects kept under it) → `final.mp4`.
 

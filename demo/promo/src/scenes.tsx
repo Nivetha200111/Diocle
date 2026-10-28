@@ -1,6 +1,7 @@
 import React from "react";
-import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Easing, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import data from "./data.json";
+import privateRun from "./private.json";
 import { C, mono, pixel, sans } from "./theme";
 import { Backdrop, Capture, Counter, Footnote, Kinetic, Label, Pill, useEnter, Window } from "./ui";
 
@@ -16,8 +17,8 @@ export const Hook: React.FC = () => (
     <Backdrop />
     <AbsoluteFill style={{ ...pad, gap: 28 }}>
       <Kinetic text="Banks still run on COBOL." size={96} />
-      <Kinetic text="AI can now translate it to Java in minutes." size={64} color={C.muted} weight={600} delay={40} />
-      <Kinetic text="Would you ship it to production?" size={96} color={C.amber} delay={110} />
+      <Kinetic text="Migrating it, hundreds of people re-check converted code by hand." size={50} color={C.muted} weight={600} delay={36} stagger={3} />
+      <Kinetic text="AI can write the Java in minutes. Who checks the AI?" size={84} color={C.amber} delay={110} stagger={4} />
     </AbsoluteFill>
   </AbsoluteFill>
 );
@@ -342,6 +343,122 @@ export const Outro: React.FC = () => (
       <Label delay={40}>Meta Muse Spark · translator · repair agent · breaker</Label>
       <div style={{ fontFamily: mono, fontSize: 32, color: C.ink, opacity: useEnter(60) }}>diocle.vercel.app · github.com/Nivetha200111/Diocle</div>
       <Label delay={80} color={C.muted}>Everything shown was built Oct 27 – Nov 4, 2026, during the hackathon</Label>
+    </AbsoluteFill>
+  </AbsoluteFill>
+);
+
+// ---- Scenes for the submission cut (shaped for how judges watch: hook first, one beat per rubric criterion) ----
+
+// Cold open on the climax: a question the viewer wants answered before any context.
+export const ColdOpen: React.FC = () => {
+  const frame = useCurrentFrame();
+  const flash = interpolate(frame, [62, 66, 80], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const shake = frame >= 64 && frame < 80 ? Math.sin(frame * 3.1) * 10 * (1 - (frame - 64) / 16) : 0;
+  const a = ce[0];
+  return (
+    <AbsoluteFill style={{ background: "#03060c" }}>
+      <Sequence from={64} durationInFrames={30}><Audio src={staticFile("sfx/pop.wav")} volume={0.9} /></Sequence>
+      <Sequence from={20} durationInFrames={30}><Audio src={staticFile("sfx/success.wav")} volume={0.35} /></Sequence>
+      <AbsoluteFill style={{ background: C.red, opacity: flash * 0.35 }} />
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 30, transform: `translateX(${shake}px)` }}>
+        <Kinetic text="It passed 1,004 tests." size={92} color={frame < 64 ? C.phosphor : C.muted} font={mono} weight={600} delay={6} stagger={5} />
+        {frame >= 64 && (
+          <>
+            <div style={{ fontFamily: mono, fontWeight: 600, fontSize: 210, color: C.red, textShadow: `0 0 60px ${C.red}88`, letterSpacing: -6 }}>
+              {a.cobol} ≠ {a.java}
+            </div>
+            <Kinetic text="It was still wrong." size={92} color={C.ink} delay={74} stagger={5} />
+          </>
+        )}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+export const Agents: React.FC = () => {
+  const cards = [
+    { role: "Translator", line: "writes the Java from the COBOL", color: C.blue },
+    { role: "Breaker", line: "designs inputs to break that Java", color: C.red },
+    { role: "Repair", line: "fixes it with real compile and test tools", color: C.amber },
+  ];
+  return (
+    <AbsoluteFill>
+      <Backdrop />
+      <div style={{ position: "absolute", left: 120, top: 90 }}>
+        <Label>Meta Muse Spark · three agents</Label>
+        <Kinetic text="One writes. One attacks. One repairs." size={72} />
+      </div>
+      <div style={{ position: "absolute", left: 120, right: 120, top: 340, display: "flex", gap: 40 }}>
+        {cards.map((c, i) => {
+          const p = useEnter(20 + i * 14, 14);
+          return (
+            <div key={c.role} style={{ flex: 1, padding: "40px 40px 44px", background: "#0d1f3a", border: `2px solid ${c.color}`, borderRadius: 18,
+              opacity: p, transform: `translateY(${(1 - p) * 50}px)`, boxShadow: `0 0 60px ${c.color}33` }}>
+              <div style={{ fontFamily: pixel, fontSize: 34, color: c.color, letterSpacing: 2 }}>MUSE SPARK</div>
+              <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 64, color: C.ink, marginTop: 8 }}>{c.role}</div>
+              <div style={{ fontFamily: sans, fontSize: 32, color: C.muted, marginTop: 14, lineHeight: 1.3 }}>{c.line}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ position: "absolute", left: 120, top: 760 }}>
+        <Kinetic text="The judge isn't a model: it's the original program." size={52} weight={600} color={C.phosphor} delay={80} stagger={3} />
+        <Kinetic text="GnuCOBOL runs it next to the Java. Every byte must match." size={36} weight={400} color={C.muted} delay={110} stagger={2} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+export const PrivateMode: React.FC = () => (
+  <AbsoluteFill>
+    <Backdrop tint={C.teal} />
+    <AbsoluteFill style={{ ...pad, gap: 26 }}>
+      <Label color={C.teal}>Private mode · Meta open weights</Label>
+      <Kinetic text="Banks can't send their code to a hosted API." size={66} />
+      <Kinetic text="So the same agents run on Muse Spark Open." size={66} color={C.phosphor} delay={36} />
+      <div style={{ display: "flex", gap: 22, marginTop: 30 }}>
+        <Pill color={C.teal} delay={80} size={30}>{privateRun.model.split("/").pop()} · served by a partner host</Pill>
+        <Pill color={C.phosphor} delay={96} size={30}>{privateRun.program} certified in {privateRun.calls} model calls</Pill>
+      </div>
+    </AbsoluteFill>
+    <Footnote delay={110}>Run {privateRun.id} ({privateRun.note}).</Footnote>
+  </AbsoluteFill>
+);
+
+export const Impact: React.FC = () => (
+  <AbsoluteFill>
+    <Backdrop tint={C.blue} />
+    <div style={{ position: "absolute", left: 120, top: 100 }}><Label>Who it's for</Label></div>
+    <div style={{ position: "absolute", left: 120, right: 120, top: 200, display: "flex", gap: 50 }}>
+      <div style={{ flex: 1, opacity: useEnter(10), padding: 44, border: `2px solid ${C.muted}55`, borderRadius: 18, background: "#0b1626" }}>
+        <div style={{ fontFamily: pixel, fontSize: 34, color: C.muted }}>TODAY</div>
+        <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 52, color: C.ink, marginTop: 14, lineHeight: 1.15 }}>
+          Hundreds of people re-check converted code by hand, and still miss bugs.</div>
+      </div>
+      <div style={{ flex: 1, opacity: useEnter(40), padding: 44, border: `2px solid ${C.phosphor}`, borderRadius: 18, background: "#0b1f17",
+        boxShadow: `0 0 60px ${C.phosphor}33` }}>
+        <div style={{ fontFamily: pixel, fontSize: 34, color: C.phosphor }}>WITH DIOCLE</div>
+        <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 52, color: C.ink, marginTop: 14, lineHeight: 1.15 }}>
+          Every program arrives with proof anyone can re-run in seconds.</div>
+      </div>
+    </div>
+    <div style={{ position: "absolute", left: 120, top: 760, display: "flex", gap: 22 }}>
+      <Pill color={C.phosphor} delay={80} size={30}>${data.chqclr.costUsd.toFixed(2)} of model spend for CHQCLR</Pill>
+      <Pill color={C.blue} delay={95} size={30}>for modernisation teams at banks and insurers</Pill>
+    </div>
+  </AbsoluteFill>
+);
+
+export const TryNow: React.FC = () => (
+  <AbsoluteFill>
+    <Backdrop tint={C.blue} />
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", gap: 26, textAlign: "center" }}>
+      <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 170, color: C.ink, letterSpacing: -6, opacity: useEnter(0) }}>
+        <span style={{ color: C.blue }}>◆</span> diocle<span style={{ color: C.phosphor }}>.</span>
+      </div>
+      <Kinetic text="AI writes the code. Diocle checks it." size={60} weight={700} delay={8} />
+      <div style={{ marginTop: 18 }}><Pill color={C.phosphor} delay={30} size={40}>Try it now: paste a COBOL repo at diocle.vercel.app</Pill></div>
+      <Label delay={50} color={C.muted}>Everything shown was built Oct 27 – Nov 4, 2026, during the hackathon · github.com/Nivetha200111/Diocle</Label>
     </AbsoluteFill>
   </AbsoluteFill>
 );
