@@ -1,0 +1,191 @@
+{
+  "name": "account-match",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): sequential match-merge of sorted transactions against the sorted account master; new master plus exception report.",
+  "program": "ACCTMTCH",
+  "source": "src/ACCTMTCH.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Acctmtch",
+    "origin": "hand-written naive fixture, not model output"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "files": [
+    {
+      "dd": "MSTIN",
+      "direction": "input",
+      "layout": {
+        "record": "MS-REC",
+        "fields": [
+          {
+            "name": "MS-ACCT-ID",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "MS-BALANCE",
+            "kind": "numeric",
+            "digits": 9,
+            "scale": 2,
+            "signed": true,
+            "sign": "leading-separate"
+          },
+          {
+            "name": "MS-STATUS",
+            "kind": "alnum",
+            "length": 4,
+            "values": [
+              "FRZN",
+              "ACTV"
+            ]
+          }
+        ],
+        "format": "line"
+      }
+    },
+    {
+      "dd": "TXNIN",
+      "direction": "input",
+      "layout": {
+        "record": "TX-REC",
+        "fields": [
+          {
+            "name": "TX-ACCT-ID",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "TX-AMOUNT",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "leading-separate"
+          },
+          {
+            "name": "TX-TYPE",
+            "kind": "alnum",
+            "length": 1,
+            "values": [
+              "C",
+              "D"
+            ]
+          }
+        ],
+        "format": "line"
+      }
+    },
+    {
+      "dd": "NEWMST",
+      "direction": "output",
+      "layout": {
+        "record": "NM-REC",
+        "fields": [
+          {
+            "name": "NM-ACCT-ID",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "NM-BALANCE",
+            "kind": "numeric",
+            "digits": 9,
+            "scale": 2,
+            "signed": true,
+            "sign": "leading-separate"
+          },
+          {
+            "name": "NM-STATUS",
+            "kind": "alnum",
+            "length": 4
+          },
+          {
+            "name": "NM-TXN-COUNT",
+            "kind": "numeric",
+            "digits": 4,
+            "scale": 0,
+            "signed": false
+          }
+        ],
+        "format": "line"
+      }
+    },
+    {
+      "dd": "EXCOUT",
+      "direction": "output",
+      "layout": {
+        "record": "EX-REC",
+        "fields": [
+          {
+            "name": "EX-ACCT-ID",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "EX-AMOUNT",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "leading-separate"
+          },
+          {
+            "name": "EX-REASON",
+            "kind": "alnum",
+            "length": 12
+          }
+        ],
+        "format": "line"
+      }
+    }
+  ],
+  "sharedKeys": [
+    [
+      [
+        "MSTIN",
+        "MS-ACCT-ID"
+      ],
+      [
+        "TXNIN",
+        "TX-ACCT-ID"
+      ]
+    ]
+  ],
+  "sortedBy": {
+    "MSTIN": "MS-ACCT-ID",
+    "TXNIN": "TX-ACCT-ID"
+  },
+  "fixtureFiles": {
+    "MSTIN": [
+      "A0000001+00000010000ACTV",
+      "10000001+00000005000ACTV",
+      "A0000002+00000020000FRZN"
+    ],
+    "TXNIN": [
+      "A0000001+000000500C",
+      "10000001+000000100D",
+      "A0000002+000001000C",
+      "A0000003+000000100X"
+    ]
+  },
+  "traps": [
+    {
+      "paragraph": "2000-MATCH",
+      "behaviour": "Keys compare in the program's collating sequence: EBCDIC on the mainframe, where letters sort before digits."
+    },
+    {
+      "paragraph": "3000-APPLY",
+      "behaviour": "A frozen account rejects every transaction, including ones with an unknown type."
+    },
+    {
+      "paragraph": "0000-MAIN",
+      "behaviour": "RETURN-CODE 4 when any exception was written."
+    },
+    {
+      "paragraph": "0000-MAIN",
+      "behaviour": "DISPLAY of PIC 9(7) COMP counters prints 10 digits."
+    }
+  ]
+}
