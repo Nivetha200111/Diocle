@@ -1,15 +1,46 @@
 # Engine-only server (the site is on Vercel). Only Caddy (80/443) is reachable from outside.
 # Usage: DIOCLE_API_DOMAIN=api.example.com docker compose -f docker-compose.api.yml up -d --build
+#
+# The api holds the secrets (model key, GitHub token) and never runs code it did not write: every cobc, javac and
+# program run goes to the sandbox, which has no secrets, no internet, a read-only filesystem and hard limits.
 services:
   api:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
+    image: diocle-engine
     env_file: ${DIOCLE_ENV_FILE:-./diocle.env}
+    environment:
+      DIOCLE_SANDBOX_URL: http://sandbox:8100
+      TMPDIR: /srv/diocle/work  # build and run directories, shared with the sandbox at the same path
     volumes:
       - diocle-runs:/srv/diocle/runs
+      - diocle-work:/srv/diocle/work
+    networks: [default, sandbox]
+    depends_on: [sandbox]
     restart: unless-stopped
-    mem_limit: 1536m
+    mem_limit: 1280m
+
+  sandbox:
+    image: diocle-engine
+    pull_policy: never
+    entrypoint: ["/srv/diocle/services/verifier/.venv/bin/python", "-m", "diocle_verifier.sandbox"]
+    environment:  # deliberately no env_file: nothing secret exists in this container
+      DIOCLE_SANDBOX_ROOTS: /srv/diocle/work
+    volumes:
+      - diocle-runs:/srv/diocle/runs:ro
+      - diocle-work:/srv/diocle/work
+    networks: [sandbox]  # internal only: reachable from the api, no route to the internet
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 768m
+    cpus: 1.0
+    ulimits:
+      fsize: 262144  # KB: no single output file over 256 MB
+    restart: unless-stopped
 
   caddy:
     image: caddy:2-alpine
@@ -25,7 +56,12 @@ services:
       - api
     restart: unless-stopped
 
+networks:
+  sandbox:
+    internal: true
+
 volumes:
   diocle-runs:
     name: deploy_diocle-runs
+  diocle-work:
   caddy-data:
