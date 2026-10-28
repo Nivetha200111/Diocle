@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 from . import REPORT_VERSION
-from .cobol import parse_copybook, parse_program
+from .cobol import apply_replacing, parse_copybook, parse_program
 from .jcl import parse_jcl
 from .risks import find_risks
 
@@ -23,25 +23,35 @@ def _files(root: Path, suffixes: set[str]) -> list[Path]:
 def analyze(root: Path, *, kind: str = "directory", location: str | None = None, commit: str | None = None) -> dict:
     root = root.resolve()
     copybooks = {p.stem.upper(): p for p in _files(root, COPYBOOK_SUFFIXES)}
+    sources = _files(root, COBOL_SUFFIXES)
+    program_ids = {parse_program(p.read_text(errors="replace")).name for p in sources}
     steps = [s for p in _files(root, {".jcl"}) for s in parse_jcl(p.read_text(errors="replace"), p.relative_to(root).as_posix())]
     programs, dependencies, findings = [], [], []
-    for path in _files(root, COBOL_SUFFIXES):
+    for path in sources:
         text = path.read_text(errors="replace")
         info = parse_program(text)
         step = next((s for s in steps if s.program == info.name), None)
         files = []
         for file_name, dd in info.selects.items():
             member = info.fd_copybooks.get(file_name)
-            layout = parse_copybook(copybooks[member].read_text(errors="replace")) if member in copybooks else None
+            if member in copybooks:
+                copybook_text = apply_replacing(copybooks[member].read_text(errors="replace"),
+                                                info.replacing.get(file_name, []))
+                layout = parse_copybook(copybook_text)
+            elif file_name in info.fd_inline:
+                layout = parse_copybook(info.fd_inline[file_name], code=True)
+            else:
+                layout = None
             files.append({
                 "dd": dd,
                 "direction": info.directions.get(file_name, "unknown"),
                 "dsn": step.dsns.get(dd) if step else None,
+                "organization": info.organizations.get(file_name, "SEQUENTIAL"),
                 "copybook": member,
                 "layout": layout.as_dict() if layout else None,
                 **({"unsupported": layout.unsupported} if layout and layout.unsupported else {}),
             })
-        reason = _not_convertible(files, info.copybooks, copybooks)
+        reason = _not_convertible(files, info.copybooks, copybooks, info, program_ids)
         programs.append({
             "name": info.name,
             "path": path.relative_to(root).as_posix(),
@@ -66,10 +76,18 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
     }
 
 
-def _not_convertible(files: list[dict], used: list[str], available: dict[str, Path]) -> str | None:
+def _not_convertible(files: list[dict], used: list[str], available: dict[str, Path], info, program_ids: set[str]) -> str | None:
     missing = [c for c in used if c not in available]
     if missing:
         return f"copybook(s) not found: {', '.join(missing)}"
+    if info.exec_blocks:
+        return f"EXEC {'/'.join(info.exec_blocks)} needs a database or transaction adapter, not supported yet"
+    unknown = [c for c in info.calls if c not in program_ids]
+    if unknown:
+        return f"CALLs program(s) not in the repository: {', '.join(unknown)}"
+    keyed = [f"{f['dd']} ({f['organization']})" for f in files if f.get("organization") in ("INDEXED", "RELATIVE")]
+    if keyed:
+        return f"keyed file(s) {', '.join(keyed)} are not supported yet"
     inputs = [f for f in files if f["direction"] == "input"]
     outputs = [f for f in files if f["direction"] == "output"]
     if len(inputs) != 1 or len(outputs) != 1:
