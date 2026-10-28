@@ -21,6 +21,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -77,14 +79,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def convert(sample_dir: Path, on_start=lambda run_id: None) -> str | None:
+def convert(sample_dir: Path, on_start=lambda run_id: None, flags: list[str] | None = None) -> str | None:
     """Run the converter's translate + repair + certify, streaming its output; returns the run id."""
-    proc = subprocess.Popen([str(SERVICES / "converter/.venv/bin/python"), "-m", "diocle_converter", "run", str(sample_dir)],
+    proc = subprocess.Popen([str(SERVICES / "converter/.venv/bin/python"), "-m", "diocle_converter", "run", str(sample_dir),
+                             *(flags or [])],
                             cwd=SERVICES / "converter", text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             env={**os.environ, "PYTHONUNBUFFERED": "1"})
     run_id = None
     for line in proc.stdout:
-        sys.stdout.write(line)
+        sys.stdout.write(f"[{sample_dir.name}] {line}")
         m = re.match(r"run started runs/(\S+)", line)
         if m:
             run_id = m.group(1)
@@ -206,6 +209,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--programs", help="comma-separated PROGRAM-IDs (default: all convertible)")
     parser.add_argument("--runs", nargs="*", default=[], help="deliver these existing run ids instead of converting")
     parser.add_argument("--dry-run", action="store_true", help="build the delivery and print the PR body; push nothing")
+    parser.add_argument("--parallel", action="store_true",
+                        help="swarm: convert all programs at once; agents share lessons as each one certifies")
+    parser.add_argument("--breaker", action="store_true", help="after certification, a breaker agent attacks each program")
     args = parser.parse_args(argv)
 
     progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"))
@@ -222,26 +228,43 @@ def main(argv: list[str] | None = None) -> int:
             run = get_run(run_id)
             if run:
                 run_ids[run["program"]] = run_id
-        for program in report["programs"]:
+        flags = (["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
+        lock = threading.Lock()
+
+        def work(program: dict) -> None:
             entry = progress.program(program["name"])
-            if program["name"] in run_ids:
-                entry.update(runId=run_ids[program["name"]], status="certified")
-                progress.save()
-                continue
-            print(f"converting {program['name']} ...", flush=True)
-            entry["status"] = "converting"
-            progress.save()
-
-            def started(run_id: str, entry=entry) -> None:
-                entry["runId"] = run_id
+            with lock:
+                entry["status"] = "converting"
                 progress.save()
 
-            run_id = convert(samples / program["name"].lower(), started)
+            def started(run_id: str) -> None:
+                with lock:
+                    entry["runId"] = run_id
+                    progress.save()
+
+            run_id = convert(samples / program["name"].lower(), started, flags)
             run = get_run(run_id) if run_id else None
-            entry.update(runId=run_id, status="certified" if run and run["certified"] else "not-certified")
-            progress.save()
-            if run_id:
-                run_ids[program["name"]] = run_id
+            with lock:
+                entry.update(runId=run_id, status="certified" if run and run["certified"] else "not-certified")
+                progress.save()
+                if run_id:
+                    run_ids[program["name"]] = run_id
+
+        todo = []
+        for program in report["programs"]:
+            if program["name"] in run_ids:
+                progress.program(program["name"]).update(runId=run_ids[program["name"]], status="certified")
+                progress.save()
+            else:
+                todo.append(program)
+        if args.parallel:
+            print(f"swarm: converting {len(todo)} programs in parallel", flush=True)
+            with ThreadPoolExecutor(max_workers=max(1, len(todo))) as pool:
+                list(pool.map(work, todo))
+        else:
+            for program in todo:
+                print(f"converting {program['name']} ...", flush=True)
+                work(program)
         progress.update(stage="delivering")
         print(deliver(report, samples, run_ids, progress.state["target"], args.dry_run, progress))
         progress.update(stage="done", finishedAt=_now())
