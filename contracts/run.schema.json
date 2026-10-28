@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
+  "title": "Run",
+  "description": "v0.1. One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "type": "object",
+  "required": ["id", "program", "command", "certified", "javaOrigin", "events", "usage"],
+  "properties": {
+    "id": { "type": "string" },
+    "program": { "type": "string" },
+    "command": { "type": "string", "enum": ["repair", "run"] },
+    "createdAt": { "type": "string", "description": "ISO 8601, from the run directory name" },
+    "certified": { "type": "boolean" },
+    "javaOrigin": { "type": "string", "description": "Where the Java started: a copied conversion or a model translation" },
+    "rounds": { "type": "array", "items": { "type": "object" } },
+    "events": {
+      "type": "array",
+      "description": "Agent trace: agent-step, certification and budget events, in order.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "type": "string", "enum": ["agent-step", "certification", "budget"] },
+          "round": { "type": "integer" },
+          "step": { "type": "integer" },
+          "tool": { "type": "string" },
+          "rationale": { "type": "string" },
+          "argsSummary": { "type": "object" },
+          "resultSummary": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "result": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "before": { "$ref": "#/$defs/verification", "description": "Verification of the starting Java (null if not recorded)" },
+    "after": { "$ref": "#/$defs/verification", "description": "Certification on held-out inputs (null if none)" },
+    "usage": {
+      "type": "object",
+      "required": ["calls", "inputTokens", "outputTokens"],
+      "properties": {
+        "calls": { "type": "integer" },
+        "inputTokens": { "type": "integer" },
+        "cachedInputTokens": { "type": "integer" },
+        "outputTokens": { "type": "integer" },
+        "estimatedCostUsd": { "type": ["number", "null"] },
+        "modelCalls": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "model": { "type": ["string", "null"] },
+    "javaDiff": { "type": ["string", "null"], "description": "Unified diff from the starting Java to the final Java" }
+  },
+  "$defs": {
+    "verification": {
+      "type": ["object", "null"],
+      "required": ["total", "passed", "failed", "stdoutMatch", "failingExamples"],
+      "properties": {
+        "total": { "type": "integer" },
+        "passed": { "type": "integer" },
+        "failed": { "type": "integer" },
+        "stdoutMatch": { "type": "boolean" },
+        "failingExamples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["inputId", "diff"],
+            "properties": {
+              "inputId": { "type": "string" },
+              "inputSource": { "type": "string" },
+              "diff": { "type": "string" },
+              "fieldDiffs": { "type": "array" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
