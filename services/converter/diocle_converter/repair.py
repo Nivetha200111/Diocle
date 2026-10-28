@@ -119,6 +119,8 @@ class RepairAgent:
         certification = None
         for round_no in range(1, settings.max_rounds + 1):
             finished = self._round(round_no, messages)
+            self.on_event({"type": "stage", "stage": "certifying", "round": round_no,
+                           "message": f"Round {round_no}: certifying on {CERT_CASES} held-out inputs the agent has not seen"})
             certification = self.verify(self.workspace.root, CERT_SEED + round_no, CERT_CASES)
             passed = report_passes(certification)
             self.rounds.append({"round": round_no, "finishedByAgent": finished, "certified": passed,
