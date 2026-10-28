@@ -1,8 +1,17 @@
 # Diocle
 
-**AI writes the code. Diocle proves it.**
+**AI writes the code. Diocle checks it against the original before anyone has to trust it.**
 
-Diocle is a proof layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark converts COBOL to Java and repairs it. Nothing is accepted on the model's word: the original program is compiled with GnuCOBOL, both versions run on the same inputs, and every output field, byte and exit code must match, including on 1,000 held-out inputs the agent never saw. The result ships as a pull request with an equivalence certificate, and the target repository's CI re-proves it independently.
+Diocle is a verification layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark converts COBOL to Java and repairs it. Nothing is accepted on the model's word: the original program runs next to the Java on the same inputs, and every output field, byte, exit code and display line must match, including on 1,000 held-out inputs the agent never saw. The result ships as a pull request with a certificate, and the target repository's CI repeats the test on fresh inputs.
+
+## What "certified" means, and does not
+
+- **Means:** on every input tried (PIC boundaries, seeded random values, fixtures, corpus records, model-designed attacks and 1,000 held-out inputs), the Java's output records, display output and exit code equal those of the original COBOL compiled with GnuCOBOL 3.2 under IBM's TRUNC(STD) and DISPLAY defaults, or equal the mainframe's own captured output where golden files exist. CI repeats this with a seed Diocle never used.
+- **Does not mean:** equivalence for every possible input (testing cannot show that), or equivalence to IBM Enterprise COBOL where GnuCOBOL differs from it and no mainframe output was captured. The demo golden files were produced by GnuCOBOL, so they exercise the replay path but are not mainframe evidence. CI reuses Diocle's verifier, so it shares its assumptions; it guards against tampering and lucky seeds, not against a flaw in the verifier itself.
+
+## How this differs from commercial tools
+
+Vendors already generate Java from COBOL (for example IBM watsonx Code Assistant for Z, which also offers validation). Diocle's focus is narrower and open: a repair agent driven by executable evidence, certificates that pin every input to the result, delivery as an ordinary pull request, an independent CI re-run anyone can inspect, and the ability to audit conversions produced by any tool ("bring your own conversion").
 
 All code here was written during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 2026). All COBOL and data are synthetic, for a fictional bank (Quillmark Trust & Savings).
 
@@ -28,20 +37,16 @@ GitHub repo link ─► analyze ─► Muse Spark translates ─► repair agent
 
 Demo repositories: [quillmark-legacy](https://github.com/Nivetha200111/quillmark-legacy) (COBOL in) and [quillmark-modern](https://github.com/Nivetha200111/quillmark-modern) (certified Java out, with re-verifying CI).
 
-## Measured so far
+## Measured so far (pilot evidence: synthetic programs, small samples; costs are estimates from list prices)
 
 - Four Quillmark programs translated from scratch and certified for about $0.025 in total, then re-proven by GitHub CI on 4,000+ fresh inputs. Those runs predate the IBM TRUNC/DISPLAY settings in the oracle (their counters print GnuCOBOL's 10-digit width) and need re-certifying.
 - Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
 - Costs are estimates from list prices.
 
-## What Diocle proves, and what it does not yet
-
-Proves: on the inputs it runs (generated, boundary, fixture, corpus, model-designed and held-out), the Java's output records, stdout and exit code equal the original's under GnuCOBOL, or under the mainframe's own output where golden files exist.
-
-Not yet:
+## Not supported yet
 - Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, files opened I-O, dynamic CALLs, several record types in one file, OCCURS DEPENDING ON, SYNCHRONIZED, PIC N or leading P scaling are reported as not convertible. Each new shape we found unhandled was added to this list with a test; there may be others.
-- Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, TRUNC, NUMPROC, hex float arithmetic). Golden files from the real mainframe are the authority.
-- Testing shows equivalence on the inputs tried, not for all inputs.
+- Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, NUMPROC, hex float arithmetic). No real mainframe output has been tested yet.
+- The breaker agent attacks single-file programs only; so far it has not found a defect that the other inputs missed.
 
 ## Run
 
