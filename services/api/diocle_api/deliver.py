@@ -261,7 +261,14 @@ def main(argv: list[str] | None = None) -> int:
         report, samples = analyze(args.legacy_url, progress.id)
         wanted = set(args.programs.split(",")) if args.programs else None
         report["programs"] = [p for p in report["programs"] if p["convertible"] and (wanted is None or p["name"] in wanted)]
-        skipped = []
+        skipped, seen = [], {}
+        for p in list(report["programs"]):  # samples are keyed by PROGRAM-ID, so a second file with the same one is skipped
+            if p["name"] in seen:
+                report["programs"].remove(p)
+                skipped.append({"name": f"{p['name']} ({p['path'].rsplit('/', 1)[-1]})", "path": p["path"], "status": "skipped",
+                                "runId": None, "reason": f"same PROGRAM-ID as {seen[p['name']]}"})
+            else:
+                seen[p["name"]] = p["path"]
         if args.public:
             report["programs"], skipped = _visitor_caps(report["programs"], samples)
         max_programs = int(os.environ.get("DIOCLE_MAX_PROGRAMS", "10"))  # rule 10: bound spend per delivery
