@@ -61,3 +61,6 @@ out/
 deploy/diocle.env
 demo/node_modules/
 demo/out/
+demo/promo/node_modules/
+demo/promo/out/
+demo/promo/public/captures/
