@@ -47,6 +47,17 @@ Keep the employer unnamed ("a large migration I worked on"), and the bank fictio
   `demo/promo/out/final.mp4`.
 - Order: record the voiceover from the narration above, retime `SCENES` to it, render, then finish.sh.
 
+## The click-through video (vertical, for Instagram Reels / Shorts / X)
+- `demo/capture-clicks.mjs` clicks through the live site for real (Live runs → CHQCLR → Re-verify → Delivery →
+  the pull request → typing a repository into the import form) and saves each state as a full-page 2x screenshot
+  with the page position of everything clicked (`demo/promo/src/clicks.json`).
+- `ClickDemo` in `demo/promo` (1080x1920, 52 s): animated cursor with press and ripple, camera that follows the
+  cursor and fits each highlighted element, typing revealed from the real typed screenshot, glowing highlights,
+  result badges in one fixed slot, bold two-line captions, five-step progress bar, outro. Sounds in
+  `public/sfx` are synthesised with ffmpeg (click, typing, whoosh, success, pop): no licensing. Peak -5 dB.
+- Render: `cd demo/promo && npx remotion render ClickDemo out/click-demo.mp4 --codec=h264 --crf=16`.
+- Music: add a trending track inside Instagram/TikTok when posting (licensed there); keep it under the clicks.
+
 ## Scripted recording (first attempt, kept for reference)
 - `demo/record.mjs` (Playwright, drives the installed Google Chrome) plays each shot against the live site and
   records it: `cd demo && npm install && npm run record` (or `npm run record -- chqclr` for one shot). It adds a
