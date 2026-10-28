@@ -1,0 +1,589 @@
+/* Retro theme: Windows 95/98 chrome with green-screen terminals for code.
+   Loaded after globals.css and overrides it; delete the import in layout.tsx to go back. */
+
+:root {
+  --w-face: #c0c0c0;
+  --w-light: #dfdfdf;
+  --w-shadow: #808080;
+  --w-dark: #0a0a0a;
+  --w-desktop: #008080;
+  --w-navy: #000080;
+  --ibm-blue: #0f62fe;
+  --w-title: linear-gradient(90deg, #000080, var(--ibm-blue));
+  --w-out: inset -1px -1px var(--w-dark), inset 1px 1px #fff, inset -2px -2px var(--w-shadow), inset 2px 2px var(--w-light);
+  --w-in: inset -1px -1px #fff, inset 1px 1px var(--w-shadow), inset -2px -2px var(--w-light), inset 2px 2px var(--w-dark);
+  --w-field: inset -1px -1px #fff, inset 1px 1px var(--w-shadow), inset -2px -2px var(--w-light), inset 2px 2px var(--w-dark);
+  --w-ui: Tahoma, "MS Sans Serif", "Microsoft Sans Serif", Geneva, Verdana, sans-serif;
+  --w-pixel: var(--font-pixel), "Courier New", monospace;
+  --w-mono: var(--font-plex-mono), "Courier New", monospace;
+  --phosphor: #33ff66;
+  --background: var(--w-desktop);
+  --surface: var(--w-face);
+  --ink: #000;
+  --muted: #303030;
+  --border: var(--w-shadow);
+}
+
+/* ---------- base ---------- */
+body {
+  background: var(--w-desktop);
+  font-family: var(--w-ui);
+  font-size: 12px;
+  -webkit-font-smoothing: none;
+}
+.app-shell *,
+.modal * {
+  border-radius: 0 !important;
+  color: #000 !important;
+  letter-spacing: normal !important;
+}
+.app-shell :is(p, small, th, td, label, .badge, .tabs button, .nav-label, .stat-top, .page-eyebrow, .text-button, .button, .count, .filter-select select, .breadcrumbs),
+.modal :is(p, small, label, .button) {
+  font-size: 11px !important;
+}
+::selection {
+  background: var(--w-navy);
+  color: #fff;
+}
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -4px;
+}
+.mono,
+code,
+pre {
+  font-family: var(--w-mono) !important;
+  font-size: 11px !important;
+}
+.view-content {
+  animation: none;
+}
+
+/* Win9x scrollbars */
+* {
+  scrollbar-color: var(--w-shadow) var(--w-light);
+}
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: repeating-conic-gradient(var(--w-face) 0 25%, #fff 0 50%) 0 0 / 2px 2px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--w-face);
+  box-shadow: var(--w-out);
+}
+
+/* ---------- bevel primitives ---------- */
+.panel,
+.stat-card,
+.info-card,
+.sidebar-promo,
+.workspace-popover,
+.notifications-popover,
+.button,
+.icon-button,
+.tabs button,
+.badge,
+.avatar,
+.workspace-switcher,
+.preview-pill,
+.stat-icon,
+.trace-tool,
+.sidebar-promo button {
+  background: var(--w-face) !important;
+  border: 0 !important;
+  box-shadow: var(--w-out) !important;
+  transform: none !important;
+}
+.button:active,
+.icon-button:active,
+.tabs button.active,
+.icon-button.selected {
+  box-shadow: var(--w-in) !important;
+}
+.global-search,
+.filter-select,
+.table-scroll,
+input,
+select,
+textarea,
+.drop-zone,
+.trace-list {
+  background: #fff !important;
+  border: 0 !important;
+  box-shadow: var(--w-field) !important;
+}
+.filter-select > select,
+.global-search input {
+  box-shadow: none !important;
+}
+
+/* ---------- desktop shell ---------- */
+.sidebar {
+  background: var(--w-face);
+  border: 0;
+  box-shadow: var(--w-out);
+  padding-left: 40px;
+}
+.sidebar::before {
+  content: "Diocle 98";
+  position: absolute;
+  inset: 3px auto 3px 3px;
+  width: 26px;
+  background: linear-gradient(0deg, #000080, #1084d0);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 14px;
+  color: var(--w-face);
+  font-family: var(--w-ui);
+  font-weight: 700;
+  font-size: 18px;
+}
+.brand,
+.brand span {
+  font-family: var(--w-pixel) !important;
+  font-weight: 400 !important;
+  font-size: 40px;
+}
+.brand .brand-period {
+  color: var(--w-navy) !important;
+}
+.nav-label {
+  color: var(--w-shadow) !important;
+  font-weight: 700;
+}
+.nav-item {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.nav-item:hover,
+.nav-item.active,
+.workspace-popover button:hover,
+.notifications-popover button:hover {
+  background: var(--w-navy) !important;
+}
+.nav-item:hover *,
+.nav-item.active *,
+.nav-item:hover,
+.nav-item.active,
+.workspace-popover button:hover,
+.workspace-popover button:hover *,
+.notifications-popover button:hover,
+.notifications-popover button:hover * {
+  color: #fff !important;
+}
+.nav-active-dot {
+  background: #fff !important;
+}
+.nav-count {
+  background: #fff !important;
+  box-shadow: var(--w-field);
+}
+.sidebar-promo:after {
+  display: none;
+}
+
+.topbar {
+  background: var(--w-face);
+  border: 0;
+  box-shadow: var(--w-out);
+  height: 48px;
+}
+.preview-pill > span {
+  background: #00a000 !important;
+}
+
+main {
+  padding-bottom: 40px;
+}
+.page-heading h1 {
+  font-family: var(--w-pixel);
+  font-weight: 400;
+  font-size: 46px !important;
+  line-height: 1;
+}
+.page-heading h1,
+.page-heading p {
+  color: #fff !important;
+  text-shadow: 2px 2px 0 #000;
+}
+.page-heading .page-eyebrow {
+  color: #ffff00 !important;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* ---------- windows ---------- */
+/* panels keep their own padding; chrome sits 3px inside the bevel */
+.panel > .panel-heading {
+  margin: 3px 3px 6px;
+}
+.panel > .table-scroll,
+.panel > .table-toolbar,
+.panel > .table-footer {
+  margin-inline: 3px;
+}
+.panel > :last-child:not(.panel-heading) {
+  margin-bottom: 3px;
+}
+.panel-heading,
+.modal-header {
+  background: var(--w-title) !important;
+  padding: 5px 6px 5px 8px !important;
+  margin-bottom: 6px;
+  border: 0 !important;
+}
+.panel-heading *,
+.modal-header * {
+  color: #fff !important;
+}
+.panel-heading h2,
+.modal-header h2 {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+.panel-heading p,
+.modal-header p {
+  color: #d8e4ff !important;
+  margin-top: 2px !important;
+}
+.panel-heading .badge *,
+.panel-heading .button *,
+.panel-heading .text-button *,
+.panel-heading .tabs *,
+.panel-heading .filter-select *,
+.panel-heading .icon-button * {
+  color: #000 !important;
+}
+.panel-heading .badge,
+.panel-heading .button,
+.panel-heading .text-button,
+.panel-heading .tabs button {
+  color: #000 !important;
+}
+.panel-heading .text-button {
+  background: var(--w-face);
+  box-shadow: var(--w-out);
+  padding: 3px 8px;
+}
+/* title-bar buttons */
+.panel-heading::after,
+.modal-header::after {
+  content: "";
+  flex: 0 0 52px;
+  height: 14px;
+  align-self: flex-start;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='14'%3E%3Cg%3E%3Crect x='0' y='0' width='16' height='14' fill='%23c0c0c0'/%3E%3Cpath d='M0 13.5H16M15.5 0V14' stroke='%23000'/%3E%3Cpath d='M0.5 13V0.5H15' stroke='%23fff'/%3E%3Crect x='4' y='9' width='6' height='2' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(16)'%3E%3Crect width='16' height='14' fill='%23c0c0c0'/%3E%3Cpath d='M0 13.5H16M15.5 0V14' stroke='%23000'/%3E%3Cpath d='M0.5 13V0.5H15' stroke='%23fff'/%3E%3Crect x='3.5' y='2.5' width='9' height='8' fill='none' stroke='%23000'/%3E%3Crect x='3' y='2' width='10' height='2' fill='%23000'/%3E%3C/g%3E%3Cg transform='translate(36)'%3E%3Crect width='16' height='14' fill='%23c0c0c0'/%3E%3Cpath d='M0 13.5H16M15.5 0V14' stroke='%23000'/%3E%3Cpath d='M0.5 13V0.5H15' stroke='%23fff'/%3E%3Cpath d='M4 3L11 10M11 3L4 10' stroke='%23000' stroke-width='1.6'/%3E%3C/g%3E%3C/svg%3E")
+    no-repeat;
+}
+.modal-header > .icon-button {
+  display: none;
+}
+
+.stat-card {
+  padding: 8px 10px 10px;
+}
+.stat-top {
+  font-weight: 700;
+}
+.stat-value {
+  margin-top: 6px;
+  padding: 2px 8px;
+  background: #000 !important;
+  box-shadow: var(--w-field);
+  font-family: var(--w-pixel);
+  font-weight: 400;
+  font-size: 38px !important;
+  line-height: 1.1;
+}
+.stat-value,
+.stat-value * {
+  color: var(--phosphor) !important;
+  text-shadow: 0 0 6px #33ff6688;
+}
+.stat-card > p {
+  margin-top: 5px !important;
+  white-space: normal;
+}
+.stat-icon {
+  height: 22px;
+  width: 22px;
+}
+
+/* tones: classic 16-colour palette */
+.badge-green *,
+.badge-green,
+.green,
+.green * {
+  color: #006400 !important;
+}
+.badge-amber,
+.badge-amber *,
+.orange,
+.orange * {
+  color: #804000 !important;
+}
+.badge-blue,
+.badge-blue * {
+  color: var(--w-navy) !important;
+}
+.badge-purple,
+.badge-purple *,
+.purple,
+.purple * {
+  color: #800080 !important;
+}
+.badge {
+  padding: 2px 6px;
+  font-weight: 700;
+}
+.status-dot,
+.green-dot,
+.amber-dot {
+  border-radius: 0 !important;
+}
+
+/* tables */
+.data-table th,
+.migration-table th {
+  background: var(--w-face) !important;
+  box-shadow: var(--w-out);
+  font-weight: 400;
+  padding: 3px 8px !important;
+  position: sticky;
+  top: 0;
+}
+.data-table td,
+.migration-table td {
+  border-bottom: 1px dotted var(--w-light) !important;
+  padding: 4px 8px !important;
+}
+.data-table tbody tr:hover td,
+.migration-table tbody tr:hover td {
+  background: var(--w-navy) !important;
+}
+.data-table tbody tr:hover td,
+.data-table tbody tr:hover td *,
+.migration-table tbody tr:hover td,
+.migration-table tbody tr:hover td * {
+  color: #fff !important;
+}
+.data-table td.mismatch {
+  color: #c00000 !important;
+}
+
+/* progress: chunky blocks */
+.progress {
+  background: #fff !important;
+  box-shadow: var(--w-field);
+  height: 14px !important;
+  padding: 2px;
+}
+.progress > span {
+  background: repeating-linear-gradient(90deg, var(--w-navy) 0 8px, transparent 8px 10px) !important;
+}
+
+/* modals */
+.modal {
+  background: var(--w-face);
+  border: 0;
+  box-shadow: var(--w-out), 4px 4px 0 #0006;
+  padding: 3px;
+}
+.modal::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* ---------- live runs: terminal look for model + code output ---------- */
+.trace-list {
+  margin: 4px 6px 6px;
+  padding: 10px 12px;
+  background: #000 !important;
+}
+.trace-list *,
+.trace-list {
+  color: var(--phosphor) !important;
+}
+.trace-num {
+  background: transparent !important;
+  font-family: var(--w-pixel);
+  font-size: 16px;
+}
+.trace-step {
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+.trace-num {
+  display: flex !important;
+  width: auto;
+}
+.trace-num::before {
+  content: "#";
+}
+.trace-tool {
+  background: #003300 !important;
+  box-shadow: none !important;
+  padding: 0 6px;
+  color: #ffff66 !important;
+}
+.trace-why {
+  color: #e0ffe0 !important;
+}
+.trace-result {
+  opacity: 0.85;
+}
+.trace-cert {
+  font-family: var(--w-pixel);
+  font-size: 18px !important;
+  background: transparent !important;
+  border-top: 1px dashed var(--phosphor);
+  padding-top: 8px;
+}
+.trace-cert.pass {
+  color: #fff !important;
+  text-shadow: 0 0 8px var(--phosphor);
+}
+.trace-cert.fail {
+  color: #ffb000 !important;
+}
+.diff-block {
+  margin: 4px 6px 6px;
+  background: #000 !important;
+  box-shadow: var(--w-field);
+  border: 0;
+  font-size: 16px !important;
+  line-height: 1.25;
+}
+.diff-block span {
+  color: #a8ffbf !important;
+}
+.diff-block .diff-add {
+  background: #003a00 !important;
+  color: var(--phosphor) !important;
+}
+.diff-block .diff-del {
+  background: #3a0000 !important;
+  color: #ff6060 !important;
+}
+.diff-block .diff-hunk {
+  color: #00ffff !important;
+}
+.runs-header h2 {
+  font-size: 15px !important;
+}
+.runs-header,
+.runs-empty {
+  background: var(--w-face);
+}
+
+/* overview hero becomes a plain window */
+.hero {
+  background: var(--w-face) !important;
+  border: 0 !important;
+  box-shadow: var(--w-out) !important;
+}
+.hero::before,
+.hero::after {
+  display: none !important;
+}
+.hero h1,
+.hero h2 {
+  font-family: var(--w-pixel);
+  font-weight: 400 !important;
+  font-size: 52px !important;
+  line-height: 0.95 !important;
+}
+
+/* ---------- a smidge of IBM: Plex Mono, IBM blue, 3270 / ISPF terminal chrome ---------- */
+.button.primary {
+  background: var(--ibm-blue) !important;
+}
+.button.primary,
+.button.primary * {
+  color: #fff !important;
+}
+.sidebar::before {
+  background: linear-gradient(0deg, #000080, var(--ibm-blue));
+}
+.trace-list,
+.trace-list * {
+  font-family: var(--w-mono) !important;
+}
+.trace-tool {
+  font-size: 12px !important;
+  font-weight: 600;
+}
+.trace-why {
+  font-size: 12px !important;
+}
+.trace-tool,
+.trace-num {
+  color: #40ffff !important; /* 3270 turquoise */
+}
+.trace-list::before {
+  content: "DIOCLE AGENT LOG ─── REPAIR ───────────────────────── ROW 00001";
+  display: block;
+  color: #fff !important;
+  border-bottom: 1px solid var(--phosphor);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.trace-list::after {
+  content: "4A  MUSE SPARK          ═══ READY ═══          X SYSTEM";
+  display: block;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid #40ffff;
+  color: #40ffff !important;
+  font-size: 11px;
+  white-space: pre;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.diff-block::before {
+  content: "EDIT       DIOCLE.RUN.JAVA                    COLUMNS 00001 00072\A COMMAND ===>                                     SCROLL ===> CSR";
+  white-space: pre;
+  display: block;
+  color: #fff !important;
+  font-family: var(--w-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  border-bottom: 1px solid #40ffff;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+/* text that sits straight on the teal desktop */
+.view-content > .section-heading,
+.view-content > .section-heading *,
+.report-intro > div,
+.report-intro > div *,
+.page-footer,
+.page-footer * {
+  color: #fff !important;
+  text-shadow: 1px 1px 0 #000;
+}
+.report-intro-icon {
+  background: var(--w-face) !important;
+  box-shadow: var(--w-out);
+}
+
+/* Win9x dialogs size buttons to their label and right-align them */
+.report-card > .button {
+  width: auto;
+  align-self: flex-end;
+  margin-left: auto;
+  min-width: 150px;
+}
