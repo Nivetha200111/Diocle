@@ -4748,3 +4748,9 @@ main {
 @media (max-width: 1100px) {
   .runs-grid { grid-template-columns: minmax(0, 1fr); }
 }
+.eff-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; margin: 0; padding: 4px 21px 14px; }
+.eff-grid dt { font-size: 10px; color: var(--muted); }
+.eff-grid dd { margin: 2px 0 0; font-size: 15px; }
+.eff-projection { padding: 0 21px 16px; font-size: 11px; color: var(--ink); }
+.eff-table tbody tr { cursor: pointer; }
+@media (max-width: 760px) { .eff-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

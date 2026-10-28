@@ -2,6 +2,18 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_DIOCLE_API_URL ?? "http://localhost:8000";
 
+export type Efficiency = {
+  cobolLines: number;
+  modelCalls: number;
+  toolSteps: number;
+  patchesApplied: number;
+  cacheHitRate: number;
+  totalTokens: number;
+  modelTimeMs: number;
+  estimatedCostUsd: number | null;
+  costPer1kLinesUsd: number | null;
+};
+
 export type RunListItem = {
   id: string;
   program: string;
@@ -11,6 +23,8 @@ export type RunListItem = {
   rounds: number;
   calls: number;
   estimatedCostUsd: number | null;
+  model: string | null;
+  efficiency: Efficiency;
 };
 
 export type FieldDiff = { field: string; original: string; converted: string };
@@ -56,6 +70,7 @@ export type Run = {
   };
   model: string | null;
   javaDiff: string | null;
+  efficiency: Efficiency;
 };
 
 async function getJson<T>(path: string): Promise<T> {
