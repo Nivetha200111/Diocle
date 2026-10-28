@@ -34,7 +34,20 @@ Keep the employer unnamed ("a large migration I worked on"), and the bank fictio
 - [ ] Browser: full screen, 1920x1080, zoom 110-125 %, bookmarks bar hidden, one tab, notifications off
       (Focus mode), cursor highlight on if available.
 
-## Scripted recording (what we use)
+## The promo (what we use now)
+- `demo/capture.mjs` takes crisp 2x captures of the live site and GitHub, presses Re-verify for real, and writes
+  every number the video shows to `demo/promo/src/data.json` (from the live API; nothing typed by hand).
+- `demo/promo` is the video as code (Remotion 4.0.535, free for individuals): kinetic-type hook, brand reveal,
+  animated "how it works" diagram, the CHQCLR story (held-out pass, breaker breaks it, 20.00 vs 0.00, repair agent
+  tools, re-certified), delivery (PR table + CI), try it (live re-verify result, visitor import), honest
+  evaluation, outro with "built during the hackathon". Render: `cd demo/promo && npm install && npm run render`
+  (out/promo.mp4, 1080p). Preview and tweak: `npm run studio`. Scene lengths: `SCENES` in `src/Promo.tsx`.
+- `demo/finish.sh voiceover.m4a`: captions from the voice with whisper.cpp (offline, `brew install whisper-cpp`,
+  model `ggml-base.en.bin` in `~/.cache/whisper`), then video + voice (loudness-normalised) + captions =
+  `demo/promo/out/final.mp4`.
+- Order: record the voiceover from the narration above, retime `SCENES` to it, render, then finish.sh.
+
+## Scripted recording (first attempt, kept for reference)
 - `demo/record.mjs` (Playwright, drives the installed Google Chrome) plays each shot against the live site and
   records it: `cd demo && npm install && npm run record` (or `npm run record -- chqclr` for one shot). It adds a
   visible cursor, smooth scrolling and a yellow frame around what the narration talks about. The import shot

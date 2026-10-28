@@ -1,0 +1,103 @@
+{
+  "capturedAt": "2026-10-28T18:32:34.416Z",
+  "site": "https://diocle.vercel.app",
+  "chqclr": {
+    "id": "chqclr-20261028-214355",
+    "model": "muse-spark-1.3-contributor",
+    "program": "CHQCLR",
+    "firstCert": "1004/1004 cases match; stdout matches.",
+    "breakerFirst": "Breaker round 1: 2 of 10 designed inputs break the Java (2 rejected as invalid for the layout)",
+    "recert": "1006/1006 cases match; stdout matches.",
+    "breakerAgain": "Breaker round 1: all 12 designed inputs match the COBOL",
+    "breaker": {
+      "rounds": 2,
+      "tried": 24,
+      "broke": 2,
+      "repairCycles": 1,
+      "fixed": true,
+      "counterexamples": [
+        {
+          "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+          "why": "Fee with leading space is zero in Java but may be nonzero in COBOL.",
+          "diff": "CL-FEE: original 20.00 converted 0.00"
+        },
+        {
+          "input": "CACCT00000100000011+0000AB12320240101XXX",
+          "why": "Non-numeric amount digits tests Java zero versus COBOL conversion.",
+          "diff": "CL-DEBIT: original -121.23 converted 0.00"
+        }
+      ]
+    },
+    "tools": [
+      {
+        "tool": "read_cobol_source",
+        "why": "Fixing the fee and debit mismatches from the COBOL baseline."
+      },
+      {
+        "tool": "list_java_files",
+        "why": "Fixing the fee and debit mismatches from the COBOL baseline."
+      },
+      {
+        "tool": "read_java_file",
+        "why": "Seen the program specs — now examining the Java conversion."
+      },
+      {
+        "tool": "patch_java",
+        "why": "COBOL DISPLAY numerics use low nibble so spaces and letters become digits, not zero"
+      },
+      {
+        "tool": "compile_java",
+        "why": ""
+      },
+      {
+        "tool": "run_differential_test",
+        "why": "Both mismatches check out under the fix — now running the final verification."
+      },
+      {
+        "tool": "finish",
+        "why": ""
+      }
+    ],
+    "calls": 9,
+    "costUsd": 0.017605
+  },
+  "reverify": "PASS · 1004/1004 cases match · stdout matches · exit code matches · seed 697999821 · 1.8s",
+  "delivery": {
+    "id": "delivery-20261028-201807",
+    "target": "https://github.com/Nivetha200111/quillmark-java",
+    "programs": [
+      {
+        "name": "ACCTMTCH",
+        "status": "certified"
+      },
+      {
+        "name": "DAYCTRL",
+        "status": "certified"
+      },
+      {
+        "name": "FEESCHD",
+        "status": "certified"
+      },
+      {
+        "name": "INTACCR",
+        "status": "certified"
+      },
+      {
+        "name": "PKDPOST",
+        "status": "certified"
+      },
+      {
+        "name": "TXNPOST",
+        "status": "certified"
+      }
+    ],
+    "pr": "https://github.com/Nivetha200111/quillmark-java/pull/1",
+    "checks": [
+      {
+        "name": "reverify",
+        "link": "https://github.com/Nivetha200111/quillmark-java/actions/runs/40709567888/job/122890827709",
+        "state": "SUCCESS"
+      }
+    ]
+  }
+}
