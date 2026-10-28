@@ -45,7 +45,7 @@ TOOLS = [
 ]
 
 
-def summarize_report(report: dict, limit: int = 6) -> str:
+def summarize_report(report: dict, limit: int = 6, for_agent: bool = True) -> str:
     runs = report["runs"]
     for side in ("original", "converted"):
         if not runs[side]["compiled"]:
@@ -63,7 +63,7 @@ def summarize_report(report: dict, limit: int = 6) -> str:
     if not runs["stdoutMatch"]:
         lines.append(f"stdout original : {runs['original']['stdout'].strip()[:300]}")
         lines.append(f"stdout converted: {runs['converted']['stdout'].strip()[:300]}")
-    if not failing and runs["stdoutMatch"]:
+    if for_agent and not failing and runs["stdoutMatch"]:
         lines.append("All cases match. Call finish now; do not refactor further.")
     return "\n".join(lines)[:4000]
 
@@ -119,7 +119,7 @@ class RepairAgent:
             self.rounds.append({"round": round_no, "finishedByAgent": finished, "certified": passed,
                                 "summary": certification["summary"]})
             self.on_event({"type": "certification", "round": round_no, "passed": passed,
-                           "result": summarize_report(certification, limit=3)})
+                           "result": summarize_report(certification, limit=3, for_agent=False)})
             if passed:
                 break
             messages.append({"role": "user", "content": "Certification on held-out inputs failed:\n"
