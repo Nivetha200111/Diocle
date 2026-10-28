@@ -142,11 +142,17 @@ class Breaker:
                     cases.append(Case(case_id, "model", record))
                     why[case_id] = str(item.get("why", ""))[:300]
             report = self.verify(self.workspace.root, 1026, 0, cases)
-            broken = [r for r in report["results"] if r.get("inputSource") == "model" and not r["match"]]
-            for r in report["results"]:
-                if r.get("inputSource") == "model":
-                    self.attempts.append({"id": r["inputId"], "input": r.get("input"), "why": why.get(r["inputId"], ""),
-                                          "broke": not r["match"], "diff": r.get("diff", "")})
+            designed = [r for r in report["results"] if r.get("inputSource") == "model"]
+            failing = [r for r in report["results"] if not r["match"]]
+            if not designed:
+                # Outputs that do not map one to one to inputs (aggregation, fan-out): a difference anywhere in
+                # this round's output counts against the round's designed inputs together.
+                first = failing[0].get("diff", "") if failing else ""
+                designed = [{"inputId": c.id, "input": c.record, "match": not failing, "diff": first} for c in cases]
+            broken = [r for r in designed if not r["match"]]
+            for r in designed:
+                self.attempts.append({"id": r["inputId"], "input": r.get("input"), "why": why.get(r["inputId"], ""),
+                                      "broke": not r["match"], "diff": r.get("diff", "")})
             self.on_event({"type": "breaker", "round": round_no, "tried": len(cases), "broke": len(broken),
                            "message": (f"Breaker round {round_no}: {len(broken)} of {len(cases)} designed inputs break the Java"
                                        if broken else f"Breaker round {round_no}: all {len(cases)} designed inputs match the COBOL")
