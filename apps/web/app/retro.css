@@ -872,3 +872,8 @@ a.nav-item {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Breaker panel: a run where designed inputs broke certified Java is the case worth noticing. */
+.breaker-panel.breaker-broke .panel-heading h2 {
+  color: #a00000;
+}
