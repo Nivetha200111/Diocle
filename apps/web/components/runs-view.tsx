@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, fetchRun, fetchRuns, type Efficiency, type Run, type RunListItem, type RunMemory, type Verification } from "@/lib/runs";
+import { API_URL, fetchRun, fetchRuns, reverifyRun, type Efficiency, type Reverify, type Run, type RunListItem, type RunMemory, type Verification } from "@/lib/runs";
 import { Badge } from "./ui";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
@@ -134,6 +134,45 @@ function EfficiencyTable({ runs, selected, onSelect }: {
   );
 }
 
+function ReverifyPanel({ run }: { run: Run }) {
+  const [result, setResult] = useState<Reverify | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!run.certified) return null;
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Check it yourself</h2>
+          <p>Re-run the original COBOL and this Java on 1,000 inputs from a seed chosen now. No model is involved.</p>
+        </div>
+      </div>
+      <div className="reverify">
+        <button className="button primary" disabled={busy} onClick={async () => {
+          setBusy(true);
+          setError("");
+          try {
+            setResult(await reverifyRun(run.id));
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}>{busy ? "Running both programs…" : "Re-verify on a fresh seed"}</button>
+        {result && (
+          <p className={`reverify-result ${result.allMatch ? "ok" : "bad"}`}>
+            {result.allMatch ? "PASS" : "FAIL"} · {result.passed}/{result.total} cases match ·
+            stdout {result.stdoutMatch ? "matches" : "differs"} · exit code {result.exitCodeMatch ? "matches" : "differs"} ·
+            seed {result.seed} · {result.seconds}s
+            {result.firstMismatch && <><br />First difference: {result.firstMismatch}</>}
+          </p>
+        )}
+        {error && <p className="reverify-result bad">{error}</p>}
+      </div>
+    </section>
+  );
+}
+
 function JavaDiff({ diff }: { diff: string }) {
   return (
     <pre className="diff-block">
@@ -180,6 +219,8 @@ function RunDetail({ run }: { run: Run }) {
       </div>
 
       <EfficiencyPanel e={run.efficiency} />
+
+      <ReverifyPanel run={run} />
 
       <div className="runs-grid">
         <section className="panel">

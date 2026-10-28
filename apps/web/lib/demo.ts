@@ -1,4 +1,5 @@
 export type View =
+  | "Home"
   | "Overview"
   | "Migrations"
   | "Dependency graph"

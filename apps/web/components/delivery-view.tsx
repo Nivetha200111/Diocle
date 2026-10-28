@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, GitPullRequest, TriangleAlert } from "lucide-react";
 import { API_URL } from "@/lib/runs";
+import { useApiConfig } from "@/lib/config";
 import { fetchDeliveries, fetchDelivery, startDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
@@ -87,6 +88,8 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
   const [breaker, setBreaker] = useState(true);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+  const [passcode, setPasscode] = useState("");
+  const config = useApiConfig();
   return (
     <section className="panel dlv-start" id="new-delivery">
       <div className="panel-heading">
@@ -102,7 +105,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
           setError("");
           setSending(true);
           try {
-            onStarted(await startDelivery({ legacy, target, parallel, breaker }));
+            onStarted(await startDelivery({ legacy, target, parallel, breaker }, passcode));
           } catch (err) {
             setError((err as Error).message);
           } finally {
@@ -118,6 +121,12 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
           <span>Target repository (pull request out)</span>
           <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
         </label>
+        {config?.startNeedsPasscode && (
+          <label>
+            <span>Admin passcode (starting a delivery spends model credits)</span>
+            <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} autoComplete="current-password" />
+          </label>
+        )}
         <div className="dlv-form-row">
           <label className="dlv-check"><input type="checkbox" checked={parallel} onChange={(e) => setParallel(e.target.checked)} /> Swarm: convert programs in parallel</label>
           <label className="dlv-check"><input type="checkbox" checked={breaker} onChange={(e) => setBreaker(e.target.checked)} /> Breaker: attack each certified program</label>
