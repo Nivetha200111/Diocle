@@ -19,18 +19,18 @@ GitHub repo link ─► analyze ─► Muse Spark translates ─► repair agent
 | Part | What it does |
 |---|---|
 | `services/analyzer` | Deterministic, no model calls. Derives record layouts from copybooks (DISPLAY, COMP-3, COMP, COMP-5, COMP-1/2, all sign modes, P scaling, OCCURS, REDEFINES, edited PICs, COPY REPLACING), wires files through SELECT/FD/OPEN and JCL, resolves CALLed programs, and flags legacy behaviour: ROUNDED, truncation, silent overflow, code cut at column 72, clock reads, EBCDIC-sensitive comparisons, hex floats. Imports GitHub repos (allowed owners only). |
-| `services/verifier` | The oracle. Compiles the COBOL with GnuCOBOL 3.2 (-std=ibm), runs both sides on boundary, random, fixture, corpus and model-designed inputs, and compares field by field and byte by byte: text and fixed-length records, packed and binary data, RETURN-CODE, stdout, a pinned clock, EBCDIC collation. Golden-file replay judges the Java against captured mainframe output, with a layout-aware EBCDIC and IBM hex-float codec. `reverify` re-proves a delivery in CI. |
+| `services/verifier` | The oracle. Compiles the COBOL with GnuCOBOL 3.2 (-std=ibm, plus IBM's TRUNC(STD) and DISPLAY defaults), runs both sides on boundary, random, fixture, corpus and model-designed inputs, and compares field by field and byte by byte, for one or several input and output files (match-merge, SORT USING/GIVING): text and fixed-length records, packed and binary data, RETURN-CODE, stdout, a pinned clock, EBCDIC collation. Golden-file replay judges the Java against captured mainframe output, with a layout-aware EBCDIC and IBM hex-float codec. `reverify` re-proves a delivery in CI. |
 | `services/converter` | Meta models only (Muse Spark hosted, or Muse Spark Open on Fireworks). Translator, tool-using repair agent, breaker agent that designs inputs to break certified Java, proof-gated fix memory, swarm mode (parallel agents share certified lessons mid-run), skill export. Hard caps on calls, rounds and attack cycles. |
 | `services/api` | Serves runs and deliveries to the dashboard; `deliver` turns a legacy repo into a certified pull request on a target repo. |
 | `services/mcp` | Diocle as an MCP server: `analyze_cobol`, `verify_conversion`, `certify_conversion`, `cobol_lessons`, so any agent's conversion can be checked. |
 | `apps/web` | Dashboard: **Live runs** and **Delivery** show real data (agent trace, before/after, cost, CI status). Other views are a labelled mock. |
-| `samples/` | Five synthetic programs with naive Java ports: INTACCR, TXNPOST, FEESCHD, DAYCTRL (display records) and PKDPOST (packed, fixed-length, with a golden set). |
+| `samples/` | Six synthetic programs with naive Java ports: INTACCR, TXNPOST, FEESCHD, DAYCTRL (display records), PKDPOST (packed, fixed-length, with a golden set) and ACCTMTCH (match-merge, two inputs, two outputs). |
 
 Demo repositories: [quillmark-legacy](https://github.com/Nivetha200111/quillmark-legacy) (COBOL in) and [quillmark-modern](https://github.com/Nivetha200111/quillmark-modern) (certified Java out, with re-verifying CI).
 
 ## Measured so far
 
-- Four Quillmark programs translated from scratch and certified for about $0.025 in total, then re-proven by GitHub CI on 4,000+ fresh inputs.
+- Four Quillmark programs translated from scratch and certified for about $0.025 in total, then re-proven by GitHub CI on 4,000+ fresh inputs. Those runs predate the IBM TRUNC/DISPLAY settings in the oracle (their counters print GnuCOBOL's 10-digit width) and need re-certifying.
 - Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
 - Costs are estimates from list prices.
 
@@ -39,7 +39,7 @@ Demo repositories: [quillmark-legacy](https://github.com/Nivetha200111/quillmark
 Proves: on the inputs it runs (generated, boundary, fixture, corpus, model-designed and held-out), the Java's output records, stdout and exit code equal the original's under GnuCOBOL, or under the mainframe's own output where golden files exist.
 
 Not yet:
-- Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, more than one input or output file, several record types in one file, OCCURS DEPENDING ON, PIC N or leading P scaling are detected and reported as not convertible, never passed through.
+- Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, files opened I-O, dynamic CALLs, several record types in one file, OCCURS DEPENDING ON, SYNCHRONIZED, PIC N or leading P scaling are reported as not convertible. Each new shape we found unhandled was added to this list with a test; there may be others.
 - Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, TRUNC, NUMPROC, hex float arithmetic). Golden files from the real mainframe are the authority.
 - Testing shows equivalence on the inputs tried, not for all inputs.
 
