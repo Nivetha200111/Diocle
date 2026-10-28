@@ -1,47 +1,54 @@
 # Diocle
 
-**Status: scaffold, in progress.**
+**AI writes the code. Diocle proves it.**
 
-Diocle is an AI "system integrator" that modernizes legacy COBOL for finance organizations. Upload COBOL programs and their copybooks, and Diocle analyzes them (dependency graph, risky fraud/payment logic flagged), converts them (copybook trees to SQL schema, COBOL to Java services, generated tests) using Meta's models, and then verifies the result by compiling the original with GnuCOBOL, running both versions on the same generated inputs, and diffing the outputs. A tool-using repair agent fixes mismatches and SonarQube issues, and a fix is only accepted if the outputs still match the original. Everything lands in a report dashboard.
+Diocle is a proof layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark converts COBOL to Java and repairs it. Nothing is accepted on the model's word: the original program is compiled with GnuCOBOL, both versions run on the same inputs, and every output field, byte and exit code must match, including on 1,000 held-out inputs the agent never saw. The result ships as a pull request with an equivalence certificate, and the target repository's CI re-proves it independently.
 
-Models: Muse Spark through the Meta Model API (hosted mode), or Muse Spark Open open weights via Baseten/Modal (private mode, so source code stays in an environment you control).
+All code here was written during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 2026). All COBOL and data are synthetic, for a fictional bank (Quillmark Trust & Savings).
 
-## Pipeline
-
-```
-upload  >  analyze  >  convert  >  verify  >  report
-```
-
-1. **Upload**: COBOL sources and copybooks.
-2. **Analyze**: dependency graph; flag risky logic (e.g. fraud, payment handling).
-3. **Convert**: copybook trees to SQL schema, COBOL to Java services, generated tests. Uses Meta models only (Muse Spark or Muse Spark Open).
-4. **Verify and repair**: compile the original with GnuCOBOL, run original and converted code on the same generated inputs, diff outputs, and optionally run a SonarQube Community scan. The repair agent fixes failures until the outputs match and the quality gate passes (capped rounds).
-5. **Report**: results shown in a dashboard.
-
-## Hackathon note
-
-All code in this repo was written during the Meta Global AI Developer Hackathon, Oct 27 to Nov 4 2026. All sample COBOL is synthetic.
-
-## Planned structure
+## What runs today
 
 ```
-apps/web            Next.js dashboard
-services/api        API (Python or Node)
-services/analyzer   COBOL parsing, dependency graph, risk flags
-services/converter  Meta-model conversion (SQL, Java, tests) + repair agent
-services/verifier   GnuCOBOL differential testing
-samples/            Synthetic COBOL only
-contracts/          Shared JSON schemas between modules
-docs/               Architecture and hackathon rules
-.claude/agents/     Claude Code subagent definitions
+GitHub repo link ─► analyze ─► Muse Spark translates ─► repair agent ◄─► verifier (GnuCOBOL vs Java)
+                                                              │
+                         breaker agent attacks ◄── held-out certification (1,000 unseen inputs)
+                                                              │
+                     pull request + certificate ─► target repo CI re-verifies on fresh inputs
 ```
 
-See [CLAUDE.md](CLAUDE.md) for contributor/agent rules and [docs/](docs/) for the draft architecture.
+| Part | What it does |
+|---|---|
+| `services/analyzer` | Deterministic, no model calls. Derives record layouts from copybooks (DISPLAY, COMP-3, COMP, COMP-5, COMP-1/2, all sign modes, P scaling, OCCURS, REDEFINES, edited PICs, COPY REPLACING), wires files through SELECT/FD/OPEN and JCL, resolves CALLed programs, and flags legacy behaviour: ROUNDED, truncation, silent overflow, code cut at column 72, clock reads, EBCDIC-sensitive comparisons, hex floats. Imports GitHub repos (allowed owners only). |
+| `services/verifier` | The oracle. Compiles the COBOL with GnuCOBOL 3.2 (-std=ibm), runs both sides on boundary, random, fixture, corpus and model-designed inputs, and compares field by field and byte by byte: text and fixed-length records, packed and binary data, RETURN-CODE, stdout, a pinned clock, EBCDIC collation. Golden-file replay judges the Java against captured mainframe output, with a layout-aware EBCDIC and IBM hex-float codec. `reverify` re-proves a delivery in CI. |
+| `services/converter` | Meta models only (Muse Spark hosted, or Muse Spark Open on Fireworks). Translator, tool-using repair agent, breaker agent that designs inputs to break certified Java, proof-gated fix memory, swarm mode (parallel agents share certified lessons mid-run), skill export. Hard caps on calls, rounds and attack cycles. |
+| `services/api` | Serves runs and deliveries to the dashboard; `deliver` turns a legacy repo into a certified pull request on a target repo. |
+| `services/mcp` | Diocle as an MCP server: `analyze_cobol`, `verify_conversion`, `certify_conversion`, `cobol_lessons`, so any agent's conversion can be checked. |
+| `apps/web` | Dashboard: **Live runs** and **Delivery** show real data (agent trace, before/after, cost, CI status). Other views are a labelled mock. |
+| `samples/` | Five synthetic programs with naive Java ports: INTACCR, TXNPOST, FEESCHD, DAYCTRL (display records) and PKDPOST (packed, fixed-length, with a golden set). |
+
+Demo repositories: [quillmark-legacy](https://github.com/Nivetha200111/quillmark-legacy) (COBOL in) and [quillmark-modern](https://github.com/Nivetha200111/quillmark-modern) (certified Java out, with re-verifying CI).
+
+## Measured so far
+
+- Four Quillmark programs translated from scratch and certified for about $0.025 in total, then re-proven by GitHub CI on 4,000+ fresh inputs.
+- Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
+- Costs are estimates from list prices.
+
+## What Diocle proves, and what it does not yet
+
+Proves: on the inputs it runs (generated, boundary, fixture, corpus, model-designed and held-out), the Java's output records, stdout and exit code equal the original's under GnuCOBOL, or under the mainframe's own output where golden files exist.
+
+Not yet:
+- Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, more than one input or output file, several record types in one file, OCCURS DEPENDING ON, PIC N or leading P scaling are detected and reported as not convertible, never passed through.
+- Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, TRUNC, NUMPROC, hex float arithmetic). Golden files from the real mainframe are the authority.
+- Testing shows equivalence on the inputs tried, not for all inputs.
+
+## Run
+
+Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+. Each service has its own README with setup and test commands. Model keys go in `.env` (see `.env.example`); nothing secret is committed.
+
+See [CLAUDE.md](CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## How to run
-
-TBD. Nothing is implemented yet.
