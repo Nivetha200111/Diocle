@@ -87,9 +87,9 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
     (sample / "src").mkdir(parents=True)
     (sample / "copybooks").mkdir()
     shutil.copy2(source, sample / "src" / source.name)
-    for path in cert["legacy"]["copybooks"]:
-        copybook = _inside(legacy, path)
-        shutil.copy2(copybook, sample / "copybooks" / copybook.name)
+    resolved = {p.stem.upper(): p for p in legacy.rglob("*") if p.suffix.lower() in (".cpy", ".copy") and ".git" not in p.parts}
+    for member in program["copybooks"]:  # what the analyzer resolved, not paths the pull request names
+        shutil.copy2(resolved[member], sample / "copybooks" / resolved[member].name)
     if sorted(cert["legacy"].get("modules", [])) != sorted(program.get("modules", [])):
         raise Untrusted("certificate modules differ from the programs it CALLs")
     for path in program.get("modules", []):

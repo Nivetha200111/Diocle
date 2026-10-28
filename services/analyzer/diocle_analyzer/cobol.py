@@ -65,7 +65,8 @@ _USAGES = [(re.compile(r"\bCOMP(?:UTATIONAL)?-3\b|\bPACKED-DECIMAL\b"), "packed"
            (re.compile(r"\bCOMP(?:UTATIONAL)?-1\b"), "float4"),
            (re.compile(r"\bCOMP(?:UTATIONAL)?-2\b"), "float8"),
            (re.compile(r"\bCOMP(?:UTATIONAL)?(?:-4)?\b(?!-)|\bBINARY\b"), "binary"),
-           (re.compile(r"\bNATIONAL\b"), "national")]
+           (re.compile(r"\bNATIONAL\b"), "national"),
+           (re.compile(r"\bCOMP(?:UTATIONAL)?-(?:6|X|N)\b"), "unsupported")]
 _SIGN = re.compile(r"\bSIGN\s+(?:IS\s+)?(LEADING|TRAILING)(\s+SEPARATE)?")
 _OCCURS = re.compile(r"\bOCCURS\s+(\d+)(?:\s+TO\s+(\d+))?(?:\s+TIMES)?")
 _REDEFINES = re.compile(r"\bREDEFINES\s+([A-Z0-9-]+)")
@@ -168,6 +169,12 @@ def parse_copybook(text: str, *, code: bool = False) -> Layout:
         redefined = _REDEFINES.search(node.rest)
         redefines = redefines or (redefined.group(1) if redefined else None)
         occurs = _OCCURS.search(node.rest)
+        if re.search(r"\bSYNC(?:HRONIZED)?\b", node.rest):
+            layout.unsupported = f"{node.name}: SYNCHRONIZED adds slack bytes that are not modelled yet"
+            return
+        if usage == "unsupported":
+            layout.unsupported = f"{node.name}: this USAGE (COMP-6, COMP-X or COMP-N) is not supported"
+            return
         if (occurs and occurs.group(2)) or re.search(r"\bDEPENDING\b", node.rest):
             layout.unsupported = f"{node.name}: OCCURS DEPENDING ON (variable-length record) is not supported yet"
             return
@@ -214,6 +221,7 @@ class ProgramInfo:
     exec_blocks: list[str] = field(default_factory=list)  # SQL, CICS, DLI
     fd_inline: dict[str, str] = field(default_factory=dict)  # FD file name -> its inline record entries (code)
     sort_files: set[str] = field(default_factory=set)  # SD (sort work) files: internal, not program I/O
+    dynamic_calls: list[str] = field(default_factory=list)  # CALL identifier: the target is only known at run time
 
 
 def parse_program(text: str) -> ProgramInfo:
@@ -263,6 +271,7 @@ def parse_program(text: str) -> ProgramInfo:
                 elif word not in sort_files:
                     break
     copybooks = list(dict.fromkeys(re.findall(r"\bCOPY\s+([A-Z0-9-]+)", code)))
-    calls = list(dict.fromkeys(re.findall(r"\bCALL\s+'([A-Z0-9-]+)'", code)))
+    calls = list(dict.fromkeys(re.findall(r"\bCALL\s+['\"]([A-Z0-9-]+)['\"]", code)))
+    dynamic_calls = sorted(set(re.findall(r"\bCALL\s+([A-Z][A-Z0-9-]*)\b", code)))
     return ProgramInfo(name, copybooks, selects, fd_copybooks, directions, calls, organizations, replacing,
-                       inline_records, exec_blocks, fd_inline, sort_files)
+                       inline_records, exec_blocks, fd_inline, sort_files, dynamic_calls)

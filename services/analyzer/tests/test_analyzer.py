@@ -106,12 +106,13 @@ def test_environment_and_source_findings(tmp_path):
         "           COMPUTE WS-D = WS-D * 2 +".ljust(70) + "36" + "5",  # the FEESCHD bug: '/ 365' read as '/ 36'
         "      * a comment line that is very long and runs past column seventy two on purpose x",
         "           STOP RUN.                                                    00000100",
+        "           MOVE WS-D TO WS-D".ljust(64) + "WS-DATES" + "00000110",  # code to col 72, then a sequence number
     ])
     (tmp_path / "ENVT.cbl").write_text(program)
     cats = {(f["category"], f["line"]) for f in analyze(tmp_path)["findings"]}
     assert ("clock", 9) in cats and ("collation", 10) in cats and ("float", 6) in cats
     assert ("source", 13) in cats  # token cut at column 72
-    assert not any(c == "source" and line in (14, 15) for c, line in cats)  # comments and sequence numbers are fine
+    assert not any(c == "source" and line in (14, 15, 16) for c, line in cats)  # comments and sequence numbers are fine
 
 
 def test_copy_replacing_inline_records_and_blocking_reasons(tmp_path):
@@ -184,3 +185,15 @@ def test_multi_file_programs_get_shared_sorted_keys():
     from diocle_analyzer.analyze import shared_keys
     keys = shared_keys([f for f in p["files"] if f["direction"] == "input"])
     assert keys["sharedKeys"] == [[["MSTIN", "MS-ACCT-ID"], ["TXNIN", "TX-ACCT-ID"]]]
+
+
+def test_second_review_shapes_are_rejected_or_detected():
+    from diocle_analyzer.cobol import parse_program
+    sync = parse_copybook("       01  R.\n           05  A  PIC X.\n           05  B  PIC S9(4) COMP SYNC.\n")
+    assert sync.as_dict() is None and "SYNCHRONIZED" in sync.unsupported
+    comp6 = parse_copybook("       01  R.\n           05  A  PIC 9(4) COMP-6.\n")
+    assert comp6.as_dict() is None and "COMP-6" in comp6.unsupported
+    head = "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. C.\n       PROCEDURE DIVISION.\n"
+    assert parse_program(head + '           CALL "SUBX" USING A.\n').calls == ["SUBX"]
+    dynamic = parse_program(head + "           CALL WS-PGM USING A.\n")
+    assert dynamic.calls == [] and dynamic.dynamic_calls == ["WS-PGM"]

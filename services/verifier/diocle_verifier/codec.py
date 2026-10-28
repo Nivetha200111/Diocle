@@ -30,6 +30,8 @@ def hfp_to_float(data: bytes) -> float:
 
 def float_to_hfp(value: float, size: int = 8) -> bytes:
     """Python float to IBM hexadecimal floating point (rounded to the HFP fraction width)."""
+    if value != value or value in (float("inf"), float("-inf")):
+        raise ValueError(f"{value} has no IBM hexadecimal floating point form")
     if value == 0:
         return bytes(size)
     sign = 0x80 if value < 0 else 0
@@ -41,6 +43,8 @@ def float_to_hfp(value: float, size: int = 8) -> bytes:
     while value < 1 / 16:
         value *= 16
         exponent -= 1
+    if not -64 <= exponent <= 63:
+        raise ValueError(f"{value} is outside the IBM hexadecimal floating point range")
     bits = 8 * (size - 1)
     fraction = round(value * (1 << bits))
     if fraction >= 1 << bits:  # rounding carried into a new hex digit
@@ -53,6 +57,10 @@ def _zoned_to_ascii(f: Field, raw: bytes, codepage: str) -> bytes:
     if f.sign.endswith("separate"):
         return raw.decode(codepage).encode("latin-1")
     sign_at = -1 if f.sign == "trailing" else 0 if f.sign == "leading" else None
+    for i, b in enumerate(raw):
+        zone_ok = (b >> 4) == 0xF or (i == (len(raw) - 1 if sign_at == -1 else 0) and sign_at is not None and (b >> 4) in (0xC, 0xD))
+        if not zone_ok or (b & 0x0F) > 9:
+            raise ValueError(f"{f.name}: byte {b:02X} is not a zoned decimal digit")
     digits = bytearray(b"0123456789"[b & 0x0F] for b in raw)
     if sign_at is not None and f.signed and raw and (raw[sign_at] >> 4) == 0xD:
         digits[sign_at] += 0x40  # GnuCOBOL ASCII overpunch for a negative digit
@@ -64,6 +72,8 @@ def _zoned_to_ebcdic(f: Field, raw: bytes, codepage: str) -> bytes:
         return raw.decode("latin-1").encode(codepage)
     out = bytearray()
     for i, b in enumerate(raw):
+        if not (0x30 <= b <= 0x39 or 0x70 <= b <= 0x79):
+            raise ValueError(f"{f.name}: byte {b:02X} is not a digit")
         negative = 0x70 <= b <= 0x79
         digit = (b - 0x40 if negative else b) - 0x30
         sign_position = (i == len(raw) - 1 and f.sign == "trailing") or (i == 0 and f.sign == "leading")

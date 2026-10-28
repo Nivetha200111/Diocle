@@ -218,7 +218,7 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
         found += broken
         standing_cases += [b["case"] for b in broken]
         if cycles >= settings.max_breaker_cycles:
-            outcome = {**outcome, "certified": False, "lessons": []}
+            outcome = {**outcome, "certified": False, "lessons": [], "certificationReport": None}
             on_event({"type": "stage", "stage": "done",
                       "message": f"Not certified: {len(broken)} breaker input(s) still break the Java and the repair budget is spent"})
             break

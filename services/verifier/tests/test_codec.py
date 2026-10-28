@@ -46,3 +46,12 @@ def test_a_packed_extract_round_trips_through_ebcdic():
     mainframe = convert_record(record, fields, to_mainframe=True)
     assert mainframe[:7] == "Q-00001".encode("cp037") and mainframe != record
     assert convert_record(mainframe, fields) == record
+
+
+def test_codec_refuses_what_it_cannot_represent():
+    for bad in (float("inf"), float("-inf"), float("nan"), 1e80, 1e-80):
+        with pytest.raises(ValueError):
+            float_to_hfp(bad)
+    fields = load_fields({"fields": [{"name": "Z", "kind": "numeric", "digits": 3, "scale": 0, "signed": True}]})
+    with pytest.raises(ValueError):
+        convert_record(bytes.fromhex("404040"), fields)  # spaces are not zoned digits

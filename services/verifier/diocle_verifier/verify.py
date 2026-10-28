@@ -84,6 +84,13 @@ def _golden(sample_dir: Path, meta: dict, in_fields, out_fields):
     spec = meta.get("golden")
     if not spec:
         return [], [], None
+    for side in ("input", "output"):
+        base = {f["name"]: f for f in meta["layouts"][side]["fields"]}
+        for f in meta["layouts"][side]["fields"]:
+            target = base.get(f.get("redefines", ""))
+            if target and f.get("usage", "display") != target.get("usage", "display" if target["kind"] == "numeric" else "text"):
+                raise ValueError(f"golden replay: {f['name']} redefines {target['name']} with a different usage; "
+                                 "the codec cannot tell which view the bytes hold")
     folder = sample_dir / spec.get("dir", "golden")
     codepage = spec.get("codepage", "cp037")
     inputs = convert_file((folder / spec["input"]).read_bytes(), in_fields, record_length(in_fields), codepage=codepage)
@@ -97,10 +104,17 @@ def _replay_golden(results, cases, golden_cases, expected, original, converted, 
     """On golden inputs the mainframe's captured output is the oracle; also report whether GnuCOBOL agreed with it."""
     first = cases.index(golden_cases[0])
     agreement, disagreements = 0, []
+    # Replay pairs the k-th golden input with the k-th output record, so it needs one output record per input.
+    aligned = len(expected) == len(golden_cases) and len(original.output_lines) == len(cases)
+    if not aligned:
+        note = (f"golden replay needs one output record per input: {len(golden_cases)} golden inputs, {len(expected)} "
+                f"captured outputs, {len(original.output_lines)} records written for {len(cases)} inputs")
+        for k, case in enumerate(golden_cases):
+            results[first + k] = {**results[first + k], "match": False, "oracle": "mainframe", "fieldDiffs": [], "diff": note}
+        return results, {"cases": len(golden_cases), "codepage": spec.get("codepage", "cp037"),
+                         "source": spec.get("source", ""), "oracleAgreement": 0, "oracleDisagreements": [], "aligned": False}
     for k, case in enumerate(golden_cases):
         i = first + k
-        if k >= len(expected):
-            break
         [vs_mainframe] = compare([case], [expected[k]], converted.output_lines[i : i + 1], out_fields, fmt)
         results[i] = {**vs_mainframe, "oracle": "mainframe"}
         [oracle_check] = compare([case], [expected[k]], original.output_lines[i : i + 1], out_fields, fmt)
@@ -109,7 +123,7 @@ def _replay_golden(results, cases, golden_cases, expected, original, converted, 
         else:
             disagreements.append({"inputId": case.id, "diff": oracle_check.get("diff", "")})
     report = {"cases": len(golden_cases), "codepage": spec.get("codepage", "cp037"), "source": spec.get("source", ""),
-              "oracleAgreement": agreement, "oracleDisagreements": disagreements[:10]}
+              "oracleAgreement": agreement, "oracleDisagreements": disagreements[:10], "aligned": True}
     return results, report
 
 
