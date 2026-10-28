@@ -88,7 +88,7 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 ## Open work (priority order)
 1. Deploy the comparator/CI-status commits; owner decides on re-delivering INTACCR to quillmark-modern and on
    switching visitor imports on.
-2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results.json` (2/4 certified;
+2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results-eval-freeze-1.json` (2/4 certified;
    BRNCHSUM and LOANAMRT failed because the old comparator rejected aggregation/fan-out; their final Java passes
    the corrected comparator on fresh seeds). Next: full re-run with the corrected verifier under a new tag
    (`eval-freeze-2`), reported next to the original. Costs about $0.3.
