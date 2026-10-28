@@ -2,6 +2,48 @@
 
 > **Status: planned, not implemented.** This describes the target design for the hackathon build. Sections will be marked as implemented as modules land. Diagram: [architecture.drawio](architecture.drawio). Open it in [diagrams.net](https://app.diagrams.net) or the VS Code Draw.io Integration extension.
 
+## Flow that runs today (implemented)
+This is what works end to end right now on the synthetic `interest-accrual` sample. Everything below this section is the full target design.
+
+```mermaid
+flowchart LR
+    SRC["COBOL + copybooks<br/>samples/"]
+    JAVA["Starting Java<br/>(existing conversion, or a<br/>Muse Spark translation)"]
+
+    subgraph VER["services/verifier"]
+        GEN["Generate inputs<br/>trap cases + PIC boundaries + random"]
+        RUN["Run GnuCOBOL original and Java<br/>on the same inputs"]
+        DIFF["Field-by-field diff"]
+        GEN --> RUN --> DIFF
+    end
+
+    subgraph CONV["services/converter (Meta models)"]
+        AGENT["Repair agent<br/>reads COBOL, patches Java,<br/>compiles, re-tests"]
+    end
+
+    CERT{"Certification<br/>1,000 held-out inputs"}
+    STORE[("runs/&lt;id&gt;/<br/>trace, reports, cost")]
+    API["services/api<br/>GET /runs"]
+    UI["apps/web<br/>Live runs view"]
+
+    SRC --> GEN
+    JAVA --> RUN
+    DIFF -- "mismatches" --> AGENT
+    AGENT -- "tool calls" --> RUN
+    AGENT -- "finish" --> CERT
+    CERT -- "fail (max 3 rounds)" --> AGENT
+    CERT -- "pass" --> STORE
+    STORE --> API --> UI
+```
+
+1. **Inputs:** a synthetic COBOL program and a starting Java version, either an existing conversion or one translated by Muse Spark.
+2. **Verify:** the verifier compiles both, runs them on the same generated inputs, and diffs every output field. GnuCOBOL is the source of truth.
+3. **Repair:** the Muse Spark agent sees the mismatches and fixes the Java with tools (read, patch, compile, re-test). It can only edit the run's Java files.
+4. **Certify:** when the agent finishes, the verifier re-tests on 1,000 inputs the agent never saw. If that fails, the agent gets another round (at most 3).
+5. **Show:** the run (trace, before/after results, Java diff, tokens and cost) is saved under `runs/`, served by the API, and shown in the portal's **Live runs** view.
+
+Not built yet: analyzer, Class Designer, SonarQube gate, starting runs from the browser, live streaming.
+
 ## Overview
 Diocle is an "understand first, convert second" pipeline: **upload > analyze > design > convert > verify ⇄ repair > report**.
 
