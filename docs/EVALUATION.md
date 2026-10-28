@@ -1,6 +1,6 @@
 # Frozen evaluation on unseen programs
 
-> All programs are **synthetic**, written for this project. Raw results: [`eval/results.json`](../eval/results.json).
+> All programs are **synthetic**, written for this project. Raw results: [`eval/results-eval-freeze-1.json`](../eval/results-eval-freeze-1.json).
 
 ## Protocol
 - The implementation was frozen at git tag **`eval-freeze-1`** (commit `3eaad85`, Oct 28 19:37 IST). Four COBOL

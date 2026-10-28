@@ -1,8 +1,9 @@
 """Run the frozen evaluation: convert each unseen program as a user would, then re-verify on fresh seeds.
 
-  services/verifier/.venv/bin/python eval/run_eval.py
+  services/verifier/.venv/bin/python eval/run_eval.py [--no-memory]
 
-Writes eval/results.json. Model calls go through the converter's normal caps; nothing here changes the product.
+Writes eval/results-<git tag>.json (earlier results are never overwritten). Model calls go through the converter's
+normal caps; nothing here changes the product. --no-memory: a cold start, no fix memory read or written.
 """
 
 from __future__ import annotations
@@ -21,10 +22,10 @@ from diocle_verifier.verify import passes, verify_sample  # noqa: E402
 FRESH_SEEDS = [9001, 9002, 9003, 9004, 9005]
 
 
-def run(sample: Path) -> dict:
+def run(sample: Path, flags: list[str]) -> dict:
     started = time.time()
     proc = subprocess.run([str(ROOT / "services/converter/.venv/bin/python"), "-m", "diocle_converter", "run", str(sample),
-                           "--breaker"], cwd=ROOT / "services" / "converter", capture_output=True, text=True)
+                           "--breaker", *flags], cwd=ROOT / "services" / "converter", capture_output=True, text=True)
     m = re.search(r"run saved to runs/(\S+)", proc.stdout) or re.search(r"run started runs/(\S+)", proc.stdout)
     run_id = m.group(1) if m else None
     meta = json.loads((ROOT / "runs" / run_id / "run.json").read_text()) if run_id else {}
@@ -48,7 +49,11 @@ def run(sample: Path) -> dict:
 
 
 if __name__ == "__main__":
+    flags = ["--no-memory"] if "--no-memory" in sys.argv[1:] else []
     tag = subprocess.run(["git", "describe", "--tags", "--always"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
-    results = [run(s) for s in sorted((ROOT / "eval" / "samples").iterdir()) if (s / "sample.json").exists()]
-    (ROOT / "eval" / "results.json").write_text(json.dumps({"diocle": tag, "freshSeeds": FRESH_SEEDS, "results": results},
-                                                           indent=2) + "\n")
+    out = ROOT / "eval" / f"results-{tag}.json"
+    if out.exists():
+        sys.exit(f"{out.name} exists; results are never overwritten")
+    results = [run(s, flags) for s in sorted((ROOT / "eval" / "samples").iterdir()) if (s / "sample.json").exists()]
+    out.write_text(json.dumps({"diocle": tag, "memory": not flags, "converterFlags": ["--breaker", *flags],
+                               "freshSeeds": FRESH_SEEDS, "results": results}, indent=2) + "\n")
