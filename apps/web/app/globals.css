@@ -4720,3 +4720,31 @@ main {
   }
 }
 
+/* Live runs (real data from services/api) */
+.runs-header { padding: 20px 21px; }
+.runs-header h2 { font-size: 17px; font-weight: 560; margin: 10px 0 6px; color: var(--ink); }
+.runs-header p { color: var(--muted); font-size: 11px; line-height: 1.7; }
+.runs-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.runs-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 19px; align-items: start; }
+.runs-tabs { flex-wrap: wrap; }
+.runs-empty { display: flex; gap: 12px; align-items: flex-start; padding: 22px; color: var(--ink); }
+.runs-empty h2 { font-size: 14px; font-weight: 560; margin-bottom: 6px; }
+.runs-empty p { color: var(--muted); font-size: 12px; }
+.runs-diff-cell { white-space: normal; font-size: 10px; line-height: 1.5; }
+.trace-list { list-style: none; margin: 0; padding: 0 21px 18px; display: flex; flex-direction: column; gap: 10px; max-height: 620px; overflow: auto; }
+.trace-step { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; align-items: start; }
+.trace-num { height: 22px; width: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; background: var(--green-light); color: var(--green); }
+.trace-tool { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #f2eef8; color: #7a5f91; }
+.trace-why { font-size: 12px; color: var(--ink); margin-top: 4px; line-height: 1.5; }
+.trace-result { font-size: 10px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+.trace-cert { font-size: 12px; font-weight: 560; padding: 10px 12px; border-radius: 7px; }
+.trace-cert.pass { background: #f0f5e7; color: #4f6f37; }
+.trace-cert.fail { background: #faf2e4; color: #9b742f; }
+.diff-block { margin: 0; padding: 14px 21px 20px; font-size: 11px; line-height: 1.55; overflow-x: auto; max-height: 560px; background: #fbfcf9; border-top: 1px solid var(--border); }
+.diff-block span { display: block; white-space: pre; }
+.diff-add { background: #eef6e6; color: #3d6a2a; }
+.diff-del { background: #fbefe9; color: #9a4b30; }
+.diff-hunk { color: #7a5f91; }
+@media (max-width: 1100px) {
+  .runs-grid { grid-template-columns: minmax(0, 1fr); }
+}
