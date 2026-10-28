@@ -4754,3 +4754,5 @@ main {
 .eff-projection { padding: 0 21px 16px; font-size: 11px; color: var(--ink); }
 .eff-table tbody tr { cursor: pointer; }
 @media (max-width: 760px) { .eff-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.trace-cert.memory { background: #edf4f7; color: #3f6573; }
+.lessons-table td { white-space: normal; vertical-align: top; font-size: 11px; line-height: 1.5; }

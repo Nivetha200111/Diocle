@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, fetchRun, fetchRuns, type Efficiency, type Run, type RunListItem, type Verification } from "@/lib/runs";
+import { API_URL, fetchRun, fetchRuns, type Efficiency, type Run, type RunListItem, type RunMemory, type Verification } from "@/lib/runs";
 import { Badge } from "./ui";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
@@ -26,6 +26,30 @@ function StatCard({ label, value, note, tone, icon }: {
 
 const seconds = (ms: number) => (ms >= 60000 ? `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s` : `${Math.round(ms / 1000)}s`);
 const shortModel = (m: string | null) => (m ? m.split("/").pop()! : "n/a");
+const memoryLabel = (m: RunMemory) => (!m ? "n/a" : !m.enabled ? "off" : `${m.used} in · ${m.learned} new`);
+
+function LessonsPanel({ memory }: { memory: NonNullable<RunMemory> }) {
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Lessons learned</h2>
+          <p>Saved to fix memory only because this run passed held-out certification. Later runs get them as hints.</p>
+        </div>
+      </div>
+      <div className="table-scroll">
+        <table className="data-table lessons-table">
+          <thead><tr><th>Pattern</th><th>What COBOL does</th><th>Java that reproduces it</th></tr></thead>
+          <tbody>
+            {memory.lessons.map((l) => (
+              <tr key={l.pattern}><td>{l.pattern}</td><td>{l.cobol}</td><td className="mono">{l.java}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
 function EfficiencyPanel({ e }: { e: Efficiency }) {
   const perMillion = e.costPer1kLinesUsd === null ? null : e.costPer1kLinesUsd * 1000;
@@ -76,7 +100,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
       <div className="table-scroll">
         <table className="data-table eff-table">
           <thead>
-            <tr><th>Run</th><th>Model</th><th>Result</th><th>Calls</th><th>Steps</th><th>Cache</th>
+            <tr><th>Run</th><th>Model</th><th>Result</th><th>Memory</th><th>Calls</th><th>Steps</th><th>Cache</th>
               <th>Tokens</th><th>Model time</th><th>Cost</th><th>$ / 1k lines</th></tr>
           </thead>
           <tbody>
@@ -85,6 +109,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
                 <td className="mono">{r.program} · {r.createdAt?.slice(11, 16)} · {r.command === "run" ? "translate" : "repair"}</td>
                 <td className="mono">{shortModel(r.model)}</td>
                 <td>{r.certified ? "certified" : "not certified"}</td>
+                <td className="mono">{memoryLabel(r.memory)}</td>
                 <td className="mono">{r.efficiency.modelCalls}</td>
                 <td className="mono">{r.efficiency.toolSteps}</td>
                 <td className="mono">{Math.round(r.efficiency.cacheHitRate * 100)}%</td>
@@ -169,7 +194,7 @@ function RunDetail({ run }: { run: Run }) {
                   </div>
                 </li>
               ) : (
-                <li key={i} className={`trace-cert ${e.passed ? "pass" : "fail"}`}>
+                <li key={i} className={`trace-cert ${e.type === "memory" ? "memory" : e.passed ? "pass" : "fail"}`}>
                   {e.type === "certification"
                     ? `Round ${e.round} certification on held-out inputs: ${e.passed ? "PASS" : "FAIL"} · ${e.result?.split("\n")[0]}`
                     : e.message}
@@ -203,6 +228,8 @@ function RunDetail({ run }: { run: Run }) {
           </div>
         </section>
       </div>
+
+      {run.memory && run.memory.lessons.length > 0 && <LessonsPanel memory={run.memory} />}
 
       {run.javaDiff && (
         <section className="panel">
