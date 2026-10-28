@@ -148,3 +148,34 @@ def test_start_delivery_validates_and_allows_one_at_a_time(client, tmp_path, mon
     busy = client.post("/deliveries", json={"legacy": "https://github.com/Nivetha200111/a",
                                              "target": "https://github.com/Nivetha200111/b"})
     assert busy.status_code == 409 and len(started) == 1
+
+
+def test_admin_passcode_guards_starting(client, monkeypatch):
+    import diocle_api.deliveries as d
+    monkeypatch.setattr(d.subprocess, "Popen", lambda cmd, **kw: None)
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "Nivetha200111")
+    body = {"legacy": "https://github.com/Nivetha200111/a", "target": "https://github.com/Nivetha200111/b"}
+    monkeypatch.setenv("DIOCLE_HOSTED", "1")
+    monkeypatch.delenv("DIOCLE_ADMIN_TOKEN", raising=False)
+    assert client.post("/deliveries", json=body).status_code == 403  # hosted without a token: never
+    assert client.get("/config").json() == {"hosted": True, "startNeedsPasscode": True}
+    monkeypatch.setenv("DIOCLE_ADMIN_TOKEN", "s3cret-passcode")
+    assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "wrong"}).status_code == 403
+    assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "s3cret-passcode"}).status_code == 202
+
+
+def test_reverify_runs_only_certified_runs_with_samples(client):
+    assert client.post("/runs/missing-run/reverify").status_code == 404
+    assert client.post("/runs/demo-20261028-124509/reverify").status_code == 502  # its sample has no real COBOL
+
+
+def test_reverify_a_real_certified_run():
+    import pytest
+    from diocle_api.reverify import reverify_run
+    from diocle_api.runs import list_runs
+    # a run certified under the current oracle (runs named intaccr-* come from the IBM TRUNC/DISPLAY verifier)
+    real = next((r for r in list_runs() if r["certified"] and r["id"].startswith("intaccr-")), None)
+    if real is None:
+        pytest.skip("no certified INTACCR run on this machine")
+    result = reverify_run(real["id"], cases=100)
+    assert result["allMatch"] and result["total"] >= 100 and result["seed"] >= 10**6
