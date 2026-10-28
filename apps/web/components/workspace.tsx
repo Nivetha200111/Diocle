@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Activity,
+  GitPullRequest,
   ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
@@ -53,6 +54,7 @@ import {
 import { Badge, Brand, DemoNote, Modal, Pipeline, Progress } from "./ui";
 import DependencyGraph from "./dependency-graph";
 import RunsView from "./runs-view";
+import DeliveryView from "./delivery-view";
 
 const nav = [
   { name: "Overview", icon: LayoutDashboard },
@@ -63,6 +65,7 @@ const nav = [
   { name: "Verification", icon: ShieldCheck },
   { name: "Reports", icon: FileText },
   { name: "Live runs", icon: Activity },
+  { name: "Delivery", icon: GitPullRequest },
 ] as const;
 
 const descriptions: Record<View, string> = {
@@ -74,6 +77,7 @@ const descriptions: Record<View, string> = {
   Verification: "Same inputs. Same behavior. Greater confidence.",
   Reports: "The complete story of your modernization.",
   "Live runs": "Real agent runs: what broke, what the agent did, and the proof.",
+  Delivery: "A legacy GitHub repository migrated live: analyze, convert, certify, open a pull request, re-verify in CI.",
   Settings: "Make this workspace your own.",
 };
 
@@ -1421,6 +1425,12 @@ export default function Workspace() {
                   notify("Workspace sample verification report downloaded.");
                 }}
               />
+            </div>
+          )}
+
+          {view === "Delivery" && (
+            <div className="view-content">
+              <DeliveryView />
             </div>
           )}
 

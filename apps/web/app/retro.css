@@ -623,3 +623,47 @@ main {
   border-bottom: 1px dashed #40ffff;
   padding: 0 0 8px;
 }
+
+/* delivery: Win9x status lights and chunky stage boxes */
+.led {
+  width: 11px;
+  height: 11px;
+  border-radius: 0 !important;
+  box-shadow: inset -1px -1px #0006, inset 1px 1px #fff8;
+}
+.led-off { background: #808080 !important; }
+.led-ok { background: #00c000 !important; }
+.led-bad { background: #ff0000 !important; }
+.led-busy { background: #ffff00 !important; }
+.dlv-stage {
+  background: var(--w-face);
+  border: 0;
+  box-shadow: var(--w-out);
+}
+.dlv-stage.dlv-busy {
+  box-shadow: var(--w-in);
+}
+.dlv-stage small {
+  color: #303030 !important;
+}
+.dlv-header h2 a {
+  color: var(--w-navy) !important;
+  text-decoration: underline;
+}
+.dlv-log .trace-tool {
+  font-size: 11px !important;
+}
+.dlv-log .trace-why {
+  display: inline;
+  font-size: 11px !important;
+}
+.dlv-log strong {
+  color: #fff !important;
+}
+.dlv-pr a {
+  color: var(--w-navy) !important;
+}
+.dlv-pr .button.primary,
+.dlv-pr .button.primary * {
+  color: #fff !important;
+}
