@@ -15,6 +15,7 @@ from diocle_converter.client import BudgetExceeded, ModelClient
 from diocle_converter.config import Settings
 from diocle_converter.repair import CERT_SEED, TEST_SEED, RepairAgent, summarize_report
 from diocle_converter.sources import Program
+from diocle_converter.translate import translate
 from diocle_converter.workspace import Workspace
 
 SAMPLE = Path(__file__).resolve().parents[3] / "samples" / "interest-accrual"
@@ -131,3 +132,16 @@ def test_tool_errors_are_returned_to_the_model(tmp_path):
 def test_passing_result_tells_the_agent_to_stop():
     assert "Call finish now" in summarize_report(report(True))
     assert "Call finish now" not in summarize_report(report(False))
+    assert "Call finish now" not in summarize_report(report(True), for_agent=False)  # certification text for people
+
+
+def test_translator_is_pinned_to_the_class_the_verifier_runs(tmp_path):
+    answer = json.dumps({"mainClass": "IntAccr", "javaSource": "public class IntAccr {}", "notes": "n"})
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=answer)])
+    ws = Workspace(tmp_path / "java")
+    result = translate(Program.load(SAMPLE), ModelClient(settings(), _sdk=sdk), ws)
+    request = sdk.requests[0]
+    assert "must be named IntAccr" in request["messages"][0]["content"]
+    schema = request["response_format"]["json_schema"]["schema"]
+    assert schema["properties"]["mainClass"]["enum"] == ["IntAccr"]
+    assert result["file"] == "IntAccr.java" and ws.read("IntAccr.java") == "public class IntAccr {}"

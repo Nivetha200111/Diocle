@@ -6,6 +6,7 @@ Translate the COBOL batch program into ONE self-contained Java 21 source file (J
 whose output is byte-identical to the original compiled with GnuCOBOL (-std=ibm).
 
 I/O contract:
+- The public class with main() must be named {main_class}, in the default package.
 - Read the input file path from environment variable DD_{input} and write the output to DD_{output}.
 - Line-sequential files: one record per line; output records must have exactly the width the copybook defines.
 - Reproduce every DISPLAY to stdout exactly.

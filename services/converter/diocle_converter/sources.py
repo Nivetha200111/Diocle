@@ -14,6 +14,7 @@ class Program:
     cobol: str
     copybooks: dict[str, str]
     dd: dict[str, str]
+    main_class: str  # the class name the verifier runs
 
     @classmethod
     def load(cls, sample_dir: Path) -> "Program":
@@ -21,7 +22,8 @@ class Program:
         meta = json.loads((sample_dir / "sample.json").read_text())
         copybook_dir = sample_dir / meta["copybookDir"]
         copybooks = {p.name: p.read_text() for p in sorted(copybook_dir.glob("*.cpy"))}
-        return cls(sample_dir, meta["program"], (sample_dir / meta["source"]).read_text(), copybooks, meta["dd"])
+        return cls(sample_dir, meta["program"], (sample_dir / meta["source"]).read_text(), copybooks, meta["dd"],
+                   meta["javaConversion"]["mainClass"])
 
     def as_text(self) -> str:
         parts = [f"=== {self.name}.cbl ===\n{self.cobol}"]
