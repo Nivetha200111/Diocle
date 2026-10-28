@@ -136,7 +136,7 @@ class RepairAgent:
             certification = self.verify(self.workspace.root, CERT_SEED + round_no, CERT_CASES)
             passed = report_passes(certification)
             self.rounds.append({"round": round_no, "finishedByAgent": finished, "certified": passed,
-                                "summary": certification["summary"]})
+                                "seed": CERT_SEED + round_no, "summary": certification["summary"]})
             self.on_event({"type": "certification", "round": round_no, "passed": passed,
                            "result": summarize_report(certification, limit=3, for_agent=False)})
             if passed:
@@ -145,6 +145,7 @@ class RepairAgent:
                                   f"{summarize_report(certification)}\nContinue fixing."})
         certified = bool(certification and report_passes(certification))
         return {"certified": certified, "rounds": self.rounds, "certificationReport": certification,
+                "certificationSeed": CERT_SEED + self.rounds[-1]["round"] if self.rounds else None,
                 "lessons": self.lessons if certified else []}
 
     def _share_new_lessons(self, round_no: int, messages: list[dict]) -> None:

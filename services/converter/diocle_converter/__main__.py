@@ -20,7 +20,7 @@ from .breaker import Breaker
 from .client import ModelClient
 from .config import REPO_ROOT, Settings
 from .memory import Memory, lesson_key, render
-from .repair import RepairAgent, report_passes
+from .repair import CERT_CASES, CERT_SEED, TEST_CASES, TEST_SEED, RepairAgent, report_passes, summarize_report
 from .sources import Program
 from .translate import translate
 from .workspace import Workspace
@@ -106,6 +106,23 @@ def main(argv: list[str] | None = None) -> int:
     save_live()
     print(f"run started runs/{run_dir.name}", flush=True)
 
+    try:
+        return _convert(args, settings, client, program, run_dir, base, events, on_event)
+    except BaseException as e:  # never leave a run looking "running" forever
+        on_event({"type": "stage", "stage": "done", "message": f"run failed: {type(e).__name__}: {str(e)[:300]}"})
+        _atomic_write(run_dir / "run.json", {**base, "status": "not-certified", "certified": False, "rounds": [],
+                                             "usage": client.usage_summary(), "error": f"{type(e).__name__}: {str(e)[:300]}"})
+        raise
+
+
+def _atomic_write(path: Path, data: dict) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n")
+    tmp.replace(path)
+
+
+def _convert(args, settings: Settings, client: ModelClient, program: Program, run_dir: Path, base: dict,
+             events: list[dict], on_event) -> int:
     if args.command == "repair":
         meta = json.loads((program.sample_dir / "sample.json").read_text())
         source = (args.java_dir or program.sample_dir / meta["javaConversion"]["dir"]).resolve()
@@ -127,38 +144,25 @@ def main(argv: list[str] | None = None) -> int:
                         memory_feed=memory.load if (memory and args.swarm) else None,
                         known_lessons={lesson_key(l["pattern"]) for l in known})
     on_event({"type": "stage", "stage": "verifying", "message": "Running GnuCOBOL and the Java on the same inputs"})
-    first = verify(workspace.root, 1026, 200)
+    first = verify(workspace.root, TEST_SEED, TEST_CASES)
     (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
     s0 = first["summary"]
     on_event({"type": "stage", "stage": "repairing",
               "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
-    if report_passes(first) and report_passes(verify(workspace.root, 4243, 1000)):
+    held_out = verify(workspace.root, CERT_SEED, CERT_CASES) if report_passes(first) else None
+    if held_out is not None and report_passes(held_out):
         print("conversion already passes, including held-out inputs: no repair needed")
-        outcome = {"certified": True, "rounds": [], "certificationReport": None, "lessons": []}
+        outcome = {"certified": True, "rounds": [], "certificationReport": held_out, "certificationSeed": CERT_SEED,
+                   "lessons": []}
+        on_event({"type": "certification", "round": 0, "passed": True,
+                  "result": summarize_report(held_out, limit=3, for_agent=False)})
     else:
         outcome = agent.run()
 
     breaker_summary = None
     if args.breaker and outcome["certified"]:
-        meta = json.loads((program.sample_dir / "sample.json").read_text())
-        breaker = Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
-        on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent is designing inputs to break the certified Java"})
-        broken = breaker.attack(rounds=3)
-        breaker_summary = {"rounds": len({a["id"].rsplit("-", 1)[0] for a in breaker.attempts}), "tried": len(breaker.attempts),
-                           "broke": len(broken), "counterexamples": [{"input": b["case"].record, "why": b["why"], "diff": b["diff"]} for b in broken]}
-        if broken:
-            standing_cases += [b["case"] for b in broken]
-            note = ("A breaker agent found inputs where the Java differs from the COBOL. They are now part of every test "
-                    "and certification:\n" + "\n".join(f"- input={b['case'].record!r} ({b['why']}): {b['diff']}" for b in broken)
-                    + "\nFix the root cause, then finish.")
-            on_event({"type": "stage", "stage": "repairing", "message": f"Repair agent resumes with {len(broken)} counterexample(s)"})
-            outcome = agent.resume(note)
-            if outcome["certified"]:
-                on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent attacks the repaired Java once more"})
-                again = breaker.attack(rounds=1, label="recheck")
-                breaker_summary["recheckBroke"] = len(again)
-        breaker_summary["fixed"] = bool(broken) and outcome["certified"]
-        (run_dir / "breaker.json").write_text(json.dumps({**breaker_summary, "attempts": breaker.attempts}, indent=2) + "\n")
+        outcome, breaker_summary = _attack(program, workspace, client, verify, agent, standing_cases, outcome,
+                                           run_dir, settings, on_event)
 
     learned = memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name) if memory and outcome["certified"] else 0
     usage = client.usage_summary()
@@ -171,16 +175,16 @@ def main(argv: list[str] | None = None) -> int:
         "See events.jsonl for every step.\n"
         "- Any header comment inside the Java files describes the starting file, not the repaired result.\n"
     )
-    (run_dir / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    _atomic_write_text(run_dir / "events.jsonl", "".join(json.dumps(e) + "\n" for e in events))
     if outcome["certificationReport"]:
-        (run_dir / "verification-report.json").write_text(json.dumps(outcome["certificationReport"], indent=2) + "\n")
-    (run_dir / "run.json").write_text(json.dumps({
-        "program": program.name, "command": args.command,
-        "sample": str(program.sample_dir.resolve().relative_to(REPO_ROOT)), "javaOrigin": origin, "translation": translation,
-        "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"], "rounds": outcome["rounds"], "usage": usage,
+        _atomic_write(run_dir / "verification-report.json", outcome["certificationReport"])
+    _atomic_write(run_dir / "run.json", {
+        **base, "javaOrigin": origin, "translation": translation,
+        "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"],
+        "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
         "breaker": breaker_summary, "swarm": bool(args.swarm and memory),
-    }, indent=2) + "\n")
+    })
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
           f"{usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / {usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")
     if memory:
@@ -188,6 +192,46 @@ def main(argv: list[str] | None = None) -> int:
     print(f"run saved to {run_dir.relative_to(REPO_ROOT)}")
     return 0 if outcome["certified"] else 1
 
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text)
+    tmp.replace(path)
+
+
+def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event):
+    """Breaker cycles: attack; anything that breaks becomes a standing case and the agent repairs and re-certifies.
+    The run stays certified only if the last attack found nothing. Bounded by MODEL_MAX_ATTACK_ROUNDS,
+    MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
+    meta = json.loads((program.sample_dir / "sample.json").read_text())
+    breaker = Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
+    found: list[dict] = []
+    cycles = 0
+    on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent is designing inputs to break the certified Java"})
+    broken = breaker.attack(rounds=settings.max_attack_rounds)
+    while broken:
+        found += broken
+        standing_cases += [b["case"] for b in broken]
+        if cycles >= settings.max_breaker_cycles:
+            outcome = {**outcome, "certified": False, "lessons": []}
+            on_event({"type": "stage", "stage": "done",
+                      "message": f"Not certified: {len(broken)} breaker input(s) still break the Java and the repair budget is spent"})
+            break
+        cycles += 1
+        note = ("A breaker agent found inputs where the Java differs from the COBOL. They are now part of every test "
+                "and certification:\n" + "\n".join(f"- input={b['case'].record!r} ({b['why']}): {b['diff']}" for b in broken)
+                + "\nFix the root cause, then finish.")
+        on_event({"type": "stage", "stage": "repairing", "message": f"Repair agent resumes with {len(broken)} counterexample(s)"})
+        outcome = agent.resume(note, extra_rounds=1)
+        if not outcome["certified"]:
+            break
+        on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent attacks the repaired Java again"})
+        broken = breaker.attack(rounds=1, label=f"recheck{cycles}")
+    summary = {"rounds": len({a["id"].rsplit("-", 1)[0] for a in breaker.attempts}), "tried": len(breaker.attempts),
+               "broke": len(found), "repairCycles": cycles, "fixed": bool(found) and outcome["certified"],
+               "counterexamples": [{"input": b["case"].record, "why": b["why"], "diff": b["diff"]} for b in found]}
+    _atomic_write(run_dir / "breaker.json", {**summary, "attempts": breaker.attempts})
+    return outcome, summary
 
 if __name__ == "__main__":
     sys.exit(main())
