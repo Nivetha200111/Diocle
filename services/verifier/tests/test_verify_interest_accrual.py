@@ -50,3 +50,12 @@ def test_planted_traps_are_caught(naive_report):
     assert not overflow["match"] and "overflowed its width" in overflow["diff"]
 
     assert any(d["field"] == "OUT-FEE" for r in naive_report["results"] for d in r["fieldDiffs"] if r["inputSource"] != "fixture")
+
+
+def test_programs_under_test_do_not_inherit_secrets(monkeypatch):
+    from diocle_verifier.runners import safe_env
+    monkeypatch.setenv("META_MODEL_API_KEY", "should-not-leak")
+    monkeypatch.setenv("COB_LIBRARY_PATH", "/x")
+    env = safe_env({"DD_IN": "/tmp/in"})
+    assert "META_MODEL_API_KEY" not in env and env["COB_LIBRARY_PATH"] == "/x" and env["DD_IN"] == "/tmp/in"
+    assert "PATH" in env

@@ -17,10 +17,19 @@ class Run:
     output_lines: list[str] = field(default_factory=list)
 
 
+# Only what compilers and the programs need. Code we run (model-written Java, imported COBOL) must never
+# inherit secrets such as model API keys that the converter loads into its own environment.
+_ENV_ALLOW = ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "JAVA_HOME", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")
+_ENV_PREFIXES = ("COB_",)
+
+
+def safe_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    env = {k: v for k, v in os.environ.items() if k in _ENV_ALLOW or k.startswith(_ENV_PREFIXES)}
+    return {**env, **(extra or {})}
+
+
 def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None = None, timeout: int = 120):
-    return subprocess.run(
-        cmd, env={**os.environ, **(env or {})}, cwd=cwd, capture_output=True, text=True, timeout=timeout
-    )
+    return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
 
 def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str) -> Run:
