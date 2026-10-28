@@ -1,0 +1,160 @@
+{
+  "name": "chqclr",
+  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "program": "CHQCLR",
+  "source": "src/CHQCLR.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "CHQIN",
+    "output": "CLROUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Chqclr",
+    "origin": "none yet: translate with the converter's run command"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "CQ-REC",
+      "fields": [
+        {
+          "name": "CQ-TYPE",
+          "kind": "alnum",
+          "length": 1,
+          "values": [
+            "C",
+            "R"
+          ]
+        },
+        {
+          "name": "CQ-BODY",
+          "kind": "alnum",
+          "length": 39
+        },
+        {
+          "name": "CQ-ACCT",
+          "kind": "alnum",
+          "length": 10,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "CQ-NUMBER",
+          "kind": "numeric",
+          "digits": 8,
+          "scale": 0,
+          "signed": false,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "CQ-AMOUNT",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate",
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "CQ-DATE",
+          "kind": "numeric",
+          "digits": 8,
+          "scale": 0,
+          "signed": false,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "FILLER",
+          "kind": "alnum",
+          "length": 3,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "RT-ACCT",
+          "kind": "alnum",
+          "length": 10,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "RT-NUMBER",
+          "kind": "numeric",
+          "digits": 8,
+          "scale": 0,
+          "signed": false,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "RT-REASON",
+          "kind": "alnum",
+          "length": 2,
+          "redefines": "CQ-BODY",
+          "values": [
+            "NS",
+            "SP"
+          ]
+        },
+        {
+          "name": "RT-FEE",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": false,
+          "redefines": "CQ-BODY"
+        },
+        {
+          "name": "FILLER",
+          "kind": "alnum",
+          "length": 14,
+          "redefines": "CQ-BODY"
+        }
+      ],
+      "format": "fixed"
+    },
+    "output": {
+      "record": "CL-REC",
+      "fields": [
+        {
+          "name": "CL-ACCT",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "CL-NUMBER",
+          "kind": "numeric",
+          "digits": 8,
+          "scale": 0,
+          "signed": false
+        },
+        {
+          "name": "CL-DEBIT",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "CL-FEE",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": false
+        },
+        {
+          "name": "CL-CODE",
+          "kind": "alnum",
+          "length": 2
+        }
+      ],
+      "format": "fixed"
+    }
+  },
+  "import": {
+    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "commit": null,
+    "path": "cobol/CHQCLR.cbl",
+    "job": null
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "name": "fxconv",
+  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "program": "FXCONV",
+  "source": "src/FXCONV.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "FXIN",
+    "output": "FXOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Fxconv",
+    "origin": "none yet: translate with the converter's run command"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "FX-REC",
+      "fields": [
+        {
+          "name": "FX-ID",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "FX-CCY",
+          "kind": "alnum",
+          "length": 3,
+          "values": [
+            "USD",
+            "EUR",
+            "GBP",
+            "JPY",
+            "INR",
+            "CHF"
+          ]
+        },
+        {
+          "name": "FX-AMOUNT",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        }
+      ],
+      "format": "fixed"
+    },
+    "output": {
+      "record": "FO-REC",
+      "fields": [
+        {
+          "name": "FO-ID",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "FO-CCY",
+          "kind": "alnum",
+          "length": 3
+        },
+        {
+          "name": "FO-ZZZ",
+          "kind": "numeric",
+          "digits": 11,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "FO-PRINT",
+          "kind": "alnum",
+          "length": 19,
+          "edited": "-ZZZ,ZZZ,ZZZ,ZZ9.99"
+        },
+        {
+          "name": "FO-STATUS",
+          "kind": "alnum",
+          "length": 2
+        }
+      ],
+      "format": "fixed"
+    }
+  },
+  "import": {
+    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "commit": null,
+    "path": "cobol/FXCONV.cbl",
+    "job": null
+  }
+}

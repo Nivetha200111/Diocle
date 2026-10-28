@@ -1,0 +1,118 @@
+{
+  "name": "loanamrt",
+  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "program": "LOANAMRT",
+  "source": "src/LOANAMRT.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "LOANIN",
+    "output": "AMRTOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Loanamrt",
+    "origin": "none yet: translate with the converter's run command"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "LN-REC",
+      "fields": [
+        {
+          "name": "LN-ID",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "LN-PRINCIPAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        },
+        {
+          "name": "LN-RATE",
+          "kind": "numeric",
+          "digits": 1,
+          "scale": 5,
+          "signed": false,
+          "usage": "packed"
+        },
+        {
+          "name": "LN-TERM",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 0,
+          "signed": false,
+          "usage": "binary"
+        },
+        {
+          "name": "LN-START",
+          "kind": "numeric",
+          "digits": 6,
+          "scale": 0,
+          "signed": false
+        }
+      ],
+      "format": "fixed"
+    },
+    "output": {
+      "record": "AM-REC",
+      "fields": [
+        {
+          "name": "AM-ID",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "AM-PERIOD",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 0,
+          "signed": false
+        },
+        {
+          "name": "AM-YYYYMM",
+          "kind": "numeric",
+          "digits": 6,
+          "scale": 0,
+          "signed": false
+        },
+        {
+          "name": "AM-PAYMENT",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        },
+        {
+          "name": "AM-INTEREST",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        },
+        {
+          "name": "AM-BALANCE",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        }
+      ],
+      "format": "fixed"
+    }
+  },
+  "import": {
+    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "commit": null,
+    "path": "cobol/LOANAMRT.cbl",
+    "job": null
+  }
+}
