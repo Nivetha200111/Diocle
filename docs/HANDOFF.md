@@ -88,9 +88,10 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 ## Open work (priority order)
 1. Deploy the comparator/CI-status commits; owner decides on re-delivering INTACCR to quillmark-modern and on
    switching visitor imports on.
-2. Frozen evaluation (`eval/run_eval.py`, tag `eval-freeze-1`, 4 unseen programs): FXCONV certified (0 repair
-   rounds), CHQCLR certified (1 round), BRNCHSUM **not certified** after 3 rounds / 60 calls, LOANAMRT still
-   running on the original Mac at hand-off (results land in eval/; commit them). Write `docs/EVALUATION.md` reporting failures honestly.
+2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results.json` (2/4 certified;
+   BRNCHSUM and LOANAMRT failed because the old comparator rejected aggregation/fan-out; their final Java passes
+   the corrected comparator on fresh seeds). Next: full re-run with the corrected verifier under a new tag
+   (`eval-freeze-2`), reported next to the original. Costs about $0.3.
 3. Breaker test on `samples/loyalty-waiver` (narrow 5000.00 defect): `repair --breaker`. The breaker is
    reported as unproven until it finds a defect other inputs missed.
 4. Demo video (under 3 min): one visible failure and repair on the live site, then re-verify.
