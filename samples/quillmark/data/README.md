@@ -62,7 +62,8 @@ Generation streams transactions to all formats in one pass and keeps only custom
 account planning state in memory. Output can be substantial at medium/large scale.
 The scoped `.gitignore` re-includes `out/small/` despite the repository's global
 `out/` exclusion, and excludes `out/medium/`, `out/large/`, all other out subfolders,
-and `.work/`. Do not force-add ignored output. No large run is claimed in this task.
+and `.work/`. The scoped `.gitattributes` preserves generated output bytes across
+Git checkouts. Do not force-add ignored output. No large run is claimed in this task.
 
 `--edge-rate 0.02` is the default. For any positive rate, mandatory anchor fixtures
 are always included; additional negative/zero balances, missing segments, long

@@ -1,0 +1,5 @@
+SYNTHETIC SAMPLE - written for the Diocle hackathon project.
+Fictional company. Not derived from any real system, employer, or client.
+PRODUCT_ID,FEE_CODE,EFFECTIVE_DATE,AMOUNT
+QSV1,QF01,2000-01-01,2.50
+QCK1,QF01,2000-01-01,2.50
