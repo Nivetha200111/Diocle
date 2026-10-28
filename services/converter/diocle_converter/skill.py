@@ -27,7 +27,7 @@ def render_skill(lessons: list[dict]) -> str:
         "",
         "# COBOL to Java: semantics proven against GnuCOBOL",
         "",
-        "Diocle's repair agent wrote these lessons while fixing real conversions. Each one was kept only after the "
+        "Diocle's repair agent wrote these lessons while fixing conversions of synthetic sample programs. Each one was kept only after the "
         "fixed Java matched the original COBOL, compiled with GnuCOBOL 3.2 (-std=ibm), on 1,000 held-out inputs.",
         "",
         "Treat them as rules of thumb, not proof: after converting, run the original and the Java on the same inputs "
