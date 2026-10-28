@@ -38,6 +38,8 @@ class Settings:
     max_calls_per_run: int
     max_calls_per_round: int
     max_rounds: int
+    max_attack_rounds: int = 3  # breaker agent: attack rounds before the first repair
+    max_breaker_cycles: int = 1  # breaker agent: repair-and-re-attack cycles after a break
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -61,4 +63,6 @@ class Settings:
             max_calls_per_run=int(os.environ.get("MODEL_MAX_CALLS_PER_RUN", "60")),
             max_calls_per_round=int(os.environ.get("MODEL_MAX_CALLS_PER_ROUND", "20")),
             max_rounds=int(os.environ.get("MODEL_MAX_ROUNDS", "3")),
+            max_attack_rounds=int(os.environ.get("MODEL_MAX_ATTACK_ROUNDS", "3")),
+            max_breaker_cycles=int(os.environ.get("MODEL_MAX_BREAKER_CYCLES", "1")),
         )

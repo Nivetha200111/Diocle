@@ -194,6 +194,10 @@ def test_breaker_rejects_cases_that_do_not_fit_the_layout():
     assert to_record(fields, {**good, "ACCT-DAYS": "1000"}) is None  # too many digits
     assert to_record(fields, {**good, "ACCT-RATE": "-0.05"}) is None  # unsigned field
     assert to_record(fields, {k: v for k, v in good.items() if k != "ACCT-TIER"}) is None
+    for bad in ("NaN", "Infinity", "-inf", "sNaN"):
+        assert to_record(fields, {**good, "ACCT-BALANCE": bad}) is None
+    assert to_record(fields, {**good, "ACCT-ID": "A\nB"}) is None and to_record(fields, {**good, "ACCT-ID": "Ä"}) is None
+    assert to_record(fields, {**good, "ACCT-DAYS": 5}) is None  # not a string
 
 
 def test_breaker_attacks_until_an_input_breaks_the_java(tmp_path):
@@ -204,7 +208,8 @@ def test_breaker_attacks_until_an_input_breaks_the_java(tmp_path):
     case = lambda bal: {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": bal},
                                    {"name": "ACCT-RATE", "value": "0.0500"}, {"name": "ACCT-DAYS", "value": "1"},
                                    {"name": "ACCT-TIER", "value": "S"}], "why": "tie"}
-    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case("36.50")]})),
+    junk = {"cases": [case("36.50"), "not-a-case", {"fields": "nope"}, {"fields": [{"name": "ACCT-ID"}]}]}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps(junk)),
                        ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case("-36.50"), case("1.234")]}))])
 
     def verify(java_dir, seed, random_count, extra_cases):
@@ -238,3 +243,49 @@ def test_swarm_agent_receives_lessons_certified_by_others_mid_run(tmp_path):
     messages = sdk.requests[1]["messages"]  # the live conversation
     update = next(i for i, m in enumerate(messages) if "Shared memory update" in str(m.get("content")))
     assert messages[update - 1]["role"] == "tool" and messages[update + 1]["role"] == "assistant"  # between two calls
+
+
+def test_certification_is_revoked_if_the_breaker_still_breaks_the_java(tmp_path, monkeypatch):
+    import diocle_converter.__main__ as cli
+    from diocle_verifier.inputs import Case
+
+    class FakeBreaker:
+        def __init__(self, *a, **k):
+            self.attempts = [{"id": "breaker-attack-r1-01"}]
+
+        def attack(self, rounds, label="attack"):  # breaks every time, even after the repair
+            return [{"case": Case(f"b-{label}", "model", "X"), "why": "tie", "diff": "OUT differs"}]
+
+    class FakeAgent:
+        def resume(self, note, extra_rounds):
+            return {"certified": True, "rounds": [], "certificationReport": None, "lessons": [LESSON]}
+
+    monkeypatch.setattr(cli, "Breaker", FakeBreaker)
+    (tmp_path / "sample.json").write_text(json.dumps({"layouts": {"input": {}}}))
+    program = SimpleNamespace(sample_dir=tmp_path)
+    standing, events = [], []
+    outcome, summary = cli._attack(program, None, None, None, FakeAgent(), standing,
+                                   {"certified": True, "lessons": [LESSON]}, tmp_path, settings(), events.append)
+    assert outcome["certified"] is False and outcome["lessons"] == []  # nothing learned from an unproven run
+    assert summary["repairCycles"] == 1 and summary["broke"] == 2 and not summary["fixed"]
+    assert len(standing) == 2 and (tmp_path / "breaker.json").exists()
+
+
+def test_a_crashed_run_is_marked_not_certified(tmp_path, monkeypatch):
+    import shutil
+    import diocle_converter.__main__ as cli
+    shutil.copytree(SAMPLE, tmp_path / "samples" / "s")
+    monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(cli.Settings, "from_env", classmethod(lambda cls: settings()))
+
+    def boom(*a, **k):
+        raise RuntimeError("translator exploded")
+
+    monkeypatch.setattr(cli, "_convert", boom)
+    with pytest.raises(RuntimeError):
+        cli.main(["run", str(tmp_path / "samples" / "s")])
+    [run_json] = (tmp_path / "runs").glob("*/run.json")
+    run = json.loads(run_json.read_text())
+    assert run["status"] == "not-certified" and "translator exploded" in run["error"]
+    last = json.loads((run_json.parent / "events.jsonl").read_text().splitlines()[-1])
+    assert last["message"].startswith("run failed: RuntimeError")

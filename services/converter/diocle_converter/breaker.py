@@ -68,10 +68,11 @@ def to_record(fields: list[Field], values: dict[str, str]) -> str | None:
     parsed = {}
     for f in fields:
         raw = values.get(f.name)
-        if raw is None:
+        if not isinstance(raw, str):
             return None
         if f.kind == "alnum":
-            if len(raw) > f.length:
+            # one byte per character and no line breaks, or the record framing shifts and fakes a mismatch
+            if len(raw) > f.length or not all(" " <= ch <= "~" for ch in raw):
                 return None
             parsed[f.name] = raw
             continue
@@ -79,7 +80,7 @@ def to_record(fields: list[Field], values: dict[str, str]) -> str | None:
             number = Decimal(raw.strip().replace("+", ""))
         except InvalidOperation:
             return None
-        if number.normalize().as_tuple().exponent < -f.scale:  # more decimals than the PIC holds
+        if not number.is_finite() or number.normalize().as_tuple().exponent < -f.scale:  # NaN/Inf, or too many decimals
             return None
         parsed[f.name] = number
     try:
@@ -128,16 +129,18 @@ class Breaker:
                 return []
             messages.append({"role": "assistant", "content": choice.message.content or "{}"})
             try:
-                proposed = json.loads(choice.message.content or "{}").get("cases", [])[: self.per_round]
-            except json.JSONDecodeError:
+                proposed = json.loads(choice.message.content or "{}").get("cases", [])
+            except (json.JSONDecodeError, AttributeError):
                 proposed = []
+            proposed = [p for p in proposed if isinstance(p, dict)][: self.per_round] if isinstance(proposed, list) else []
             cases, why = [], {}
             for i, item in enumerate(proposed):
-                record = to_record(fields, {f["name"]: f["value"] for f in item.get("fields", []) if isinstance(f, dict)})
+                pairs = item.get("fields") if isinstance(item.get("fields"), list) else []
+                record = to_record(fields, {f.get("name"): f.get("value") for f in pairs if isinstance(f, dict)})
                 if record:
                     case_id = f"breaker-{label}-r{round_no}-{i + 1:02d}"
                     cases.append(Case(case_id, "model", record))
-                    why[case_id] = item.get("why", "")
+                    why[case_id] = str(item.get("why", ""))[:300]
             report = self.verify(self.workspace.root, 1026, 0, cases)
             broken = [r for r in report["results"] if r.get("inputSource") == "model" and not r["match"]]
             for r in report["results"]:
