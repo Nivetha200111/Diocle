@@ -58,7 +58,7 @@ public class IntAccr {
             }
         }
         // PIC 9(7) COMP is a 4-byte binary item; GnuCOBOL -std=ibm DISPLAYs it with 10 digits.
-        System.out.printf("INTACCR READ=%010d WRITTEN=%010d%n", read, written);
+        System.out.printf("INTACCR READ=%07d WRITTEN=%07d%n", read, written);
     }
 
     private static BigDecimal store(BigDecimal numerator, RoundingMode mode, int integerDigits) {

@@ -33,6 +33,10 @@ def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None
     return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
 
+# IBM Enterprise COBOL defaults that GnuCOBOL's -std=ibm leaves off: TRUNC(STD) (binary values are truncated to
+# their PIC digits) and DISPLAY of binary items showing their PIC digits, not the full binary width.
+IBM_FLAGS = ["-fbinary-truncate", "-fpretty-display"]
+
 # Both sides see the same "now": GnuCOBOL through COB_CURRENT_DATE, Java through DIOCLE_CLOCK (ISO-8601, UTC).
 CLOCK = "2000-02-29T13:45:10.00Z"
 CLOCK_ENV = {"COB_CURRENT_DATE": "2000/02/29 13:45:10.00", "DIOCLE_CLOCK": CLOCK, "TZ": "UTC"}
@@ -67,7 +71,7 @@ def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: 
     collation "ebcdic" compares and sorts alphanumeric data in mainframe (EBCDIC) order."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
+    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
                    *(str(m) for m in modules or [])])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
@@ -91,7 +95,7 @@ def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[P
     """Compile once; returns (command to run, None) or (None, failed Run)."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
+    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
                    *(str(m) for m in modules or [])])
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)

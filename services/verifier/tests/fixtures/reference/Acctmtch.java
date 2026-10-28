@@ -30,7 +30,7 @@ public class Acctmtch {
         while (!(p.mstKey == null && p.txnKey == null)) p.match();
         Files.write(Path.of(System.getenv("DD_NEWMST")), p.newMaster);
         Files.write(Path.of(System.getenv("DD_EXCOUT")), p.exceptions);
-        System.out.println("ACCTMTCH NEW=" + String.format("%010d", p.newCount) + " EXC=" + String.format("%010d", p.excCount));
+        System.out.println("ACCTMTCH NEW=" + String.format("%07d", p.newCount) + " EXC=" + String.format("%07d", p.excCount));
         System.exit(p.excCount > 0 ? 4 : 0);
     }
 

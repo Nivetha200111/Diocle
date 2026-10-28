@@ -182,10 +182,6 @@
     {
       "paragraph": "0000-MAIN",
       "behaviour": "RETURN-CODE 4 when any exception was written."
-    },
-    {
-      "paragraph": "0000-MAIN",
-      "behaviour": "DISPLAY of PIC 9(7) COMP counters prints 10 digits."
     }
   ]
 }

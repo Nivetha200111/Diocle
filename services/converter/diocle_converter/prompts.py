@@ -10,6 +10,8 @@ I/O contract:
 - {io}
 - ORGANIZATION LINE SEQUENTIAL files are text, one record per line. ORGANIZATION SEQUENTIAL files are fixed-length
   byte records with no separators: read and write them as bytes (ISO-8859-1), record length from the copybook.
+- IBM Enterprise COBOL defaults apply: TRUNC(STD), so a value stored in a binary (COMP) field keeps only its PIC digits;
+  DISPLAY of a binary field shows its PIC digits (PIC 9(7) COMP displays 7 digits).
 - Storage exactly as GnuCOBOL (-std=ibm) writes it: COMP-3 packed decimal with sign nibble C/D (F if unsigned);
   COMP/COMP-4/BINARY big-endian two's complement (2, 4 or 8 bytes by digits); COMP-5 little-endian; signed DISPLAY
   without SIGN SEPARATE carries the sign in the last digit, negative digit d written as the character d + 0x40;
