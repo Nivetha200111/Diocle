@@ -14,6 +14,10 @@ export type Efficiency = {
   costPer1kLinesUsd: number | null;
 };
 
+export type Lesson = { pattern: string; cobol: string; java: string };
+
+export type RunMemory = { enabled: boolean; used: number; learned: number; lessons: Lesson[] } | null;
+
 export type RunListItem = {
   id: string;
   program: string;
@@ -25,6 +29,7 @@ export type RunListItem = {
   estimatedCostUsd: number | null;
   model: string | null;
   efficiency: Efficiency;
+  memory: RunMemory;
 };
 
 export type FieldDiff = { field: string; original: string; converted: string };
@@ -38,7 +43,7 @@ export type Verification = {
 };
 
 export type RunEvent = {
-  type: "agent-step" | "certification" | "budget";
+  type: "agent-step" | "certification" | "budget" | "memory";
   round?: number;
   step?: number;
   tool?: string;
@@ -71,6 +76,7 @@ export type Run = {
   model: string | null;
   javaDiff: string | null;
   efficiency: Efficiency;
+  memory: RunMemory;
 };
 
 async function getJson<T>(path: string): Promise<T> {

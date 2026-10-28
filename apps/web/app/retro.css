@@ -617,3 +617,9 @@ main {
 .eff-table tr.selected td * {
   color: #fff !important;
 }
+.trace-cert.memory {
+  color: #40ffff !important;
+  border-top: 0;
+  border-bottom: 1px dashed #40ffff;
+  padding: 0 0 8px;
+}
