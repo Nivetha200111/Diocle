@@ -195,7 +195,9 @@ function RunDetail({ run }: { run: Run }) {
             <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>
             <Badge tone="blue" dot={false}>Real run · not a mock</Badge>
           </div>
-          <h2>{run.program} · {run.command === "repair" ? "Bring-your-own conversion, repaired" : "Translated, verified and repaired"}</h2>
+          <h2>{run.program} · {run.command === "repair"
+            ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
+            : (steps.length ? "Translated, verified and repaired" : "Translated and verified (no repair needed)")}</h2>
           <p>
             Java started as: <span className="mono">{run.javaOrigin}</span>
             <br />

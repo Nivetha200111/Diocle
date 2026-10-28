@@ -1,0 +1,30 @@
+# One server runs everything. The API is not published: only Caddy (80/443) is reachable from outside.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    env_file: ${DIOCLE_ENV_FILE:-./diocle.env}
+    volumes:
+      - diocle-runs:/srv/diocle/runs
+    restart: unless-stopped
+    mem_limit: 1536m
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    environment:
+      DIOCLE_DOMAIN: ${DIOCLE_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  diocle-runs:
+  caddy-data:

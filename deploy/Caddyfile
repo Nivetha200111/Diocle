@@ -1,0 +1,26 @@
+# DIOCLE_DOMAIN is the public domain (Caddy gets and renews its HTTPS certificate). Use "localhost" to test.
+{$DIOCLE_DOMAIN:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+		-Server
+	}
+
+	handle_path /api/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy api:8000
+	}
+
+	handle {
+		root * /srv/www
+		try_files {path} {path}.html /index.html
+		file_server
+	}
+}
