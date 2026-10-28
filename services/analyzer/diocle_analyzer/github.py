@@ -10,7 +10,7 @@ from pathlib import Path
 URL = re.compile(r"^https://github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+?)(?:\.git)?/?$")
 
 
-MAX_MB = 50  # visitor imports: a COBOL estate worth trying is far smaller; bigger clones are refused
+MAX_MB = 300  # repositories carry PDFs and images too; anything bigger is refused (disk, analysis time)
 
 
 def allowed_owners() -> set[str] | None:

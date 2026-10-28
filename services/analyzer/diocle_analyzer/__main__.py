@@ -43,8 +43,12 @@ def main(argv: list[str] | None = None) -> int:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(report, indent=2) + "\n")
     if args.samples_dir:
+        written: set[str] = set()
         for p in report["programs"]:
-            if p["convertible"]:
+            if p["convertible"] and p["name"] in written:  # samples are keyed by PROGRAM-ID: the first file wins
+                print(f"sample: skipped {p['path']} (PROGRAM-ID {p['name']} already written)")
+            elif p["convertible"]:
+                written.add(p["name"])
                 print(f"sample: {write_sample(root, report, p, args.samples_dir)}")
     return 0
 
