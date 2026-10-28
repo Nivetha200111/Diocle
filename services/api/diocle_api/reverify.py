@@ -6,6 +6,7 @@ No model calls; CPU only. One at a time, so a visitor cannot queue up work on th
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import subprocess
 import tempfile
@@ -34,6 +35,8 @@ def reverify_run(run_id: str, cases: int = 1000) -> dict | None:
     sample = REPO_ROOT / run.get("sample", "")
     if not run.get("certified") or not run.get("sample") or not (sample / "sample.json").exists():
         raise ValueError("only certified runs with a recorded sample can be re-verified")
+    if (run_path / "visitor").exists():
+        raise ValueError("runs from visitor imports are not re-verified here")
     if not _lock.acquire(blocking=False):
         raise Busy("another re-verification is running; try again in a few seconds")
     try:
@@ -41,10 +44,13 @@ def reverify_run(run_id: str, cases: int = 1000) -> dict | None:
         started = time.time()
         with tempfile.TemporaryDirectory(prefix="diocle-reverify-") as tmp:
             out = Path(tmp) / "report.json"
-            subprocess.run([str(VERIFIER / ".venv/bin/python"), "-m", "diocle_verifier", str(sample),
-                            "--java-dir", str(run_path / "java"), "--seed", str(seed), "--random", str(cases),
-                            "--out", str(out)], cwd=VERIFIER, capture_output=True, text=True, timeout=300)
+            proc = subprocess.run([str(VERIFIER / ".venv/bin/python"), "-m", "diocle_verifier", str(sample),
+                                   "--java-dir", str(run_path / "java"), "--seed", str(seed), "--random", str(cases),
+                                   "--out", str(out)], cwd=VERIFIER, capture_output=True, text=True, timeout=1000,
+                                  env={**os.environ, "DIOCLE_SANDBOX_WAIT": "20"})  # sandbox busy: say so, don't queue
             if not out.exists():
+                if "engine is busy" in proc.stderr:
+                    raise Busy("the verification engine is busy with a conversion; try again in a minute")
                 raise RuntimeError("the verifier did not produce a report")
             report = json.loads(out.read_text())
         runs, s = report["runs"], report["summary"]

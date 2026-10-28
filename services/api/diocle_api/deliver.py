@@ -299,6 +299,9 @@ def main(argv: list[str] | None = None) -> int:
                 progress.save()
 
             def started(run_id: str) -> None:
+                if args.public:  # a visitor's run: labelled, and never offered for public re-verification
+                    (REPO_ROOT / "runs" / run_id).mkdir(parents=True, exist_ok=True)
+                    (REPO_ROOT / "runs" / run_id / "visitor").write_text(progress.id + "\n")
                 with lock:
                     entry["runId"] = run_id
                     progress.save()

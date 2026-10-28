@@ -27,6 +27,39 @@ app.add_middleware(
 )
 
 
+def _sandbox_addresses() -> set[str]:
+    """Addresses of the sandbox container (from DIOCLE_SANDBOX_URL), resolved once."""
+    import socket
+    from urllib.parse import urlparse
+
+    host = urlparse(os.environ.get("DIOCLE_SANDBOX_URL", "")).hostname
+    try:
+        return {info[4][0] for info in socket.getaddrinfo(host, None)} if host else set()
+    except OSError:
+        return set()
+
+
+_sandbox_cache: tuple[float, set[str]] = (0.0, set())
+
+
+def _sandbox() -> set[str]:
+    """Re-resolved every minute: a restarted sandbox may get a new address."""
+    global _sandbox_cache
+    import time
+    if time.time() - _sandbox_cache[0] > 60:
+        _sandbox_cache = (time.time(), _sandbox_addresses())
+    return _sandbox_cache[1]
+
+
+@app.middleware("http")
+async def refuse_the_sandbox(request: Request, call_next):
+    """Code running in the sandbox can reach this api on the internal network; it gets nothing here."""
+    if request.client and request.client.host in _sandbox():
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"detail": "forbidden"}, status_code=403)
+    return await call_next(request)
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}

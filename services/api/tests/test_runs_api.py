@@ -253,3 +253,21 @@ def test_visitor_budget_counts_24_hours_and_fails_closed_on_unknown_cost(tmp_pat
     (tmp_path / "c-20261028-120000").mkdir()
     (tmp_path / "c-20261028-120000" / "run.json").write_text(json.dumps({"usage": {"calls": 3, "estimatedCostUsd": None}}))
     assert public.spent_today() == float("inf") and public.status()["budgetLeft"] is False
+
+
+def test_requests_from_the_sandbox_are_refused(client, monkeypatch):
+    import diocle_api.app as app_module
+    monkeypatch.setattr(app_module, "_sandbox", lambda: {"testclient"})
+    assert client.get("/health").status_code == 403
+    monkeypatch.setattr(app_module, "_sandbox", lambda: {"10.9.9.9"})
+    assert client.get("/health").status_code == 200
+
+
+def test_visitor_runs_are_labelled_and_not_reverified(client):
+    from diocle_api.reverify import reverify_run
+    from diocle_api.runs import list_runs, runs_dir
+    (runs_dir() / "demo-20261028-124509" / "visitor").write_text("delivery-x\n")
+    assert next(r for r in list_runs() if r["id"] == "demo-20261028-124509")["visitor"] is True
+    import pytest
+    with pytest.raises(ValueError, match="visitor"):
+        reverify_run("demo-20261028-124509")
