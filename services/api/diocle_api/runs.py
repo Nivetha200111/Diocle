@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-RUN_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")  # no leading dot, so never "." or ".."
 
 
 def runs_dir() -> Path:
@@ -25,7 +25,10 @@ def _created_at(run_id: str) -> str | None:
 def _verification(path: Path, limit: int = 8) -> dict | None:
     if not path.exists():
         return None
-    report = json.loads(path.read_text())
+    try:
+        report = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return None
     failing = [r for r in report["results"] if not r["match"]]
     return {
         **report["summary"],
@@ -82,7 +85,15 @@ def _efficiency(run: dict, events: list[dict]) -> dict:
 
 def _events(path: Path) -> list[dict]:
     events_file = path / "events.jsonl"
-    return [json.loads(line) for line in events_file.read_text().splitlines() if line.strip()] if events_file.exists() else []
+    if not events_file.exists():
+        return []
+    events = []
+    for line in events_file.read_text().splitlines():
+        try:
+            events.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue  # a line still being appended by a live run
+    return events
 
 
 def _java_origin_dir(run: dict) -> Path | None:
@@ -143,7 +154,10 @@ def get_run(run_id: str) -> dict | None:
     meta = path / "run.json"
     if not meta.exists():
         return None
-    run = json.loads(meta.read_text()) | {"_id": run_id}
+    try:
+        run = json.loads(meta.read_text()) | {"_id": run_id}
+    except json.JSONDecodeError:
+        return None  # caught mid-write; the next poll will see it
     events = _events(path)
     calls = run.get("usage", {}).get("modelCalls", [])
     origin = run.get("javaOrigin") or (
@@ -156,6 +170,8 @@ def get_run(run_id: str) -> dict | None:
         "createdAt": _created_at(run_id),
         "certified": run["certified"],
         "status": _status(run),
+        "certificationSeed": run.get("certificationSeed"),
+        "error": run.get("error"),
         "javaOrigin": origin,
         "rounds": run.get("rounds", []),
         "events": events,

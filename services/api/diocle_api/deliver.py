@@ -37,17 +37,26 @@ def _sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, check=True, text=True, capture_output=True, **kw)
 
 
-def analyze(legacy_url: str) -> tuple[dict, Path]:
-    out = REPO_ROOT / "runs" / "imports"
-    report_path = out / "latest-report.json"
+def analyze(legacy_url: str, delivery_id: str) -> tuple[dict, Path]:
+    """Analyze into runs/deliveries/<id>/ so concurrent deliveries never share files."""
+    out = REPO_ROOT / "runs" / "deliveries" / delivery_id
     _sh([str(SERVICES / "analyzer/.venv/bin/python"), "-m", "diocle_analyzer", legacy_url,
-         "--out", str(report_path), "--samples-dir", str(out / "latest-samples")], cwd=SERVICES / "analyzer")
-    report = json.loads(report_path.read_text())
-    samples = out / f"samples-{report['source']['commit'][:12]}"
-    if samples.exists():
-        shutil.rmtree(samples)
-    (out / "latest-samples").rename(samples)
-    return report, samples
+         "--out", str(out / "analysis-report.json"), "--samples-dir", str(out / "samples")], cwd=SERVICES / "analyzer")
+    return json.loads((out / "analysis-report.json").read_text()), out / "samples"
+
+
+GITHUB_URL = re.compile(r"^https://github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+?)(?:\.git)?/?$")
+
+
+def target_repo(url: str) -> str:
+    """owner/repo of an allowed GitHub target (same owner allowlist as imports)."""
+    m = GITHUB_URL.match(url.strip())
+    if not m:
+        raise SystemExit("target must be https://github.com/<owner>/<repo>")
+    allowed = {o.strip().lower() for o in os.environ.get("DIOCLE_IMPORT_OWNERS", "Nivetha200111").split(",") if o.strip()}
+    if m.group(1).lower() not in allowed:
+        raise SystemExit(f"delivering to {m.group(1)!r} is not allowed (DIOCLE_IMPORT_OWNERS)")
+    return f"{m.group(1)}/{m.group(2)}"
 
 
 class Progress:
@@ -120,7 +129,7 @@ def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_com
         "java": {"mainClass": sample["javaConversion"]["mainClass"],
                  "files": sorted(p.name for p in (REPO_ROOT / "runs" / run["id"] / "java").glob("*.java"))},
         "verification": {"passed": after["passed"], "total": after["total"], "stdoutMatch": after["stdoutMatch"],
-                         "seed": CERT_SEED + len(run["rounds"]),
+                         "seed": run.get("certificationSeed") or CERT_SEED + len(run["rounds"]),
                          "verifier": {"repository": DIOCLE_URL, "commit": diocle_commit,
                                       "gnucobol": _sh(["cobc", "--version"]).stdout.splitlines()[0]}},
         "agent": {"runId": run["id"], "model": run["model"], "mode": "translate" if run["command"] == "run" else "repair",
@@ -149,8 +158,8 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
     lines += ["", "Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
               "The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
               "so this PR does not ask you to trust Diocle's own result.", "",
-              "Model: Meta Muse Spark. Estimated costs use list prices.", "",
-              "🤖 Generated with [Claude Code](https://claude.com/claude-code) and Diocle"]
+              "Converted by Meta Muse Spark and certified by [Diocle](https://github.com/Nivetha200111/Diocle). "
+              "Estimated costs use list prices."]
     return "\n".join(lines)
 
 
@@ -163,7 +172,7 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
     delivered, skipped = [], []
     with tempfile.TemporaryDirectory(prefix="diocle-deliver-") as tmp:
         repo = Path(tmp) / "target"
-        _sh(["git", "clone", "-q", "--depth", "1", f"{target_url}.git", str(repo)])
+        _sh(["git", "clone", "-q", "--depth", "1", "--", f"https://github.com/{target_repo(target_url)}.git", str(repo)])
         branch = f"diocle/{report['source']['commit'][:12]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         _sh(["git", "-C", str(repo), "checkout", "-q", "-b", branch])
         for program in report["programs"]:
@@ -172,6 +181,7 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
                 skipped.append(program["name"])
                 if progress:
                     progress.program(program["name"])["status"] = "not-certified" if run else "skipped"
+                    progress.save()
                 continue
             sample = json.loads((samples / program["name"].lower() / "sample.json").read_text())
             dest = repo / "programs" / program["name"]
@@ -190,11 +200,12 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
             return str(repo)
         git = ["git", "-C", str(repo), "-c", "user.name=Diocle", "-c", "user.email=diocle@users.noreply.github.com"]
         _sh(git + ["add", "-A"])
+        models = sorted({c["agent"]["model"] or "unknown model" for _, c in delivered})
         _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s) from {report['source']['commit'][:12]}",
-                   "-m", "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"])
+                   "-m", f"Converted by {', '.join(models)} and certified against GnuCOBOL by Diocle."])
         _sh(git + ["push", "-q", "-u", "origin", branch])
         title = f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
-        url = _sh(["gh", "pr", "create", "--repo", target_url.split("github.com/")[1], "--head", branch,
+        url = _sh(["gh", "pr", "create", "--repo", target_repo(target_url), "--head", branch,
                    "--title", title, "--body", body]).stdout.strip()
         if progress:
             progress.update(pullRequest={"url": url})
@@ -217,17 +228,24 @@ def main(argv: list[str] | None = None) -> int:
     progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"))
     print(f"delivery {progress.id}", flush=True)
     try:
-        report, samples = analyze(args.legacy_url)
+        target_repo(progress.state["target"])  # fail fast on a bad or disallowed target
+        report, samples = analyze(args.legacy_url, progress.id)
         wanted = set(args.programs.split(",")) if args.programs else None
         report["programs"] = [p for p in report["programs"] if p["convertible"] and (wanted is None or p["name"] in wanted)]
+        max_programs = int(os.environ.get("DIOCLE_MAX_PROGRAMS", "10"))  # rule 10: bound spend per delivery
+        if len(report["programs"]) > max_programs:
+            raise SystemExit(f"{len(report['programs'])} programs exceed DIOCLE_MAX_PROGRAMS={max_programs}; "
+                             "pass --programs or raise the cap")
         progress.state["legacy"]["commit"] = report["source"]["commit"]
         progress.update(stage="converting", programs=[
             {"name": p["name"], "path": p["path"], "status": "queued", "runId": None} for p in report["programs"]])
         run_ids = {}
         for run_id in args.runs:
             run = get_run(run_id)
-            if run:
+            if run and run["certified"]:
                 run_ids[run["program"]] = run_id
+            else:
+                print(f"ignoring --runs {run_id}: {'not certified' if run else 'not found'}", flush=True)
         flags = (["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
         lock = threading.Lock()
 
@@ -259,7 +277,8 @@ def main(argv: list[str] | None = None) -> int:
                 todo.append(program)
         if args.parallel:
             print(f"swarm: converting {len(todo)} programs in parallel", flush=True)
-            with ThreadPoolExecutor(max_workers=max(1, len(todo))) as pool:
+            workers = max(1, min(len(todo), int(os.environ.get("DIOCLE_MAX_PARALLEL", "4"))))  # rule 10
+            with ThreadPoolExecutor(max_workers=workers) as pool:
                 list(pool.map(work, todo))
         else:
             for program in todo:

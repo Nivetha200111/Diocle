@@ -104,3 +104,24 @@ def test_running_run_and_delivery_progress(client, tmp_path, monkeypatch):
     assert d["programs"][0]["run"]["stage"] == "repairing" and d["programs"][1]["run"] is None
     assert client.get("/deliveries").json()[0]["programs"] == 2
     assert client.get("/deliveries/..%2Fx").status_code == 404
+
+
+def test_polling_survives_files_caught_mid_write(client, tmp_path):
+    half = tmp_path / "half-20261028-190000"
+    half.mkdir()
+    (half / "run.json").write_text('{"program": "HALF", "comm')
+    assert client.get("/runs/half-20261028-190000").status_code == 404
+    assert "half-20261028-190000" not in [r["id"] for r in client.get("/runs").json()]
+    live = tmp_path / "demo-20261028-124509"
+    with (live / "events.jsonl").open("a") as f:
+        f.write('{"type": "agent-st')  # partial line from a live run
+    assert client.get("/runs/demo-20261028-124509").status_code == 200
+
+
+def test_dot_ids_are_rejected(client, tmp_path):
+    (tmp_path / "delivery.json").write_text("{}")
+    from diocle_api.deliveries import get_delivery
+    from diocle_api.runs import get_run
+    for bad in ("..", ".", ".hidden"):  # checked directly: HTTP clients normalise dot segments before sending
+        assert get_delivery(bad) is None and get_run(bad) is None
+    assert client.get("/runs/%2E%2E").status_code == 404
