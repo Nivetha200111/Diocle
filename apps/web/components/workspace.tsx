@@ -3,6 +3,8 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Activity,
+  Monitor,
+  CodeXml,
   GitPullRequest,
   ArrowDownToLine,
   ArrowRight,
@@ -55,11 +57,14 @@ import { Badge, Brand, DemoNote, Modal, Pipeline, Progress } from "./ui";
 import DependencyGraph from "./dependency-graph";
 import RunsView from "./runs-view";
 import DeliveryView from "./delivery-view";
+import HomeView from "./home-view";
+import { HOSTED, LINKS } from "@/lib/config";
 
 // Views backed by real runs and deliveries come first; the rest is the original mock, labelled as such.
-const realViews = ["Delivery", "Live runs"];
+const realViews = ["Home", "Delivery", "Live runs"];
 
-const nav = [
+const allNav = [
+  { name: "Home", icon: Monitor },
   { name: "Delivery", icon: GitPullRequest },
   { name: "Live runs", icon: Activity },
   { name: "Overview", icon: LayoutDashboard },
@@ -71,6 +76,9 @@ const nav = [
   { name: "Reports", icon: FileText },
 ] as const;
 
+// Hosted builds show only views backed by real data; the mock exploration stays in local builds.
+const nav = HOSTED ? allNav.filter((item) => realViews.includes(item.name)) : allNav;
+
 const descriptions: Record<View, string> = {
   Overview: "Status of the sample migrations, findings and verification.",
   Migrations: "Each migration with its programs, copybooks and progress.",
@@ -80,6 +88,7 @@ const descriptions: Record<View, string> = {
   Verification: "Original and converted program run on the same inputs; every output field compared.",
   Reports: "Per-migration summaries you can download as JSON.",
   "Live runs": "Real agent runs: what broke, what the agent did, and the proof.",
+  Home: "",
   Delivery: "A legacy GitHub repository migrated live: analyze, convert, certify, open a pull request, re-verify in CI.",
   Settings: "Workspace name and model configuration.",
 };
@@ -685,7 +694,7 @@ function VerificationView({ onReport }: { onReport: () => void }) {
 }
 
 export default function Workspace() {
-  const [view, setView] = useState<View>("Delivery");
+  const [view, setView] = useState<View>("Home");
   const [migrations, setMigrations] = useState<Migration[]>(initialMigrations);
   const [modal, setModal] = useState<
     "new" | "search" | "activity" | "help" | "profile" | null
@@ -824,12 +833,12 @@ export default function Workspace() {
       >
         <button
           className="brand-button"
-          onClick={() => navigate("Delivery")}
+          onClick={() => navigate("Home")}
           aria-label="Diocle overview"
         >
           <Brand />
         </button>
-        <div className="workspace-switcher-wrap">
+        {!HOSTED && <div className="workspace-switcher-wrap">
           <button
             className="workspace-switcher"
             onClick={() => setWorkspaceMenu(!workspaceMenu)}
@@ -863,7 +872,7 @@ export default function Workspace() {
               </button>
             </div>
           )}
-        </div>
+        </div>}
         <div className="nav-label">REAL RUNS</div>
         <nav aria-label="Main navigation">
           {nav.map((item, i) => (
@@ -903,31 +912,35 @@ export default function Workspace() {
               <ArrowUpRight size={13} />
             </button>
           </div>
-          <button
-            className={`nav-item ${view === "Settings" ? "active" : ""}`}
-            onClick={() => navigate("Settings")}
-          >
-            <Settings2 size={18} />
-            <span>Settings</span>
-          </button>
-          <button className="nav-item" onClick={() => setModal("help")}>
-            <CircleHelp size={18} />
-            <span>Help & documentation</span>
-            <ArrowUpRight size={14} />
-          </button>
-          <div className="sidebar-profile">
-            <button
-              onClick={() => setModal("profile")}
-              aria-label="View demo profile"
-            >
-              <span className="avatar">JD</span>
-              <span>
-                <strong>Jamie Davis</strong>
-                <small>Workspace admin</small>
-              </span>
-              <ChevronsUpDown size={14} />
-            </button>
-          </div>
+          {HOSTED ? (
+            <>
+              <a className="nav-item" href={LINKS.diocle} target="_blank" rel="noreferrer">
+                <CodeXml size={18} />
+                <span>Source on GitHub</span>
+                <ArrowUpRight size={14} />
+              </a>
+              <a className="nav-item" href={LINKS.certified} target="_blank" rel="noreferrer">
+                <CircleHelp size={18} />
+                <span>What certified means</span>
+                <ArrowUpRight size={14} />
+              </a>
+            </>
+          ) : (
+            <>
+              <button
+                className={`nav-item ${view === "Settings" ? "active" : ""}`}
+                onClick={() => navigate("Settings")}
+              >
+                <Settings2 size={18} />
+                <span>Settings</span>
+              </button>
+              <button className="nav-item" onClick={() => setModal("help")}>
+                <CircleHelp size={18} />
+                <span>Help & documentation</span>
+                <ArrowUpRight size={14} />
+              </button>
+            </>
+          )}
         </div>
       </aside>
       <div className="main-shell">
@@ -947,7 +960,12 @@ export default function Workspace() {
             <span>{view}</span>
           </div>
           <div className="topbar-actions">
-            <button
+            {(HOSTED || realViews.includes(view)) && (
+              <a className="topbar-link" href={LINKS.diocle} target="_blank" rel="noreferrer">
+                <CodeXml size={15} /> Source
+              </a>
+            )}
+            {!HOSTED && !realViews.includes(view) && <button
               className="global-search"
               onClick={() => {
                 setSearch("");
@@ -957,13 +975,14 @@ export default function Workspace() {
               <Search size={15} />
               <span>Search anything…</span>
               <kbd>⌘ K</kbd>
-            </button>
+            </button>}
             {!realViews.includes(view) && (
               <span className="preview-pill">
                 <span />
                 Demo mode
               </span>
             )}
+            {!HOSTED && !realViews.includes(view) && (<>
             <div className="notification-wrap">
               <button
                 className={`icon-button notification-button ${notifications ? "selected" : ""}`}
@@ -1022,13 +1041,14 @@ export default function Workspace() {
             >
               JD
             </button>
+            </>)}
           </div>
         </header>
         <main>
-          <div className="page-heading">
+          {view !== "Home" && <div className="page-heading">
             <div>
               <div className="page-eyebrow">
-                <span className="green-dot" /> YOUR MODERNIZATION WORKSPACE
+                <span className="green-dot" /> {realViews.includes(view) ? "DIOCLE · OPERATIONS CONSOLE" : "DESIGN PREVIEW · MOCK DATA"}
               </div>
               <h1>
                 {view === "Overview" ? "Make room for what’s next." : view}
@@ -1049,7 +1069,9 @@ export default function Workspace() {
                 New migration (mock)
               </button>
             )}
-          </div>
+          </div>}
+
+          {view === "Home" && <HomeView go={(v) => navigate(v)} />}
 
           {view === "Overview" && (
             <div className="view-content">
@@ -1599,8 +1621,8 @@ export default function Workspace() {
             </span>
             <span>
               <span className="footer-status" />
-              Frontend preview<span className="divider-dot">·</span>All data is
-              synthetic
+              Fictional bank, synthetic programs and data<span className="divider-dot">·</span>
+              <a href={LINKS.certified} target="_blank" rel="noreferrer">what “certified” means</a>
             </span>
             <span>
               Meta Global AI Developer Hackathon 2026

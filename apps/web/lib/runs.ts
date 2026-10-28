@@ -90,3 +90,15 @@ async function getJson<T>(path: string): Promise<T> {
 
 export const fetchRuns = () => getJson<RunListItem[]>("/runs");
 export const fetchRun = (id: string) => getJson<Run>(`/runs/${encodeURIComponent(id)}`);
+
+export type Reverify = {
+  runId: string; seed: number; passed: number; total: number; failed: number;
+  stdoutMatch: boolean; exitCodeMatch: boolean; allMatch: boolean; firstMismatch: string | null; seconds: number;
+};
+
+export async function reverifyRun(id: string): Promise<Reverify> {
+  const response = await fetch(`${API_URL}/runs/${encodeURIComponent(id)}/reverify`, { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail ?? `HTTP ${response.status}`);
+  return data as Reverify;
+}
