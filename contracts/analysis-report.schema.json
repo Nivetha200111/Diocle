@@ -98,7 +98,7 @@
               "length": { "type": "integer", "minimum": 1 },
               "values": { "type": "array", "items": { "type": "string" } },
               "digits": { "type": "integer", "minimum": 0 },
-              "scale": { "type": "integer", "minimum": 0 },
+              "scale": { "type": "integer", "description": "Decimal digits; negative for P scaling (PIC 9(3)PP has scale -2)" },
               "signed": { "type": "boolean" },
               "sign": { "type": "string", "enum": ["leading-separate", "trailing-separate", "trailing", "leading"], "description": "trailing/leading: overpunch, the sign carried in the last/first digit" },
               "usage": { "type": "string", "enum": ["display", "packed", "binary", "binary-native", "float"], "description": "display (default), packed = COMP-3, binary = COMP/COMP-4/BINARY (big-endian), binary-native = COMP-5, float = COMP-1/COMP-2" },

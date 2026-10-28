@@ -197,3 +197,8 @@ def test_second_review_shapes_are_rejected_or_detected():
     assert parse_program(head + '           CALL "SUBX" USING A.\n').calls == ["SUBX"]
     dynamic = parse_program(head + "           CALL WS-PGM USING A.\n")
     assert dynamic.calls == [] and dynamic.dynamic_calls == ["WS-PGM"]
+
+
+@pytest.mark.parametrize("sample", ["packed-posting", "account-match"])
+def test_new_samples_validate_against_the_contract(sample):
+    validate_report(analyze(SAMPLES / sample))
