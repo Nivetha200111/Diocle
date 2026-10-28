@@ -1,6 +1,6 @@
 # Hackathon rules summary
 
-Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to Nov 4 2026**. (Summary for the team; the official participant guide prevails.)
+Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to Nov 4 2026**. (Summary for the team; the official participant guide prevails. Checked against the guide on Oct 29.)
 
 ## Our entry
 - **Track:** Indie Developer.
@@ -31,6 +31,23 @@ Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to 
 - **Oct 28, 12 PM ET: Agents 102: Best Practices for Verifiable Agents.** Directly relevant to Diocle.
 - Oct 30, 12 PM ET: Muse Open models on Fireworks.
 - Office hours in Discord #office-hours, weekdays 10–11 AM ET.
+
+## From the official participant guide (Oct 29)
+- **Demo video:** three minutes, "highlighting the specific features, code, and functionality you built during the
+  Hackathon"; one of the primary judging artifacts with the code and the live product. Judges "must be able to
+  clearly identify what was created during the Hackathon" or it is disqualification at their discretion.
+- **No rule against an AI voiceover.** It counts as an asset: we need the rights to it (own voice, an Apache-2.0
+  model such as Kokoro, or a Meta model). If synthetic, say so on the end card and in the description.
+- **Meta models named in the guide:** Muse Spark series, Muse Wonder, Muse Image, Muse Voice, Transcribe, SAM 3.1 (Meta
+  Model API); open weights Muse Glimmer and Muse Spark Open; Muse Code coding agent.
+- **Schedule (ET):** submissions due Wed Nov 4, 9:00 PM on the CV platform; judging Nov 5-8; closing ceremony Mon
+  Nov 9, 12:00 PM (top 5 per track, live final round from the videos); community vote winner Nov 16.
+- **Bonus prizes:** Most Viral $20K (post the demo on **X**, submit the post link; engagement counted until Nov 8
+  EOD), Best Build on Meta Open Weight Models $10K (Muse Glimmer or Muse Spark Open on own hardware or partner
+  inference; verified by the infrastructure partner), Community Vote $10K (public gallery, one vote per verified
+  account), Best Agentic Use-Case $5K, Best Creative Build $5K (Muse Image or Muse Wonder).
+- **Credits:** $150 Meta Model API credits must be claimed by Nov 4, 9:00 PM ET (form in the guide), per person.
+- Submission: repo public, video link accessible, everyone who worked on it listed.
 
 ## Judging rubric
 Stage 1 is pass/fail: fits the theme and uses Meta models. Stage 2:
