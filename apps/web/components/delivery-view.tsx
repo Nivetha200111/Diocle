@@ -178,7 +178,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
             Up to {limits?.maxPrograms} programs of {limits?.maxLines?.toLocaleString()} lines each, one job at a time.
             Imported code is compiled and run in an isolated sandbox with no network and no credentials.
             Results stay here; nothing is pushed to your repository.
-            {limits && !limits.budgetLeft && <strong> Today&apos;s conversion budget is used up; it resets at 00:00 UTC.</strong>}
+            {limits && !limits.budgetLeft && <strong> The conversion budget for the last 24 hours is used up; try again later.</strong>}
             {" "}<button type="button" className="link-button" onClick={() => setAsAdmin(true)}>Deliver as a pull request (passcode)</button>
           </p>
         )}
