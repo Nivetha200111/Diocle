@@ -31,3 +31,9 @@ Diocle modernizes legacy COBOL for finance orgs: upload COBOL + copybooks, analy
 - **api**: exposes upload/analyze/convert/verify/report endpoints per the contracts; tests pass; documented run steps.
 - **web**: dashboard renders real report data from the API; builds without errors; runs end to end for the demo.
 - **docs/samples**: synthetic only; docs match what is actually implemented.
+
+## Session hand-off
+Work moves between machines, and local Claude memory does not travel. At the start of every session read
+`docs/HANDOFF.md`. As you build, keep it current: update "Current state", "Open work" and "Done recently"
+after each meaningful step (a deploy, a merged change, a finding, a decision), and commit it with the work.
+It is public: no secrets, passcodes, personal details or employer names.
