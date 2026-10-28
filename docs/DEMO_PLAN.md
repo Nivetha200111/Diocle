@@ -58,6 +58,15 @@ Keep the employer unnamed ("a large migration I worked on"), and the bank fictio
 - Render: `cd demo/promo && npx remotion render ClickDemo out/click-demo.mp4 --codec=h264 --crf=16`.
 - Music: add a trending track inside Instagram/TikTok when posting (licensed there); keep it under the clicks.
 
+## The click-through video, 16:9 for YouTube
+- `ClickDemoWide` (1920x1080, 58 s): same real clicks and beats as the vertical cut. Cinematic intro, then an
+  editorial split: chapter tag, caption and result badge on the left; a browser window with the real address bar
+  on the right, zooming into every click (with a small punch on each click) and a motion-blurred cursor; chapter
+  progress along the bottom; outro with "built during the hackathon".
+- Render: `npx remotion render ClickDemoWide out/click-demo-youtube.mp4 --codec=h264 --crf=15`.
+- Music: put a licensed track at `demo/promo/public/music.mp3` (for example from the YouTube Audio Library) and
+  re-render; it is mixed under the clicks automatically, with fades.
+
 ## Scripted recording (first attempt, kept for reference)
 - `demo/record.mjs` (Playwright, drives the installed Google Chrome) plays each shot against the live site and
   records it: `cd demo && npm install && npm run record` (or `npm run record -- chqclr` for one shot). It adds a

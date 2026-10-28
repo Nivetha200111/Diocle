@@ -7,15 +7,15 @@ import data from "./data.json";
 import { C, mono, pixel, s, sans } from "./theme";
 import { Backdrop } from "./ui";
 
-type Box = { x: number; y: number; w: number; h: number };
-type StateName = keyof typeof clicks.states;
-const ST = clicks.states as Record<string, { w: number; h: number; boxes: Record<string, Box> }>;
-const box = (state: StateName, name: string): Box => {
+export type Box = { x: number; y: number; w: number; h: number };
+export type StateName = keyof typeof clicks.states;
+export const ST = clicks.states as Record<string, { w: number; h: number; boxes: Record<string, Box> }>;
+export const box = (state: StateName, name: string): Box => {
   const b = ST[state].boxes[name];
   if (!b) throw new Error(`no box ${state}.${name}`);
   return b;
 };
-const center = (b: Box) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+export const center = (b: Box) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
 
 // Layout grid (1080x1920): caption zone, the screen card, footer. Every edge is on this grid.
 const W = 1080;
@@ -23,30 +23,30 @@ const CARD = { x: 48, y: 560, w: 984, h: 1040, r: 34 };
 const FOOT_Y = 1660;
 
 // ---- timeline ---------------------------------------------------------------------------------------------
-type Cam = { at: number; state: StateName; focus: Box; zoom?: number; move?: number };
-type Cur = { at: number; state: StateName; to: { x: number; y: number }; move?: number };
-type Cap = { from: number; to: number; text: string; accent?: string };
-type Hl = { from: number; to: number; state: StateName; b: Box; color: string };
-type Badge = { from: number; to: number; state: StateName; b: Box; text: string; color: string; below?: boolean };
+export type Cam = { at: number; state: StateName; focus: Box; zoom?: number; move?: number };
+export type Cur = { at: number; state: StateName; to: { x: number; y: number }; move?: number };
+export type Cap = { from: number; to: number; text: string; accent?: string };
+export type Hl = { from: number; to: number; state: StateName; b: Box; color: string };
+export type Badge = { from: number; to: number; state: StateName; b: Box; text: string; color: string; below?: boolean };
 
 const f = s;
 const ce = data.chqclr.breaker.counterexamples[0];
-const fee = ce.diff.match(/^([\w-]+): original (\S+) converted (\S+)/);
-const verdict = clicks.verdict.split(" · ").filter((p) => /^(PASS|FAIL)|\d+\/\d+|\d+(\.\d+)?s$/.test(p)).map((p) => p.replace(" cases match", "")).join(" · ");
+export const fee = ce.diff.match(/^([\w-]+): original (\S+) converted (\S+)/);
+export const verdict = clicks.verdict.split(" · ").filter((p) => /^(PASS|FAIL)|\d+\/\d+|\d+(\.\d+)?s$/.test(p)).map((p) => p.replace(" cases match", "")).join(" · ");
 
-const states: { at: number; state: StateName }[] = [
+export const states: { at: number; state: StateName }[] = [
   { at: 0, state: "home" }, { at: f(4.0), state: "runs" }, { at: f(7.2), state: "run" },
   { at: f(26.6), state: "running" }, { at: f(28.2), state: "verified" },
   { at: f(32.6), state: "delivery" }, { at: f(37.2), state: "pr" }, { at: f(41.0), state: "delivery" },
   { at: f(43.4), state: "typed" },
 ];
-const clickAt = [f(3.8), f(7.0), f(26.4), f(32.4), f(37.0), f(42.2)];
+export const clickAt = [f(3.8), f(7.0), f(26.4), f(32.4), f(37.0), f(42.2)];
 
 // The "What differed" end of the breaker's first counterexample row.
-const row = box("run", "breakerRow");
-const differed: Box = { x: row.x + row.w * 0.5, y: row.y - 40, w: row.w * 0.5, h: row.h + 80 };
+export const row = box("run", "breakerRow");
+export const differed: Box = { x: row.x + row.w * 0.5, y: row.y - 40, w: row.w * 0.5, h: row.h + 80 };
 
-const cams: Cam[] = [
+export const cams: Cam[] = [
   { at: 0, state: "home", focus: { x: 0, y: 0, w: 1280, h: 1246 }, zoom: 0.8 },
   { at: f(1.6), state: "home", focus: box("home", "liveRuns"), zoom: 1.7, move: 26 },
   { at: f(4.4), state: "runs", focus: box("runs", "chqclrRow"), zoom: 1.25, move: 30 },
@@ -62,7 +62,7 @@ const cams: Cam[] = [
   { at: f(41.2), state: "delivery", focus: box("delivery", "input"), zoom: 1.35, move: 26 },
 ];
 
-const curs: Cur[] = [
+export const curs: Cur[] = [
   { at: 0, state: "home", to: { x: 900, y: 500 } },
   { at: f(2.4), state: "home", to: center(box("home", "liveRuns")), move: 34 },
   { at: f(5.4), state: "runs", to: center(box("runs", "chqclrRow")), move: 40 },
@@ -78,7 +78,7 @@ const curs: Cur[] = [
   { at: f(45.2), state: "typed", to: center(box("typed", "importButton")), move: 30 },
 ];
 
-const caps: Cap[] = [
+export const caps: Cap[] = [
   { from: 0, to: f(4.4), text: "AI rewrote a bank's COBOL in Java.", accent: "Watch us try to break it." },
   { from: f(4.4), to: f(7.6), text: "Every conversion is a live run.", accent: "Open one." },
   { from: f(7.6), to: f(11.6), text: "It passed 1,004 tests", accent: "the AI had never seen." },
@@ -91,7 +91,7 @@ const caps: Cap[] = [
   { from: f(41.2), to: f(47.6), text: "Paste any public COBOL repo.", accent: "Watch it convert." },
 ];
 
-const hls: Hl[] = [
+export const hls: Hl[] = [
   { from: f(3.0), to: f(4.0), state: "home", b: box("home", "liveRuns"), color: C.blue },
   { from: f(6.0), to: f(7.2), state: "runs", b: box("runs", "chqclrRow"), color: C.blue },
   { from: f(8.6), to: f(11.6), state: "run", b: box("run", "firstCert"), color: C.phosphor },
@@ -103,7 +103,7 @@ const hls: Hl[] = [
   { from: f(37.8), to: f(41.0), state: "pr", b: box("pr", "table"), color: C.blue },
 ];
 
-const badges: Badge[] = [
+export const badges: Badge[] = [
   { from: f(9.2), to: f(11.6), state: "run", b: box("run", "firstCert"), text: "✓ 1,004 / 1,004", color: C.phosphor, below: true },
   { from: f(13.0), to: f(15.4), state: "run", b: box("run", "broke"), text: "✗ 2 of 10 inputs break it", color: C.red, below: true },
   { from: f(17.2), to: f(20.4), state: "run", b: box("run", "breakerRow"), text: `${fee?.[2]} ≠ ${fee?.[3]}`, color: C.red, below: true },
@@ -112,7 +112,7 @@ const badges: Badge[] = [
   { from: f(34.2), to: f(37.0), state: "delivery", b: box("delivery", "prPanel"), text: "✓ CI re-verified", color: C.phosphor, below: true },
 ];
 
-const sfx: { at: number; src: string; volume?: number }[] = [
+export const sfx: { at: number; src: string; volume?: number }[] = [
   ...clickAt.map((at) => ({ at, src: "click.wav", volume: 0.5 })),
   ...states.slice(1).map((st) => ({ at: st.at - 3, src: "whoosh.wav", volume: 0.25 })),
   ...[f(9.2), f(21.8), f(28.8), f(34.2)].map((at) => ({ at, src: "success.wav", volume: 0.35 })),
@@ -124,9 +124,9 @@ const sfx: { at: number; src: string; volume?: number }[] = [
 export const clickFrames = f(52);
 
 // ---- engine -----------------------------------------------------------------------------------------------
-const ease = Easing.bezier(0.65, 0, 0.25, 1);
+export const ease = Easing.bezier(0.65, 0, 0.25, 1);
 
-function lerpTrack<T extends { at: number; move?: number }>(track: T[], frame: number, get: (k: T) => number[]): number[] {
+export function lerpTrack<T extends { at: number; move?: number }>(track: T[], frame: number, get: (k: T) => number[]): number[] {
   let i = 0;
   while (i + 1 < track.length && track[i + 1].at <= frame) i++;
   const cur = track[i];
@@ -163,7 +163,7 @@ const toScreen = (p: { x: number; y: number }, cam: { cx: number; cy: number; sc
   y: CARD.y + CARD.h / 2 + (p.y - cam.cy) * cam.scale,
 });
 
-const stateAt = (frame: number) => {
+export const stateAt = (frame: number) => {
   let i = 0;
   while (i + 1 < states.length && states[i + 1].at <= frame) i++;
   return { cur: states[i], prev: states[Math.max(0, i - 1)], since: frame - states[i].at, i };
@@ -180,7 +180,7 @@ const Shot: React.FC<{ state: StateName; cam: { cx: number; cy: number; scale: n
   );
 };
 
-const Cursor: React.FC<{ x: number; y: number; press: number }> = ({ x, y, press }) => (
+export const Cursor: React.FC<{ x: number; y: number; press: number }> = ({ x, y, press }) => (
   <svg width={56} height={56} viewBox="0 0 28 28" style={{ position: "absolute", left: x - 6, top: y - 4, transform: `scale(${1 - press * 0.18})`,
     transformOrigin: "6px 4px", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.45))" }}>
     <path d="M3 2 L3 22 L8.5 16.8 L12.4 25.4 L16 23.8 L12.2 15.4 L19.6 15.4 Z" fill="#fff" stroke="#000" strokeWidth={1.6} strokeLinejoin="round" />
