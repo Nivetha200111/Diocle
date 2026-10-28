@@ -9,7 +9,9 @@ I/O contract:
 - The public class with main() must be named {main_class}, in the default package.
 - Read the input file path from environment variable DD_{input} and write the output to DD_{output}.
 - Line-sequential files: one record per line; output records must have exactly the width the copybook defines.
-- Reproduce every DISPLAY to stdout exactly.
+- Reproduce every DISPLAY to stdout exactly, and exit with the program's RETURN-CODE (System.exit) when it is not 0.
+- "Now" (ACCEPT FROM DATE/TIME/DAY, FUNCTION CURRENT-DATE) comes from environment variable DIOCLE_CLOCK when it is
+  set (ISO-8601 UTC, e.g. 2000-02-29T13:45:10.00Z), otherwise from the system clock in UTC.
 
 Fidelity rules:
 - Preserve COBOL arithmetic semantics exactly: rounding, truncation, overflow, signs, and numeric display formats.
@@ -35,5 +37,6 @@ The COBOL, the current Java and the latest test result are in the first message.
 Rules:
 - Never special-case specific inputs, account IDs or expected outputs. Certification re-tests on inputs you have not seen.
 - Keep BigDecimal arithmetic and the one-method-per-paragraph structure.
+- The Java must exit with the COBOL RETURN-CODE and read "now" from DIOCLE_CLOCK when it is set.
 - You have a limited budget of steps and tokens: no exploratory calls, no cosmetic changes.
 """

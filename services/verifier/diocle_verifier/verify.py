@@ -10,7 +10,7 @@ from . import REPORT_VERSION
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields
-from .runners import Run, run_cobol, run_java
+from .runners import CLOCK, Run, run_cobol, run_java
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
 
@@ -51,8 +51,17 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
             "original": _run_meta(original),
             "converted": _run_meta(converted),
             "stdoutMatch": original.stdout == converted.stdout,
+            "exitCodeMatch": original.compiled and converted.compiled and original.exit_code == converted.exit_code,
+            "clock": CLOCK,
         },
     }
+
+
+def passes(report: dict) -> bool:
+    """The one definition of equivalence: both built, same exit code (RETURN-CODE), every record and stdout equal."""
+    runs, s = report["runs"], report["summary"]
+    return bool(runs["original"]["compiled"] and runs["converted"]["compiled"] and runs.get("exitCodeMatch")
+                and s["total"] > 0 and s["failed"] == 0 and runs["stdoutMatch"])
 
 
 def validate_report(report: dict) -> None:

@@ -32,9 +32,14 @@ def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None
     return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout)
 
 
+# Both sides see the same "now": GnuCOBOL through COB_CURRENT_DATE, Java through DIOCLE_CLOCK (ISO-8601, UTC).
+CLOCK = "2000-02-29T13:45:10.00Z"
+CLOCK_ENV = {"COB_CURRENT_DATE": "2000/02/29 13:45:10.00", "DIOCLE_CLOCK": CLOCK, "TZ": "UTC"}
+
+
 def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str) -> Run:
     output_path = workdir / f"{label}.out"
-    env = {f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
+    env = {**CLOCK_ENV, f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
     proc = _exec(cmd, env=env, cwd=workdir)
     lines = output_path.read_text().splitlines() if output_path.exists() else []
     return Run(True, proc.returncode, proc.stdout, proc.stderr, lines)

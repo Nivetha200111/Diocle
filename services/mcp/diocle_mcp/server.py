@@ -18,7 +18,7 @@ from mcp.server.fastmcp import FastMCP
 
 from diocle_analyzer.analyze import analyze, write_sample
 from diocle_analyzer.github import clone
-from diocle_verifier.verify import verify_sample
+from diocle_verifier.verify import passes, verify_sample
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -58,11 +58,11 @@ def _summary(report: dict, limit: int = 5) -> dict:
     runs, s = report["runs"], report["summary"]
     failing = [r for r in report["results"] if not r["match"]]
     builds = {side: runs[side]["stderr"][-1500:] for side in ("original", "converted") if not runs[side]["compiled"]}
-    crashes = {side: runs[side]["stderr"][-1500:] for side in ("original", "converted")
-               if runs[side]["compiled"] and runs[side]["exitCode"] != 0}
+    crashes = None if runs.get("exitCodeMatch") else {
+        side: f"exit {runs[side]['exitCode']}: {runs[side]['stderr'][-1500:]}" for side in ("original", "converted")}
     return {
         "passed": s["passed"], "total": s["total"], "stdoutMatches": runs["stdoutMatch"],
-        "allMatch": not builds and not crashes and s["total"] > 0 and s["failed"] == 0 and runs["stdoutMatch"],
+        "allMatch": passes(report),
         "buildErrors": builds or None, "crashes": crashes or None,
         "mismatchedFields": dict(Counter(d["field"] for r in failing for d in r.get("fieldDiffs", [])).most_common()),
         "examples": [{"input": r.get("input"), "diff": r.get("diff")} for r in failing[:limit]],
