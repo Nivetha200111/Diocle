@@ -25,9 +25,8 @@ program where ordinary testing passed and Diocle still caught the bug.
 Keep the employer unnamed ("a large migration I worked on"), and the bank fictional (Quillmark Trust & Savings).
 
 ## Before recording (checklist)
-- [ ] CHQCLR and the other evaluation runs are on the live site (seed them; they were created after the first
-      seeding). Check the CHQCLR timeline shows the breaker counterexamples clearly; if not, make the breaker
-      events stand out in Live runs.
+- [x] CHQCLR and the other evaluation runs are on the live site; CHQCLR re-verifies there (1004/1004).
+- [x] Live runs has a Breaker panel listing each counterexample (input, the agent's reason, what differed).
 - [ ] INTACCR re-delivery PR on quillmark-modern merged and CI green (optional shot).
 - [ ] Evaluation re-run (`eval-freeze-2`) added to EVALUATION.md, so the 2:40 shot shows both runs.
 - [ ] One visitor import done beforehand on the repo you'll show (costs a few cents), so its finished result can
