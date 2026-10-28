@@ -32,6 +32,8 @@ def client(tmp_path, monkeypatch):
     (run / "run.json").write_text(json.dumps({
         "program": "DEMO", "command": "run", "sample": str(sample), "javaOrigin": "translated by muse-spark-1.3-contributor", "certified": True,
         "rounds": [{"round": 1, "certified": True}],
+        "memory": {"enabled": True, "used": 2, "learned": 1,
+                   "lessons": [{"pattern": "ROUNDED ties", "cobol": "half away from zero", "java": "HALF_UP"}]},
         "usage": {"calls": 2, "inputTokens": 10, "cachedInputTokens": 4, "outputTokens": 5, "estimatedCostUsd": 0.001,
                   "modelCalls": [{"model": "muse-spark-1.3-contributor"}]}}))
     (run / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in [
@@ -75,3 +77,5 @@ def test_efficiency(client):
     assert eff["cacheHitRate"] == 0.4 and eff["totalTokens"] == 15
     assert eff["costPer1kLinesUsd"] == pytest.approx(0.001 / 3 * 1000, abs=1e-6)
     assert client.get("/runs").json()[0]["efficiency"] == eff
+    run = client.get("/runs/demo-20261028-124509").json()
+    assert run["memory"]["used"] == 2 and run["memory"]["lessons"][0]["java"] == "HALF_UP"

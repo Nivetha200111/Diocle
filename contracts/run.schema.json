@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.2 (adds efficiency). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.3 (v0.2 added efficiency, v0.3 adds memory). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": ["id", "program", "command", "certified", "javaOrigin", "events", "usage"],
   "properties": {
@@ -20,7 +20,7 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "type": "string", "enum": ["agent-step", "certification", "budget"] },
+          "type": { "type": "string", "enum": ["agent-step", "certification", "budget", "memory"] },
           "round": { "type": "integer" },
           "step": { "type": "integer" },
           "tool": { "type": "string" },
@@ -49,7 +49,25 @@
     },
     "model": { "type": ["string", "null"] },
     "javaDiff": { "type": ["string", "null"], "description": "Unified diff from the starting Java to the final Java" },
-    "efficiency": { "$ref": "#/$defs/efficiency" }
+    "efficiency": { "$ref": "#/$defs/efficiency" },
+    "memory": {
+      "type": ["object", "null"],
+      "description": "Fix memory: lessons read at the start, and lessons stored after held-out certification passed. Null for runs saved before memory existed.",
+      "required": ["enabled", "used", "learned", "lessons"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "used": { "type": "integer" },
+        "learned": { "type": "integer", "description": "Lessons new to memory from this run" },
+        "lessons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["pattern", "cobol", "java"],
+            "properties": { "pattern": { "type": "string" }, "cobol": { "type": "string" }, "java": { "type": "string" } }
+          }
+        }
+      }
+    }
   },
   "$defs": {
     "efficiency": {
