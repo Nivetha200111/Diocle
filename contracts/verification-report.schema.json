@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE) and the pinned clock.",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence.",
   "type": "object",
   "required": [
     "version",
@@ -173,6 +173,14 @@
             "null"
           ],
           "description": "Date and time both programs saw (COB_CURRENT_DATE / DIOCLE_CLOCK, UTC)."
+        },
+        "collation": {
+          "type": "string",
+          "enum": [
+            "ascii",
+            "ebcdic"
+          ],
+          "description": "Collating sequence for alphanumeric comparisons and sorts (ebcdic = mainframe order)."
         }
       }
     }
