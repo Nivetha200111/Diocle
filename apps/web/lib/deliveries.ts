@@ -7,6 +7,7 @@ export type DeliveryProgram = {
   name: string;
   path?: string;
   status: "queued" | "converting" | "certified" | "not-certified" | "skipped";
+  reason?: string | null;
   runId: string | null;
   run: {
     status: "running" | "certified" | "not-certified";
@@ -24,7 +25,8 @@ export type DeliveryProgram = {
 export type Delivery = {
   id: string;
   legacy: { repository: string; commit: string | null };
-  target: string;
+  target: string | null; // null: a visitor's import, results stay on the site
+  public?: boolean;
   stage: DeliveryStage;
   startedAt: string;
   finishedAt: string | null;
@@ -47,7 +49,7 @@ async function getJson<T>(path: string): Promise<T> {
 export const fetchDeliveries = () => getJson<DeliveryListItem[]>("/deliveries");
 export const fetchDelivery = (id: string) => getJson<Delivery>(`/deliveries/${encodeURIComponent(id)}`);
 
-export type DeliveryRequest = { legacy: string; target: string; parallel: boolean; breaker: boolean };
+export type DeliveryRequest = { legacy: string; target?: string; parallel?: boolean; breaker?: boolean };
 
 export async function startDelivery(body: DeliveryRequest, passcode = ""): Promise<string> {
   const response = await fetch(`${API_URL}/deliveries`, {
