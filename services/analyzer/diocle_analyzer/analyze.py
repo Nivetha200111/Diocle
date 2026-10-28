@@ -42,13 +42,20 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                 layout = parse_copybook(info.fd_inline[file_name], code=True)
             else:
                 layout = None
+            organization = info.organizations.get(file_name, "SEQUENTIAL")
+            if layout and not layout.unsupported:
+                binary = [f["name"] for f in layout.fields if f.get("usage", "display") != "display"]
+                if organization == "LINE SEQUENTIAL" and binary:
+                    layout.unsupported = (f"{', '.join(binary[:3])}: packed or binary data in a LINE SEQUENTIAL file "
+                                          "(bytes can look like line breaks); use ORGANIZATION SEQUENTIAL")
             files.append({
                 "dd": dd,
                 "direction": info.directions.get(file_name, "unknown"),
                 "dsn": step.dsns.get(dd) if step else None,
                 "organization": info.organizations.get(file_name, "SEQUENTIAL"),
                 "copybook": member,
-                "layout": layout.as_dict() if layout else None,
+                "layout": ({**layout.as_dict(), "format": "line" if organization == "LINE SEQUENTIAL" else "fixed"}
+                           if layout and layout.as_dict() else None),
                 **({"unsupported": layout.unsupported} if layout and layout.unsupported else {}),
             })
         reason = _not_convertible(files, info.copybooks, copybooks, info, program_ids)
