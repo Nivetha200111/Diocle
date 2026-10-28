@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.1. One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.2 (adds efficiency). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": ["id", "program", "command", "certified", "javaOrigin", "events", "usage"],
   "properties": {
@@ -48,9 +48,26 @@
       }
     },
     "model": { "type": ["string", "null"] },
-    "javaDiff": { "type": ["string", "null"], "description": "Unified diff from the starting Java to the final Java" }
+    "javaDiff": { "type": ["string", "null"], "description": "Unified diff from the starting Java to the final Java" },
+    "efficiency": { "$ref": "#/$defs/efficiency" }
   },
   "$defs": {
+    "efficiency": {
+      "type": "object",
+      "description": "How efficiently the agent reached its result. Derived from usage and events; costs are estimates from list prices.",
+      "required": ["cobolLines", "modelCalls", "toolSteps", "patchesApplied", "cacheHitRate", "totalTokens", "modelTimeMs", "estimatedCostUsd", "costPer1kLinesUsd"],
+      "properties": {
+        "cobolLines": { "type": "integer", "description": "Non-blank, non-comment lines of the program and its copybooks" },
+        "modelCalls": { "type": "integer" },
+        "toolSteps": { "type": "integer" },
+        "patchesApplied": { "type": "integer" },
+        "cacheHitRate": { "type": "number", "minimum": 0, "maximum": 1, "description": "cachedInputTokens / inputTokens" },
+        "totalTokens": { "type": "integer", "description": "input + output tokens" },
+        "modelTimeMs": { "type": "integer", "description": "Sum of model call latencies" },
+        "estimatedCostUsd": { "type": ["number", "null"] },
+        "costPer1kLinesUsd": { "type": ["number", "null"] }
+      }
+    },
     "verification": {
       "type": ["object", "null"],
       "required": ["total", "passed", "failed", "stdoutMatch", "failingExamples"],
