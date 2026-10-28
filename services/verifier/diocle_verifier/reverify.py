@@ -19,7 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .verify import verify_sample
+from .verify import passes, verify_sample
 
 
 GITHUB_REPO = re.compile(r"^https://github\.com/[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
@@ -104,8 +104,7 @@ def reverify(programs_dir: Path, seed: int, random_count: int, expect_legacy: st
                 continue
             report = verify_sample(sample, program_dir / "java", seed=seed, random_count=random_count)
             runs, s = report["runs"], report["summary"]
-            ok = runs["original"]["compiled"] and runs["converted"]["compiled"] and s["total"] > 0 \
-                and s["failed"] == 0 and runs["stdoutMatch"]
+            ok = passes(report)
             results.append({"program": cert["program"], "passed": s["passed"], "total": s["total"],
                             "stdoutMatch": runs["stdoutMatch"], "ok": bool(ok),
                             "firstMismatch": next((r.get("diff", "") for r in report["results"] if not r["match"]), None),

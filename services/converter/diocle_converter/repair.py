@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from diocle_verifier.verify import passes
+
 from .client import BudgetExceeded, ModelClient
 from .memory import LESSON_SCHEMA, clean_lessons, lesson_key
 from .prompts import REPAIR
@@ -52,8 +54,9 @@ def summarize_report(report: dict, limit: int = 6, for_agent: bool = True) -> st
     for side in ("original", "converted"):
         if not runs[side]["compiled"]:
             return f"{side} did not compile:\n{runs[side]['stderr'][-3000:]}"
-        if runs[side]["exitCode"] != 0:
-            return f"{side} crashed (exit {runs[side]['exitCode']}):\n{runs[side]['stderr'][-3000:]}"
+    if not runs.get("exitCodeMatch", True):
+        return (f"exit codes differ (COBOL RETURN-CODE {runs['original']['exitCode']}, Java {runs['converted']['exitCode']}):\n"
+                f"Java stderr: {runs['converted']['stderr'][-3000:]}")
     s = report["summary"]
     lines = [f"{s['passed']}/{s['total']} cases match; stdout {'matches' if runs['stdoutMatch'] else 'differs'}."]
     failing = [r for r in report["results"] if not r["match"]]
@@ -71,11 +74,7 @@ def summarize_report(report: dict, limit: int = 6, for_agent: bool = True) -> st
 
 
 def report_passes(report: dict) -> bool:
-    runs = report["runs"]
-    return (
-        runs["original"]["compiled"] and runs["converted"]["compiled"] and runs["converted"]["exitCode"] == 0
-        and report["summary"]["total"] > 0 and report["summary"]["failed"] == 0 and runs["stdoutMatch"]
-    )
+    return passes(report)
 
 
 @dataclass

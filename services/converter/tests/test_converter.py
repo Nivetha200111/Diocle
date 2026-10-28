@@ -53,7 +53,7 @@ def report(passed: bool):
     result = {"program": "P", "inputId": "case-1", "match": passed, "fieldDiffs": [] if passed else
               [{"field": "OUT-FEE", "original": "1.49", "converted": "1.50"}], "diff": "" if passed else "OUT-FEE differs"}
     return {"version": "0.2", "results": [result], "summary": {"total": 1, "passed": int(passed), "failed": int(not passed)},
-            "runs": {**runs, "stdoutMatch": True}}
+            "runs": {**runs, "stdoutMatch": True, "exitCodeMatch": True}}
 
 
 def test_workspace_confines_reads_and_writes(tmp_path):

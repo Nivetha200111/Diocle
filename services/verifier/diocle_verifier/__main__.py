@@ -8,7 +8,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from .verify import validate_report, verify_sample
+from .verify import passes, validate_report, verify_sample
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -32,12 +32,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"BUILD FAILED ({side}):\n{runs[side]['stderr']}", file=sys.stderr)
             return 2
 
-    for side in ("original", "converted"):
-        if runs[side]["exitCode"] != 0:
-            print(f"RUN FAILED ({side}, exit {runs[side]['exitCode']}):\n{runs[side]['stderr'].strip()[-2000:]}", file=sys.stderr)
+    if not runs["exitCodeMatch"]:
+        print(f"EXIT CODES DIFFER: original {runs['original']['exitCode']}, converted {runs['converted']['exitCode']}",
+              file=sys.stderr)
+        for side in ("original", "converted"):
+            if runs[side]["stderr"].strip():
+                print(f"  {side} stderr: {runs[side]['stderr'].strip()[-2000:]}", file=sys.stderr)
 
     s = report["summary"]
-    status = "PASS" if s["failed"] == 0 and runs["stdoutMatch"] else "FAIL"
+    status = "PASS" if passes(report) else "FAIL"
     print(f"{status}  {s['passed']}/{s['total']} cases match  (stdout {'matches' if runs['stdoutMatch'] else 'DIFFERS'})")
     failing = [r for r in report["results"] if not r["match"]]
     if failing:
