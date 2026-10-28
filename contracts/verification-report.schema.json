@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output.",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD).",
   "type": "object",
   "required": [
     "version",
@@ -53,9 +53,10 @@
               "model",
               "fixture",
               "golden",
-              "corpus"
+              "corpus",
+              "files"
             ],
-            "description": "How the input was generated."
+            "description": "How the input was generated. 'files': an output record of a multi-file run, whose inputs are whole generated files."
           },
           "fieldDiffs": {
             "type": "array",
@@ -87,6 +88,10 @@
               "mainframe"
             ],
             "description": "What the converted output was compared with: GnuCOBOL's output, or a captured mainframe output (golden)."
+          },
+          "outputDd": {
+            "type": "string",
+            "description": "Output file (DD name) this record belongs to, for programs with several output files."
           }
         }
       }
@@ -218,6 +223,21 @@
                 "type": "object"
               },
               "description": "Where GnuCOBOL differs from the mainframe; the mainframe is the authority"
+            }
+          }
+        },
+        "files": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Multi-file runs: records per input DD, and records each side wrote per output DD.",
+          "properties": {
+            "inputs": {
+              "type": "object"
+            },
+            "outputs": {
+              "type": "object"
             }
           }
         }
