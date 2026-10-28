@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, GitPullRequest, TriangleAlert } from "lucide-react";
 import { API_URL } from "@/lib/runs";
-import { useApiConfig } from "@/lib/config";
+import { LINKS, useApiConfig } from "@/lib/config";
 import { fetchDeliveries, fetchDelivery, startDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
@@ -33,6 +33,13 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
     : at > i ? "ok" : at === i ? "busy" : "off");
   const certified = d.programs.filter((p) => p.status === "certified").length;
   const ci = ciState(d);
+  if (!d.target) {
+    return [
+      { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
+      { label: "2. Convert & certify", detail: `${certified}/${d.programs.filter((p) => p.status !== "skipped").length} certified`, led: led(1) },
+      { label: "3. Results", detail: d.stage === "done" ? "Java, diffs and traces in Live runs" : "waiting", led: d.stage === "done" ? "ok" : "off" },
+    ];
+  }
   return [
     { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
     { label: "2. Convert & certify", detail: `${certified}/${d.programs.length} certified`, led: led(1) },
@@ -52,7 +59,10 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
       <div className="panel-heading">
         <div>
           <h2><span className={`led led-${programLed(p)}`} /> {p.name}</h2>
-          <p>{p.path ?? ""} · {p.status}{run?.stage && p.status === "converting" ? ` · ${run.stage}` : ""}</p>
+          <p>
+            {p.path ?? ""} · {p.status}{run?.stage && p.status === "converting" ? ` · ${run.stage}` : ""}{p.reason ? ` · ${p.reason}` : ""}
+            {p.runId && <> · <a href={`#run=${p.runId}`}>Java, diff and trace</a></>}
+          </p>
         </div>
       </div>
       <ol className="trace-list dlv-log">
@@ -82,20 +92,28 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
 }
 
 function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: string) => void }) {
-  const [legacy, setLegacy] = useState("https://github.com/Nivetha200111/quillmark-mainframe");
+  const config = useApiConfig();
+  const open = config?.publicImports?.enabled ?? false;
+  const [asAdmin, setAsAdmin] = useState(false);
+  const admin = !open || asAdmin;
+  const [legacy, setLegacy] = useState("");
   const [target, setTarget] = useState("https://github.com/Nivetha200111/quillmark-java");
   const [parallel, setParallel] = useState(true);
   const [breaker, setBreaker] = useState(true);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [passcode, setPasscode] = useState("");
-  const config = useApiConfig();
+  const limits = config?.publicImports;
   return (
     <section className="panel dlv-start" id="new-delivery">
       <div className="panel-heading">
         <div>
-          <h2>Start a delivery</h2>
-          <p>Paste the legacy repository and the repository that should receive the pull request.</p>
+          <h2>{admin ? "Start a delivery" : "Import a repository"}</h2>
+          <p>
+            {admin
+              ? "Paste the legacy repository and the repository that should receive the pull request."
+              : "Paste any public GitHub repository with COBOL. Muse Spark converts each program to Java; Diocle runs both against GnuCOBOL and repairs until they agree."}
+          </p>
         </div>
       </div>
       <form
@@ -105,7 +123,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
           setError("");
           setSending(true);
           try {
-            onStarted(await startDelivery({ legacy, target, parallel, breaker }, passcode));
+            onStarted(await startDelivery(admin ? { legacy, target, parallel, breaker } : { legacy }, admin ? passcode : ""));
           } catch (err) {
             setError((err as Error).message);
           } finally {
@@ -115,29 +133,55 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
       >
         <label>
           <span>Legacy repository (COBOL in)</span>
-          <input value={legacy} onChange={(e) => setLegacy(e.target.value)} spellCheck={false} />
+          <input value={legacy} onChange={(e) => setLegacy(e.target.value)} spellCheck={false}
+                 placeholder="https://github.com/<owner>/<repo>" required />
         </label>
-        <label>
-          <span>Target repository (pull request out)</span>
-          <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
-        </label>
-        {config?.startNeedsPasscode && (
-          <label>
-            <span>Admin passcode (starting a delivery spends model credits)</span>
-            <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} autoComplete="current-password" />
-          </label>
+        {!admin && (
+          <p className="dlv-note">
+            Try <button type="button" className="link-button" onClick={() => setLegacy(LINKS.legacy)}>{repoName(LINKS.legacy)}</button>,
+            the fictional bank's mainframe export, or your own.
+          </p>
+        )}
+        {admin && (
+          <>
+            <label>
+              <span>Target repository (pull request out)</span>
+              <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
+            </label>
+            {config?.startNeedsPasscode && (
+              <label>
+                <span>Admin passcode</span>
+                <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} autoComplete="current-password" />
+              </label>
+            )}
+          </>
         )}
         <div className="dlv-form-row">
-          <label className="dlv-check"><input type="checkbox" checked={parallel} onChange={(e) => setParallel(e.target.checked)} /> Swarm: convert programs in parallel</label>
-          <label className="dlv-check"><input type="checkbox" checked={breaker} onChange={(e) => setBreaker(e.target.checked)} /> Breaker: attack each certified program</label>
-          <button className="button primary" type="submit" disabled={busy || sending}>
-            {busy ? "A delivery is running" : sending ? "Starting…" : "Start delivery"}
+          {admin && (
+            <>
+              <label className="dlv-check"><input type="checkbox" checked={parallel} onChange={(e) => setParallel(e.target.checked)} /> Swarm: convert programs in parallel</label>
+              <label className="dlv-check"><input type="checkbox" checked={breaker} onChange={(e) => setBreaker(e.target.checked)} /> Breaker: attack each certified program</label>
+            </>
+          )}
+          <button className="button primary" type="submit" disabled={busy || sending || (!admin && limits?.budgetLeft === false)}>
+            {busy ? "A job is running" : sending ? "Starting…" : admin ? "Start delivery" : "Import and convert"}
           </button>
         </div>
-        <p className="dlv-note">
-          Uses Meta Muse Spark within the caps in <span className="mono">.env</span> (calls per run, programs per delivery, parallel agents).
-          Only allowed GitHub owners; one delivery at a time.
-        </p>
+        {admin ? (
+          <p className="dlv-note">
+            Uses Meta Muse Spark within the caps in <span className="mono">.env</span> (calls per run, programs per delivery, parallel agents).
+            Only allowed GitHub owners; one delivery at a time.
+            {open && <> <button type="button" className="link-button" onClick={() => setAsAdmin(false)}>Back to import</button></>}
+          </p>
+        ) : (
+          <p className="dlv-note">
+            Up to {limits?.maxPrograms} programs of {limits?.maxLines?.toLocaleString()} lines each, one job at a time.
+            Imported code is compiled and run in an isolated sandbox with no network and no credentials.
+            Results stay here; nothing is pushed to your repository.
+            {limits && !limits.budgetLeft && <strong> Today&apos;s conversion budget is used up; it resets at 00:00 UTC.</strong>}
+            {" "}<button type="button" className="link-button" onClick={() => setAsAdmin(true)}>Deliver as a pull request (passcode)</button>
+          </p>
+        )}
         {error && <p className="dlv-error">{error}</p>}
       </form>
     </section>
@@ -207,9 +251,10 @@ export default function DeliveryView() {
         <div>
           <div className="runs-badges">
             <span className={`badge ${running ? "badge-amber" : delivery.stage === "done" ? "badge-green" : "badge-amber"}`}>
-              {running ? "● LIVE" : delivery.stage === "done" ? "Delivered" : "Failed"}
+              {running ? "● LIVE" : delivery.stage === "failed" ? "Failed" : delivery.target ? "Delivered" : "Done"}
             </span>
-            
+            {delivery.public && <span className="badge">Visitor import</span>}
+
             {list.length > 1 && (
               <select className="dlv-select" value={selected ?? ""} onChange={(e) => setSelected(e.target.value)}>
                 {list.map((d) => <option key={d.id} value={d.id}>{d.id} · {d.stage}</option>)}
@@ -219,10 +264,12 @@ export default function DeliveryView() {
           <h2>
             <a href={delivery.legacy.repository} target="_blank" rel="noreferrer">{repoName(delivery.legacy.repository)}</a>
             {"  →  "}
-            <a href={delivery.target} target="_blank" rel="noreferrer">{repoName(delivery.target)}</a>
+            {delivery.target
+              ? <a href={delivery.target} target="_blank" rel="noreferrer">{repoName(delivery.target)}</a>
+              : "verified Java"}
           </h2>
           <p>
-            COBOL in, certified Java out as a pull request. Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
+            {delivery.target ? "COBOL in, certified Java out as a pull request." : "COBOL in, Java verified against the original out."} Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
             {delivery.error ? ` · error: ${delivery.error}` : ""}
           </p>
         </div>
@@ -246,7 +293,7 @@ export default function DeliveryView() {
           <div className="panel-heading">
             <div>
               <h2><GitPullRequest size={14} /> Pull request</h2>
-              <p>Opened on {repoName(delivery.target)}. CI re-runs the proof on fresh inputs Diocle never saw.</p>
+              <p>Opened on {repoName(delivery.target ?? "")}. CI re-runs the proof on fresh inputs Diocle never saw.</p>
             </div>
           </div>
           <div className="dlv-pr">

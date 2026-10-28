@@ -304,12 +304,19 @@ export default function RunsView() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const fromHash = () => (window.location.hash.startsWith("#run=") ? decodeURIComponent(window.location.hash.slice(5)) : null);
     fetchRuns()
       .then((items) => {
         setRuns(items);
-        setSelected((current) => current ?? items[0]?.id ?? null);
+        setSelected((current) => fromHash() ?? current ?? items[0]?.id ?? null);
       })
       .catch(() => setError("unreachable"));
+    const follow = () => {
+      const id = fromHash();
+      if (id) setSelected(id);
+    };
+    window.addEventListener("hashchange", follow);
+    return () => window.removeEventListener("hashchange", follow);
   }, []);
 
   useEffect(() => {

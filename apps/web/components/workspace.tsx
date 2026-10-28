@@ -726,6 +726,15 @@ export default function Workspace() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 4500);
   }
+  useEffect(() => {
+    // "#run=<id>" links (from a delivery's program cards) open that run in Live runs.
+    const follow = () => {
+      if (window.location.hash.startsWith("#run=")) setView("Live runs");
+    };
+    follow();
+    window.addEventListener("hashchange", follow);
+    return () => window.removeEventListener("hashchange", follow);
+  }, []);
   function navigate(next: View) {
     setView(next);
     setMobileNav(false);

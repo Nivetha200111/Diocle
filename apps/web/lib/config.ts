@@ -14,7 +14,17 @@ export const LINKS = {
   buildLog: "https://github.com/Nivetha200111/Diocle/blob/main/docs/BUILD_LOG.md",
 };
 
-export type ApiConfig = { hosted: boolean; startNeedsPasscode: boolean };
+export type PublicImports = {
+  enabled: boolean;
+  dailyBudgetUsd: number;
+  perVisitorPerDay: number;
+  maxPrograms: number;
+  maxLines: number;
+  spentTodayUsd: number;
+  budgetLeft: boolean;
+};
+
+export type ApiConfig = { hosted: boolean; startNeedsPasscode: boolean; publicImports?: PublicImports };
 
 export function useApiConfig(): ApiConfig | null {
   const [config, setConfig] = useState<ApiConfig | null>(null);

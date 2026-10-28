@@ -858,3 +858,17 @@ main {
 a.nav-item {
   text-decoration: none;
 }
+
+/* Inline text actions inside notes (visitor import form). */
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--w-navy);
+  box-shadow: none;
+  min-height: 0;
+  min-width: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
