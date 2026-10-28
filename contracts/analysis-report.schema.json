@@ -26,6 +26,7 @@
           "name": { "type": "string", "description": "PROGRAM-ID" },
           "path": { "type": "string", "description": "Source path relative to the repository root" },
           "copybooks": { "type": "array", "items": { "type": "string" } },
+          "modules": { "type": "array", "items": { "type": "string" }, "description": "Source paths of programs it CALLs (transitively), compiled and verified with it" },
           "job": { "type": ["string", "null"], "description": "JCL member that runs this program, if found" },
           "files": {
             "type": "array",

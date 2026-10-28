@@ -16,6 +16,7 @@
         "commit": { "type": "string" },
         "path": { "type": "string", "description": "COBOL source path in the legacy repository" },
         "copybooks": { "type": "array", "items": { "type": "string", "description": "Copybook paths in the legacy repository" } },
+        "modules": { "type": "array", "items": { "type": "string" }, "description": "Paths of CALLed programs compiled with it" },
         "job": { "type": ["string", "null"] }
       }
     },
