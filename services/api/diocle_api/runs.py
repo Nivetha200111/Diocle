@@ -138,7 +138,7 @@ def list_runs() -> list[dict]:
         calls = usage.get("modelCalls", [])
         items.append({
             "id": path.name, "program": run["program"], "command": run["command"], "certified": run["certified"],
-            "status": _status(run),
+            "status": _status(run), "visitor": (path / "visitor").exists(),
             "createdAt": _created_at(path.name), "rounds": len(run.get("rounds", [])),
             "calls": usage.get("calls", 0), "estimatedCostUsd": usage.get("estimatedCostUsd"),
             "model": calls[0]["model"] if calls else None, "efficiency": _efficiency(run, _events(path)),
@@ -170,6 +170,7 @@ def get_run(run_id: str) -> dict | None:
         "createdAt": _created_at(run_id),
         "certified": run["certified"],
         "status": _status(run),
+        "visitor": (path / "visitor").exists(),
         "certificationSeed": run.get("certificationSeed"),
         "error": run.get("error"),
         "javaOrigin": origin,
