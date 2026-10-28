@@ -27,9 +27,9 @@ RUN rm -rf services/*/.venv \
  && python3 -m venv services/api/.venv && services/api/.venv/bin/pip install -q -e services/api \
  && chown -R diocle:diocle services
 COPY --chown=diocle:diocle deploy/entrypoint.sh /usr/local/bin/diocle-entrypoint
-RUN mkdir -p /srv/diocle/runs /srv/diocle/work && chown diocle:diocle /srv/diocle/runs /srv/diocle/work
+RUN mkdir -p /srv/diocle/runs && chown diocle:diocle /srv/diocle/runs
 USER diocle
-# Runs, deliveries and fix memory live on a volume so they survive rebuilds; work is shared with the sandbox.
+# Runs, deliveries and fix memory live on a volume so they survive rebuilds.
 VOLUME /srv/diocle/runs
 EXPOSE 8000
 ENTRYPOINT ["/usr/local/bin/diocle-entrypoint"]

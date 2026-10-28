@@ -1,8 +1,9 @@
 # Engine-only server (the site is on Vercel). Only Caddy (80/443) is reachable from outside.
 # Usage: DIOCLE_API_DOMAIN=api.example.com docker compose -f docker-compose.api.yml up -d --build
 #
-# The api holds the secrets (model key, GitHub token) and never runs code it did not write: every cobc, javac and
-# program run goes to the sandbox, which has no secrets, no internet, a read-only filesystem and hard limits.
+# The api holds the secrets (model key, GitHub token) and never runs code it did not write: every verification job
+# (cobc, javac and both programs) goes to the sandbox as an HTTP request carrying the files, and only the report
+# comes back. The sandbox has no secrets, no internet, no shared volumes, a read-only filesystem and hard limits.
 services:
   api:
     build:
@@ -12,10 +13,8 @@ services:
     env_file: ${DIOCLE_ENV_FILE:-./diocle.env}
     environment:
       DIOCLE_SANDBOX_URL: http://sandbox:8100
-      TMPDIR: /srv/diocle/work  # build and run directories, shared with the sandbox at the same path
     volumes:
       - diocle-runs:/srv/diocle/runs
-      - diocle-work:/srv/diocle/work
     networks: [default, sandbox]
     depends_on: [sandbox]
     restart: unless-stopped
@@ -25,14 +24,11 @@ services:
     image: diocle-engine
     pull_policy: never
     entrypoint: ["/srv/diocle/services/verifier/.venv/bin/python", "-m", "diocle_verifier.sandbox"]
-    environment:  # deliberately no env_file: nothing secret exists in this container
-      DIOCLE_SANDBOX_ROOTS: /srv/diocle/work
-    volumes:
-      - diocle-runs:/srv/diocle/runs:ro
-      - diocle-work:/srv/diocle/work
+    # deliberately no env_file and no volumes: nothing secret and nothing shared exists in this container
     networks: [sandbox]  # internal only: reachable from the api, no route to the internet
+    init: true  # reaps processes; the server kills every other process after each job
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs: ["/tmp:size=384m"]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     pids_limit: 256
@@ -63,5 +59,4 @@ networks:
 volumes:
   diocle-runs:
     name: deploy_diocle-runs
-  diocle-work:
   caddy-data:
