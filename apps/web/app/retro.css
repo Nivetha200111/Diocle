@@ -667,3 +667,16 @@ main {
 .dlv-pr .button.primary * {
   color: #fff !important;
 }
+.dlv-log .dlv-memory,
+.dlv-log .dlv-memory * {
+  color: #40ffff !important;
+}
+.dlv-log .dlv-breaker,
+.dlv-log .dlv-breaker * {
+  color: #ffb000 !important;
+}
+.dlv-log .dlv-broke,
+.dlv-log .dlv-broke * {
+  color: #ff5050 !important;
+  font-weight: 600;
+}

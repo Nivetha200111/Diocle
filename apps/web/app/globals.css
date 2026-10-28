@@ -4778,3 +4778,5 @@ main {
 .dlv-pr ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
 .dlv-pr li { display: flex; align-items: center; gap: 8px; }
 @media (max-width: 900px) { .dlv-stages, .dlv-grid { grid-template-columns: minmax(0, 1fr); } }
+.dlv-breaker { color: #9a4b30; }
+.dlv-memory { color: #3f6573; }

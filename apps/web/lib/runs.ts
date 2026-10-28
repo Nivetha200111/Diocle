@@ -43,7 +43,10 @@ export type Verification = {
 };
 
 export type RunEvent = {
-  type: "agent-step" | "certification" | "budget" | "memory";
+  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker";
+  stage?: string;
+  tried?: number;
+  broke?: number;
   round?: number;
   step?: number;
   tool?: string;

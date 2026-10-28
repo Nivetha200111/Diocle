@@ -194,7 +194,7 @@ function RunDetail({ run }: { run: Run }) {
                   </div>
                 </li>
               ) : (
-                <li key={i} className={`trace-cert ${e.type === "memory" ? "memory" : e.passed ? "pass" : "fail"}`}>
+                <li key={i} className={`trace-cert ${["memory", "stage"].includes(e.type) ? "memory" : e.type === "breaker" ? (e.broke ? "fail" : "pass") : e.passed ? "pass" : "fail"}`}>
                   {e.type === "certification"
                     ? `Round ${e.round} certification on held-out inputs: ${e.passed ? "PASS" : "FAIL"} · ${e.result?.split("\n")[0]}`
                     : e.message}
