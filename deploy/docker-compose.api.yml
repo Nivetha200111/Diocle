@@ -28,7 +28,7 @@ services:
     networks: [sandbox]  # internal only: reachable from the api, no route to the internet
     init: true  # reaps processes; the server kills every other process after each job
     read_only: true
-    tmpfs: ["/tmp:size=384m"]
+    tmpfs: ["/tmp:size=384m,exec"]  # programs are built and run here, so exec is required (noexec is the default)
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     pids_limit: 256
