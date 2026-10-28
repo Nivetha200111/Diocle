@@ -5,7 +5,8 @@
   python -m diocle_converter run SAMPLE                  translate with the Meta model, then verify and repair
 
 repair and run read fix memory (runs/memory.json) and add to it when held-out certification passes.
-Pass --no-memory for a baseline run that neither reads nor writes it.
+Pass --no-memory for a baseline run that neither reads nor writes it, or --memory-read-only to use the lessons
+without adding any (visitor imports: code from strangers must not shape later runs).
 """
 
 from __future__ import annotations
@@ -65,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         p = sub.add_parser(name)
         p.add_argument("sample_dir", type=Path)
         p.add_argument("--no-memory", action="store_true", help="baseline: do not read or write fix memory")
+        p.add_argument("--memory-read-only", action="store_true", help="use fix memory but never add lessons to it")
         p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
@@ -164,7 +166,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         outcome, breaker_summary = _attack(program, workspace, client, verify, agent, standing_cases, outcome,
                                            run_dir, settings, on_event)
 
-    learned = memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name) if memory and outcome["certified"] else 0
+    learned = (memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name)
+               if memory and outcome["certified"] and not args.memory_read_only else 0)
     usage = client.usage_summary()
     origin = (f"copied from {source.relative_to(REPO_ROOT)}" if translation is None
               else f"translated by {settings.model}")
