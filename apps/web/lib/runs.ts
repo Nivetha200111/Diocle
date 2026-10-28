@@ -21,6 +21,7 @@ export type RunMemory = { enabled: boolean; used: number; learned: number; lesso
 export type RunListItem = {
   id: string;
   status?: "running" | "certified" | "not-certified";
+  visitor?: boolean; // from a visitor's import: shown as reported, not re-verified here
   program: string;
   command: "repair" | "run";
   certified: boolean;
@@ -61,6 +62,7 @@ export type RunEvent = {
 
 export type Run = {
   id: string;
+  visitor?: boolean;
   program: string;
   command: "repair" | "run";
   createdAt: string | null;
