@@ -1,0 +1,211 @@
+{
+  "diocle": "eval-freeze-1",
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "results": [
+    {
+      "program": "BRNCHSUM",
+      "runId": "brnchsum-20261028-193818",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1660512,
+        "cachedInputTokens": 1535416,
+        "outputTokens": 743099,
+        "estimatedCostUsd": 0.1642
+      },
+      "breaker": null,
+      "minutes": 125.6,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "776/1014 cases match; stdout matches.\nMismatched fields: \n- case-0777 input='W001C0000777\\x00\\x007x\\x08M': no original output record\n- case-0778 input='N001C0000778\\x00\\x00\\x00\\x011\\x8c': no original output record\n- case-0779 input='W001C0000779\\x00\\x00\\x00\\x00\\x08\\x0c': no original output record"
+      ]
+    },
+    {
+      "program": "CHQCLR",
+      "runId": "chqclr-20261028-214355",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "rounds": 1,
+      "usage": {
+        "calls": 9,
+        "inputTokens": 35449,
+        "cachedInputTokens": 14246,
+        "outputTokens": 77280,
+        "estimatedCostUsd": 0.017605
+      },
+      "breaker": {
+        "rounds": 2,
+        "tried": 24,
+        "broke": 2,
+        "repairCycles": 1,
+        "fixed": true,
+        "counterexamples": [
+          {
+            "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+            "why": "Fee with leading space is zero in Java but may be nonzero in COBOL.",
+            "diff": "CL-FEE: original 20.00 converted 0.00"
+          },
+          {
+            "input": "CACCT00000100000011+0000AB12320240101XXX",
+            "why": "Non-numeric amount digits tests Java zero versus COBOL conversion.",
+            "diff": "CL-DEBIT: original -121.23 converted 0.00"
+          }
+        ]
+      },
+      "minutes": 12.0,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ]
+    },
+    {
+      "program": "FXCONV",
+      "runId": "fxconv-20261028-215557",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "rounds": 0,
+      "usage": {
+        "calls": 4,
+        "inputTokens": 16921,
+        "cachedInputTokens": 4081,
+        "outputTokens": 107118,
+        "estimatedCostUsd": 0.022716
+      },
+      "breaker": {
+        "rounds": 3,
+        "tried": 36,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": []
+      },
+      "minutes": 16.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ]
+    },
+    {
+      "program": "LOANAMRT",
+      "runId": "loanamrt-20261028-221231",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1384991,
+        "cachedInputTokens": 1287081,
+        "outputTokens": 442269,
+        "estimatedCostUsd": 0.100819
+      },
+      "breaker": null,
+      "minutes": 68.9,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "1021/1555 cases match; stdout matches.\nMismatched fields: \n- extra-1022 input='': extra output record\n- extra-1023 input='': extra output record\n- extra-1024 input='': extra output record"
+      ]
+    }
+  ]
+}
