@@ -958,10 +958,12 @@ export default function Workspace() {
               <span>Search anything…</span>
               <kbd>⌘ K</kbd>
             </button>
-            <span className="preview-pill">
-              <span />
-              Demo mode
-            </span>
+            {!realViews.includes(view) && (
+              <span className="preview-pill">
+                <span />
+                Demo mode
+              </span>
+            )}
             <div className="notification-wrap">
               <button
                 className={`icon-button notification-button ${notifications ? "selected" : ""}`}
@@ -1033,10 +1035,20 @@ export default function Workspace() {
               </h1>
               <p>{descriptions[view]}</p>
             </div>
-            <button className="button primary" onClick={() => setModal("new")}>
-              <Plus size={17} />
-              New migration
-            </button>
+            {realViews.includes(view) ? (
+              <button className="button primary" onClick={() => {
+                navigate("Delivery");
+                setTimeout(() => document.getElementById("new-delivery")?.scrollIntoView({ behavior: "smooth" }), 50);
+              }}>
+                <Plus size={17} />
+                New delivery
+              </button>
+            ) : (
+              <button className="button primary" onClick={() => setModal("new")}>
+                <Plus size={17} />
+                New migration (mock)
+              </button>
+            )}
           </div>
 
           {view === "Overview" && (
