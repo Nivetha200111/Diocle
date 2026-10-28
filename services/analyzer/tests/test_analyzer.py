@@ -63,3 +63,69 @@ def test_only_allowed_github_owners(monkeypatch):
     for bad in ("http://github.com/a/b", "https://github.com/a/b/../../c", "git@github.com:a/b.git"):
         with pytest.raises((ValueError, PermissionError)):
             parse_url(bad)
+
+
+def test_environment_and_source_findings(tmp_path):
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. ENVT.",
+        "       DATA DIVISION.",
+        "       WORKING-STORAGE SECTION.",
+        "       01  WS-NAME   PIC X(10).",
+        "       01  WS-RATE   COMP-2.",
+        "       01  WS-D      PIC 9(8).",
+        "       PROCEDURE DIVISION.",
+        "           ACCEPT WS-D FROM DATE YYYYMMDD",
+        "           IF WS-NAME > 'M'",
+        "               DISPLAY 'LATE'",
+        "           END-IF",
+        "           COMPUTE WS-D = WS-D * 2 +".ljust(70) + "36" + "5",  # the FEESCHD bug: '/ 365' read as '/ 36'
+        "      * a comment line that is very long and runs past column seventy two on purpose x",
+        "           STOP RUN.                                                    00000100",
+    ])
+    (tmp_path / "ENVT.cbl").write_text(program)
+    cats = {(f["category"], f["line"]) for f in analyze(tmp_path)["findings"]}
+    assert ("clock", 9) in cats and ("collation", 10) in cats and ("float", 6) in cats
+    assert ("source", 13) in cats  # token cut at column 72
+    assert not any(c == "source" and line in (14, 15) for c, line in cats)  # comments and sequence numbers are fine
+
+
+def test_copy_replacing_inline_records_and_blocking_reasons(tmp_path):
+    (tmp_path / "PFXREC.cpy").write_text("       01  :P:-REC.\n           05  :P:-ID   PIC X(4).\n")
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. RPL.",
+        "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.",
+        "       FILE-CONTROL.",
+        "           SELECT IN-F ASSIGN TO RPLIN.",
+        "           SELECT OUT-F ASSIGN TO RPLOUT.",
+        "       DATA DIVISION.",
+        "       FILE SECTION.",
+        "       FD  IN-F.",
+        "       COPY PFXREC REPLACING ==:P:== BY ==CUST==.",
+        "       FD  OUT-F.",
+        "       01  OUT-REC.",
+        "           05  OUT-ID   PIC X(4).",
+        "       PROCEDURE DIVISION.",
+        "           OPEN INPUT IN-F OUTPUT OUT-F",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "RPL.cbl").write_text(program)
+    [p] = analyze(tmp_path)["programs"]
+    files = {f["direction"]: f for f in p["files"]}
+    assert files["input"]["layout"]["fields"][0]["name"] == "CUST-ID"
+    assert files["output"]["layout"]["fields"][0]["name"] == "OUT-ID" and p["convertible"]
+    for extra, reason in [("           EXEC SQL SELECT 1 INTO :X FROM T END-EXEC.", "EXEC SQL"),
+                          ("           CALL 'NOWHERE' USING OUT-ID", "NOWHERE")]:
+        (tmp_path / "RPL.cbl").write_text(program.replace("           STOP RUN.", extra + "\n           STOP RUN."))
+        [p] = analyze(tmp_path)["programs"]
+        assert not p["convertible"] and reason in p["notConvertibleReason"]
+    (tmp_path / "RPL.cbl").write_text(program.replace("ASSIGN TO RPLIN.", "ASSIGN TO RPLIN\n               ORGANIZATION IS INDEXED\n               RECORD KEY IS CUST-ID."))
+    [p] = analyze(tmp_path)["programs"]
+    assert not p["convertible"] and "INDEXED" in p["notConvertibleReason"]
+
+
+def test_several_record_types_are_reported():
+    two = parse_copybook("       01  R1.\n           05  A  PIC X(3).\n       01  R2.\n           05  B  PIC 9(5).\n")
+    assert two.as_dict() is None and "2 record types" in two.unsupported

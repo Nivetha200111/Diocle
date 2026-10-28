@@ -40,8 +40,50 @@ def _comp_fields(text: str) -> set[str]:
     return set(re.findall(r"\b\d\d\s+([A-Z0-9-]+)\s+PIC\s+\S+\s+(?:USAGE\s+)?COMP(?:UTATIONAL)?\b(?!-)", code))
 
 
+def _alnum_fields(text: str) -> set[str]:
+    code = " ".join(c.strip() for _, c in source_lines(text))
+    return set(re.findall(r"\b\d\d\s+([A-Z0-9-]+)\s+PIC(?:TURE)?\s+(?:IS\s+)?X", code))
+
+
+def _source_findings(program: str, text: str) -> list[dict]:
+    out = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if len(line) > 72 and line[6:7] not in ("*", "/") and line[71] != " " and line[72] != " ":
+            out.append({"program": program, "line": number, "paragraph": None, "category": "source", "severity": "high",
+                        "message": f"Code runs past column 72: '{line[64:72].strip()}|{line[72:].strip()}' - GnuCOBOL and "
+                                   "IBM COBOL ignore everything after column 72, so the statement is silently cut."})
+    return out
+
+
+def _environment_findings(program: str, text: str) -> list[dict]:
+    out = []
+    code_lines = source_lines(text)
+    alnum = _alnum_fields(text)
+    for number, code in code_lines:
+        stripped = code.strip()
+        base = {"program": program, "line": number, "paragraph": None}
+        if re.search(r"\bACCEPT\b.*\bFROM\s+(DATE|TIME|DAY|DAY-OF-WEEK)\b|\bFUNCTION\s+(CURRENT-DATE|WHEN-COMPILED)\b", stripped):
+            out.append({**base, "category": "clock", "severity": "medium",
+                        "message": "Reads the clock: output depends on when it runs. Diocle pins the date and time "
+                                   "for both sides (COB_CURRENT_DATE / DIOCLE_CLOCK)."})
+        if re.search(r"\b(USAGE\s+)?COMP(UTATIONAL)?-[12]\b", stripped):
+            out.append({**base, "category": "float", "severity": "high",
+                        "message": "COMP-1/COMP-2 floating point: IBM hexadecimal float on z/OS, IEEE in GnuCOBOL and "
+                                   "Java. GnuCOBOL cannot prove mainframe results; certify against mainframe golden files."})
+        if re.search(r"^(SORT|MERGE)\b", stripped):
+            out.append({**base, "category": "collation", "severity": "high",
+                        "message": "SORT/MERGE on the mainframe orders keys in EBCDIC (lowercase < uppercase < digits), "
+                                   "ASCII orders digits first. Verify with the EBCDIC collating sequence."})
+        compare = re.search(r"\b(IF|WHEN|UNTIL)\b(.*?)(<|>|\bLESS\b|\bGREATER\b)(.*)", stripped)
+        if compare and any(re.search(rf"\b{re.escape(f)}\b", compare.group(2) + compare.group(4)) for f in alnum):
+            out.append({**base, "category": "collation", "severity": "medium",
+                        "message": "Ordering comparison on alphanumeric data: EBCDIC and ASCII order letters and digits "
+                                   "differently, so the branch taken can change after migration."})
+    return out
+
+
 def find_risks(program: str, text: str) -> list[dict]:
-    findings = []
+    findings = _source_findings(program, text) + _environment_findings(program, text)
     comp = _comp_fields(text)
     for line, paragraph, stmt in _statements(text):
         base = {"program": program, "line": line, "paragraph": paragraph}
