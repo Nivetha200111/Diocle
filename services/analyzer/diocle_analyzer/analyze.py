@@ -129,6 +129,8 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
             "name": info.name,
             "path": path.relative_to(root).as_posix(),
             "copybooks": list(dict.fromkeys(info.copybooks + module_copybooks)),
+            "copybookPaths": {c: copybooks[c].relative_to(root).as_posix()
+                              for c in dict.fromkeys(info.copybooks + module_copybooks) if c in copybooks},
             "modules": modules,
             "job": step.member if step else None,
             "files": [{k: v for k, v in f.items() if k != "unsupported"} for f in files],
