@@ -29,8 +29,8 @@ means and does not"). Meta Global AI Developer Hackathon, Indie track, submit by
 - Admin passcode (`DIOCLE_ADMIN_TOKEN`) was generated on the server; the owner has it. It unlocks
   "Deliver as a pull request" on the Delivery page.
 
-**Visitor imports: built, hardened, deployed, still OFF** (`DIOCLE_PUBLIC_IMPORTS=0` on the server) until the
-owner approves turning them on. Goal from the owner: judges must be able to *use* it, i.e. import any public
+**Visitor imports: ON since 2026-10-28 ~23:50 IST** (`DIOCLE_PUBLIC_IMPORTS=1` on the server; owner's
+decision). To switch off: set it to 0 in `deploy/diocle.env` and `docker compose -f docker-compose.api.yml up -d`. Goal from the owner: judges must be able to *use* it, i.e. import any public
 GitHub repo and have Muse Spark convert it, open access without a passcode, but secure.
 
 How it works now:
@@ -93,8 +93,7 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
   quillmark-mainframe, a different source, so it was not reused), `--breaker`, opens a new PR.
 
 ## Open work (priority order)
-1. Deploy the comparator/CI-status commits; owner decides on re-delivering INTACCR to quillmark-modern and on
-   switching visitor imports on.
+1. Watch visitor imports (spend in `/api/config`, deliveries list); finish the two in-flight jobs above.
 2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results-eval-freeze-1.json` (2/4 certified;
    BRNCHSUM and LOANAMRT failed because the old comparator rejected aggregation/fan-out; their final Java passes
    the corrected comparator on fresh seeds). Next: full re-run with the corrected verifier under a new tag
