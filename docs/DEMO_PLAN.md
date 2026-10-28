@@ -34,6 +34,28 @@ Keep the employer unnamed ("a large migration I worked on"), and the bank fictio
 - [ ] Browser: full screen, 1920x1080, zoom 110-125 %, bookmarks bar hidden, one tab, notifications off
       (Focus mode), cursor highlight on if available.
 
+## The submission cut (merged): `demo/promo/out/diocle-submission.mp4`, 1:40
+Composition `Submission`: promo hook, brand and "how it checks", then the YouTube click-through (bridge title and
+the live clicks), then the evaluation scene and the outro. Each beat is told once; well under 3:00.
+
+Narration timed to it (about 250 words; read calmly, the picture carries the rest):
+
+| Time | Narration |
+|---|---|
+| 0:00 | "Banks still run on COBOL. On a migration I worked on, hundreds of people re-checked converted code by hand. AI can translate it in minutes, but would you ship that to production?" |
+| 0:09 | "This is Diocle. AI writes the code; Diocle checks it against the original." |
+| 0:15 | "Meta's Muse Spark translates each program. Diocle compiles the original COBOL with GnuCOBOL and runs it next to the Java on the same inputs. Every byte, every exit code, every line on screen must match. If anything differs, a repair agent fixes the Java." |
+| 0:30 | "So we let AI rewrite a bank's programs, and tried to break them." |
+| 0:34 | "This is the live product. A cheque-clearing program Diocle had never seen: Muse Spark's Java passed one thousand and four tests it had never seen." |
+| 0:46 | "Then a second Muse Spark agent, the breaker, designed inputs to break it. Two did: the COBOL charges a twenty-dollar fee; the Java charges nothing. The repair agent fixed it, and it re-certified on fresh inputs." |
+| 0:58 | "You don't have to trust us: press Re-verify, and both programs run again on a seed chosen right now." |
+| 1:05 | "Certified code ships as a pull request with a certificate, and the target repository's own CI checks it again." |
+| 1:15 | "Or paste any public COBOL repository and watch it convert, in a sandbox." |
+| 1:22 | "We test ourselves too: a frozen evaluation on unseen programs, failures published, including a bug our own stricter check caught." |
+| 1:32 | "Diocle. AI writes the code; Diocle checks it. Built during the hackathon, with Meta Muse Spark." |
+
+Then: `demo/finish.sh voiceover.m4a` (captions from the voice, sound effects kept under it) → `final.mp4`.
+
 ## The promo (what we use now)
 - `demo/capture.mjs` takes crisp 2x captures of the live site and GitHub, presses Re-verify for real, and writes
   every number the video shows to `demo/promo/src/data.json` (from the live API; nothing typed by hand).
