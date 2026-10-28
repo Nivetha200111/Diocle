@@ -29,46 +29,65 @@ means and does not"). Meta Global AI Developer Hackathon, Indie track, submit by
 - Admin passcode (`DIOCLE_ADMIN_TOKEN`) was generated on the server; the owner has it. It unlocks
   "Deliver as a pull request" on the Delivery page.
 
-**Visitor imports: built, deployed, currently OFF** (`DIOCLE_PUBLIC_IMPORTS=0` on the server). Goal from the
-owner: judges must be able to *use* it, i.e. import any public GitHub repo and have Muse Spark convert it, open
-access without a passcode, but secure. Built (commits 6d71ca9..fb3fa74): contract delivery v0.3, sandbox
-service (`services/verifier/diocle_verifier/sandbox.py`, `runners._exec` forwards when `DIOCLE_SANDBOX_URL` is
-set), hardened clone (no symlinks, 300 MB cap, `DIOCLE_IMPORT_ANY=1` only for visitor runs), `public.py`
-(daily USD budget, per-visitor limit, 3 programs x 1500 lines), import form on the Delivery page, `#run=<id>`
-deep links. A real visitor import through the live site certified ACCTMTCH 1585/1585 through the sandbox.
-It was switched off after a security review found the problems below. Nothing was exposed: the only import
-that ran was our own.
+**Visitor imports: built, hardened, deployed, still OFF** (`DIOCLE_PUBLIC_IMPORTS=0` on the server) until the
+owner approves turning them on. Goal from the owner: judges must be able to *use* it, i.e. import any public
+GitHub repo and have Muse Spark convert it, open access without a passcode, but secure.
 
-### Security findings to fix before turning visitor imports back on (in order)
-1. **Critical: symlink exfiltration.** A program in the sandbox can `ln -sf /proc/1/environ original.out` in
-   the shared work dir; the api container (holding the Meta key) then reads it in `runners.read_records` /
-   `verify.py` / `diff.py` and the secret lands in public `run.json`. Fix: do every read of program outputs
-   inside the sandbox and return records in the `/exec` response (or at least `O_NOFOLLOW` + regular-file
-   check + path under workdir) for every api read/write on the work volume.
-2. **High: background processes survive a job.** `subprocess.run(timeout=)` kills only the child; a program can
-   leave a process that tampers with later builds (forged certification) or plants symlinks in api temp dirs.
-   Fix: `start_new_session=True` + `os.killpg` after each job; better, per-job directory shared and api
-   `TMPDIR` off the shared volume.
-3. **High: sandbox mounts all of `runs/` read-only**, so a visitor program can print other runs, deliver logs,
-   `memory.json`. Fix: copy only that job's sample and `java/` into the job's work dir.
-4. **Medium: race** in check-busy / admit / Popen lets parallel POSTs start several jobs and bypass the
-   budget; ids collide within a second. Fix: process lock, write `delivery.json` (queued) before returning,
-   random id suffix.
-5. **Medium: a killed job stays "converting" forever** and blocks all starts (409). Fix: record the child PID;
-   treat dead PID or max age as failed.
-6. **Medium: visitor runs write fix memory** used by the owner's later runs and skill export. Fix: visitor runs
-   read memory but never write (pass `--no-memory` or a separate file).
-7. **Low: budget ignores unpriced models** (cost None counts as 0) and filters by directory date, not UTC
-   `startedAt`. Fix: refuse public imports when the price is unknown; filter on `startedAt`.
-After fixing: run all suites, ask the reviewer agent to re-review, redeploy, test isolation on the server
-(no secrets/internet in sandbox, symlink test), then set `DIOCLE_PUBLIC_IMPORTS=1`.
+How it works now:
+- `POST /deliveries` without a passcode starts a visitor import (any public repo, no target, no PR) when
+  `DIOCLE_PUBLIC_IMPORTS=1` and the sandbox is configured. Limits in `services/api/diocle_api/public.py`:
+  budget over a rolling 24 h (fails closed on unpriced runs), 3 per visitor per day (best effort), 3 programs
+  x 1500 lines, one job at a time (start lock, record written before the response, dead jobs marked failed).
+- Visitor runs: `--memory-read-only`, no `GH_TOKEN`, a `visitor` marker file in the run dir (run contract
+  v0.8 `visitor`), labelled in Live runs, refused by public re-verify.
+- Sandbox (`services/verifier/diocle_verifier/sandbox.py`): `verify_sample` posts the sample + Java (regular
+  files only) to `http://sandbox:8100/verify`; the job runs as `nobody` in a private tmpfs, returns the report
+  on stdout; afterwards the root server (caps SETUID/SETGID/KILL only) kills every other process until none is
+  left and deletes the job's files. No secrets, no volumes, internal network only, read-only rootfs, busy
+  answers 503 (callers retry within `DIOCLE_SANDBOX_WAIT`), job timeout 300 s. The api refuses requests from
+  the sandbox's address.
+- Analyzer clones with `core.symlinks=false`, 300 MB cap, `DIOCLE_IMPORT_ANY=1` only for visitor runs; a
+  second file with the same PROGRAM-ID is skipped.
+
+Security reviews (reviewer agent): first review found 7 issues (symlink exfiltration of secrets via a shared
+work volume, surviving processes, sandbox reading all runs, start race, stuck jobs, visitor runs writing fix
+memory, budget gaps); a re-review confirmed all 7 fixed and found N1-N5 (job and server shared a uid, FIFO
+report wedge, sandbox queue DoS, self-forged reports, sandbox reaching the api); all fixed in a893171..e1fca29.
+Live attack test 2026-10-28 with a hostile Java program (symlink outputs to /proc/1/environ, print env,
+SIGSTOP the server, forking background loop): server was not stopped (only the job froze itself), see
+"Done recently" for the outcome. Known accepted risk: a program can forge its *own* report; contained by the
+visitor label, read-only memory and no public re-verify.
+
+Before turning visitor imports on: confirm the attack test outcome, re-verify works, then on the server
+`sed -i "s/^DIOCLE_PUBLIC_IMPORTS=0/DIOCLE_PUBLIC_IMPORTS=1/" deploy/diocle.env` and
+`docker compose -f docker-compose.api.yml up -d`. Owner decides.
 
 Known gap: programs that only DISPLAY (no output file) are skipped as "writes no output file to compare";
 stdout could be compared. Seen on github.com/openmainframeproject/cobol-programming-course (17 of 34 programs
 convertible; EXEC SQL ones correctly refused). Good test repo for visitor imports.
 
+### Verifier correctness (independent review, 2026-10-28 late evening)
+- **Fixed:** the comparator paired output records with inputs (aggregation / fan-out programs failed even when
+  both sides agreed) and compared numeric fields by parsed value (+00 == -00). Now: whole output sequence by
+  position, byte for byte (line records may differ only in trailing spaces), field parsing only explains a
+  difference (report contract v0.6, `inputSource: "output"`, fieldDiffs `note`). Commits 08d282e, d08064e.
+- **Consequence:** re-verifying every certified run found `intaccr-20261028-191523` differs (-000000000 vs
+  +000000000 on 30/1019 inputs). It is the INTACCR delivered in **quillmark-modern#3 (merged)**. quillmark-java's
+  INTACCR (`intaccr-20261028-194951`) and all other runs pass. README carries a correction. Pending owner
+  decision: re-deliver INTACCR to quillmark-modern from the clean run
+  (`python -m diocle_api.deliver https://github.com/Nivetha200111/quillmark-legacy
+  https://github.com/Nivetha200111/quillmark-modern --programs INTACCR --runs intaccr-20261028-194951`; needs
+  GH_TOKEN; opens a PR whose CI uses the new verifier commit).
+- Breaker evidence: CHQCLR (eval) was certified on held-out inputs, then the breaker broke it twice (fee 20.00
+  vs 0.00, debit -121.23 vs 0.00) on malformed numeric input; repaired and re-certified. README updated.
+- Delivery page CI status now comes from GitHub's REST API (03fa503); it used a gh CLI the server lacks.
+- Frozen evaluation (`eval-freeze-1`) ran with the OLD comparator throughout (the LOANAMRT converter process
+  started 22:12, before the change). Publish it as-is in `docs/EVALUATION.md`, then run a corrected follow-up
+  with the new comparator and report both; LOANAMRT's round-3 failures are "extra output record" (fan-out).
+
 ## Open work (priority order)
-1. Security fixes above, then re-enable visitor imports.
+1. Deploy the comparator/CI-status commits; owner decides on re-delivering INTACCR to quillmark-modern and on
+   switching visitor imports on.
 2. Frozen evaluation (`eval/run_eval.py`, tag `eval-freeze-1`, 4 unseen programs): FXCONV certified (0 repair
    rounds), CHQCLR certified (1 round), BRNCHSUM **not certified** after 3 rounds / 60 calls, LOANAMRT still
    running on the original Mac at hand-off (results land in eval/; commit them). Write `docs/EVALUATION.md` reporting failures honestly.
