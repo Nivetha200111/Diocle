@@ -1,6 +1,6 @@
 """Limits on visitor imports: anyone may import a public repository, within a daily model budget (rule 10).
 
-The budget is the hard limit: today's estimated model spend across all runs, read from the runs themselves.
+The budget is the hard limit: estimated model spend over the last 24 hours across all runs, read from the runs.
 The per-visitor limit is best effort (the address comes from the proxy and is never stored on disk).
 """
 
@@ -11,7 +11,6 @@ import json
 import os
 import threading
 import time
-from datetime import datetime, timezone
 
 from .runs import runs_dir
 
@@ -34,21 +33,29 @@ def limits() -> dict:
 
 
 def spent_today() -> float:
-    """Estimated model spend (USD, list prices) of every run started today (UTC), finished or not."""
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    """Estimated model spend (USD, list prices) of every run active in the last 24 hours, finished or not.
+    A run with model calls but no price (a model missing from the price list) makes this infinite: the budget
+    fails closed rather than counting unknown spend as free."""
+    cutoff = time.time() - 86400
     total = 0.0
-    for meta in runs_dir().glob(f"*-{today}-*/run.json"):
+    for meta in runs_dir().glob("*/run.json"):
         try:
-            total += float(json.loads(meta.read_text()).get("usage", {}).get("estimatedCostUsd") or 0)
+            if meta.stat().st_mtime < cutoff:
+                continue
+            usage = json.loads(meta.read_text()).get("usage", {})
         except (ValueError, OSError):
             continue
+        cost = usage.get("estimatedCostUsd")
+        if cost is None and usage.get("calls"):
+            return float("inf")
+        total += float(cost or 0)
     return round(total, 4)
 
 
 def status() -> dict:
     lim = limits()
     spent = spent_today()
-    return {"enabled": enabled(), **lim, "spentTodayUsd": spent,
+    return {"enabled": enabled(), **lim, "spentTodayUsd": spent if spent != float("inf") else None,
             "budgetLeft": spent < lim["dailyBudgetUsd"]}
 
 
@@ -56,7 +63,7 @@ def admit(visitor: str) -> None:
     """Raise PermissionError if a visitor import may not start now; otherwise count it."""
     lim = limits()
     if spent_today() >= lim["dailyBudgetUsd"]:
-        raise PermissionError("today's model budget for visitor imports is used up; it resets at 00:00 UTC")
+        raise PermissionError("the model budget for visitor imports is used up for the last 24 hours; try again later")
     key = hashlib.sha256(visitor.encode()).hexdigest()[:16]
     now = time.time()
     with _lock:

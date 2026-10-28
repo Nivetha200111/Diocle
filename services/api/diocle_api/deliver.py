@@ -71,6 +71,7 @@ class Progress:
                       "stage": "analyzing", "startedAt": _now(), "finishedAt": None, "error": None,
                       "programs": [], "pullRequest": None}
         self.save()
+        (self.path.parent / "pid").write_text(str(os.getpid()))  # lets the api tell a live job from a dead one
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -287,7 +288,8 @@ def main(argv: list[str] | None = None) -> int:
                 run_ids[run["program"]] = run_id
             else:
                 print(f"ignoring --runs {run_id}: {'not certified' if run else 'not found'}", flush=True)
-        flags = (["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
+        flags = ((["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
+                 + (["--memory-read-only"] if args.public else []))  # strangers' code never shapes later runs
         lock = threading.Lock()
 
         def work(program: dict) -> None:

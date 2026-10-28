@@ -188,9 +188,14 @@ def test_visitor_imports_need_the_sandbox_and_respect_limits(client, monkeypatch
     cmd, env = started[-1]
     assert "--public" in cmd and "https://github.com/someone-else/cobol-estate" in cmd and len(cmd) == 7
     assert env["DIOCLE_IMPORT_ANY"] == "1" and "GH_TOKEN" not in env
+    import shutil
+    from diocle_api.runs import runs_dir
+    fresh = lambda: shutil.rmtree(runs_dir() / "deliveries", ignore_errors=True)  # noqa: E731 (one start per second)
+    fresh()
     assert client.post("/deliveries", json={**body, "target": "https://github.com/someone-else/x"},
                        headers=visitor).status_code == 202  # a visitor's target is ignored, never delivered to
     assert "https://github.com/someone-else/x" not in started[-1][0]
+    fresh()
     assert client.post("/deliveries", json=body, headers=visitor).status_code == 429  # per-visitor limit
     monkeypatch.setattr(public, "spent_today", lambda: 5.0)
     other = {"x-vercel-forwarded-for": "198.51.100.9"}
@@ -213,3 +218,38 @@ def test_reverify_a_real_certified_run():
         pytest.skip("no certified INTACCR run on this machine")
     result = reverify_run(real["id"], cases=100)
     assert result["allMatch"] and result["total"] >= 100 and result["seed"] >= 10**6
+
+
+def test_a_new_delivery_blocks_the_next_start_and_a_dead_one_does_not(client, monkeypatch):
+    import json as _json
+    from datetime import datetime, timedelta, timezone
+
+    import diocle_api.deliveries as d
+    from diocle_api.runs import runs_dir
+    monkeypatch.setattr(d.subprocess, "Popen", lambda cmd, **kw: None)
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "Nivetha200111")
+    monkeypatch.delenv("DIOCLE_HOSTED", raising=False)
+    monkeypatch.delenv("DIOCLE_ADMIN_TOKEN", raising=False)
+    body = {"legacy": "https://github.com/Nivetha200111/a", "target": "https://github.com/Nivetha200111/b"}
+    first = client.post("/deliveries", json=body).json()["id"]
+    record = _json.loads((runs_dir() / "deliveries" / first / "delivery.json").read_text())
+    assert record["stage"] == "analyzing"  # written before the response
+    assert client.post("/deliveries", json=body).status_code == 409  # it counts as running straight away
+    # Ten minutes later with no live process (the engine restarted): marked failed, starts are possible again.
+    old = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat(timespec="seconds")
+    (runs_dir() / "deliveries" / first / "delivery.json").write_text(_json.dumps({**record, "startedAt": old}))
+    assert d.running_delivery() is None
+    assert _json.loads((runs_dir() / "deliveries" / first / "delivery.json").read_text())["stage"] == "failed"
+
+
+def test_visitor_budget_counts_24_hours_and_fails_closed_on_unknown_cost(tmp_path, monkeypatch):
+    import diocle_api.public as public
+    monkeypatch.setenv("DIOCLE_RUNS_DIR", str(tmp_path))
+    for name, usage in (("a-20261028-100000", {"calls": 4, "estimatedCostUsd": 0.02}),
+                        ("b-20261028-110000", {"calls": 0, "estimatedCostUsd": None})):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "run.json").write_text(json.dumps({"usage": usage}))
+    assert public.spent_today() == 0.02
+    (tmp_path / "c-20261028-120000").mkdir()
+    (tmp_path / "c-20261028-120000" / "run.json").write_text(json.dumps({"usage": {"calls": 3, "estimatedCostUsd": None}}))
+    assert public.spent_today() == float("inf") and public.status()["budgetLeft"] is False

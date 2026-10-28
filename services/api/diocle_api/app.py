@@ -13,7 +13,8 @@ import hmac
 from fastapi import Header
 
 from . import public
-from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery
+from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
+from .deliver import GITHUB_URL
 from .reverify import Busy, reverify_run
 from .runs import get_run, list_runs
 
@@ -46,6 +47,8 @@ def run(run_id: str) -> dict:
 
 @app.get("/deliveries")
 def deliveries() -> list[dict]:
+    with start_lock:
+        running_delivery()  # marks a delivery whose process died as failed, so the list tells the truth
     return list_deliveries()
 
 
@@ -101,15 +104,18 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
         if not public.enabled():
             raise HTTPException(status_code=403, detail="starting a delivery needs the admin passcode")
     try:
-        if admin:
-            if not request.target:
-                raise ValueError("a target repository is required")
-            return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker)}
-        busy = running_delivery()
-        if busy:
-            raise RuntimeError(f"{busy} is still running; try again when it finishes")
-        public.admit(_visitor(http))
-        return {"id": start_delivery(request.legacy, None, False, False, public=True)}
+        with start_lock:  # busy check, budget and the new record together: parallel requests start one job
+            if admin:
+                if not request.target:
+                    raise ValueError("a target repository is required")
+                return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker)}
+            if not GITHUB_URL.match(request.legacy.strip()):
+                raise ValueError(f"not a GitHub repository URL: {request.legacy!r}")
+            busy = running_delivery()
+            if busy:
+                raise RuntimeError(f"{busy} is still running; try again when it finishes")
+            public.admit(_visitor(http))
+            return {"id": start_delivery(request.legacy, None, False, False, public=True)}
     except PermissionError as e:
         raise HTTPException(status_code=429, detail=str(e))
     except RuntimeError as e:
