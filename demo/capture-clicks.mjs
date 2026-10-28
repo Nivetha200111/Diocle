@@ -37,6 +37,9 @@ async function save(name, targets) {
   const boxes = {};
   for (const [key, locator] of Object.entries(targets)) boxes[key] = await box(locator);
   const size = await page.evaluate(() => ({ w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight }));
+  // Fixed elements (the sidebar) are drawn where the window is scrolled; capture from the top so they sit there.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: true, animations: "disabled" });
   states[name] = { ...size, boxes };
   console.log(`state ${name} ${size.w}x${size.h}`);
