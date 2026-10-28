@@ -83,6 +83,17 @@ export type Run = {
   javaDiff: string | null;
   efficiency: Efficiency;
   memory: RunMemory;
+  breaker?: Breaker | null;
+};
+
+// contracts/run.schema.json breaker: a second agent designs inputs to break the certified Java.
+export type Breaker = {
+  rounds: number;
+  tried: number;
+  broke: number;
+  repairCycles: number;
+  fixed: boolean;
+  counterexamples: { input: string; why: string; diff: string }[];
 };
 
 async function getJson<T>(path: string): Promise<T> {

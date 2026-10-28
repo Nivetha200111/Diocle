@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, fetchRun, fetchRuns, reverifyRun, type Efficiency, type Reverify, type Run, type RunListItem, type RunMemory, type Verification } from "@/lib/runs";
+import { API_URL, fetchRun, fetchRuns, reverifyRun, type Breaker, type Efficiency, type Reverify, type Run, type RunListItem, type RunMemory, type Verification } from "@/lib/runs";
 import { Badge } from "./ui";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
@@ -47,6 +47,41 @@ function LessonsPanel({ memory }: { memory: NonNullable<RunMemory> }) {
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+function BreakerPanel({ b }: { b: Breaker }) {
+  return (
+    <section className={`panel breaker-panel ${b.broke ? "breaker-broke" : ""}`}>
+      <div className="panel-heading">
+        <div>
+          <h2><ShieldAlert size={14} /> Breaker agent</h2>
+          <p>
+            After certification, a second Muse Spark agent designed {b.tried} inputs to break the Java
+            over {b.rounds} round(s).{" "}
+            {b.broke
+              ? `${b.broke} broke it${b.fixed ? `; the repair agent fixed them and the Java re-certified on fresh held-out inputs.` : "; not yet fixed."}`
+              : "None broke it."}
+          </p>
+        </div>
+      </div>
+      {b.counterexamples.length > 0 && (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead><tr><th>Designed input</th><th>Why the agent tried it</th><th>What differed</th></tr></thead>
+            <tbody>
+              {b.counterexamples.map((c, i) => (
+                <tr key={i}>
+                  <td className="mono">{c.input}</td>
+                  <td>{c.why}</td>
+                  <td className="mono">{c.diff}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
@@ -231,6 +266,8 @@ function RunDetail({ run }: { run: Run }) {
           value={usd(run.usage.estimatedCostUsd)}
           note={`${tokens(run.usage.inputTokens)} in (${tokens(run.usage.cachedInputTokens)} cached) · ${tokens(run.usage.outputTokens)} out`} />
       </div>
+
+      {run.breaker && <BreakerPanel b={run.breaker} />}
 
       <EfficiencyPanel e={run.efficiency} />
 
