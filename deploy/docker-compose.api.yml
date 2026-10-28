@@ -24,18 +24,22 @@ services:
     image: diocle-engine
     pull_policy: never
     entrypoint: ["/srv/diocle/services/verifier/.venv/bin/python", "-m", "diocle_verifier.sandbox"]
+    # root inside the container with only these capabilities: jobs run as nobody, so a program can neither
+    # signal the server nor survive the cleanup after its job
+    user: "0:0"
     # deliberately no env_file and no volumes: nothing secret and nothing shared exists in this container
     networks: [sandbox]  # internal only: reachable from the api, no route to the internet
     init: true  # reaps processes; the server kills every other process after each job
     read_only: true
     tmpfs: ["/tmp:size=384m,exec"]  # programs are built and run here, so exec is required (noexec is the default)
     cap_drop: [ALL]
+    cap_add: [SETUID, SETGID, KILL]
     security_opt: ["no-new-privileges:true"]
     pids_limit: 256
     mem_limit: 768m
     cpus: 1.0
     ulimits:
-      fsize: 262144  # KB: no single output file over 256 MB
+      fsize: 268435456  # bytes: no single file over 256 MB
     restart: unless-stopped
 
   caddy:
