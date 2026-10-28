@@ -1,0 +1,31 @@
+# Engine-only server (the site is on Vercel). Only Caddy (80/443) is reachable from outside.
+# Usage: DIOCLE_API_DOMAIN=api.example.com docker compose -f docker-compose.api.yml up -d --build
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    env_file: ${DIOCLE_ENV_FILE:-./diocle.env}
+    volumes:
+      - diocle-runs:/srv/diocle/runs
+    restart: unless-stopped
+    mem_limit: 1536m
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DIOCLE_API_DOMAIN: ${DIOCLE_API_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile.api:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  diocle-runs:
+    name: deploy_diocle-runs
+  caddy-data:
