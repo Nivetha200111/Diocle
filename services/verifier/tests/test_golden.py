@@ -62,3 +62,13 @@ def test_the_mainframe_wins_when_gnucobol_drifts(tmp_path):
     assert report["runs"]["golden"]["oracleAgreement"] == 2
     assert report["runs"]["golden"]["oracleDisagreements"][0]["inputId"] == "golden-0002"
     assert not passes(report)  # Java that matches GnuCOBOL but not the mainframe is not certified
+
+
+def test_golden_files_that_do_not_line_up_fail_loudly(tmp_path):
+    sample = _golden_sample(tmp_path, tamper=False)
+    expected = sample / "golden" / "expected.ebcdic"
+    expected.write_bytes(expected.read_bytes()[:-42])  # one captured output record missing
+    report = verify_sample(sample, REFERENCE, random_count=10)
+    golden = [r for r in report["results"] if r["inputSource"] == "golden"]
+    assert golden and all(not r["match"] and "one output record per input" in r["diff"] for r in golden)
+    assert report["runs"]["golden"]["aligned"] is False and not passes(report)

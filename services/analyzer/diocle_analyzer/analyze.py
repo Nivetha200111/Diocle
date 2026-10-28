@@ -106,6 +106,8 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
         return f"copybook(s) not found: {', '.join(missing)}"
     if info.exec_blocks:
         return f"EXEC {'/'.join(info.exec_blocks)} needs a database or transaction adapter, not supported yet"
+    if info.dynamic_calls:
+        return f"dynamic CALL through {', '.join(info.dynamic_calls)}: the called program is only known at run time"
     unknown = [c for c in info.calls if c not in program_ids]
     if unknown:
         return f"CALLs program(s) not in the repository: {', '.join(unknown)}"

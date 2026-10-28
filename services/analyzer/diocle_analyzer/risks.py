@@ -46,9 +46,14 @@ def _alnum_fields(text: str) -> set[str]:
 
 
 def _source_findings(program: str, text: str) -> list[dict]:
+    """Code cut at column 72. Sources with sequence numbers in columns 73-80 are normal; there a cut only shows when
+    the text past column 72 is not a sequence number."""
     out = []
+    is_sequence_number = lambda l: len(l[72:80]) == 8 and l[72:80].isdigit()  # a full 8-digit field, not a spilled digit
     for number, line in enumerate(text.splitlines(), 1):
         if len(line) > 72 and line[6:7] not in ("*", "/") and line[71] != " " and line[72] != " ":
+            if is_sequence_number(line) and len(line) <= 80:
+                continue
             out.append({"program": program, "line": number, "paragraph": None, "category": "source", "severity": "high",
                         "message": f"Code runs past column 72: '{line[64:72].strip()}|{line[72:].strip()}' - GnuCOBOL and "
                                    "IBM COBOL ignore everything after column 72, so the statement is silently cut."})
