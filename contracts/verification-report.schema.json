@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence.",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output.",
   "type": "object",
   "required": [
     "version",
@@ -51,7 +51,8 @@
               "boundary",
               "random",
               "model",
-              "fixture"
+              "fixture",
+              "golden"
             ],
             "description": "How the input was generated."
           },
@@ -77,6 +78,14 @@
                 }
               }
             }
+          },
+          "oracle": {
+            "type": "string",
+            "enum": [
+              "gnucobol",
+              "mainframe"
+            ],
+            "description": "What the converted output was compared with: GnuCOBOL's output, or a captured mainframe output (golden)."
           }
         }
       }
@@ -181,6 +190,35 @@
             "ebcdic"
           ],
           "description": "Collating sequence for alphanumeric comparisons and sorts (ebcdic = mainframe order)."
+        },
+        "golden": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Golden-file replay: captured mainframe inputs and outputs, converted from EBCDIC field by field.",
+          "properties": {
+            "cases": {
+              "type": "integer"
+            },
+            "codepage": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "oracleAgreement": {
+              "type": "integer",
+              "description": "Golden cases where GnuCOBOL's output equals the mainframe's"
+            },
+            "oracleDisagreements": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Where GnuCOBOL differs from the mainframe; the mainframe is the authority"
+            }
+          }
         }
       }
     }
