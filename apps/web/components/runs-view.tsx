@@ -116,7 +116,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
               <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
                 <td className="mono">{r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.command === "run" ? "translate" : "repair"}</td>
                 <td className="mono">{shortModel(r.model)}</td>
-                <td>{r.status === "running" ? "running…" : r.certified ? "certified" : "not certified"}</td>
+                <td>{r.status === "running" ? "running…" : r.certified ? "certified" : "not certified"}{r.visitor ? " · visitor import" : ""}</td>
                 <td className="mono">{memoryLabel(r.memory)}</td>
                 <td className="mono">{r.efficiency.modelCalls}</td>
                 <td className="mono">{r.efficiency.toolSteps}</td>
@@ -139,6 +139,18 @@ function ReverifyPanel({ run }: { run: Run }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   if (!run.certified) return null;
+  if (run.visitor) {
+    return (
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Visitor import</h2>
+            <p>This program came from a repository Diocle does not control. Its result is shown as the sandbox reported it and is not offered for re-verification here.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="panel">
       <div className="panel-heading">
