@@ -10,6 +10,7 @@ const INTRO = s(4.5);
 const BODY = s(47.6); // the shared timeline, up to where its own outro would start
 const OUTRO = s(6);
 export const wideFrames = INTRO + BODY + OUTRO;
+export const wideFramesNoOutro = INTRO + BODY; // for the merged submission cut, which has its own outro
 
 const WIN = { x: 596, y: 84, w: 1240, h: 900, chrome: 58, r: 22 };
 const VP = { w: WIN.w, h: WIN.h - WIN.chrome };
@@ -95,7 +96,7 @@ const Outro: React.FC<{ frame: number }> = ({ frame }) => {
   );
 };
 
-const Body: React.FC = () => {
+const Body: React.FC<{ merged?: boolean }> = ({ merged = false }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { cur, prev, since } = stateAt(frame);
@@ -121,7 +122,9 @@ const Body: React.FC = () => {
     x: Math.min(Math.max(p.x, WIN.x + 8), WIN.x + WIN.w - 36), y: Math.min(Math.max(p.y, WIN.y + WIN.chrome + 8), WIN.y + WIN.h - 44) });
 
   const chapter = CHAPTERS.filter((c) => frame >= c.at).length - 1;
-  const cap = caps.find((c) => frame >= c.from && frame < c.to);
+  const found = caps.find((c) => frame >= c.from && frame < c.to);
+  // In the merged cut the title before this already says "we tried to break it": open on the product instead.
+  const cap = merged && found === caps[0] ? { ...found, text: "This is the live product.", accent: "Every click is real." } : found;
   const badge = badges.find((b) => frame >= b.from && frame < b.to && b.state === cur.state);
   const capIn = cap ? spring({ frame: frame - cap.from, fps, config: { damping: 15 } }) : 0;
   const capOut = cap ? interpolate(frame, [cap.to - 6, cap.to], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
@@ -161,7 +164,7 @@ const Body: React.FC = () => {
           <div style={{ flex: 1, height: 36, borderRadius: 10, background: "#0b1322", display: "flex", alignItems: "center", gap: 10, padding: "0 16px",
             fontFamily: mono, fontSize: 20, color: C.muted }}>
             <span style={{ color: C.phosphor }}>🔒</span><span style={{ color: C.ink }}>{URLS[cur.state].split("/")[0]}</span>
-            <span>{URLS[cur.state].slice(URLS[cur.state].indexOf("/"))}</span>
+            <span>{URLS[cur.state].includes("/") ? URLS[cur.state].slice(URLS[cur.state].indexOf("/")) : ""}</span>
           </div>
         </div>
         <div style={{ position: "relative", width: VP.w, height: VP.h, overflow: "hidden", background: "#fff" }}>
@@ -222,19 +225,19 @@ const Body: React.FC = () => {
   );
 };
 
-export const ClickDemoWide: React.FC = () => {
+export const ClickDemoWide: React.FC<{ outro?: boolean; music?: boolean }> = ({ outro = true, music: withMusic = true }) => {
   const frame = useCurrentFrame();
-  const music = getStaticFiles().some((f) => f.name === "music.mp3");
-  const total = wideFrames;
+  const music = withMusic && getStaticFiles().some((f) => f.name === "music.mp3");
+  const total = outro ? wideFrames : wideFramesNoOutro;
   return (
     <AbsoluteFill style={{ background: C.bg }}>
       <Backdrop />
       {music && <Audio src={staticFile("music.mp3")} volume={(f) => 0.22 * interpolate(f, [0, 30, total - 60, total], [0, 1, 1, 0], { extrapolateRight: "clamp" })} />}
       {frame < INTRO && <Intro frame={frame} />}
-      <Sequence from={INTRO} durationInFrames={BODY}><Body /></Sequence>
-      <Sequence from={INTRO + BODY}><Outro frame={frame - INTRO - BODY} /></Sequence>
+      <Sequence from={INTRO} durationInFrames={BODY}><Body merged={!outro} /></Sequence>
+      {outro && <Sequence from={INTRO + BODY}><Outro frame={frame - INTRO - BODY} /></Sequence>}
       <Sequence from={INTRO - 8} durationInFrames={30}><Audio src={staticFile("sfx/whoosh.wav")} volume={0.5} /></Sequence>
-      <Sequence from={INTRO + BODY - 6} durationInFrames={30}><Audio src={staticFile("sfx/whoosh.wav")} volume={0.5} /></Sequence>
+      {outro && <Sequence from={INTRO + BODY - 6} durationInFrames={30}><Audio src={staticFile("sfx/whoosh.wav")} volume={0.5} /></Sequence>}
     </AbsoluteFill>
   );
 };
