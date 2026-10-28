@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
+  Activity,
   ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
@@ -51,6 +52,7 @@ import {
 } from "@/lib/demo";
 import { Badge, Brand, DemoNote, Modal, Pipeline, Progress } from "./ui";
 import DependencyGraph from "./dependency-graph";
+import RunsView from "./runs-view";
 
 const nav = [
   { name: "Overview", icon: LayoutDashboard },
@@ -60,6 +62,7 @@ const nav = [
   { name: "Conversions", icon: Braces },
   { name: "Verification", icon: ShieldCheck },
   { name: "Reports", icon: FileText },
+  { name: "Live runs", icon: Activity },
 ] as const;
 
 const descriptions: Record<View, string> = {
@@ -70,6 +73,7 @@ const descriptions: Record<View, string> = {
   Conversions: "Your business logic, in a modern language.",
   Verification: "Same inputs. Same behavior. Greater confidence.",
   Reports: "The complete story of your modernization.",
+  "Live runs": "Real agent runs: what broke, what the agent did, and the proof.",
   Settings: "Make this workspace your own.",
 };
 
@@ -1420,6 +1424,11 @@ export default function Workspace() {
             </div>
           )}
 
+          {view === "Live runs" && (
+            <div className="view-content">
+              <RunsView />
+            </div>
+          )}
 
           {view === "Reports" && (
             <div className="view-content">

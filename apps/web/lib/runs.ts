@@ -1,0 +1,68 @@
+// Types and fetchers for real converter runs served by services/api (contracts/run.schema.json).
+
+export const API_URL = process.env.NEXT_PUBLIC_DIOCLE_API_URL ?? "http://localhost:8000";
+
+export type RunListItem = {
+  id: string;
+  program: string;
+  command: "repair" | "run";
+  certified: boolean;
+  createdAt: string | null;
+  rounds: number;
+  calls: number;
+  estimatedCostUsd: number | null;
+};
+
+export type FieldDiff = { field: string; original: string; converted: string };
+
+export type Verification = {
+  total: number;
+  passed: number;
+  failed: number;
+  stdoutMatch: boolean;
+  failingExamples: { inputId: string; inputSource?: string; diff: string; fieldDiffs?: FieldDiff[] }[];
+};
+
+export type RunEvent = {
+  type: "agent-step" | "certification" | "budget";
+  round?: number;
+  step?: number;
+  tool?: string;
+  rationale?: string;
+  argsSummary?: Record<string, unknown>;
+  resultSummary?: string;
+  passed?: boolean;
+  result?: string;
+  message?: string;
+};
+
+export type Run = {
+  id: string;
+  program: string;
+  command: "repair" | "run";
+  createdAt: string | null;
+  certified: boolean;
+  javaOrigin: string;
+  rounds: { round: number; certified: boolean }[];
+  events: RunEvent[];
+  before: Verification | null;
+  after: Verification | null;
+  usage: {
+    calls: number;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    estimatedCostUsd: number | null;
+  };
+  model: string | null;
+  javaDiff: string | null;
+};
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+  return response.json() as Promise<T>;
+}
+
+export const fetchRuns = () => getJson<RunListItem[]>("/runs");
+export const fetchRun = (id: string) => getJson<Run>(`/runs/${encodeURIComponent(id)}`);

@@ -6,6 +6,7 @@ export type View =
   | "Conversions"
   | "Verification"
   | "Reports"
+  | "Live runs"
   | "Settings";
 export type Migration = {
   id: string;
