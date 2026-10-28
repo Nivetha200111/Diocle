@@ -667,16 +667,21 @@ main {
 .dlv-pr .button.primary * {
   color: #fff !important;
 }
-.dlv-log .dlv-memory,
-.dlv-log .dlv-memory * {
+.dlv-log .dlv-ev-memory,
+.dlv-log .dlv-ev-memory * {
   color: #40ffff !important;
 }
-.dlv-log .dlv-breaker,
-.dlv-log .dlv-breaker * {
+.dlv-log .dlv-ev-breaker,
+.dlv-log .dlv-ev-breaker * {
   color: #ffb000 !important;
 }
 .dlv-log .dlv-broke,
 .dlv-log .dlv-broke * {
   color: #ff5050 !important;
   font-weight: 600;
+}
+.nav-label-mock {
+  border-top: 1px solid var(--w-shadow);
+  box-shadow: 0 1px 0 #fff;
+  padding-top: 10px;
 }
