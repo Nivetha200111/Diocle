@@ -5,6 +5,11 @@
 | Sample | What it is |
 |---|---|
 | [`interest-accrual/`](interest-accrual/) | `INTACCR` batch program: daily interest accrual and maintenance fee, with planted legacy traps (half-away-from-zero rounding, truncation, silent high-order overflow). Includes a hand-written naive Java conversion (`java-conversion/`) for the "bring your own conversion" mode. `sample.json` lists the DD names, record layouts and traps. |
+| [`txn-posting/`](txn-posting/) | `TXNPOST` (Quillmark, fictional): payment, fee and interest posting with a truncated, capped payment surcharge and an overdraft limit that allows exactly -limit. |
+| [`fee-schedule/`](fee-schedule/) | `FEESCHD` (Quillmark, fictional): monthly charges by product with a balance waiver at or above the threshold, an excess-transaction fee and overdraft interest; the total wraps before the cap check. |
+| [`daily-control/`](daily-control/) | `DAYCTRL` (Quillmark, fictional): daily interest with a running general-ledger control total, rounded per account before summing (the Quillmark leap-day ties). |
+
+Each sample has a hand-written naive Java port in `java-conversion/` (labelled as a test fixture, not model output). The samples share bug patterns on purpose (half-away-from-zero ROUNDED, truncation, silent high-order overflow, COMP counter display), so the repair agent's efficiency can be compared across programs.
 
 Build and run the COBOL directly (GnuCOBOL 3.x):
 
