@@ -22,3 +22,12 @@ def test_analyze_and_verify_bring_your_own_java():
     assert not naive["allMatch"] and naive["mismatchedFields"] and naive["examples"]
     cert = server.certify_conversion(str(SAMPLE), "INTACCR", str(REFERENCE), main_class="IntAccr")
     assert cert["certified"] and cert["total"] >= 1000 and cert["seed"] >= 10**6
+
+
+def test_paths_outside_the_allowed_roots_are_refused(tmp_path, monkeypatch):
+    import pytest
+    monkeypatch.setenv("DIOCLE_MCP_ROOTS", str(ROOT / "samples"))
+    with pytest.raises(PermissionError):
+        server.analyze_cobol(str(tmp_path))
+    with pytest.raises(PermissionError):
+        server.verify_conversion(str(SAMPLE), "INTACCR", str(tmp_path), main_class="IntAccr", cases=1)
