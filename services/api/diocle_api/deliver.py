@@ -164,7 +164,7 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
 
 
 def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
-            progress: Progress | None = None) -> str:
+            progress: Progress | None = None, onto: str | None = None) -> str:
     diocle_commit = _sh(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"]).stdout.strip()
     pushed = _sh(["git", "-C", str(REPO_ROOT), "branch", "-r", "--contains", diocle_commit]).stdout.strip()
     if not pushed and not dry_run:
@@ -172,9 +172,13 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
     delivered, skipped = [], []
     with tempfile.TemporaryDirectory(prefix="diocle-deliver-") as tmp:
         repo = Path(tmp) / "target"
-        _sh(["git", "clone", "-q", "--depth", "1", "--", f"https://github.com/{target_repo(target_url)}.git", str(repo)])
-        branch = f"diocle/{report['source']['commit'][:12]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        _sh(["git", "-C", str(repo), "checkout", "-q", "-b", branch])
+        if onto and not re.fullmatch(r"[A-Za-z0-9._/-]+", onto):
+            raise SystemExit(f"bad branch name {onto!r}")
+        _sh(["git", "clone", "-q", "--depth", "1", *(["--branch", onto] if onto else []), "--",
+             f"https://github.com/{target_repo(target_url)}.git", str(repo)])
+        branch = onto or f"diocle/{report['source']['commit'][:12]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        if not onto:
+            _sh(["git", "-C", str(repo), "checkout", "-q", "-b", branch])
         for program in report["programs"]:
             run = get_run(run_ids[program["name"]]) if program["name"] in run_ids else None
             if not run or not run["certified"] or not run.get("after"):
@@ -204,6 +208,8 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s) from {report['source']['commit'][:12]}",
                    "-m", f"Converted by {', '.join(models)} and certified against GnuCOBOL by Diocle."])
         _sh(git + ["push", "-q", "-u", "origin", branch])
+        if onto:  # an existing branch: its pull request (if any) picks up the new commit
+            return f"pushed to {branch}"
         title = f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
         url = _sh(["gh", "pr", "create", "--repo", target_repo(target_url), "--head", branch,
                    "--title", title, "--body", body]).stdout.strip()
@@ -223,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--parallel", action="store_true",
                         help="swarm: convert all programs at once; agents share lessons as each one certifies")
     parser.add_argument("--breaker", action="store_true", help="after certification, a breaker agent attacks each program")
+    parser.add_argument("--onto", help="commit onto this existing target branch instead of opening a new pull request")
     args = parser.parse_args(argv)
 
     progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"))
@@ -285,7 +292,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"converting {program['name']} ...", flush=True)
                 work(program)
         progress.update(stage="delivering")
-        print(deliver(report, samples, run_ids, progress.state["target"], args.dry_run, progress))
+        print(deliver(report, samples, run_ids, progress.state["target"], args.dry_run, progress, args.onto))
         progress.update(stage="done", finishedAt=_now())
     except BaseException as e:
         progress.update(stage="failed", error=str(e)[:500] or type(e).__name__, finishedAt=_now())
