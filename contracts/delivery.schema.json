@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/delivery.schema.json",
   "title": "Delivery",
-  "description": "v0.2 (adds the start request). A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
+  "description": "v0.3 (target optional: a visitor's import keeps its results on the site; adds public and per-program reason). A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
   "type": "object",
   "required": [
     "id",
@@ -34,7 +34,11 @@
       }
     },
     "target": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Repository that receives the pull request; null for an import whose results stay on the site"
     },
     "stage": {
       "type": "string",
@@ -98,6 +102,13 @@
               "null"
             ],
             "description": "Live summary of the converter run: status, stage, recent events, efficiency so far"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why a program was skipped (for example: over the line limit for visitor imports)"
           }
         }
       }
@@ -133,15 +144,18 @@
           }
         }
       }
+    },
+    "public": {
+      "type": "boolean",
+      "description": "Started by a visitor without the admin passcode (sandboxed, capped, never opens a pull request)"
     }
   },
   "$defs": {
     "request": {
       "type": "object",
-      "description": "POST /deliveries body: start a delivery from the dashboard. One runs at a time; repositories must be allowed GitHub owners.",
+      "description": "POST /deliveries body. With the admin passcode: any allowed target, pull request opened. Without it (a visitor): legacy only, any public GitHub repository, sandboxed and capped; results stay on the site.",
       "required": [
-        "legacy",
-        "target"
+        "legacy"
       ],
       "properties": {
         "legacy": {
@@ -149,8 +163,11 @@
           "description": "https://github.com/<owner>/<repo> to migrate"
         },
         "target": {
-          "type": "string",
-          "description": "https://github.com/<owner>/<repo> that receives the pull request"
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "https://github.com/<owner>/<repo> that receives the pull request (admin only)"
         },
         "parallel": {
           "type": "boolean",
