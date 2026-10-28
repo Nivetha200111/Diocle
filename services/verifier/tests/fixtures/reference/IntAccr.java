@@ -1,3 +1,4 @@
+// SYNTHETIC SAMPLE - written for the Diocle hackathon project. Fictional company; not derived from any real system.
 // HAND-WRITTEN TEST FIXTURE, NOT MODEL OUTPUT.
 // A behaviour-faithful translation of samples/interest-accrual/src/INTACCR.cbl,
 // used only to test that the verifier reports a pass when outputs truly match.
