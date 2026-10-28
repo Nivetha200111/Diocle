@@ -213,6 +213,7 @@ class ProgramInfo:
     inline_records: dict[str, int] = field(default_factory=dict)  # FD file name -> 01 levels written inline
     exec_blocks: list[str] = field(default_factory=list)  # SQL, CICS, DLI
     fd_inline: dict[str, str] = field(default_factory=dict)  # FD file name -> its inline record entries (code)
+    sort_files: set[str] = field(default_factory=set)  # SD (sort work) files: internal, not program I/O
 
 
 def parse_program(text: str) -> ProgramInfo:
@@ -251,7 +252,17 @@ def parse_program(text: str) -> ProgramInfo:
                 directions[word] = "input" if mode == "INPUT" else "output" if mode in ("OUTPUT", "EXTEND") else "unknown"
             else:
                 break
+    sort_files = set(re.findall(r"\bSD\s+([A-Z0-9-]+)", code))
+    for m in re.finditer(r"\bSORT\s+[A-Z0-9-]+.*?(?=\bSORT\s|$)", code):  # SORT ... USING in-files GIVING out-files
+        stmt = m.group(0)
+        for phrase, direction in (("USING", "input"), ("GIVING", "output")):
+            words = re.search(rf"\b{phrase}\s+((?:[A-Z0-9-]+\s*)+)", stmt)
+            for word in (words.group(1).split() if words else []):
+                if word in selects:
+                    directions[word] = direction
+                elif word not in sort_files:
+                    break
     copybooks = list(dict.fromkeys(re.findall(r"\bCOPY\s+([A-Z0-9-]+)", code)))
     calls = list(dict.fromkeys(re.findall(r"\bCALL\s+'([A-Z0-9-]+)'", code)))
     return ProgramInfo(name, copybooks, selects, fd_copybooks, directions, calls, organizations, replacing,
-                       inline_records, exec_blocks, fd_inline)
+                       inline_records, exec_blocks, fd_inline, sort_files)
