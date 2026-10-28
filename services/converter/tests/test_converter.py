@@ -174,3 +174,11 @@ def test_lessons_count_only_when_certified_and_hints_reach_the_model(tmp_path):
         assert outcome["lessons"] == ([LESSON] if certifies else [])
         first = sdk.requests[0]["messages"][1]["content"]
         assert first.startswith("Lessons from earlier certified repairs") and "BigDecimal HALF_UP" in first
+
+
+def test_skill_export_has_frontmatter_and_provenance():
+    from diocle_converter.skill import render_skill
+    text = render_skill([{**LESSON, "program": "INTACCR", "run": "interest-accrual-1"}])
+    assert text.startswith("---\nname: cobol-to-java-semantics\ndescription: ")
+    assert "### COMPUTE ROUNDED ties" in text and "run `interest-accrual-1`" in text
+    assert "_No certified lessons yet._" in render_skill([])
