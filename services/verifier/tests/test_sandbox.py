@@ -31,8 +31,8 @@ def test_bundle_cannot_write_outside_the_job(tmp_path: Path):
         info.size = 1
         tar.addfile(info, io.BytesIO(b"x"))
     import base64
-    with pytest.raises(tarfile.TarError):
-        sandbox.run_job({"bundle": base64.b64encode(buf.getvalue()).decode()})
+    with pytest.raises(RuntimeError, match="outside the destination"):
+        sandbox.run_job({"bundle": base64.b64encode(buf.getvalue()).decode()})  # extraction happens in the job
     assert not (Path(os.environ.get("TMPDIR", "/tmp")) / "escape.txt").exists()
 
 
