@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.6 (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.7 (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": ["id", "program", "command", "certified", "javaOrigin", "events", "usage"],
   "properties": {
@@ -90,6 +90,23 @@
     }
   },
   "$defs": {
+    "reverify": {
+      "type": "object",
+      "description": "POST /runs/{id}/reverify: the run's certified Java and the original COBOL re-run on fresh random inputs. No model calls.",
+      "required": ["runId", "seed", "passed", "total", "failed", "stdoutMatch", "exitCodeMatch", "seconds"],
+      "properties": {
+        "runId": { "type": "string" },
+        "seed": { "type": "integer" },
+        "passed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "failed": { "type": "integer" },
+        "stdoutMatch": { "type": "boolean" },
+        "exitCodeMatch": { "type": "boolean" },
+        "allMatch": { "type": "boolean" },
+        "firstMismatch": { "type": ["string", "null"] },
+        "seconds": { "type": "number" }
+      }
+    },
     "efficiency": {
       "type": "object",
       "description": "How efficiently the agent reached its result. Derived from usage and events; costs are estimates from list prices.",
