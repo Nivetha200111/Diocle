@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/delivery.schema.json",
+  "title": "Delivery",
+  "description": "v0.1. A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
+  "type": "object",
+  "required": ["id", "legacy", "target", "stage", "programs", "startedAt"],
+  "properties": {
+    "id": { "type": "string" },
+    "legacy": {
+      "type": "object",
+      "required": ["repository"],
+      "properties": { "repository": { "type": "string" }, "commit": { "type": ["string", "null"] } }
+    },
+    "target": { "type": "string" },
+    "stage": { "type": "string", "enum": ["analyzing", "converting", "delivering", "done", "failed"] },
+    "startedAt": { "type": "string" },
+    "finishedAt": { "type": ["string", "null"] },
+    "error": { "type": ["string", "null"] },
+    "programs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "status": { "type": "string", "enum": ["queued", "converting", "certified", "not-certified", "skipped"] },
+          "runId": { "type": ["string", "null"] },
+          "run": { "type": ["object", "null"], "description": "Live summary of the converter run: status, stage, recent events, efficiency so far" }
+        }
+      }
+    },
+    "pullRequest": {
+      "type": ["object", "null"],
+      "properties": {
+        "url": { "type": "string" },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "state"],
+            "properties": { "name": { "type": "string" }, "state": { "type": "string" }, "link": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}
