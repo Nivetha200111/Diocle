@@ -34,7 +34,17 @@ Keep the employer unnamed ("a large migration I worked on"), and the bank fictio
 - [ ] Browser: full screen, 1920x1080, zoom 110-125 %, bookmarks bar hidden, one tab, notifications off
       (Focus mode), cursor highlight on if available.
 
-## Recording, free tools only
+## Scripted recording (what we use)
+- `demo/record.mjs` (Playwright, drives the installed Google Chrome) plays each shot against the live site and
+  records it: `cd demo && npm install && npm run record` (or `npm run record -- chqclr` for one shot). It adds a
+  visible cursor, smooth scrolling and a yellow frame around what the narration talks about. The import shot
+  fills the form but does not submit unless `DEMO_SUBMIT_IMPORT=1` (a real import spends model credits).
+- `demo/build.sh` (ffmpeg) crops and scales each clip to 1920x1080 and joins them: `demo/out/rough-cut.mp4`.
+  `demo/build.sh voiceover.m4a [captions.srt]` lays the narration (loudness-normalised) and burned-in captions
+  over it: `demo/out/final.mp4`. Shot trims and speed changes are one line in `SHOTS` in build.sh.
+- Chrome's screencast squeezes the page into the top 1280x640 of each 1280x720 frame; build.sh corrects it.
+
+## Recording by hand (fallback), free tools only
 - Screen: macOS **Cmd+Shift+5** (Record Entire Screen or Selected Portion). Record each shot separately.
 - Voice: record the narration separately with a headset or the phone (quiet room); read the script, then cut.
 - Edit: **iMovie** (free): line up the clips under the voice, add the title and closing cards, label speed-ups,
