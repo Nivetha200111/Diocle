@@ -71,4 +71,4 @@ def test_reverify_rejects_certificates_ci_must_not_trust(tmp_path):
     assert "escapes the legacy checkout" in run("traversal", path="../../etc/passwd")
     [derived] = analyze(SAMPLE)["programs"]
     weakened = {d: {"record": "R", "fields": [{"name": "X", "kind": "alnum", "length": 1}]} for d in ("input", "output")}
-    assert "differ from the legacy copybooks" in run("weakened-layout", layouts=weakened)
+    assert "differ from what the legacy copybooks define" in run("weakened-layout", layouts=weakened)

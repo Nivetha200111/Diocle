@@ -15,6 +15,7 @@ class Run:
     stdout: str = ""
     stderr: str = ""
     output_lines: list[str] = field(default_factory=list)
+    output_files: dict[str, list[str]] = field(default_factory=dict)  # DD name -> records (multi-file runs)
 
 
 # Only what compilers and the programs need. Code we run (model-written Java, imported COBOL) must never
@@ -83,3 +84,35 @@ def run_java(src_dir: Path, main_class: str, dd: dict[str, str], input_path: Pat
         return Run(False, build.returncode, build.stdout, build.stderr)
     return _run_program(["java", "-cp", str(classes), main_class], dd, input_path, workdir, "converted", out_format,
                         {"DIOCLE_COLLATION": collation.upper()})
+
+
+def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[Path] | None = None,
+                collation: str = "ascii") -> tuple[list[str] | None, Run | None]:
+    """Compile once; returns (command to run, None) or (None, failed Run)."""
+    exe = workdir / "original"
+    colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
+    build = _exec(["cobc", "-x", "-std=ibm", *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
+                   *(str(m) for m in modules or [])])
+    if build.returncode != 0:
+        return None, Run(False, build.returncode, build.stdout, build.stderr)
+    return [str(exe)], None
+
+
+def build_java(src_dir: Path, main_class: str, workdir: Path) -> tuple[list[str] | None, Run | None]:
+    classes = workdir / "classes"
+    classes.mkdir(exist_ok=True)
+    build = _exec(["javac", "-d", str(classes), *sorted(str(p) for p in src_dir.rglob("*.java"))])
+    if build.returncode != 0:
+        return None, Run(False, build.returncode, build.stdout, build.stderr)
+    return ["java", "-cp", str(classes), main_class], None
+
+
+def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[str, int]], workdir: Path, label: str,
+              extra_env: dict[str, str] | None = None) -> Run:
+    """Run with every DD bound: inputs DD -> file, outputs DD -> (format, record length). Outputs land per DD."""
+    paths = {dd: workdir / f"{label}-{dd}.out" for dd in outputs}
+    env = {**CLOCK_ENV, **(extra_env or {}), **{f"DD_{dd}": str(p) for dd, p in inputs.items()},
+           **{f"DD_{dd}": str(p) for dd, p in paths.items()}}
+    proc = _exec(cmd, env=env, cwd=workdir)
+    files = {dd: read_records(paths[dd], *outputs[dd]) for dd in outputs}
+    return Run(True, proc.returncode, proc.stdout, proc.stderr, output_files=files)

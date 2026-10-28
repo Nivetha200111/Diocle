@@ -81,3 +81,15 @@ def test_corpus_records_run_as_cases(tmp_path):
     report = verify_sample(sample, REFERENCE, random_count=5)
     corpus = [r for r in report["results"] if r["inputSource"] == "corpus"]
     assert [r["inputId"] for r in corpus] == ["corpus-0001", "corpus-0002"] and all(r["match"] for r in corpus)
+
+
+def test_multi_file_match_merge_is_verified_per_output_file():
+    match = SAMPLE.parent / "account-match"
+    good = verify_sample(match, REFERENCE, random_count=120)
+    assert good["summary"]["failed"] == 0 and good["runs"]["exitCodeMatch"] and good["runs"]["original"]["exitCode"] == 4
+    assert set(good["runs"]["files"]["outputs"]) == {"NEWMST", "EXCOUT"}
+    assert {r["outputDd"] for r in good["results"]} == {"NEWMST", "EXCOUT"}
+    validate_report(good)
+    naive = verify_sample(match, random_count=100)  # seeded: reaches the logic bugs before the port crashes
+    fields = {d["field"] for r in naive["results"] for d in r.get("fieldDiffs", [])}
+    assert not naive["runs"]["exitCodeMatch"] and "EX-REASON" in fields and "NM-BALANCE" in fields
