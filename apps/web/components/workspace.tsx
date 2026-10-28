@@ -69,16 +69,16 @@ const nav = [
 ] as const;
 
 const descriptions: Record<View, string> = {
-  Overview: "A clearer path from legacy code to what’s next.",
-  Migrations: "Every modernization journey, in one place.",
-  "Dependency graph": "Map the connections. Understand the impact.",
-  "Risk findings": "A little attention here makes a big difference.",
-  Conversions: "Your business logic, in a modern language.",
-  Verification: "Same inputs. Same behavior. Greater confidence.",
-  Reports: "The complete story of your modernization.",
+  Overview: "Status of the sample migrations, findings and verification.",
+  Migrations: "Each migration with its programs, copybooks and progress.",
+  "Dependency graph": "Programs, copybooks and the CALL and COPY edges between them.",
+  "Risk findings": "Legacy behaviour the conversion has to reproduce: rounding, truncation, overflow.",
+  Conversions: "COBOL next to its Java, copybooks next to their SQL tables.",
+  Verification: "Original and converted program run on the same inputs; every output field compared.",
+  Reports: "Per-migration summaries you can download as JSON.",
   "Live runs": "Real agent runs: what broke, what the agent did, and the proof.",
   Delivery: "A legacy GitHub repository migrated live: analyze, convert, certify, open a pull request, re-verify in CI.",
-  Settings: "Make this workspace your own.",
+  Settings: "Workspace name and model configuration.",
 };
 
 function HeroArt() {
@@ -228,7 +228,7 @@ function MigrationList({
           <h2>
             Your migrations <span className="count">{migrations.length}</span>
           </h2>
-          <p>Big transformations, one program at a time.</p>
+          <p>One row per migration.</p>
         </div>
         <button className="text-button" onClick={onNew}>
           <Plus size={15} />
@@ -443,7 +443,7 @@ function CodePreview({
     <section className="panel conversion-panel">
       <div className="panel-heading">
         <div>
-          <h2>A familiar logic. A fresh start.</h2>
+          <h2>COBOL and Java side by side</h2>
           <p>
             Inspect an illustrative conversion from the synthetic payment
             program.
@@ -595,7 +595,7 @@ function VerificationView({ onReport }: { onReport: () => void }) {
         </div>
         <div>
           <Badge>Sample verification report</Badge>
-          <h2>Trust is built on evidence.</h2>
+          <h2>Differential test results</h2>
           <p>
             Run the original COBOL and converted Java on the same inputs.
             <br />
@@ -888,13 +888,13 @@ export default function Workspace() {
             <span className="promo-icon">
               <Sparkles size={17} />
             </span>
-            <strong>Legacy, reimagined.</strong>
+            <strong>What Diocle does</strong>
             <p>
-              Decades of business logic.
-              <br />A whole new possibility.
+              COBOL in, Java out, with a
+              <br />proof that both behave the same.
             </p>
             <button onClick={() => setModal("help")}>
-              Meet your modern stack
+              How Diocle works
               <ArrowUpRight size={13} />
             </button>
           </div>
@@ -1040,17 +1040,17 @@ export default function Workspace() {
                 <div className="hero-content">
                   <div className="hero-kicker">
                     <span className="hero-kicker-dot" />
-                    BUILT FOR A NEW CHAPTER
+                    COBOL TO JAVA, VERIFIED
                   </div>
                   <h2>
-                    Keep the logic.
+                    Convert the COBOL.
                     <br />
-                    Leave the legacy.
+                    Prove it still works.
                   </h2>
                   <p>
-                    Turn your COBOL into modern, verified services.
+                    Muse Spark converts each program to Java.
                     <br />
-                    With the business logic you trust, intact.
+                    GnuCOBOL runs the original next to it on the same inputs.
                   </p>
                   <button
                     className="hero-link"
@@ -1058,7 +1058,7 @@ export default function Workspace() {
                       setSelected(migrations[0]);
                     }}
                   >
-                    Continue your migration
+                    Open migrations
                     <ArrowRight size={16} />
                   </button>
                 </div>
@@ -1066,16 +1066,16 @@ export default function Workspace() {
                 <div className="hero-bottom">
                   <span>
                     <ShieldCheck size={13} />
-                    Verified by behavior. Built for confidence.
+                    Verified by running both programs, not by reading the code.
                   </span>
                   <span className="powered-by">
                     <Sparkles size={12} />
-                    Powered by Muse Spark
+                    Model: Meta Muse Spark
                   </span>
                 </div>
               </section>
               <div className="section-heading">
-                <h2>A little perspective.</h2>
+                <h2>Sample workspace</h2>
                 <span>
                   Sample workspace overview
                   <CircleHelp size={13} />
@@ -1103,13 +1103,13 @@ export default function Workspace() {
                     <span className="eyebrow">CONFIDENCE, NOT GUESSWORK</span>
                   </div>
                   <h2>
-                    Modern code.
+                    Output match
                     <br />
-                    The same promise.
+                    in the sample
                   </h2>
                   <p>
-                    We compare original and converted outputs, so your financial
-                    logic stays true to its roots.
+                    Share of sample test outputs where the Java matches the
+                    COBOL field for field.
                   </p>
                   <div className="confidence-metric">
                     <strong>
@@ -1218,7 +1218,7 @@ export default function Workspace() {
               <div className="info-card">
                 <Network size={22} />
                 <div>
-                  <h3>Every connection tells a story.</h3>
+                  <h3>Select a node to see its edges.</h3>
                   <p>
                     Select a program to inspect its details. Solid lines
                     represent CALL dependencies; dashed lines represent COPY
@@ -1447,7 +1447,7 @@ export default function Workspace() {
                   <FileText size={27} />
                 </span>
                 <div>
-                  <h2>The full picture, ready to share.</h2>
+                  <h2>Migration reports</h2>
                   <p>
                     Explore migration summaries or download clearly labeled
                     sample JSON reports.
@@ -1501,7 +1501,7 @@ export default function Workspace() {
                 <div className="panel-heading">
                   <div>
                     <h2>Workspace details</h2>
-                    <p>A home for your next chapter.</p>
+                    <p>Shown in the sidebar and on reports.</p>
                   </div>
                 </div>
                 <form
@@ -1578,7 +1578,7 @@ export default function Workspace() {
           <footer className="page-footer">
             <span>
               <Brand small />
-              Thoughtfully modernized.
+              Diocle
             </span>
             <span>
               <span className="footer-status" />
@@ -1586,8 +1586,7 @@ export default function Workspace() {
               synthetic
             </span>
             <span>
-              Made for what’s next.
-              <ArrowUpRight size={12} />
+              Meta Global AI Developer Hackathon 2026
             </span>
           </footer>
         </main>
@@ -1674,8 +1673,8 @@ export default function Workspace() {
       )}
       {modal === "activity" && (
         <Modal
-          title="Your workspace, in motion."
-          subtitle="A timeline of illustrative activity."
+          title="Activity"
+          subtitle="Illustrative activity in the sample workspace."
           onClose={() => setModal(null)}
         >
           <ActivityList long />
@@ -1684,8 +1683,8 @@ export default function Workspace() {
       )}
       {modal === "help" && (
         <Modal
-          title="A new chapter for your code."
-          subtitle="Meet Diocle, your COBOL modernization workspace."
+          title="How Diocle works"
+          subtitle="Analyze, convert with Meta models, verify against GnuCOBOL, deliver as a pull request."
           onClose={() => setModal(null)}
         >
           <div className="help-content">
@@ -1906,8 +1905,8 @@ function UploadModal({
   }
   return (
     <Modal
-      title="Something new starts here."
-      subtitle="Create a migration and explore the modernization journey."
+      title="New migration"
+      subtitle="Pick COBOL programs and copybooks, or use the synthetic sample."
       onClose={onClose}
     >
       <form
@@ -1954,7 +1953,7 @@ function UploadModal({
           <span className="upload-icon">
             <Upload size={25} />
           </span>
-          <strong>Give your legacy a new beginning.</strong>
+          <strong>Add COBOL files</strong>
           <p>Drop COBOL programs and copybooks here</p>
           <button
             type="button"
