@@ -115,7 +115,8 @@ def main(argv: list[str] | None = None) -> int:
     if outcome["certificationReport"]:
         (run_dir / "verification-report.json").write_text(json.dumps(outcome["certificationReport"], indent=2) + "\n")
     (run_dir / "run.json").write_text(json.dumps({
-        "program": program.name, "command": args.command, "javaOrigin": origin, "translation": translation,
+        "program": program.name, "command": args.command,
+        "sample": str(program.sample_dir.resolve().relative_to(REPO_ROOT)), "javaOrigin": origin, "translation": translation,
         "certified": outcome["certified"], "rounds": outcome["rounds"], "usage": usage,
     }, indent=2) + "\n")
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
