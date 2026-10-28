@@ -87,6 +87,7 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
         shutil.copy2(module, sample / "src" / module.name)
     meta = {"program": cert["program"], "source": f"src/{source.name}", "copybookDir": "copybooks",
             "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
+            "collation": "ebcdic",  # legacy code is mainframe code: CI always compares in EBCDIC order
             "dd": claimed["dd"], "layouts": derived,
             "javaConversion": {"dir": "java", "mainClass": cert["java"]["mainClass"]}}
     (sample / "sample.json").write_text(json.dumps(meta))
