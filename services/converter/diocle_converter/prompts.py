@@ -7,7 +7,7 @@ whose output is byte-identical to the original compiled with GnuCOBOL (-std=ibm)
 
 I/O contract:
 - The public class with main() must be named {main_class}, in the default package.
-- Read the input file path from environment variable DD_{input} and write the output to DD_{output}.
+- {io}
 - ORGANIZATION LINE SEQUENTIAL files are text, one record per line. ORGANIZATION SEQUENTIAL files are fixed-length
   byte records with no separators: read and write them as bytes (ISO-8859-1), record length from the copybook.
 - Storage exactly as GnuCOBOL (-std=ibm) writes it: COMP-3 packed decimal with sign nibble C/D (F if unsigned);

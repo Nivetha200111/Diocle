@@ -204,6 +204,11 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
     The run stays certified only if the last attack found nothing. Bounded by MODEL_MAX_ATTACK_ROUNDS,
     MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
     meta = json.loads((program.sample_dir / "sample.json").read_text())
+    if "layouts" not in meta:
+        on_event({"type": "stage", "stage": "attacking",
+                  "message": "Breaker skipped: it designs single-file records, and this program has several files"})
+        return outcome, {"rounds": 0, "tried": 0, "broke": 0, "repairCycles": 0, "fixed": False, "counterexamples": [],
+                         "skipped": "multi-file program"}
     breaker = Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
     found: list[dict] = []
     cycles = 0
