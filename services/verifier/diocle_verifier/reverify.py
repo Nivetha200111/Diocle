@@ -60,7 +60,7 @@ def fetch_legacy(repository: str, commit: str, cache: Path) -> Path:
 
 def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
     """Rebuild the sample from the legacy checkout. Layouts and DD names come from the analyzer, not the PR."""
-    from diocle_analyzer.analyze import analyze
+    from diocle_analyzer.analyze import analyze, classify, cobol_name
 
     cert = json.loads((program_dir / "certificate.json").read_text())
     claimed = json.loads((program_dir / "sample.json").read_text())
@@ -86,17 +86,18 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
     sample = work / cert["program"].lower()
     (sample / "src").mkdir(parents=True)
     (sample / "copybooks").mkdir()
-    shutil.copy2(source, sample / "src" / source.name)
-    resolved = {p.stem.upper(): p for p in legacy.rglob("*") if p.suffix.lower() in (".cpy", ".copy") and ".git" not in p.parts}
+    source_name = cobol_name(cert["legacy"]["path"])
+    shutil.copy2(source, sample / "src" / source_name)
+    _, resolved, _ = classify(legacy)
     for member in program["copybooks"]:  # what the analyzer resolved, not paths the pull request names
-        shutil.copy2(resolved[member], sample / "copybooks" / resolved[member].name)
+        shutil.copy2(resolved[member], sample / "copybooks" / f"{member}.cpy")
     if sorted(cert["legacy"].get("modules", [])) != sorted(program.get("modules", [])):
         raise Untrusted("certificate modules differ from the programs it CALLs")
     for path in program.get("modules", []):
         module = _inside(legacy, path)
-        shutil.copy2(module, sample / "src" / module.name)
-    meta = {"program": cert["program"], "source": f"src/{source.name}", "copybookDir": "copybooks",
-            "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
+        shutil.copy2(module, sample / "src" / cobol_name(path))
+    meta = {"program": cert["program"], "source": f"src/{source_name}", "copybookDir": "copybooks",
+            "modules": [f"src/{cobol_name(m)}" for m in program.get("modules", [])],
             "collation": "ebcdic",  # legacy code is mainframe code: CI always compares in EBCDIC order
             **derived_io,
             "javaConversion": {"dir": "java", "mainClass": cert["java"]["mainClass"]}}
