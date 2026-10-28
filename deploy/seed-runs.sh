@@ -10,6 +10,6 @@ SINCE=${SINCE:-20261028-1900}
 RUNS=$(for d in */; do d=${d%/}; ts=$(echo "$d" | grep -oE '[0-9]{8}-[0-9]{6}$' || true)
   [ -n "$ts" ] && [ -f "$d/run.json" ] && [ "${ts%??}" \> "$SINCE" ] && echo "$d"; done)
 DELIVERIES=$(ls deliveries 2>/dev/null | grep -E '^delivery-' | while read d; do ts=${d#delivery-}; [ "${ts%??}" \> "$SINCE" ] && echo "deliveries/$d"; done)
-tar czf - $RUNS $DELIVERIES memory.json 2>/dev/null | ssh -i "${SSH_KEY:-$HOME/.ssh/diocle}" "$HOST" \
-  "docker run --rm -i -v deploy_diocle-runs:/runs alpine sh -c 'tar xzf - -C /runs && chown -R 10001:10001 /runs'"
+COPYFILE_DISABLE=1 tar czf - $RUNS $DELIVERIES memory.json 2>/dev/null | ssh -i "${SSH_KEY:-$HOME/.ssh/diocle}" "$HOST" \
+  "docker run --rm -i -v deploy_diocle-runs:/runs alpine sh -c 'tar xzf - -C /runs && find /runs -name \"._*\" -delete && chown -R 10001:10001 /runs'"
 echo "Seeded $(echo "$RUNS" | wc -w | tr -d ' ') runs and $(echo "$DELIVERIES" | wc -w | tr -d ' ') deliveries to $HOST"

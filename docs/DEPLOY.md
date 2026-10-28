@@ -18,6 +18,8 @@ visitor ── https://your-domain ──► Vercel (site) ── /api/* ──�
 8. **Domain on Vercel**: add `your-domain` to the project; Vercel shows the DNS record to create at your registrar.
 9. **Check**: open `https://your-domain`, open Live runs, press *Re-verify on a fresh seed*.
 
+**Without buying a domain**: use the free `your-project.vercel.app` address for the site, and `SERVER-IP-WITH-DASHES.sslip.io` (for example `65-20-92-159.sslip.io`) as the engine's address in steps 4, 5 and 7. sslip.io resolves that name to the IP, so Caddy still obtains an HTTPS certificate and no DNS records are needed. Put `DIOCLE_API_DOMAIN=...` in `deploy/.env` on the server so restarts keep it.
+
 ## Alternative: everything on one server
 
 One small Ubuntu server runs everything: Caddy serves the site (a static build of the dashboard in hosted mode) with automatic HTTPS and forwards `/api` to the Diocle API, which runs the analyzer, converter and verifier (GnuCOBOL 3.2 and JDK 21 inside the image). Only ports 22, 80 and 443 are open; the API is never exposed directly. Any provider works; nothing below depends on one.
