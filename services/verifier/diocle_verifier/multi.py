@@ -108,7 +108,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
         for s in outputs:
             dd = s["dd"]
             o, c = original.output_files.get(dd, []), converted.output_files.get(dd, [])
-            cases = [Case(f"{dd}#{i + 1:04d}", "files", "") for i in range(max(len(o), len(c)))]
+            cases = [Case(f"{dd}#{i + 1:04d}", "files", "") for i in range(len(o))]  # extras show as extra output
             for r in compare(cases, o, c, out_fields[dd], record_format(s["layout"])):
                 r.update({"program": meta["program"], "outputDd": dd})
                 r.pop("input", None)
