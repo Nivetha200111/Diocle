@@ -202,3 +202,31 @@ def test_second_review_shapes_are_rejected_or_detected():
 @pytest.mark.parametrize("sample", ["packed-posting", "account-match"])
 def test_new_samples_validate_against_the_contract(sample):
     validate_report(analyze(SAMPLES / sample))
+
+
+def test_jcl_procedures_symbolics_and_overrides():
+    from diocle_analyzer.jcl import parse_jcl, parse_procs
+    proc = ("//QMKINT   PROC ENV=PROD,GEN=+1\n//INT010   EXEC PGM=INTACCR\n"
+            "//ACCTIN   DD DSN=QMK.&ENV..ACCT.EXTRACT,DISP=SHR\n"
+            "//INTOUT   DD DSN=QMK.&ENV..INT.RESULT(&GEN),\n//            DISP=(NEW,CATLG)\n")
+    procs = {p.name: p for p in parse_procs(proc)}
+    assert parse_jcl(proc, "PROCLIB/QMKINT", procs) == []  # a procedure is not a job
+    job = "//QMKD010  JOB (1),'X'\n//S1       EXEC QMKINT,ENV=TEST\n//INT010.ACCTIN DD DSN=QMK.OVERRIDE,DISP=SHR\n"
+    [step] = parse_jcl(job, "JCLLIB/QMKD010", procs)
+    assert step.program == "INTACCR" and step.job == "QMKD010"
+    assert step.dsns == {"ACCTIN": "QMK.OVERRIDE", "INTOUT": "QMK.TEST.INT.RESULT(+1)"}
+
+
+def test_mainframe_library_members_are_classified_by_content(tmp_path):
+    from diocle_analyzer.analyze import classify
+    (tmp_path / "QMK.PROD.COBOL").mkdir()
+    (tmp_path / "QMK.PROD.COPYLIB").mkdir()
+    (tmp_path / "DATA").mkdir()
+    (tmp_path / "QMK.PROD.COBOL" / "PGMA").write_text(
+        "       IDENTIFICATION DIVISION.                                         00000100\n"
+        "       PROGRAM-ID. PGMA.                                                00000200\n")
+    (tmp_path / "QMK.PROD.COPYLIB" / "RECA").write_text("       01  RECA.\n           05  A  PIC X.\n")
+    (tmp_path / "DATA" / "QMK.PROD.EXTRACT").write_bytes(bytes.fromhex("C1C2F1F2D300"))
+    programs, copybooks, jcl = classify(tmp_path)
+    assert [p.name for p in programs] == ["PGMA"] and "RECA" in copybooks and not jcl
+    assert not any(p.parent.name == "DATA" for p in copybooks.values())  # binary EBCDIC data is skipped
