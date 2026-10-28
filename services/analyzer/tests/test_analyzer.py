@@ -38,13 +38,37 @@ def test_findings_name_the_paragraphs_with_legacy_arithmetic():
     assert ("9000-TERM", "display") in seen
 
 
-def test_unsupported_layouts_are_reported_not_guessed():
-    packed = parse_copybook("       01  R.\n           05  AMT  PIC S9(5)V99 COMP-3.\n")
-    assert packed.as_dict() is None and "packed" in packed.unsupported
-    redefines = parse_copybook("       01  R.\n           05  A  PIC X(4).\n           05  B  REDEFINES A PIC 9(4).\n")
-    assert redefines.as_dict() is None and "REDEFINES" in redefines.unsupported
-    overpunch = parse_copybook("       01  R.\n           05  N  PIC S9(3).\n")
-    assert overpunch.as_dict() is None
+def test_storage_formats_are_modelled():
+    def fields(body):
+        layout = parse_copybook("       01  R.\n" + "".join(f"           {l}\n" for l in body))
+        assert layout.unsupported is None, layout.unsupported
+        return layout.fields
+
+    assert fields(["05  A  PIC S9(5)V99 COMP-3."]) == [
+        {"name": "A", "kind": "numeric", "digits": 5, "scale": 2, "signed": True, "usage": "packed"}]
+    assert fields(["05  A  PIC S9(4) COMP-5."])[0]["usage"] == "binary-native"
+    assert fields(["05  A  PIC 9(4) BINARY."])[0]["usage"] == "binary"
+    assert fields(["05  A  COMP-2."])[0] | {} == {"name": "A", "kind": "numeric", "digits": 7, "scale": 2,
+                                                   "signed": True, "usage": "float", "bytes": 8}
+    assert fields(["05  A  PIC S9(5)V99."])[0]["sign"] == "trailing"  # overpunch, the mainframe default
+    assert fields(["05  A  PIC S9(3) SIGN LEADING."])[0]["sign"] == "leading"
+    assert fields(["05  A  PIC S9(3) SIGN TRAILING SEPARATE."])[0]["sign"] == "trailing-separate"
+    assert fields(["05  A  PIC 9(3)PP."])[0] | {} == {"name": "A", "kind": "numeric", "digits": 5, "scale": -2, "signed": False}
+    assert fields(["05  A  PIC Z(4)9.99-."]) == [{"name": "A", "kind": "alnum", "length": 9, "edited": "ZZZZ9.99-"}]
+    grouped = fields(["05  G  COMP-3.", "    10  A  PIC S9(3).", "    10  B  PIC 9(5)V9."])
+    assert [f["usage"] for f in grouped] == ["packed", "packed"]  # USAGE on the group applies to its children
+    table = fields(["05  T  OCCURS 2 TIMES.", "    10  K  PIC X(2).", "    10  V  PIC 9(3) COMP."])
+    assert [f["name"] for f in table] == ["K(1)", "V(1)", "K(2)", "V(2)"]
+    view = fields(["05  RAW  PIC X(4).", "05  NUM  REDEFINES RAW PIC 9(4)."])
+    assert view[1]["redefines"] == "RAW" and view[1]["name"] == "NUM"
+
+
+def test_what_cannot_be_modelled_safely_is_rejected():
+    for body, reason in [(["05  N  PIC 9.", "05  A  OCCURS 1 TO 5 DEPENDING ON N PIC X."], "DEPENDING"),
+                         (["05  A  PIC N(4)."], "national"),
+                         (["05  A  PIC SVPP99."], "leading P")]:
+        layout = parse_copybook("       01  R.\n" + "".join(f"           {l}\n" for l in body))
+        assert layout.as_dict() is None and reason in layout.unsupported, (body, layout.unsupported)
 
 
 def test_write_sample_produces_converter_input(tmp_path):
@@ -129,3 +153,13 @@ def test_copy_replacing_inline_records_and_blocking_reasons(tmp_path):
 def test_several_record_types_are_reported():
     two = parse_copybook("       01  R1.\n           05  A  PIC X(3).\n       01  R2.\n           05  B  PIC 9(5).\n")
     assert two.as_dict() is None and "2 record types" in two.unsupported
+
+
+def test_open_direction_is_not_overwritten_by_later_statements():
+    from diocle_analyzer.cobol import parse_program
+    code = "\n".join([
+        "       IDENTIFICATION DIVISION.", "       PROGRAM-ID. TWO.", "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.", "       FILE-CONTROL.", "           SELECT A-F ASSIGN TO AIN.",
+        "           SELECT B-F ASSIGN TO BOUT.", "       PROCEDURE DIVISION.", "           OPEN INPUT A-F",
+        "           OPEN OUTPUT B-F", "           PERFORM X", "           CLOSE A-F B-F", "           STOP RUN."])
+    assert parse_program(code).directions == {"A-F": "input", "B-F": "output"}
