@@ -955,7 +955,7 @@ export default function Workspace() {
             >
               <Menu size={20} />
             </button>
-            <span className="breadcrumb-workspace">Workspace</span>
+            <span className="breadcrumb-workspace">Diocle</span>
             <ChevronRight size={13} />
             <span>{view}</span>
           </div>

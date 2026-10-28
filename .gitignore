@@ -55,3 +55,4 @@ target/
 
 # Diocle run outputs (generated Java, events, reports)
 runs/
+.next-hosted/

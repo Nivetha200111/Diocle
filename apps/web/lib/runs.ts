@@ -20,6 +20,7 @@ export type RunMemory = { enabled: boolean; used: number; learned: number; lesso
 
 export type RunListItem = {
   id: string;
+  status?: "running" | "certified" | "not-certified";
   program: string;
   command: "repair" | "run";
   certified: boolean;
