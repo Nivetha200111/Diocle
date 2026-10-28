@@ -1,6 +1,7 @@
 """Migrate a legacy GitHub repository and deliver certified Java as a pull request on a target repository.
 
   python -m diocle_api.deliver LEGACY_URL TARGET_URL [--programs INTACCR,TXNPOST] [--runs RUN_ID ...] [--dry-run]
+  python -m diocle_api.deliver LEGACY_URL --public     # a visitor's import: sandboxed, capped, results stay on the site
 
 1. services/analyzer clones LEGACY_URL (allowed owners only), derives layouts and writes one sample per program.
 2. services/converter translates, repairs and certifies each program (Meta models, fix memory on).
@@ -9,6 +10,7 @@
    (contracts/certificate.schema.json), on a new branch of TARGET_URL, and a pull request is opened.
    The target repository's CI re-verifies on fresh inputs with diocle_verifier.reverify.
 Uncertified programs are listed in the pull request but never delivered.
+Without TARGET_URL there is no step 3: the converted, verified Java stays in runs/ and on the dashboard.
 """
 
 from __future__ import annotations
@@ -62,10 +64,10 @@ def target_repo(url: str) -> str:
 class Progress:
     """runs/deliveries/<id>/delivery.json (contracts/delivery.schema.json), rewritten at every step."""
 
-    def __init__(self, legacy_url: str, target_url: str, delivery_id: str | None = None):
+    def __init__(self, legacy_url: str, target_url: str | None, delivery_id: str | None = None, public: bool = False):
         self.id = delivery_id or f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         self.path = REPO_ROOT / "runs" / "deliveries" / self.id / "delivery.json"
-        self.state = {"id": self.id, "legacy": {"repository": legacy_url, "commit": None}, "target": target_url,
+        self.state = {"id": self.id, "legacy": {"repository": legacy_url, "commit": None}, "target": target_url, "public": public,
                       "stage": "analyzing", "startedAt": _now(), "finishedAt": None, "error": None,
                       "programs": [], "pullRequest": None}
         self.save()
@@ -212,11 +214,28 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         return url
 
 
+def _visitor_caps(programs: list[dict], samples: Path) -> tuple[list[dict], list[dict]]:
+    """Visitor imports convert at most DIOCLE_PUBLIC_MAX_PROGRAMS programs of DIOCLE_PUBLIC_MAX_LINES lines each."""
+    max_programs = int(os.environ.get("DIOCLE_PUBLIC_MAX_PROGRAMS", "3"))
+    max_lines = int(os.environ.get("DIOCLE_PUBLIC_MAX_LINES", "1500"))
+    keep, skipped = [], []
+    for p in programs:
+        meta = json.loads((samples / p["name"].lower() / "sample.json").read_text())
+        lines = len((samples / p["name"].lower() / meta["source"]).read_bytes().splitlines())
+        reason = (f"{lines} lines; visitor imports take up to {max_lines}" if lines > max_lines else
+                  f"visitor imports convert up to {max_programs} programs" if len(keep) >= max_programs else None)
+        if reason:
+            skipped.append({"name": p["name"], "path": p["path"], "status": "skipped", "runId": None, "reason": reason})
+        else:
+            keep.append(p)
+    return keep, skipped
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="diocle_api.deliver", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("legacy_url")
-    parser.add_argument("target_url")
+    parser.add_argument("target_url", nargs="?", help="repository for the pull request (omit to keep results on the site)")
     parser.add_argument("--programs", help="comma-separated PROGRAM-IDs (default: all convertible)")
     parser.add_argument("--runs", nargs="*", default=[], help="deliver these existing run ids instead of converting")
     parser.add_argument("--dry-run", action="store_true", help="build the delivery and print the PR body; push nothing")
@@ -225,22 +244,35 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--breaker", action="store_true", help="after certification, a breaker agent attacks each program")
     parser.add_argument("--onto", help="commit onto this existing target branch instead of opening a new pull request")
     parser.add_argument("--id", help="delivery id to use (the API passes one so the dashboard can follow it)")
+    parser.add_argument("--public", action="store_true",
+                        help="a visitor's import: needs the sandbox, visitor caps, no pull request, no swarm or breaker")
     args = parser.parse_args(argv)
+    if args.public:
+        if not os.environ.get("DIOCLE_SANDBOX_URL"):
+            parser.error("--public needs DIOCLE_SANDBOX_URL: imported code must never run beside the secrets")
+        args.target_url, args.parallel, args.breaker, args.runs = None, False, False, []
 
-    progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"), args.id)
+    target = args.target_url.rstrip("/").removesuffix(".git") if args.target_url else None
+    progress = Progress(args.legacy_url, target, args.id, args.public)
     print(f"delivery {progress.id}", flush=True)
     try:
-        target_repo(progress.state["target"])  # fail fast on a bad or disallowed target
+        if target:
+            target_repo(target)  # fail fast on a bad or disallowed target
         report, samples = analyze(args.legacy_url, progress.id)
         wanted = set(args.programs.split(",")) if args.programs else None
         report["programs"] = [p for p in report["programs"] if p["convertible"] and (wanted is None or p["name"] in wanted)]
+        skipped = []
+        if args.public:
+            report["programs"], skipped = _visitor_caps(report["programs"], samples)
         max_programs = int(os.environ.get("DIOCLE_MAX_PROGRAMS", "10"))  # rule 10: bound spend per delivery
         if len(report["programs"]) > max_programs:
             raise SystemExit(f"{len(report['programs'])} programs exceed DIOCLE_MAX_PROGRAMS={max_programs}; "
                              "pass --programs or raise the cap")
         progress.state["legacy"]["commit"] = report["source"]["commit"]
+        if not report["programs"]:
+            raise SystemExit("no convertible programs" + (f" within the visitor limits ({skipped[0]['reason']})" if skipped else ""))
         progress.update(stage="converting", programs=[
-            {"name": p["name"], "path": p["path"], "status": "queued", "runId": None} for p in report["programs"]])
+            {"name": p["name"], "path": p["path"], "status": "queued", "runId": None} for p in report["programs"]] + skipped)
         run_ids = {}
         for run_id in args.runs:
             run = get_run(run_id)
@@ -286,8 +318,9 @@ def main(argv: list[str] | None = None) -> int:
             for program in todo:
                 print(f"converting {program['name']} ...", flush=True)
                 work(program)
-        progress.update(stage="delivering")
-        print(deliver(report, samples, run_ids, progress.state["target"], args.dry_run, progress, args.onto))
+        if target:
+            progress.update(stage="delivering")
+            print(deliver(report, samples, run_ids, target, args.dry_run, progress, args.onto))
         progress.update(stage="done", finishedAt=_now())
     except BaseException as e:
         progress.update(stage="failed", error=str(e)[:500] or type(e).__name__, finishedAt=_now())
