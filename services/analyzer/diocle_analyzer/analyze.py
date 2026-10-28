@@ -24,12 +24,26 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
     root = root.resolve()
     copybooks = {p.stem.upper(): p for p in _files(root, COPYBOOK_SUFFIXES)}
     sources = _files(root, COBOL_SUFFIXES)
-    program_ids = {parse_program(p.read_text(errors="replace")).name for p in sources}
+    parsed = {p: parse_program(p.read_text(errors="replace")) for p in sources}
+    program_ids = {info.name for info in parsed.values()}
+    by_name = {info.name: (p, info) for p, info in parsed.items()}
+
+    def modules_of(name: str, seen: set[str]) -> list[str]:
+        """CALLed programs found in the repository, transitively, as repo-relative paths."""
+        out = []
+        for callee in by_name[name][1].calls:
+            if callee in by_name and callee not in seen:
+                seen.add(callee)
+                out.append(by_name[callee][0].relative_to(root).as_posix())
+                out += modules_of(callee, seen)
+        return out
     steps = [s for p in _files(root, {".jcl"}) for s in parse_jcl(p.read_text(errors="replace"), p.relative_to(root).as_posix())]
     programs, dependencies, findings = [], [], []
     for path in sources:
         text = path.read_text(errors="replace")
-        info = parse_program(text)
+        info = parsed[path]
+        modules = modules_of(info.name, {info.name})
+        module_copybooks = [c for m in modules for c in parsed[root / m].copybooks]
         step = next((s for s in steps if s.program == info.name), None)
         files = []
         for file_name, dd in info.selects.items():
@@ -62,7 +76,8 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
         programs.append({
             "name": info.name,
             "path": path.relative_to(root).as_posix(),
-            "copybooks": info.copybooks,
+            "copybooks": list(dict.fromkeys(info.copybooks + module_copybooks)),
+            "modules": modules,
             "job": step.member if step else None,
             "files": [{k: v for k, v in f.items() if k != "unsupported"} for f in files],
             "convertible": reason is None,
@@ -123,6 +138,8 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
     (sample / "copybooks").mkdir(exist_ok=True)
     source = root / program["path"]
     shutil.copy2(source, sample / "src" / source.name)
+    for module in program.get("modules", []):
+        shutil.copy2(root / module, sample / "src" / Path(module).name)
     for member in program["copybooks"]:
         found = next(p for p in _files(root, COPYBOOK_SUFFIXES) if p.stem.upper() == member)
         shutil.copy2(found, sample / "copybooks" / found.name)
@@ -133,6 +150,7 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                        + (f" at {report['source']['commit'][:12]}" if report["source"].get("commit") else ""),
         "program": program["name"],
         "source": f"src/{source.name}",
+        "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
         "copybookDir": "copybooks",
         "dd": {"input": by_direction["input"]["dd"], "output": by_direction["output"]["dd"]},
         "javaConversion": {"dir": "java-conversion", "mainClass": main_class(program["name"]),

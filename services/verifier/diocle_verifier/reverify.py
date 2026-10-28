@@ -80,7 +80,13 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
     for path in cert["legacy"]["copybooks"]:
         copybook = _inside(legacy, path)
         shutil.copy2(copybook, sample / "copybooks" / copybook.name)
+    if sorted(cert["legacy"].get("modules", [])) != sorted(program.get("modules", [])):
+        raise Untrusted("certificate modules differ from the programs it CALLs")
+    for path in program.get("modules", []):
+        module = _inside(legacy, path)
+        shutil.copy2(module, sample / "src" / module.name)
     meta = {"program": cert["program"], "source": f"src/{source.name}", "copybookDir": "copybooks",
+            "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
             "dd": claimed["dd"], "layouts": derived,
             "javaConversion": {"dir": "java", "mainClass": cert["java"]["mainClass"]}}
     (sample / "sample.json").write_text(json.dumps(meta))

@@ -125,6 +125,7 @@ def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_com
         "program": program["name"],
         "legacy": {"repository": report["source"]["location"], "commit": report["source"]["commit"],
                    "path": program["path"], "copybooks": _copybook_paths(report, program),
+                   "modules": program.get("modules", []),
                    "job": program.get("job")},
         "java": {"mainClass": sample["javaConversion"]["mainClass"],
                  "files": sorted(p.name for p in (REPO_ROOT / "runs" / run["id"] / "java").glob("*.java"))},

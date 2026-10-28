@@ -36,7 +36,7 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
         write_records(input_path, [c.record for c in cases], record_format(meta["layouts"]["input"]))
         out_format = (record_format(meta["layouts"]["output"]), record_length(out_fields))
         original = run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work,
-                             out_format)
+                             out_format, [sample_dir / m for m in meta.get("modules", [])])
         converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, work, out_format)
 
     results = []
