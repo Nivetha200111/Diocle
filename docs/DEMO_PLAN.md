@@ -1,0 +1,50 @@
+# Demo video plan (3 minutes)
+
+The video is a primary judging artifact (Demo 25%; finalists are ranked live from it). Rules that shape it:
+- **Say what was built during the hackathon** (on screen at the start and the end), and show only that.
+- Show Meta models doing the work (Use of Meta AI tooling, 25%).
+- Everything shown is real and runs on the live site; long waits are sped up and labelled as such.
+
+## The story in one line
+"AI writes the code. Diocle checks it against the original before anyone has to trust it", shown on one
+program where ordinary testing passed and Diocle still caught the bug.
+
+## Shot list (about 430 spoken words at a calm pace)
+
+| Time | On screen | Narration (draft) |
+|---|---|---|
+| 0:00-0:15 | Title card: "Diocle. Built Oct 27 to Nov 4, 2026, for the Meta Global AI Developer Hackathon." Then the live Home page. | "Banks still run on COBOL, and AI can now translate it to Java in minutes. On a large migration I worked on, hundreds of people re-checked converted code by hand, because nobody could trust it. Diocle is the check." |
+| 0:15-0:40 | Home page diagram, then Live runs list. | "Meta's Muse Spark translates each program. Then Diocle compiles the original COBOL with GnuCOBOL and runs it next to the Java on the same inputs: every output record must match byte for byte, plus the exit code and every line on screen. Nothing is accepted on the model's word." |
+| 0:40-1:35 | Live runs → CHQCLR (`chqclr-20261028-214355`): the event timeline. Zoom on: "1004/1004 held-out inputs match", then "Breaker round 1: 2 of 10 designed inputs break the Java", the counterexample (CL-FEE original 20.00, converted 0.00), "Repair agent resumes", "1006/1006", "all 12 designed inputs match". | "This is a cheque-clearing program Diocle had never seen. Muse Spark's Java passed a thousand held-out tests. Most pipelines would ship it here. Diocle then sends a second Muse Spark agent, the breaker, to design inputs that should expose a difference. Two of ten do: the COBOL charges a 20 dollar fee, the Java charges nothing. The repair agent gets those as failing tests, patches the Java with real compiler and test tools, and it re-certifies on a fresh thousand inputs. The breaker attacks again and finds nothing." Caption: "Inputs with malformed numbers; agreement shown is with GnuCOBOL." |
+| 1:35-2:05 | Delivery page: quillmark-mainframe → quillmark-java, six programs certified, PR #1 with CI "SUCCESS". Cut to the GitHub PR: certificate.json and the green reverify check. | "Certified programs go out as a pull request, each with a certificate. The target repository's own CI recompiles the COBOL and re-runs both on fresh inputs Diocle never used, so the reviewer doesn't have to trust Diocle either." |
+| 2:05-2:20 | Live runs → a certified run → press "Re-verify on a fresh seed" → "PASS 1019/1019 … 1.9 s". | "Anyone can check it themselves: this button reruns both programs on a seed chosen right now." |
+| 2:20-2:40 | Delivery → "Import a repository" with a real public COBOL repo, Start → the live stages (sped up, labelled "8x"). | "And you can bring your own: paste any public COBOL repository. Your code runs in a sandbox with no network and no credentials; Muse Spark converts it while you watch." |
+| 2:40-2:52 | EVALUATION.md table, then the README correction. | "We measure ourselves too: on four unseen programs, and when an outside review found our comparator was too lenient, the stricter check caught a real sign-of-zero bug we had shipped. We published that." |
+| 2:52-3:00 | Closing card: "Built during the hackathon: everything shown. Meta Muse Spark: translator, repair agent, breaker. github.com/Nivetha200111/Diocle · diocle.vercel.app" | "Diocle. AI writes the code; Diocle checks it." |
+
+Keep the employer unnamed ("a large migration I worked on"), and the bank fictional (Quillmark Trust & Savings).
+
+## Before recording (checklist)
+- [ ] CHQCLR and the other evaluation runs are on the live site (seed them; they were created after the first
+      seeding). Check the CHQCLR timeline shows the breaker counterexamples clearly; if not, make the breaker
+      events stand out in Live runs.
+- [ ] INTACCR re-delivery PR on quillmark-modern merged and CI green (optional shot).
+- [ ] Evaluation re-run (`eval-freeze-2`) added to EVALUATION.md, so the 2:40 shot shows both runs.
+- [ ] One visitor import done beforehand on the repo you'll show (costs a few cents), so its finished result can
+      be cut in after the live start.
+- [ ] Browser: full screen, 1920x1080, zoom 110-125 %, bookmarks bar hidden, one tab, notifications off
+      (Focus mode), cursor highlight on if available.
+
+## Recording, free tools only
+- Screen: macOS **Cmd+Shift+5** (Record Entire Screen or Selected Portion). Record each shot separately.
+- Voice: record the narration separately with a headset or the phone (quiet room); read the script, then cut.
+- Edit: **iMovie** (free): line up the clips under the voice, add the title and closing cards, label speed-ups,
+  export 1080p. Target 2:50 to leave margin under 3:00.
+- Captions: add the narration as subtitles (judges may watch muted).
+- Upload as unlisted on YouTube (or as the submission form asks), and post it on X after submitting (Community Vote,
+  Most Viral).
+
+## Timeline
+- Oct 29-30: finish the checklist; record a rough cut and watch it once as a judge would.
+- Oct 31-Nov 1: final narration and edit; ask one person to watch it cold and say what Diocle does.
+- Nov 3: final export; Nov 4 morning IST: submit (deadline Nov 5, 6:30 AM IST).

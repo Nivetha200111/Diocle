@@ -21,6 +21,9 @@ WORKDIR /srv/diocle
 COPY --chown=diocle:diocle contracts contracts
 COPY --chown=diocle:diocle services services
 COPY --chown=diocle:diocle skills skills
+# Synthetic samples, so runs certified on them can be re-verified by visitors.
+COPY --chown=diocle:diocle samples samples
+COPY --chown=diocle:diocle eval/samples eval/samples
 RUN rm -rf services/*/.venv \
  && for s in analyzer verifier; do python3 -m venv services/$s/.venv && services/$s/.venv/bin/pip install -q -e services/analyzer -e services/verifier; done \
  && python3 -m venv services/converter/.venv && services/converter/.venv/bin/pip install -q -e services/analyzer -e services/verifier -e services/converter \
