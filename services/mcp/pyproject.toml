@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diocle-mcp"
+version = "0.1.0"
+description = "Diocle COBOL analysis and differential verification as MCP tools"
+requires-python = ">=3.11"
+dependencies = ["mcp>=1.30,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+diocle-mcp = "diocle_mcp.server:main"
+
+[tool.setuptools]
+packages = ["diocle_mcp"]
