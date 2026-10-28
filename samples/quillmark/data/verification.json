@@ -1,0 +1,191 @@
+{
+  "_notice": [
+    "SYNTHETIC SAMPLE - written for the Diocle hackathon project.",
+    "Fictional company. Not derived from any real system, employer, or client."
+  ],
+  "seed": 20261028,
+  "edge_rate": "0.02",
+  "repeatability": {
+    "small": {
+      "files": 25,
+      "identical": true,
+      "first_tree_sha256": "3f0e2550f41f3fb65131ab71e1e24bb94a9a4335bbfc0673ecde270ac77697dd",
+      "second_tree_sha256": "3f0e2550f41f3fb65131ab71e1e24bb94a9a4335bbfc0673ecde270ac77697dd",
+      "checked_in_small_identical": true
+    },
+    "medium": {
+      "files": 25,
+      "identical": true,
+      "first_tree_sha256": "1e58bb6dd9d70d6cfb86b0ee3bf45846bbbd630c56efd8898c66d24ec7ad94a3",
+      "second_tree_sha256": "1e58bb6dd9d70d6cfb86b0ee3bf45846bbbd630c56efd8898c66d24ec7ad94a3"
+    }
+  },
+  "verified": {
+    "small": {
+      "scale": "small",
+      "seed": 20261028,
+      "checksums": "passed",
+      "fixed_counts": {
+        "CUSTROOT": 1000,
+        "ADDRSEG": 983,
+        "ACCTSEG": 1500,
+        "CARDSEG": 1467,
+        "TXNSEG": 10000
+      },
+      "hierarchy_counts": {
+        "CUSTROOT": 1000,
+        "ADDRSEG": 983,
+        "ACCTSEG": 1500,
+        "CARDSEG": 1467,
+        "TXNSEG": 10000
+      },
+      "patterns": {
+        "luhn_valid": 0,
+        "email": 0,
+        "phone": 0,
+        "url": 0,
+        "cards_checked": 1467,
+        "ascii_pan_tokens_checked": 1467
+      },
+      "database": {
+        "engine": "SQLite",
+        "postgres_executed": false,
+        "counts": {
+          "PRODUCT": 2,
+          "CUSTOMER": 1000,
+          "CUSTOMER_ADDRESS": 983,
+          "RATE_TABLE": 2,
+          "ACCOUNT": 1500,
+          "ACCOUNT_HOLDER": 1650,
+          "PAYMENT_BATCH": 91,
+          "TRANSACTION": 10000,
+          "PAYMENT": 7998,
+          "CARD": 1467,
+          "CARD_AUTH": 1467,
+          "FEE_SCHEDULE": 2,
+          "GL_ACCOUNT": 2,
+          "GL_POSTING": 20000,
+          "FRAUD_ALERT": 213
+        },
+        "money_totals_cents": {
+          "ACCOUNT": {
+            "BALANCE": 107260641622
+          },
+          "TRANSACTION": {
+            "AMOUNT": -3947898
+          },
+          "PAYMENT": {
+            "AMOUNT": -3448151
+          },
+          "CARD_AUTH": {
+            "AMOUNT": 183375
+          },
+          "FEE_SCHEDULE": {
+            "AMOUNT": 500
+          },
+          "GL_POSTING": {
+            "AMOUNT": 0
+          }
+        },
+        "days_checked": 91,
+        "orphan_rejected": true,
+        "edge_checks": [
+          "zero/negative/max balances",
+          "signed transaction maxima",
+          "dormant/empty accounts",
+          "duplicate-looking customers",
+          "truncated names",
+          "spaces/NULL/empty",
+          "missing optional segments",
+          "interest rounding day"
+        ]
+      },
+      "cobol": {
+        "status": "passed",
+        "compiler": "cobc (GnuCOBOL) 3.2.0",
+        "lengths": [
+          43,
+          57,
+          41,
+          45,
+          47
+        ],
+        "rounded_values": [
+          "0.01",
+          "-0.01",
+          "0.03"
+        ],
+        "wire_bytes_match": true,
+        "signed_maxima_and_unsigned_rate": true
+      }
+    },
+    "medium": {
+      "scale": "medium",
+      "seed": 20261028,
+      "checksums": "passed",
+      "fixed_counts": {
+        "CUSTROOT": 50000,
+        "ADDRSEG": 48957,
+        "ACCTSEG": 75000,
+        "CARDSEG": 73451,
+        "TXNSEG": 1000000
+      },
+      "hierarchy_counts": {
+        "CUSTROOT": 50000,
+        "ADDRSEG": 48957,
+        "ACCTSEG": 75000,
+        "CARDSEG": 73451,
+        "TXNSEG": 1000000
+      },
+      "patterns": {
+        "luhn_valid": 0,
+        "email": 0,
+        "phone": 0,
+        "url": 0,
+        "cards_checked": 73451,
+        "ascii_pan_tokens_checked": 73451
+      },
+      "database": {
+        "status": "not run (files-only)"
+      },
+      "cobol": {
+        "status": "passed",
+        "compiler": "cobc (GnuCOBOL) 3.2.0",
+        "lengths": [
+          43,
+          57,
+          41,
+          45,
+          47
+        ],
+        "rounded_values": [
+          "0.01",
+          "-0.01",
+          "0.03"
+        ],
+        "wire_bytes_match": true,
+        "signed_maxima_and_unsigned_rate": true
+      }
+    }
+  },
+  "limitations": [
+    "PostgreSQL and DB2 servers were not executed.",
+    "Only small CSVs were loaded into SQLite.",
+    "Large was not generated unless explicitly requested."
+  ],
+  "boundary_rates": {
+    "0": {
+      "customer_rows": 1000,
+      "transaction_rows": 10000,
+      "checksums_fixed_hierarchy_patterns_sqlite": "passed",
+      "cobol": "passed"
+    },
+    "1": {
+      "customer_rows": 1000,
+      "transaction_rows": 10000,
+      "checksums_fixed_hierarchy_patterns_sqlite": "passed",
+      "cobol": "passed"
+    }
+  },
+  "committed_small_bytes": 3269458
+}
