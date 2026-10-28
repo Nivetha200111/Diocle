@@ -587,3 +587,33 @@ main {
   margin-left: auto;
   min-width: 150px;
 }
+
+/* efficiency readouts: LCD cells like the stat cards */
+.eff-grid > div {
+  background: var(--w-face);
+  box-shadow: var(--w-out);
+  padding: 6px 8px;
+}
+.eff-grid dd {
+  background: #000 !important;
+  box-shadow: var(--w-field);
+  padding: 2px 8px;
+  font-family: var(--w-pixel) !important;
+  font-size: 26px !important;
+}
+.eff-grid dd,
+.eff-grid dd * {
+  color: var(--phosphor) !important;
+}
+.eff-projection strong {
+  background: var(--w-navy);
+  color: #fff !important;
+  padding: 0 4px;
+}
+.eff-table tr.selected td {
+  background: var(--w-navy) !important;
+}
+.eff-table tr.selected td,
+.eff-table tr.selected td * {
+  color: #fff !important;
+}

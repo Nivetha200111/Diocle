@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, fetchRun, fetchRuns, type Run, type RunListItem, type Verification } from "@/lib/runs";
+import { API_URL, fetchRun, fetchRuns, type Efficiency, type Run, type RunListItem, type Verification } from "@/lib/runs";
 import { Badge } from "./ui";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
@@ -21,6 +21,83 @@ function StatCard({ label, value, note, tone, icon }: {
       <div className="stat-value">{value}</div>
       <p>{note}</p>
     </div>
+  );
+}
+
+const seconds = (ms: number) => (ms >= 60000 ? `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s` : `${Math.round(ms / 1000)}s`);
+const shortModel = (m: string | null) => (m ? m.split("/").pop()! : "n/a");
+
+function EfficiencyPanel({ e }: { e: Efficiency }) {
+  const perMillion = e.costPer1kLinesUsd === null ? null : e.costPer1kLinesUsd * 1000;
+  const rows: [string, string][] = [
+    ["Model calls", `${e.modelCalls}`],
+    ["Tool steps", `${e.toolSteps}`],
+    ["Patches applied", `${e.patchesApplied}`],
+    ["Prompt cache hit", `${Math.round(e.cacheHitRate * 100)}%`],
+    ["Tokens (in + out)", tokens(e.totalTokens)],
+    ["Model time", seconds(e.modelTimeMs)],
+    ["COBOL lines", `${e.cobolLines}`],
+    ["Cost per 1,000 lines", usd(e.costPer1kLinesUsd)],
+  ];
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Agent efficiency</h2>
+          <p>What this proof cost. Costs are estimates from list prices.</p>
+        </div>
+      </div>
+      <dl className="eff-grid">
+        {rows.map(([k, v]) => (
+          <div key={k}><dt>{k}</dt><dd className="mono">{v}</dd></div>
+        ))}
+      </dl>
+      {perMillion !== null && (
+        <p className="eff-projection">
+          At this rate, 1 million COBOL lines ≈ <strong>{usd(perMillion)}</strong> in model spend
+          (straight-line estimate from this one program).
+        </p>
+      )}
+    </section>
+  );
+}
+
+function EfficiencyTable({ runs, selected, onSelect }: {
+  runs: RunListItem[]; selected: string | null; onSelect: (id: string) => void;
+}) {
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Agent efficiency across runs</h2>
+          <p>Every saved run, oldest first. Click a row to open it.</p>
+        </div>
+      </div>
+      <div className="table-scroll">
+        <table className="data-table eff-table">
+          <thead>
+            <tr><th>Run</th><th>Model</th><th>Result</th><th>Calls</th><th>Steps</th><th>Cache</th>
+              <th>Tokens</th><th>Model time</th><th>Cost</th><th>$ / 1k lines</th></tr>
+          </thead>
+          <tbody>
+            {[...runs].reverse().map((r) => (
+              <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
+                <td className="mono">{r.program} · {r.createdAt?.slice(11, 16)} · {r.command === "run" ? "translate" : "repair"}</td>
+                <td className="mono">{shortModel(r.model)}</td>
+                <td>{r.certified ? "certified" : "not certified"}</td>
+                <td className="mono">{r.efficiency.modelCalls}</td>
+                <td className="mono">{r.efficiency.toolSteps}</td>
+                <td className="mono">{Math.round(r.efficiency.cacheHitRate * 100)}%</td>
+                <td className="mono">{tokens(r.efficiency.totalTokens)}</td>
+                <td className="mono">{seconds(r.efficiency.modelTimeMs)}</td>
+                <td className="mono">{usd(r.efficiency.estimatedCostUsd)}</td>
+                <td className="mono">{usd(r.efficiency.costPer1kLinesUsd)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -68,6 +145,8 @@ function RunDetail({ run }: { run: Run }) {
           value={usd(run.usage.estimatedCostUsd)}
           note={`${tokens(run.usage.inputTokens)} in (${tokens(run.usage.cachedInputTokens)} cached) · ${tokens(run.usage.outputTokens)} out`} />
       </div>
+
+      <EfficiencyPanel e={run.efficiency} />
 
       <div className="runs-grid">
         <section className="panel">
@@ -181,16 +260,7 @@ export default function RunsView() {
   }
   return (
     <>
-      {runs.length > 1 && (
-        <div className="tabs runs-tabs" role="tablist" aria-label="Runs">
-          {runs.map((r) => (
-            <button key={r.id} role="tab" aria-selected={r.id === selected}
-              className={r.id === selected ? "active" : ""} onClick={() => setSelected(r.id)}>
-              {r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.certified ? "certified" : "not certified"}
-            </button>
-          ))}
-        </div>
-      )}
+      <EfficiencyTable runs={runs} selected={selected} onSelect={setSelected} />
       {run ? <RunDetail run={run} /> : <div className="panel runs-empty"><p>Loading run…</p></div>}
     </>
   );
