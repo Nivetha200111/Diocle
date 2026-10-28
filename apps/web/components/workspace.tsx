@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Activity,
   GitPullRequest,
@@ -56,7 +56,12 @@ import DependencyGraph from "./dependency-graph";
 import RunsView from "./runs-view";
 import DeliveryView from "./delivery-view";
 
+// Views backed by real runs and deliveries come first; the rest is the original mock, labelled as such.
+const realViews = ["Delivery", "Live runs"];
+
 const nav = [
+  { name: "Delivery", icon: GitPullRequest },
+  { name: "Live runs", icon: Activity },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Migrations", icon: FolderGit2 },
   { name: "Dependency graph", icon: Network },
@@ -64,8 +69,6 @@ const nav = [
   { name: "Conversions", icon: Braces },
   { name: "Verification", icon: ShieldCheck },
   { name: "Reports", icon: FileText },
-  { name: "Live runs", icon: Activity },
-  { name: "Delivery", icon: GitPullRequest },
 ] as const;
 
 const descriptions: Record<View, string> = {
@@ -682,7 +685,7 @@ function VerificationView({ onReport }: { onReport: () => void }) {
 }
 
 export default function Workspace() {
-  const [view, setView] = useState<View>("Overview");
+  const [view, setView] = useState<View>("Delivery");
   const [migrations, setMigrations] = useState<Migration[]>(initialMigrations);
   const [modal, setModal] = useState<
     "new" | "search" | "activity" | "help" | "profile" | null
@@ -821,7 +824,7 @@ export default function Workspace() {
       >
         <button
           className="brand-button"
-          onClick={() => navigate("Overview")}
+          onClick={() => navigate("Delivery")}
           aria-label="Diocle overview"
         >
           <Brand />
@@ -861,13 +864,14 @@ export default function Workspace() {
             </div>
           )}
         </div>
-        <div className="nav-label">WORKSPACE</div>
+        <div className="nav-label">REAL RUNS</div>
         <nav aria-label="Main navigation">
-          {nav.map((item) => (
+          {nav.map((item, i) => (
+            <Fragment key={item.name}>
+            {i === realViews.length && <div className="nav-label nav-label-mock">PREVIEW · MOCK DATA</div>}
             <button
-              key={item.name}
               onClick={() => navigate(item.name)}
-              className={`nav-item ${view === item.name ? "active" : ""}`}
+              className={`nav-item ${view === item.name ? "active" : ""} ${realViews.includes(item.name) ? "" : "nav-item-mock"}`}
               aria-current={view === item.name ? "page" : undefined}
             >
               <item.icon size={18} />
@@ -881,6 +885,7 @@ export default function Workspace() {
                 <span className="nav-active-dot" />
               )}
             </button>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-bottom">
