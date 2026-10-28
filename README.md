@@ -39,14 +39,15 @@ Sample estate repositories: [quillmark-mainframe](https://github.com/Nivetha2001
 
 ## Measured so far (pilot evidence: synthetic programs, small samples; costs are estimates from list prices)
 
-- Six Quillmark programs (including a packed fixed-length extract and a two-input, two-output match-merge) translated from scratch by Muse Spark and certified under the final verifier for about $0.11 in total, then re-verified by GitHub CI on 6,714 fresh inputs: [quillmark-modern#3](https://github.com/Nivetha200111/quillmark-modern/pull/3). An earlier four-program delivery (#1) predates the IBM TRUNC/DISPLAY settings and is superseded.
+- Six Quillmark programs (including a packed fixed-length extract and a two-input, two-output match-merge) translated from scratch by Muse Spark and certified for about $0.11 in total, then re-verified by GitHub CI on 6,714 fresh inputs: [quillmark-modern#3](https://github.com/Nivetha200111/quillmark-modern/pull/3). An earlier four-program delivery (#1) predates the IBM TRUNC/DISPLAY settings and is superseded.
+- **Correction (Oct 28).** An independent review showed the comparator paired output records with inputs and compared numeric fields by value, so `+00` and `-00` counted as equal. It now compares the whole output sequence byte for byte. Re-checking every certified run found one that should not have passed: the INTACCR in quillmark-modern#3 writes `-000000000` where the COBOL writes `+000000000` on 30 of 1,019 inputs. The INTACCR delivered to [quillmark-java](https://github.com/Nivetha200111/quillmark-java) passes the stricter check, as do the other programs.
 - Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
 - Costs are estimates from list prices.
 
 ## Not supported yet
 - Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, files opened I-O, dynamic CALLs, several record types in one file, OCCURS DEPENDING ON, SYNCHRONIZED, PIC N or leading P scaling are reported as not convertible. Each new shape we found unhandled was added to this list with a test; there may be others.
 - Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, NUMPROC, hex float arithmetic). No real mainframe output has been tested yet.
-- The breaker agent attacks single-file programs only; in about 250 designed attacks on certified programs it has not yet found a defect that the other inputs missed.
+- The breaker agent attacks single-file programs only. In the frozen evaluation it broke CHQCLR after the program had passed 1,000 held-out inputs: two designed records gave a fee of 20.00 vs 0.00 and a debit of -121.23 vs 0.00; the repair agent fixed both and the program re-certified. Both records carry malformed numeric content (a leading space, letters in a numeric field), so this shows agreement with GnuCOBOL's handling of bad data, not proven IBM behaviour.
 
 ## Run
 
