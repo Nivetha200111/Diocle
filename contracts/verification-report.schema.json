@@ -223,6 +223,10 @@
                 "type": "object"
               },
               "description": "Where GnuCOBOL differs from the mainframe; the mainframe is the authority"
+            },
+            "aligned": {
+              "type": "boolean",
+              "description": "False when captured inputs and outputs do not pair one to one; every golden case then fails"
             }
           }
         },
