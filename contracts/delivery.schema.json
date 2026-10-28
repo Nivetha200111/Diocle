@@ -2,48 +2,166 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/delivery.schema.json",
   "title": "Delivery",
-  "description": "v0.1. A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
+  "description": "v0.2 (adds the start request). A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
   "type": "object",
-  "required": ["id", "legacy", "target", "stage", "programs", "startedAt"],
+  "required": [
+    "id",
+    "legacy",
+    "target",
+    "stage",
+    "programs",
+    "startedAt"
+  ],
   "properties": {
-    "id": { "type": "string" },
+    "id": {
+      "type": "string"
+    },
     "legacy": {
       "type": "object",
-      "required": ["repository"],
-      "properties": { "repository": { "type": "string" }, "commit": { "type": ["string", "null"] } }
+      "required": [
+        "repository"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
-    "target": { "type": "string" },
-    "stage": { "type": "string", "enum": ["analyzing", "converting", "delivering", "done", "failed"] },
-    "startedAt": { "type": "string" },
-    "finishedAt": { "type": ["string", "null"] },
-    "error": { "type": ["string", "null"] },
+    "target": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "analyzing",
+        "converting",
+        "delivering",
+        "done",
+        "failed"
+      ]
+    },
+    "startedAt": {
+      "type": "string"
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "programs": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "status"],
+        "required": [
+          "name",
+          "status"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "path": { "type": "string" },
-          "status": { "type": "string", "enum": ["queued", "converting", "certified", "not-certified", "skipped"] },
-          "runId": { "type": ["string", "null"] },
-          "run": { "type": ["object", "null"], "description": "Live summary of the converter run: status, stage, recent events, efficiency so far" }
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "converting",
+              "certified",
+              "not-certified",
+              "skipped"
+            ]
+          },
+          "runId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "run": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Live summary of the converter run: status, stage, recent events, efficiency so far"
+          }
         }
       }
     },
     "pullRequest": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "properties": {
-        "url": { "type": "string" },
+        "url": {
+          "type": "string"
+        },
         "checks": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["name", "state"],
-            "properties": { "name": { "type": "string" }, "state": { "type": "string" }, "link": { "type": "string" } }
+            "required": [
+              "name",
+              "state"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "link": {
+                "type": "string"
+              }
+            }
           }
         }
       }
+    }
+  },
+  "$defs": {
+    "request": {
+      "type": "object",
+      "description": "POST /deliveries body: start a delivery from the dashboard. One runs at a time; repositories must be allowed GitHub owners.",
+      "required": [
+        "legacy",
+        "target"
+      ],
+      "properties": {
+        "legacy": {
+          "type": "string",
+          "description": "https://github.com/<owner>/<repo> to migrate"
+        },
+        "target": {
+          "type": "string",
+          "description": "https://github.com/<owner>/<repo> that receives the pull request"
+        },
+        "parallel": {
+          "type": "boolean",
+          "default": false
+        },
+        "breaker": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

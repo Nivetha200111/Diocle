@@ -72,3 +72,37 @@ def get_delivery(delivery_id: str) -> dict | None:
     if d.get("pullRequest"):
         d["pullRequest"]["checks"] = pr_checks(d["pullRequest"]["url"])
     return d
+
+
+def running_delivery() -> str | None:
+    for item in list_deliveries():
+        if item["stage"] not in ("done", "failed"):
+            return item["id"]
+    return None
+
+
+def start_delivery(legacy: str, target: str, parallel: bool, breaker: bool) -> str:
+    """Start diocle_api.deliver in the background and return its id. One delivery at a time (rule 10)."""
+    import os
+    import re
+    import sys
+    from datetime import datetime
+    from pathlib import Path
+
+    from .deliver import GITHUB_URL, target_repo
+
+    busy = running_delivery()
+    if busy:
+        raise RuntimeError(f"{busy} is still running")
+    for url in (legacy, target):
+        if not GITHUB_URL.match(url.strip()):
+            raise ValueError(f"not a GitHub repository URL: {url!r}")
+    target_repo(target)  # owner allowlist; the analyzer applies the same list to the legacy repo
+    delivery_id = f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    cmd = [sys.executable, "-m", "diocle_api.deliver", legacy.strip(), target.strip(), "--id", delivery_id,
+           *(["--parallel"] if parallel else []), *(["--breaker"] if breaker else [])]
+    log = runs_dir() / "deliveries" / delivery_id / "deliver.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.Popen(cmd, cwd=Path(__file__).resolve().parents[1], stdout=log.open("w"), stderr=subprocess.STDOUT,
+                     env={**os.environ, "PYTHONUNBUFFERED": "1"}, start_new_session=True)
+    return delivery_id

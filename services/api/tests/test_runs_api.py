@@ -125,3 +125,26 @@ def test_dot_ids_are_rejected(client, tmp_path):
     for bad in ("..", ".", ".hidden"):  # checked directly: HTTP clients normalise dot segments before sending
         assert get_delivery(bad) is None and get_run(bad) is None
     assert client.get("/runs/%2E%2E").status_code == 404
+
+
+def test_start_delivery_validates_and_allows_one_at_a_time(client, tmp_path, monkeypatch):
+    import diocle_api.deliveries as d
+    started = []
+    monkeypatch.setattr(d.subprocess, "Popen", lambda cmd, **kw: started.append(cmd))
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "Nivetha200111")
+    bad = client.post("/deliveries", json={"legacy": "https://github.com/x/y", "target": "https://evil.example/repo"})
+    assert bad.status_code == 400 and not started
+    other = client.post("/deliveries", json={"legacy": "https://github.com/Nivetha200111/a",
+                                              "target": "https://github.com/someone-else/b"})
+    assert other.status_code == 400 and not started
+    ok = client.post("/deliveries", json={"legacy": "https://github.com/Nivetha200111/a",
+                                           "target": "https://github.com/Nivetha200111/b", "breaker": True})
+    assert ok.status_code == 202 and ok.json()["id"].startswith("delivery-")
+    assert started[0][-2:] == ["--id", ok.json()["id"]] or "--breaker" in started[0]
+    running = tmp_path / "deliveries" / ok.json()["id"]
+    (running / "delivery.json").write_text(json.dumps({
+        "id": ok.json()["id"], "legacy": {"repository": "a", "commit": None}, "target": "b", "stage": "converting",
+        "startedAt": "2026-10-28T12:30:00+00:00", "finishedAt": None, "programs": [], "pullRequest": None}))
+    busy = client.post("/deliveries", json={"legacy": "https://github.com/Nivetha200111/a",
+                                             "target": "https://github.com/Nivetha200111/b"})
+    assert busy.status_code == 409 and len(started) == 1
