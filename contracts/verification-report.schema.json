@@ -2,39 +2,168 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "DRAFT placeholder. Output of services/verifier (GnuCOBOL differential testing).",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.2: per-case input, input source and field-level diffs; run metadata.",
   "type": "object",
-  "required": ["version", "results", "summary"],
+  "required": [
+    "version",
+    "results",
+    "summary"
+  ],
   "properties": {
-    "version": { "type": "string" },
+    "version": {
+      "type": "string"
+    },
     "results": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["program", "inputId", "match"],
+        "required": [
+          "program",
+          "inputId",
+          "match"
+        ],
         "properties": {
-          "program": { "type": "string" },
-          "inputId": { "type": "string" },
-          "match": { "type": "boolean" },
-          "originalOutput": { "type": "string" },
-          "convertedOutput": { "type": "string" },
-          "diff": { "type": "string" }
+          "program": {
+            "type": "string"
+          },
+          "inputId": {
+            "type": "string"
+          },
+          "match": {
+            "type": "boolean"
+          },
+          "originalOutput": {
+            "type": "string"
+          },
+          "convertedOutput": {
+            "type": "string"
+          },
+          "diff": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string",
+            "description": "The input record used for this case, as fed to both programs."
+          },
+          "inputSource": {
+            "type": "string",
+            "enum": [
+              "boundary",
+              "random",
+              "model",
+              "fixture"
+            ],
+            "description": "How the input was generated."
+          },
+          "fieldDiffs": {
+            "type": "array",
+            "description": "Fields whose values differ between original and converted output.",
+            "items": {
+              "type": "object",
+              "required": [
+                "field",
+                "original",
+                "converted"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "original": {
+                  "type": "string"
+                },
+                "converted": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
       }
     },
     "summary": {
       "type": "object",
-      "required": ["total", "passed", "failed"],
+      "required": [
+        "total",
+        "passed",
+        "failed"
+      ],
       "properties": {
-        "total": { "type": "integer", "minimum": 0 },
-        "passed": { "type": "integer", "minimum": 0 },
-        "failed": { "type": "integer", "minimum": 0 }
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "sonarqube": {
       "type": "object",
       "description": "Optional SonarQube Community results.",
       "additionalProperties": true
+    },
+    "runs": {
+      "type": "object",
+      "description": "How each side was built and run.",
+      "properties": {
+        "original": {
+          "type": "object",
+          "required": [
+            "compiled",
+            "exitCode"
+          ],
+          "properties": {
+            "compiled": {
+              "type": "boolean"
+            },
+            "exitCode": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "stdout": {
+              "type": "string"
+            },
+            "stderr": {
+              "type": "string"
+            }
+          }
+        },
+        "converted": {
+          "type": "object",
+          "required": [
+            "compiled",
+            "exitCode"
+          ],
+          "properties": {
+            "compiled": {
+              "type": "boolean"
+            },
+            "exitCode": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "stdout": {
+              "type": "string"
+            },
+            "stderr": {
+              "type": "string"
+            }
+          }
+        },
+        "stdoutMatch": {
+          "type": "boolean"
+        }
+      }
     }
   }
 }
