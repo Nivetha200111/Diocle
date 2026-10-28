@@ -94,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     verify = _verifier()(program.sample_dir)
     agent = RepairAgent(program, workspace, client, verify, on_event)
     first = verify(workspace.root, 1026, 200)
+    (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
     if report_passes(first) and report_passes(verify(workspace.root, 4243, 1000)):
         print("conversion already passes, including held-out inputs: no repair needed")
         outcome = {"certified": True, "rounds": [], "certificationReport": None}
