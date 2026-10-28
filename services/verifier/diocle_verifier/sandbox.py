@@ -4,8 +4,12 @@ Imported COBOL and model-written Java are code we did not write. On a public dep
 the model key and the GitHub token, so verify_sample() does not build or run anything there: it packs the sample
 and the Java (regular files only) and posts them here (when DIOCLE_SANDBOX_URL is set). The sandbox unpacks them
 into a private in-memory directory, runs the verifier, and answers with the report as JSON. Nothing a program
-writes ever reaches the API's filesystem, and after every job every other process in the container is killed,
-so nothing a program starts survives into the next job.
+writes ever reaches the API's filesystem.
+
+Inside the container the server runs as root with only SETUID, SETGID and KILL; each job runs as an unprivileged
+user (JOB_UID), so a program can neither signal the server nor outlive its job: after every job the server
+kills every process it can see, repeatedly, until none is left, and removes what the job wrote. The report
+comes back on the job's stdout (a pipe), never from a file a program could replace.
 
   python -m diocle_verifier.sandbox            # serve on :8100 (inside the sandbox container)
 """
@@ -16,7 +20,6 @@ import base64
 import io
 import json
 import os
-import shutil
 import signal
 import stat
 import subprocess
@@ -24,6 +27,7 @@ import sys
 import tarfile
 import tempfile
 import threading
+import time
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -32,7 +36,12 @@ from pathlib import Path
 MAX_BUNDLE = 64 * 1024 * 1024  # bytes of sample + Java, packed
 MAX_REPORT = 64 * 1024 * 1024
 JOB_TIMEOUT = 900
+JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
+
+
+class Busy(RuntimeError):
+    pass
 
 
 # --- client side (the API container) -------------------------------------------------------------------------
@@ -61,71 +70,121 @@ def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_cou
     job = {"bundle": base64.b64encode(pack(sample_dir, java_dir)).decode(), "java": java_dir is not None,
            "seed": seed, "randomCount": random_count,
            "extraCases": [{"id": c.id, "source": c.source, "record": c.record} for c in extra_cases or []]}
-    req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/verify",
-                                 data=json.dumps(job).encode(), headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=JOB_TIMEOUT + 60) as resp:
-            return json.loads(resp.read(MAX_REPORT))
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"sandbox: {e.read().decode(errors='replace')[:500]}") from e
+    body = json.dumps(job).encode()
+    # The sandbox runs one job at a time and answers 503 when busy; wait up to DIOCLE_SANDBOX_WAIT seconds.
+    deadline = time.time() + float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800"))
+    while True:
+        req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/verify", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=JOB_TIMEOUT + 60) as resp:
+                return json.loads(resp.read(MAX_REPORT))
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace")[:2000]
+            if e.code != 503:
+                raise RuntimeError(f"sandbox: {detail}") from e
+            if time.time() > deadline:
+                raise Busy("the verification engine is busy; try again in a minute") from e
+            time.sleep(3)
 
 
 # --- server side (the sandbox container) ---------------------------------------------------------------------
 
-def _kill_others() -> None:
-    """SIGKILL every process except this server and the container's init (compose `init: true`)."""
-    if os.environ.get("DIOCLE_IN_SANDBOX") != "1" or not os.path.isdir("/proc"):
-        return  # only inside the sandbox container; never on a developer machine
+def _others() -> list[int]:
     me = os.getpid()
-    for entry in os.listdir("/proc"):
-        if entry.isdigit() and int(entry) not in (1, me):
-            try:
-                os.kill(int(entry), signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
+    return [int(e) for e in os.listdir("/proc") if e.isdigit() and int(e) not in (1, me)]
+
+
+def _in_container() -> bool:
+    return os.environ.get("DIOCLE_IN_SANDBOX") == "1" and os.path.isdir("/proc") and os.geteuid() == 0
+
+
+def _kill_all() -> None:
+    """Kill every process except this server and init, until none is left (a forking program cannot outrun it)."""
+    for _ in range(200):
+        if not _others():
+            return
+        try:
+            os.kill(-1, signal.SIGKILL)  # Linux: every process we may signal, except init and ourselves
+        except ProcessLookupError:
+            pass
+        time.sleep(0.05)
+
+
+def _clean_up() -> None:
+    """After a job: no process and no file of it is left. Only as root inside the sandbox container."""
+    if not _in_container():
+        return  # never on a developer machine
+    _kill_all()
+    # /tmp and /dev/shm are sticky, so the job's files are removed as the job's user.
+    subprocess.run(["find", "/tmp", "/dev/shm", "-mindepth", "1", "-delete"], capture_output=True, timeout=60,
+                   **_job_user())
+    _kill_all()
+
+
+def _job_user() -> dict:
+    """Run jobs as an unprivileged user when the server is root (in the container); as-is elsewhere (tests)."""
+    if os.geteuid() != 0:
+        return {}
+    return {"user": JOB_UID, "group": JOB_UID, "extra_groups": []}
 
 
 def run_job(job: dict) -> dict:
-    with _job_lock:
-        work = Path(tempfile.mkdtemp(prefix="job-"))
+    if not _job_lock.acquire(blocking=False):
+        raise Busy("busy")
+    try:
+        data = base64.b64decode(job["bundle"], validate=True)
+        if len(data) > MAX_BUNDLE:
+            raise ValueError("bundle too large")
+        params = {"seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
+                  "java": bool(job.get("java")), "extraCases": job.get("extraCases") or [],
+                  "bundle": job["bundle"]}
+        proc = subprocess.Popen([sys.executable, "-m", "diocle_verifier.sandbox", "--job"], stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=_job_env(),
+                                start_new_session=True, cwd="/", **_job_user())
+        timer = threading.Timer(JOB_TIMEOUT, lambda: _kill_all() if _in_container() else proc.kill())
+        timer.start()
         try:
-            data = base64.b64decode(job["bundle"], validate=True)
-            if len(data) > MAX_BUNDLE:
-                raise ValueError("bundle too large")
-            with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
-                tar.extractall(work, filter="data")  # no absolute paths, no "..", no links out of work
-            params = {"seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
-                      "java": bool(job.get("java")), "extraCases": job.get("extraCases") or []}
-            (work / "job.json").write_text(json.dumps(params))
-            proc = subprocess.run([sys.executable, "-m", "diocle_verifier.sandbox", "--job", str(work)],
-                                  capture_output=True, text=True, timeout=JOB_TIMEOUT, start_new_session=True,
-                                  env=_job_env())
-            report = work / "report.json"
-            fd = os.open(report, os.O_RDONLY | os.O_NOFOLLOW) if report.exists() else None
-            if fd is None or proc.returncode != 0:
-                raise RuntimeError(f"verifier failed: {(proc.stderr or proc.stdout)[-800:]}")
-            with os.fdopen(fd, "rb") as f:
-                return json.loads(f.read(MAX_REPORT))
+            proc.stdin.write(json.dumps(params).encode())
+            proc.stdin.close()
+            err = []
+            threading.Thread(target=lambda: err.append(proc.stderr.read(64 * 1024)), daemon=True).start()
+            out = proc.stdout.read(MAX_REPORT + 1)
+            proc.wait()
         finally:
-            _kill_others()
-            shutil.rmtree(work, ignore_errors=True)
+            timer.cancel()
+        if proc.returncode != 0 or len(out) > MAX_REPORT:
+            tail = (err[0] if err else b"").decode(errors="replace")[-1500:]
+            raise RuntimeError(f"verifier failed (exit {proc.returncode}): {tail}")
+        return json.loads(out)
+    finally:
+        _clean_up()
+        _job_lock.release()
 
 
 def _job_env() -> dict[str, str]:
     """The job runs the verifier locally: marked as inside the sandbox, never forwarding again."""
-    env = {k: v for k, v in os.environ.items() if k != "DIOCLE_SANDBOX_URL"}
-    return {**env, "DIOCLE_IN_SANDBOX": "1"}
+    keep = ("PATH", "LANG", "LC_ALL", "JAVA_HOME", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "PYTHONPATH")
+    env = {k: v for k, v in os.environ.items() if k in keep}
+    package_root = str(Path(__file__).resolve().parents[1])  # the job starts in "/", so name the package's home
+    return {**env, "DIOCLE_IN_SANDBOX": "1", "HOME": "/tmp", "TMPDIR": tempfile.gettempdir(),
+            "PYTHONUNBUFFERED": "1", "PYTHONPATH": package_root}
 
 
-def _job_main(work: Path) -> int:
+def _job_main() -> int:
+    """Child: read the job on stdin, verify in a private directory, print the report on stdout."""
     from .inputs import Case
     from .verify import verify_sample
 
-    params = json.loads((work / "job.json").read_text())
-    cases = [Case(c["id"], c["source"], c["record"]) for c in params["extraCases"]]
-    report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
-                           random_count=params["randomCount"], extra_cases=cases or None)
-    (work / "report.json").write_text(json.dumps(report))
+    params = json.loads(sys.stdin.buffer.read())
+    with tempfile.TemporaryDirectory(prefix="job-") as tmp:
+        work = Path(tmp)
+        with tarfile.open(fileobj=io.BytesIO(base64.b64decode(params["bundle"], validate=True)), mode="r:gz") as tar:
+            tar.extractall(work, filter="data")  # no absolute paths, no "..", no links out of work
+        cases = [Case(c["id"], c["source"], c["record"]) for c in params["extraCases"]]
+        report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
+                               random_count=params["randomCount"], extra_cases=cases or None)
+    sys.stdout.write(json.dumps(report))
     return 0
 
 
@@ -139,8 +198,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             job = json.loads(self.rfile.read(length))
             self._send(200, run_job(job))
-        except subprocess.TimeoutExpired:
-            self._send(504, {"error": f"verification took longer than {JOB_TIMEOUT}s"})
+        except Busy:
+            self._send(503, {"error": "busy"})
         except (ValueError, KeyError, TypeError, tarfile.TarError, RuntimeError) as e:
             self._send(400, {"error": str(e)[:800]})
 
@@ -159,7 +218,7 @@ class Handler(BaseHTTPRequestHandler):
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["--job"]:
-        return _job_main(Path(argv[1]))
+        return _job_main()
     os.environ["DIOCLE_IN_SANDBOX"] = "1"  # the verifier runs here; never forward again
     os.environ.pop("DIOCLE_SANDBOX_URL", None)
     ThreadingHTTPServer(("0.0.0.0", int(os.environ.get("DIOCLE_SANDBOX_PORT", "8100"))), Handler).serve_forever()
