@@ -123,6 +123,7 @@ def list_runs() -> list[dict]:
             "createdAt": _created_at(path.name), "rounds": len(run.get("rounds", [])),
             "calls": usage.get("calls", 0), "estimatedCostUsd": usage.get("estimatedCostUsd"),
             "model": calls[0]["model"] if calls else None, "efficiency": _efficiency(run, _events(path)),
+            "memory": run.get("memory"),
         })
     return items
 
@@ -155,4 +156,5 @@ def get_run(run_id: str) -> dict | None:
         "model": calls[0]["model"] if calls else None,
         "javaDiff": _java_diff(run, path),
         "efficiency": _efficiency(run, events),
+        "memory": run.get("memory"),
     }
