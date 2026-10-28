@@ -35,7 +35,7 @@ from pathlib import Path
 
 MAX_BUNDLE = 64 * 1024 * 1024  # bytes of sample + Java, packed
 MAX_REPORT = 64 * 1024 * 1024
-JOB_TIMEOUT = 900
+JOB_TIMEOUT = 300  # real jobs take seconds; a stuck or hostile job holds the sandbox at most this long
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
 
