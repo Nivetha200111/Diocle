@@ -1,0 +1,9 @@
+{
+  "id": "interest-accrual-20261028-163318",
+  "model": "accounts/fireworks/models/muse-spark-open",
+  "certified": true,
+  "calls": 7,
+  "costUsd": 0.055253,
+  "program": "INTACCR",
+  "note": "Oct 28, before the IBM TRUNC/DISPLAY oracle update"
+}
