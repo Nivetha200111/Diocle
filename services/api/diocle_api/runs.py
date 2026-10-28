@@ -38,6 +38,10 @@ def _verification(path: Path, limit: int = 8) -> dict | None:
     }
 
 
+def _status(run: dict) -> str:
+    return run.get("status") or ("certified" if run["certified"] else "not-certified")
+
+
 def _sample_dir(run: dict) -> Path:
     if run.get("sample"):
         return REPO_ROOT / run["sample"]
@@ -115,11 +119,15 @@ def list_runs() -> list[dict]:
         meta = path / "run.json"
         if not meta.exists():
             continue
-        run = json.loads(meta.read_text()) | {"_id": path.name}
+        try:
+            run = json.loads(meta.read_text()) | {"_id": path.name}
+        except json.JSONDecodeError:
+            continue  # being written
         usage = run.get("usage", {})
         calls = usage.get("modelCalls", [])
         items.append({
             "id": path.name, "program": run["program"], "command": run["command"], "certified": run["certified"],
+            "status": _status(run),
             "createdAt": _created_at(path.name), "rounds": len(run.get("rounds", [])),
             "calls": usage.get("calls", 0), "estimatedCostUsd": usage.get("estimatedCostUsd"),
             "model": calls[0]["model"] if calls else None, "efficiency": _efficiency(run, _events(path)),
@@ -147,6 +155,7 @@ def get_run(run_id: str) -> dict | None:
         "command": run["command"],
         "createdAt": _created_at(run_id),
         "certified": run["certified"],
+        "status": _status(run),
         "javaOrigin": origin,
         "rounds": run.get("rounds", []),
         "events": events,

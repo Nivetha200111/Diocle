@@ -7,7 +7,8 @@ from fastapi.testclient import TestClient
 
 from diocle_api.app import app
 
-CONTRACT = json.loads((Path(__file__).resolve().parents[3] / "contracts" / "run.schema.json").read_text())
+CONTRACT_DIR = Path(__file__).resolve().parents[3] / "contracts"
+CONTRACT = json.loads((CONTRACT_DIR / "run.schema.json").read_text())
 
 
 def _report(passed: int, total: int) -> dict:
@@ -79,3 +80,27 @@ def test_efficiency(client):
     assert client.get("/runs").json()[0]["efficiency"] == eff
     run = client.get("/runs/demo-20261028-124509").json()
     assert run["memory"]["used"] == 2 and run["memory"]["lessons"][0]["java"] == "HALF_UP"
+
+
+def test_running_run_and_delivery_progress(client, tmp_path, monkeypatch):
+    live = tmp_path / "live-20261028-180000"
+    live.mkdir()
+    (live / "run.json").write_text(json.dumps({"program": "LIVE", "command": "run", "status": "running", "certified": False,
+                                               "rounds": [], "usage": {"calls": 1, "inputTokens": 5, "outputTokens": 1}}))
+    (live / "events.jsonl").write_text(json.dumps({"type": "stage", "stage": "repairing", "message": "m"}) + "\n")
+    delivery = tmp_path / "deliveries" / "delivery-20261028-180000"
+    delivery.mkdir(parents=True)
+    (delivery / "delivery.json").write_text(json.dumps({
+        "id": "delivery-20261028-180000", "legacy": {"repository": "https://github.com/o/legacy", "commit": "abc"},
+        "target": "https://github.com/o/modern", "stage": "converting", "startedAt": "2026-10-28T12:30:00+00:00",
+        "finishedAt": None, "error": None, "pullRequest": None,
+        "programs": [{"name": "LIVE", "status": "converting", "runId": "live-20261028-180000"},
+                     {"name": "NEXT", "status": "queued", "runId": None}]}))
+    run = client.get("/runs/live-20261028-180000").json()
+    jsonschema.validate(run, CONTRACT)
+    assert run["status"] == "running" and run["after"] is None
+    d = client.get("/deliveries/delivery-20261028-180000").json()
+    jsonschema.validate(d, json.loads((CONTRACT_DIR / "delivery.schema.json").read_text()))
+    assert d["programs"][0]["run"]["stage"] == "repairing" and d["programs"][1]["run"] is None
+    assert client.get("/deliveries").json()[0]["programs"] == 2
+    assert client.get("/deliveries/..%2Fx").status_code == 404

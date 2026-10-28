@@ -7,6 +7,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .deliveries import get_delivery, list_deliveries
 from .runs import get_run, list_runs
 
 app = FastAPI(title="Diocle API", version="0.1.0")
@@ -33,4 +34,17 @@ def run(run_id: str) -> dict:
     result = get_run(run_id)
     if result is None:
         raise HTTPException(status_code=404, detail="run not found")
+    return result
+
+
+@app.get("/deliveries")
+def deliveries() -> list[dict]:
+    return list_deliveries()
+
+
+@app.get("/deliveries/{delivery_id}")
+def delivery(delivery_id: str) -> dict:
+    result = get_delivery(delivery_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="delivery not found")
     return result
