@@ -1621,7 +1621,7 @@ export default function Workspace() {
             </span>
             <span>
               <span className="footer-status" />
-              Fictional bank, synthetic programs and data<span className="divider-dot">·</span>
+              Sample estate: fictional bank, synthetic data<span className="divider-dot">·</span>
               <a href={LINKS.certified} target="_blank" rel="noreferrer">what “certified” means</a>
             </span>
             <span>

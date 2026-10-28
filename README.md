@@ -35,7 +35,7 @@ GitHub repo link ─► analyze ─► Muse Spark translates ─► repair agent
 | `apps/web` | Dashboard: **Live runs** and **Delivery** show real data (agent trace, before/after, cost, CI status). Other views are a labelled mock. |
 | `samples/` | Six synthetic programs with naive Java ports: INTACCR, TXNPOST, FEESCHD, DAYCTRL (display records), PKDPOST (packed, fixed-length, with a golden set) and ACCTMTCH (match-merge, two inputs, two outputs). |
 
-Demo repositories: [quillmark-legacy](https://github.com/Nivetha200111/quillmark-legacy) (COBOL in) and [quillmark-modern](https://github.com/Nivetha200111/quillmark-modern) (certified Java out, with re-verifying CI).
+Sample estate repositories: [quillmark-mainframe](https://github.com/Nivetha200111/quillmark-mainframe) (a z/OS library export) → [quillmark-java](https://github.com/Nivetha200111/quillmark-java) (certified Java, re-verifying CI); and [quillmark-legacy](https://github.com/Nivetha200111/quillmark-legacy) (COBOL in) and [quillmark-modern](https://github.com/Nivetha200111/quillmark-modern) (certified Java out, with re-verifying CI).
 
 ## Measured so far (pilot evidence: synthetic programs, small samples; costs are estimates from list prices)
 

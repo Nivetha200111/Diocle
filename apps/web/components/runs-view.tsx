@@ -193,7 +193,7 @@ function RunDetail({ run }: { run: Run }) {
         <div>
           <div className="runs-badges">
             <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>
-            <Badge tone="blue" dot={false}>Real run · not a mock</Badge>
+            
           </div>
           <h2>{run.program} · {run.command === "repair"
             ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
