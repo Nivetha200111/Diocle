@@ -1,0 +1,128 @@
+{
+  "name": "packed-posting",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): posting from a packed, fixed-length account extract (COMP-3, COMP, COMP-5, overpunch, P scaling).",
+  "program": "PKDPOST",
+  "source": "src/PKDPOST.cbl",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "PKIN",
+    "output": "PKOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "PkdPost",
+    "origin": "hand-written naive fixture, not model output"
+  },
+  "layoutsNote": "Derived from copybooks/PKACCT.cpy and copybooks/PKOUT.cpy by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "PK-REC",
+      "fields": [
+        {
+          "name": "PK-ACCT",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "PK-BAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        },
+        {
+          "name": "PK-RATE",
+          "kind": "numeric",
+          "digits": 1,
+          "scale": 4,
+          "signed": false,
+          "usage": "packed"
+        },
+        {
+          "name": "PK-DAYS",
+          "kind": "numeric",
+          "digits": 4,
+          "scale": 0,
+          "signed": true,
+          "usage": "binary"
+        },
+        {
+          "name": "PK-ADJ",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "trailing"
+        },
+        {
+          "name": "PK-LIMIT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": -2,
+          "signed": false
+        },
+        {
+          "name": "PK-ITEMS",
+          "kind": "numeric",
+          "digits": 4,
+          "scale": 0,
+          "signed": true,
+          "usage": "binary-native"
+        }
+      ],
+      "format": "fixed"
+    },
+    "output": {
+      "record": "PO-REC",
+      "fields": [
+        {
+          "name": "PO-ACCT",
+          "kind": "alnum",
+          "length": 10
+        },
+        {
+          "name": "PO-INT",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        },
+        {
+          "name": "PO-NEW-BAL",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 2,
+          "signed": true,
+          "usage": "packed"
+        },
+        {
+          "name": "PO-HEADROOM",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "trailing-separate"
+        },
+        {
+          "name": "PO-ITEM-UNITS",
+          "kind": "numeric",
+          "digits": 9,
+          "scale": 0,
+          "signed": true,
+          "usage": "binary"
+        },
+        {
+          "name": "PO-REVERSAL",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "trailing"
+        }
+      ],
+      "format": "fixed"
+    }
+  }
+}
