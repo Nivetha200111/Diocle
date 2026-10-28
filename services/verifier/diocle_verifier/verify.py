@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from . import REPORT_VERSION
+from .codec import convert_file
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
@@ -29,7 +30,9 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
     java_dir = (java_dir or sample_dir / meta["javaConversion"]["dir"]).resolve()
 
     fixtures = [Case(f"fixture-{c['id']}", "fixture", c["record"]) for c in meta.get("fixtureCases", [])]
-    cases = fixtures + list(extra_cases or []) + generate_cases(in_fields, seed=seed, random_count=random_count)
+    golden_cases, golden_expected, golden_meta = _golden(sample_dir, meta, in_fields, out_fields)
+    cases = (fixtures + golden_cases + list(extra_cases or [])
+             + generate_cases(in_fields, seed=seed, random_count=random_count))
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
         input_path = work / "input.dat"
@@ -41,9 +44,12 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
         converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, work, out_format,
                              collation)
 
-    results = []
+    results, golden_report = [], None
     if original.compiled and converted.compiled:
         results = compare(cases, original.output_lines, converted.output_lines, out_fields)
+        if golden_cases:
+            results, golden_report = _replay_golden(results, cases, golden_cases, golden_expected, original, converted,
+                                                    out_fields, golden_meta)
         for r in results:
             r["program"] = meta["program"]
     passed = sum(r["match"] for r in results)
@@ -58,8 +64,43 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
             "exitCodeMatch": original.compiled and converted.compiled and original.exit_code == converted.exit_code,
             "clock": CLOCK,
             "collation": meta.get("collation", "ascii"),
+            "golden": golden_report,
         },
     }
+
+
+def _golden(sample_dir: Path, meta: dict, in_fields, out_fields):
+    """Captured mainframe files (EBCDIC, fixed length), converted field by field to what GnuCOBOL reads and writes."""
+    spec = meta.get("golden")
+    if not spec:
+        return [], [], None
+    folder = sample_dir / spec.get("dir", "golden")
+    codepage = spec.get("codepage", "cp037")
+    inputs = convert_file((folder / spec["input"]).read_bytes(), in_fields, record_length(in_fields), codepage=codepage)
+    expected = convert_file((folder / spec["expected"]).read_bytes(), out_fields, record_length(out_fields),
+                            codepage=codepage)
+    cases = [Case(f"golden-{i + 1:04d}", "golden", r.decode("latin-1")) for i, r in enumerate(inputs)]
+    return cases, [r.decode("latin-1") for r in expected], spec
+
+
+def _replay_golden(results, cases, golden_cases, expected, original, converted, out_fields, spec):
+    """On golden inputs the mainframe's captured output is the oracle; also report whether GnuCOBOL agreed with it."""
+    first = cases.index(golden_cases[0])
+    agreement, disagreements = 0, []
+    for k, case in enumerate(golden_cases):
+        i = first + k
+        if k >= len(expected):
+            break
+        [vs_mainframe] = compare([case], [expected[k]], converted.output_lines[i : i + 1], out_fields)
+        results[i] = {**vs_mainframe, "oracle": "mainframe"}
+        [oracle_check] = compare([case], [expected[k]], original.output_lines[i : i + 1], out_fields)
+        if oracle_check["match"]:
+            agreement += 1
+        else:
+            disagreements.append({"inputId": case.id, "diff": oracle_check.get("diff", "")})
+    report = {"cases": len(golden_cases), "codepage": spec.get("codepage", "cp037"), "source": spec.get("source", ""),
+              "oracleAgreement": agreement, "oracleDisagreements": disagreements[:10]}
+    return results, report
 
 
 def passes(report: dict) -> bool:

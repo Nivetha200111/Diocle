@@ -124,5 +124,12 @@
       ],
       "format": "fixed"
     }
+  },
+  "golden": {
+    "dir": "golden",
+    "input": "input.ebcdic",
+    "expected": "expected.ebcdic",
+    "codepage": "cp037",
+    "source": "SYNTHETIC demo set: see golden/README.md. A real migration replaces both files with captures from the mainframe run."
   }
 }
