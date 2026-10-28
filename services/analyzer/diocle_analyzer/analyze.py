@@ -47,6 +47,8 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
         step = next((s for s in steps if s.program == info.name), None)
         files = []
         for file_name, dd in info.selects.items():
+            if file_name in info.sort_files:
+                continue  # SD sort work file
             member = info.fd_copybooks.get(file_name)
             if member in copybooks:
                 copybook_text = apply_replacing(copybooks[member].read_text(errors="replace"),
@@ -112,8 +114,11 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
         return f"keyed file(s) {', '.join(keyed)} are not supported yet"
     inputs = [f for f in files if f["direction"] == "input"]
     outputs = [f for f in files if f["direction"] == "output"]
-    if len(inputs) != 1 or len(outputs) != 1:
-        return f"needs exactly one input and one output file (found {len(inputs)} and {len(outputs)})"
+    other = [f["dd"] for f in files if f["direction"] not in ("input", "output")]
+    if other:
+        return f"file(s) {', '.join(other)} are opened I-O or never opened; update-in-place is not supported yet"
+    if not outputs:
+        return "writes no output file to compare"
     for f in inputs + outputs:
         if f["layout"] is None:
             return f"{f['dd']}: {f.get('unsupported') or 'record layout not found'}"
@@ -130,6 +135,26 @@ def main_class(program: str) -> str:
     return "".join(part.capitalize() for part in program.split("-"))
 
 
+def shared_keys(inputs: list[dict]) -> dict:
+    """Key fields that link input files: alphanumeric, same length, same name after the record prefix
+    (MS-ACCT-ID and TX-ACCT-ID). Each file is assumed sorted by its first shared key, as sequential
+    match-merge programs require."""
+    by_suffix: dict[tuple[str, int], list[list[str]]] = {}
+    for f in inputs:
+        for field in f["layout"]["fields"]:
+            if field["kind"] == "alnum" and "-" in field["name"] and not field.get("redefines"):
+                suffix = field["name"].split("-", 1)[1]
+                by_suffix.setdefault((suffix, field["length"]), []).append([f["dd"], field["name"]])
+    groups = [g for g in by_suffix.values() if len({dd for dd, _ in g}) >= 2]
+    if not groups:
+        return {}
+    sorted_by = {}
+    for g in groups:
+        for dd, name in g:
+            sorted_by.setdefault(dd, name)
+    return {"sharedKeys": groups, "sortedBy": sorted_by}
+
+
 def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path:
     """Materialize one convertible program as a Diocle sample directory (the converter's input format)."""
     root = root.resolve()
@@ -143,6 +168,9 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
     for member in program["copybooks"]:
         found = next(p for p in _files(root, COPYBOOK_SUFFIXES) if p.stem.upper() == member)
         shutil.copy2(found, sample / "copybooks" / found.name)
+    inputs = [f for f in program["files"] if f["direction"] == "input"]
+    outputs = [f for f in program["files"] if f["direction"] == "output"]
+    single = len(inputs) == 1 and len(outputs) == 1
     by_direction = {f["direction"]: f for f in program["files"]}
     meta = {
         "name": program["name"].lower(),
@@ -153,11 +181,13 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
         "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
         "collation": "ebcdic",  # mainframe source: alphanumeric comparisons and sorts follow EBCDIC order
         "copybookDir": "copybooks",
-        "dd": {"input": by_direction["input"]["dd"], "output": by_direction["output"]["dd"]},
+        **({"dd": {"input": by_direction["input"]["dd"], "output": by_direction["output"]["dd"]}} if single else {}),
         "javaConversion": {"dir": "java-conversion", "mainClass": main_class(program["name"]),
                            "origin": "none yet: translate with the converter's run command"},
         "layoutsNote": "Derived from the copybooks by services/analyzer.",
-        "layouts": {"input": by_direction["input"]["layout"], "output": by_direction["output"]["layout"]},
+        **({"layouts": {"input": by_direction["input"]["layout"], "output": by_direction["output"]["layout"]}} if single
+           else {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]} for f in inputs + outputs],
+                 **shared_keys(inputs)}),
         "import": {"repository": report["source"]["location"], "commit": report["source"].get("commit"),
                    "path": program["path"], "job": program.get("job")},
     }

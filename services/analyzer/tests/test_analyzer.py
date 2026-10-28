@@ -163,3 +163,24 @@ def test_open_direction_is_not_overwritten_by_later_statements():
         "           SELECT B-F ASSIGN TO BOUT.", "       PROCEDURE DIVISION.", "           OPEN INPUT A-F",
         "           OPEN OUTPUT B-F", "           PERFORM X", "           CLOSE A-F B-F", "           STOP RUN."])
     assert parse_program(code).directions == {"A-F": "input", "B-F": "output"}
+
+
+def test_sort_using_giving_and_io_files():
+    from diocle_analyzer.cobol import parse_program
+    code = "\n".join([
+        "       IDENTIFICATION DIVISION.", "       PROGRAM-ID. SRT.", "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.", "       FILE-CONTROL.", "           SELECT IN-F ASSIGN TO SRTIN.",
+        "           SELECT OUT-F ASSIGN TO SRTOUT.", "           SELECT WRK-F ASSIGN TO SORTWK.",
+        "       DATA DIVISION.", "       FILE SECTION.", "       SD  WRK-F.", "       01  WRK-REC PIC X(10).",
+        "       PROCEDURE DIVISION.", "           SORT WRK-F ON ASCENDING KEY WRK-REC",
+        "               USING IN-F GIVING OUT-F", "           STOP RUN."])
+    info = parse_program(code)
+    assert info.directions == {"IN-F": "input", "OUT-F": "output"} and info.sort_files == {"WRK-F"}
+
+
+def test_multi_file_programs_get_shared_sorted_keys():
+    [p] = analyze(SAMPLES / "account-match")["programs"]
+    assert p["convertible"] and sorted(f["direction"] for f in p["files"]) == ["input", "input", "output", "output"]
+    from diocle_analyzer.analyze import shared_keys
+    keys = shared_keys([f for f in p["files"] if f["direction"] == "input"])
+    assert keys["sharedKeys"] == [[["MSTIN", "MS-ACCT-ID"], ["TXNIN", "TX-ACCT-ID"]]]
