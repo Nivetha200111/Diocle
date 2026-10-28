@@ -32,7 +32,7 @@ def _response_format(main_class: str) -> dict:
 
 def translate(program: Program, client: ModelClient, workspace: Workspace) -> dict:
     messages = [
-        {"role": "system", "content": TRANSLATOR.format(**program.dd, main_class=program.main_class)},
+        {"role": "system", "content": TRANSLATOR.format(io=program.io_text(), main_class=program.main_class)},
         {"role": "user", "content": program.as_text()},
     ]
     choice = client.chat(role="translator", round=0, messages=messages, response_format=_response_format(program.main_class))

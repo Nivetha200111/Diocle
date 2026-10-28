@@ -289,3 +289,11 @@ def test_a_crashed_run_is_marked_not_certified(tmp_path, monkeypatch):
     assert run["status"] == "not-certified" and "translator exploded" in run["error"]
     last = json.loads((run_json.parent / "events.jsonl").read_text().splitlines()[-1])
     assert last["message"].startswith("run failed: RuntimeError")
+
+
+def test_translator_is_told_every_file_of_a_multi_file_program(tmp_path):
+    answer = json.dumps({"mainClass": "Acctmtch", "javaSource": "public class Acctmtch {}", "notes": "n"})
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=answer)])
+    translate(Program.load(SAMPLE.parent / "account-match"), ModelClient(settings(), _sdk=sdk), Workspace(tmp_path / "j"))
+    system = sdk.requests[0]["messages"][0]["content"]
+    assert "DD_MSTIN, DD_TXNIN" in system and "DD_NEWMST, DD_EXCOUT" in system
