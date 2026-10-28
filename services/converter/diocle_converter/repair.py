@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from .client import BudgetExceeded, ModelClient
+from .memory import LESSON_SCHEMA, clean_lessons
 from .prompts import REPAIR
 from .sources import Program
 from .workspace import Workspace
@@ -41,7 +42,8 @@ TOOLS = [
         },
     ),
     _tool("compile_java", "Compile the workspace with javac; returns errors if any."),
-    _tool("finish", "End this round and request certification.", {"summary": {"type": "string"}}),
+    _tool("finish", "End this round and request certification.",
+          {"summary": {"type": "string"}, "lessons": LESSON_SCHEMA}),
 ]
 
 
@@ -83,7 +85,9 @@ class RepairAgent:
     client: ModelClient
     verify: Verify
     on_event: Callable[[dict], None] = lambda event: None
+    hints: str = ""  # rendered fix memory from earlier certified runs
     rounds: list[dict] = field(default_factory=list)
+    lessons: list[dict] = field(default_factory=list)  # from the latest finish call
 
     def _execute(self, name: str, args: dict) -> str:
         if name == "run_differential_test":
@@ -108,7 +112,8 @@ class RepairAgent:
         java = "\n".join(f"=== {f} ===\n{self.workspace.read(f)}" for f in self.workspace.list_files())
         messages = [
             {"role": "system", "content": REPAIR},
-            {"role": "user", "content": f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
+            {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
+             + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
              f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{summarize_report(initial)}"},
         ]
         certification = None
@@ -124,8 +129,9 @@ class RepairAgent:
                 break
             messages.append({"role": "user", "content": "Certification on held-out inputs failed:\n"
                              f"{summarize_report(certification)}\nContinue fixing."})
-        return {"certified": bool(certification and report_passes(certification)), "rounds": self.rounds,
-                "certificationReport": certification}
+        certified = bool(certification and report_passes(certification))
+        return {"certified": certified, "rounds": self.rounds, "certificationReport": certification,
+                "lessons": self.lessons if certified else []}
 
     def _round(self, round_no: int, messages: list[dict]) -> bool:
         for step in range(1, self.client.settings.max_calls_per_round + 1):
@@ -145,6 +151,8 @@ class RepairAgent:
                 try:
                     args = json.loads(call.function.arguments or "{}")
                     result = "round finished" if name == "finish" else self._execute(name, args)
+                    if name == "finish":
+                        self.lessons = clean_lessons(args.get("lessons"))
                 except Exception as e:  # tool errors go back to the model, not up the stack
                     args, result = {}, f"error: {e}"
                 messages.append({"role": "tool", "tool_call_id": call.id, "content": result})

@@ -3,6 +3,9 @@
   python -m diocle_converter smoke                       one tiny model call to check the key and endpoint
   python -m diocle_converter repair SAMPLE [--java-dir]  verify an existing conversion and repair it (bring your own)
   python -m diocle_converter run SAMPLE                  translate with the Meta model, then verify and repair
+
+repair and run read fix memory (runs/memory.json) and add to it when held-out certification passes.
+Pass --no-memory for a baseline run that neither reads nor writes it.
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from pathlib import Path
 
 from .client import ModelClient
 from .config import REPO_ROOT, Settings
+from .memory import Memory, render
 from .repair import RepairAgent, report_passes
 from .sources import Program
 from .translate import translate
@@ -57,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("repair", "run"):
         p = sub.add_parser(name)
         p.add_argument("sample_dir", type=Path)
+        p.add_argument("--no-memory", action="store_true", help="baseline: do not read or write fix memory")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
     args = parser.parse_args(argv)
@@ -91,16 +96,21 @@ def main(argv: list[str] | None = None) -> int:
         translation = translate(program, client, workspace)
         print(f"wrote {translation['file']}; translator notes: {translation['notes'][:400]}")
 
+    memory = None if args.no_memory else Memory(REPO_ROOT / "runs" / "memory.json")
+    known = memory.load() if memory else []
+    if known:
+        on_event({"type": "memory", "message": f"Loaded {len(known)} lessons from earlier certified repairs"})
     verify = _verifier()(program.sample_dir)
-    agent = RepairAgent(program, workspace, client, verify, on_event)
+    agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known))
     first = verify(workspace.root, 1026, 200)
     (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
     if report_passes(first) and report_passes(verify(workspace.root, 4243, 1000)):
         print("conversion already passes, including held-out inputs: no repair needed")
-        outcome = {"certified": True, "rounds": [], "certificationReport": None}
+        outcome = {"certified": True, "rounds": [], "certificationReport": None, "lessons": []}
     else:
         outcome = agent.run()
 
+    learned = memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name) if memory and outcome["certified"] else 0
     usage = client.usage_summary()
     origin = (f"copied from {source.relative_to(REPO_ROOT)}" if translation is None
               else f"translated by {settings.model}")
@@ -118,9 +128,12 @@ def main(argv: list[str] | None = None) -> int:
         "program": program.name, "command": args.command,
         "sample": str(program.sample_dir.resolve().relative_to(REPO_ROOT)), "javaOrigin": origin, "translation": translation,
         "certified": outcome["certified"], "rounds": outcome["rounds"], "usage": usage,
+        "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
     }, indent=2) + "\n")
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
           f"{usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / {usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")
+    if memory:
+        print(f"fix memory: used {len(known)} lessons, learned {learned} new")
     print(f"run saved to {run_dir.relative_to(REPO_ROOT)}")
     return 0 if outcome["certified"] else 1
 
