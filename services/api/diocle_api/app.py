@@ -19,7 +19,7 @@ from .runs import get_run, list_runs
 app = FastAPI(title="Diocle API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("DIOCLE_WEB_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001").split(","),
+    allow_origins=os.environ.get("DIOCLE_WEB_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002").split(","),
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-Diocle-Admin"],
 )
