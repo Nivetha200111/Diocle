@@ -81,9 +81,25 @@ def main(argv: list[str] | None = None) -> int:
     run_dir = REPO_ROOT / "runs" / f"{args.sample_dir.resolve().name}-{time.strftime('%Y%m%d-%H%M%S')}"
     events: list[dict] = []
 
+    run_dir.mkdir(parents=True)
+    base = {"program": program.name, "command": args.command,
+            "sample": str(program.sample_dir.resolve().relative_to(REPO_ROOT))}
+
+    def save_live() -> None:  # lets the API show a run while it is still in progress
+        tmp = run_dir / "run.json.tmp"
+        tmp.write_text(json.dumps({**base, "status": "running", "certified": False, "rounds": [],
+                                   "usage": client.usage_summary()}, indent=2) + "\n")
+        tmp.replace(run_dir / "run.json")
+
     def on_event(event: dict) -> None:
         events.append(event)
+        with (run_dir / "events.jsonl").open("a") as f:
+            f.write(json.dumps(event) + "\n")
+        save_live()
         _print_event(event)
+
+    save_live()
+    print(f"run started runs/{run_dir.name}", flush=True)
 
     if args.command == "repair":
         meta = json.loads((program.sample_dir / "sample.json").read_text())
@@ -92,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         translation = None
     else:
         workspace = Workspace(run_dir / "java")
-        print("translating with the Meta model...")
+        on_event({"type": "stage", "stage": "translating", "message": f"Translating {program.name} with {settings.model}"})
         translation = translate(program, client, workspace)
         print(f"wrote {translation['file']}; translator notes: {translation['notes'][:400]}")
 
@@ -102,8 +118,12 @@ def main(argv: list[str] | None = None) -> int:
         on_event({"type": "memory", "message": f"Loaded {len(known)} lessons from earlier certified repairs"})
     verify = _verifier()(program.sample_dir)
     agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known))
+    on_event({"type": "stage", "stage": "verifying", "message": "Running GnuCOBOL and the Java on the same inputs"})
     first = verify(workspace.root, 1026, 200)
     (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
+    s0 = first["summary"]
+    on_event({"type": "stage", "stage": "repairing",
+              "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
     if report_passes(first) and report_passes(verify(workspace.root, 4243, 1000)):
         print("conversion already passes, including held-out inputs: no repair needed")
         outcome = {"certified": True, "rounds": [], "certificationReport": None, "lessons": []}
@@ -127,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     (run_dir / "run.json").write_text(json.dumps({
         "program": program.name, "command": args.command,
         "sample": str(program.sample_dir.resolve().relative_to(REPO_ROOT)), "javaOrigin": origin, "translation": translation,
-        "certified": outcome["certified"], "rounds": outcome["rounds"], "usage": usage,
+        "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"], "rounds": outcome["rounds"], "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
     }, indent=2) + "\n")
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
