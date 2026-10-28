@@ -166,4 +166,6 @@ def get_run(run_id: str) -> dict | None:
         "javaDiff": _java_diff(run, path),
         "efficiency": _efficiency(run, events),
         "memory": run.get("memory"),
+        "breaker": run.get("breaker"),
+        "swarm": run.get("swarm", False),
     }
