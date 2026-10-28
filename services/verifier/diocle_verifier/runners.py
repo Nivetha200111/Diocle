@@ -60,9 +60,11 @@ def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: 
 
 
 def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: Path, workdir: Path,
-              out_format: tuple[str, int] = ("line", 0)) -> Run:
+              out_format: tuple[str, int] = ("line", 0), modules: list[Path] | None = None) -> Run:
+    """modules: CALLed programs, linked into the same executable (the first source is the entry point)."""
     exe = workdir / "original"
-    build = _exec(["cobc", "-x", "-std=ibm", "-I", str(copybook_dir), "-o", str(exe), str(source)])
+    build = _exec(["cobc", "-x", "-std=ibm", "-I", str(copybook_dir), "-o", str(exe), str(source),
+                   *(str(m) for m in modules or [])])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
     return _run_program([str(exe)], dd, input_path, workdir, "original", out_format)
