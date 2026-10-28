@@ -8,7 +8,9 @@ from pathlib import Path
 
 from . import REPORT_VERSION
 from .cobol import apply_replacing, parse_copybook, parse_program
-from .jcl import parse_jcl
+import re
+
+from .jcl import parse_jcl, parse_procs
 from .risks import find_risks
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "analysis-report.schema.json"
@@ -16,14 +18,61 @@ COBOL_SUFFIXES = {".cbl", ".cob", ".cobol"}
 COPYBOOK_SUFFIXES = {".cpy", ".copy"}
 
 
+JCL_SUFFIXES = {".jcl", ".proc", ".prc"}
+_PROGRAM = re.compile(r"^.{6}[ ]+(?:IDENTIFICATION|ID)[ ]+DIVISION", re.M)
+
+
 def _files(root: Path, suffixes: set[str]) -> list[Path]:
     return sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in suffixes and ".git" not in p.parts)
 
 
+def _text(path: Path) -> str | None:
+    """Text of a source member, or None for binary data (EBCDIC extracts, packed records, images)."""
+    data = path.read_bytes()[:65536]
+    if b"\x00" in data:
+        return None
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    printable = sum(ch.isprintable() or ch in "\r\n\t" for ch in text)
+    return path.read_text(errors="replace") if text and printable / len(text) > 0.97 else None
+
+
+def classify(root: Path) -> tuple[list[Path], dict[str, Path], list[Path]]:
+    """(COBOL programs, copybook candidates by member name, JCL members) for a source tree.
+
+    Mainframe exports are libraries of extension-less members (QMK.PROD.COBOL/ACCTMTCH), so members are
+    classified by content when they have no known extension."""
+    programs, jcl, other = [], [], {}
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.parts):
+        suffix = path.suffix.lower()
+        if suffix in COBOL_SUFFIXES:
+            programs.append(path)
+            continue
+        if suffix in JCL_SUFFIXES:
+            jcl.append(path)
+            continue
+        if suffix in COPYBOOK_SUFFIXES:
+            other.setdefault(path.stem.upper(), path)
+            continue
+        if suffix in (".md", ".txt", ".json", ".yml", ".yaml", ".xml", ".py", ".sql", ".csv"):
+            continue
+        text = _text(path)
+        if text is None:
+            continue
+        if _PROGRAM.search(text) and "PROGRAM-ID" in text:
+            programs.append(path)
+        elif any(line.startswith("//") and not line.startswith("//*") for line in text.splitlines()[:40]):
+            jcl.append(path)
+        else:
+            other.setdefault(path.stem.upper(), path)
+    return programs, other, jcl
+
+
 def analyze(root: Path, *, kind: str = "directory", location: str | None = None, commit: str | None = None) -> dict:
     root = root.resolve()
-    copybooks = {p.stem.upper(): p for p in _files(root, COPYBOOK_SUFFIXES)}
-    sources = _files(root, COBOL_SUFFIXES)
+    sources, copybooks, jcl_members = classify(root)
     parsed = {p: parse_program(p.read_text(errors="replace")) for p in sources}
     program_ids = {info.name for info in parsed.values()}
     by_name = {info.name: (p, info) for p, info in parsed.items()}
@@ -37,7 +86,8 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                 out.append(by_name[callee][0].relative_to(root).as_posix())
                 out += modules_of(callee, seen)
         return out
-    steps = [s for p in _files(root, {".jcl"}) for s in parse_jcl(p.read_text(errors="replace"), p.relative_to(root).as_posix())]
+    procs = {proc.name: proc for p in jcl_members for proc in parse_procs(p.read_text(errors="replace"))}
+    steps = [s for p in jcl_members for s in parse_jcl(p.read_text(errors="replace"), p.relative_to(root).as_posix(), procs)]
     programs, dependencies, findings = [], [], []
     for path in sources:
         text = path.read_text(errors="replace")
@@ -137,6 +187,12 @@ def main_class(program: str) -> str:
     return "".join(part.capitalize() for part in program.split("-"))
 
 
+def cobol_name(path: str) -> str:
+    """File name a compiler recognises: library members (no extension) get .cbl."""
+    name = Path(path).name
+    return name if Path(name).suffix.lower() in COBOL_SUFFIXES else f"{name}.cbl"
+
+
 def shared_keys(inputs: list[dict]) -> dict:
     """Key fields that link input files: alphanumeric, same length, same name after the record prefix
     (MS-ACCT-ID and TX-ACCT-ID). Each file is assumed sorted by its first shared key, as sequential
@@ -164,12 +220,13 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
     (sample / "src").mkdir(parents=True, exist_ok=True)
     (sample / "copybooks").mkdir(exist_ok=True)
     source = root / program["path"]
-    shutil.copy2(source, sample / "src" / source.name)
+    _, copybooks, _ = classify(root)
+    source_name = cobol_name(program["path"])
+    shutil.copy2(source, sample / "src" / source_name)
     for module in program.get("modules", []):
-        shutil.copy2(root / module, sample / "src" / Path(module).name)
+        shutil.copy2(root / module, sample / "src" / cobol_name(module))
     for member in program["copybooks"]:
-        found = next(p for p in _files(root, COPYBOOK_SUFFIXES) if p.stem.upper() == member)
-        shutil.copy2(found, sample / "copybooks" / found.name)
+        shutil.copy2(copybooks[member], sample / "copybooks" / f"{member}.cpy")  # PDS members have no extension
     inputs = [f for f in program["files"] if f["direction"] == "input"]
     outputs = [f for f in program["files"] if f["direction"] == "output"]
     single = len(inputs) == 1 and len(outputs) == 1
@@ -179,8 +236,8 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
         "description": f"Imported from {report['source']['location']}"
                        + (f" at {report['source']['commit'][:12]}" if report["source"].get("commit") else ""),
         "program": program["name"],
-        "source": f"src/{source.name}",
-        "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
+        "source": f"src/{source_name}",
+        "modules": [f"src/{cobol_name(m)}" for m in program.get("modules", [])],
         "collation": "ebcdic",  # mainframe source: alphanumeric comparisons and sorts follow EBCDIC order
         "copybookDir": "copybooks",
         **({"dd": {"input": by_direction["input"]["dd"], "output": by_direction["output"]["dd"]}} if single else {}),
