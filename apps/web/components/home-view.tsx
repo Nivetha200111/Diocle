@@ -110,7 +110,7 @@ export default function HomeView({ go }: { go: (view: "Delivery" | "Live runs") 
       </div>
 
       <section className="panel">
-        <div className="panel-heading"><div><h2>The demo estate</h2><p>A fictional bank, Quillmark Trust &amp; Savings. All programs and data are synthetic.</p></div></div>
+        <div className="panel-heading"><div><h2>Sample estate</h2><p>Quillmark Trust &amp; Savings is a fictional bank shipped with Diocle so you can see it work end to end. Its programs and data are synthetic.</p></div></div>
         <ul className="home-list home-links">
           <li><a href={LINKS.legacy} target="_blank" rel="noreferrer">quillmark-mainframe</a>: an export of z/OS libraries (COBOL, copybooks, JCL, procedures, DB2, CICS, IMS, EBCDIC extracts).</li>
           <li><a href={LINKS.target} target="_blank" rel="noreferrer">quillmark-java</a>: starts empty; Diocle delivers certified programs as pull requests and its CI re-checks them.</li>

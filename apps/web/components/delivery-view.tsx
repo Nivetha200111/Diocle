@@ -209,7 +209,7 @@ export default function DeliveryView() {
             <span className={`badge ${running ? "badge-amber" : delivery.stage === "done" ? "badge-green" : "badge-amber"}`}>
               {running ? "● LIVE" : delivery.stage === "done" ? "Delivered" : "Failed"}
             </span>
-            <span className="badge badge-blue">Real run · not a mock</span>
+            
             {list.length > 1 && (
               <select className="dlv-select" value={selected ?? ""} onChange={(e) => setSelected(e.target.value)}>
                 {list.map((d) => <option key={d.id} value={d.id}>{d.id} · {d.stage}</option>)}
