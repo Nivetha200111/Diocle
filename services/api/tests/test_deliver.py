@@ -27,14 +27,15 @@ def test_certificate_uses_the_runs_real_seed_and_matches_the_contract(tmp_path, 
     (tmp_path / "runs" / "r1" / "java").mkdir(parents=True)
     (tmp_path / "runs" / "r1" / "java" / "Prog.java").write_text("")
     report = {"source": {"location": "https://github.com/o/legacy", "commit": "abcdef1234567890" * 2 + "abcdefgh"}}
-    program = {"name": "PROG", "path": "cobol/PROG.cbl", "copybooks": ["REC"], "job": None}
+    program = {"name": "PROG", "path": "cobol/PROG.cbl", "copybooks": ["REC"], "job": None,
+               "copybookPaths": {"REC": "QMK.PROD.COPYLIB/REC"}}
     run = {"id": "r1", "command": "repair", "rounds": [], "certificationSeed": 4242, "model": "m",
            "after": {"passed": 10, "total": 10, "stdoutMatch": True},
            "efficiency": {"modelCalls": 0, "totalTokens": 0, "estimatedCostUsd": 0.0}, "memory": None}
     cert = deliver.certificate(run, {"javaConversion": {"mainClass": "Prog"}}, report, program, "c0ffee")
     jsonschema.validate(cert, json.loads((CONTRACTS / "certificate.schema.json").read_text()))
     assert cert["verification"]["seed"] == 4242  # a no-repair run certified on CERT_SEED, not CERT_SEED + 0 rounds
-    assert cert["legacy"]["copybooks"] == ["copybooks/REC.cpy"] and cert["java"]["files"] == ["Prog.java"]
+    assert cert["legacy"]["copybooks"] == ["QMK.PROD.COPYLIB/REC"] and cert["java"]["files"] == ["Prog.java"]
 
 
 def test_pr_body_credits_the_models_not_the_coding_assistant():

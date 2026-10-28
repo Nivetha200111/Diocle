@@ -105,16 +105,9 @@ def convert(sample_dir: Path, on_start=lambda run_id: None, flags: list[str] | N
     return run_id
 
 
-def _legacy_root(report: dict) -> Path:
-    owner_repo = report["source"]["location"].split("github.com/")[1].replace("/", "-")
-    return REPO_ROOT / "runs" / "imports" / f"{owner_repo}-{report['source']['commit'][:12]}"
-
-
 def _copybook_paths(report: dict, program: dict) -> list[str]:
-    root = _legacy_root(report)
-    found = {p.stem.upper(): p.relative_to(root).as_posix() for p in root.rglob("*")
-             if p.suffix.lower() in (".cpy", ".copy") and ".git" not in p.parts}
-    return [found[c] for c in program["copybooks"]]
+    """Where the analyzer found each copybook (library members have no extension, so never guess by suffix)."""
+    return [program["copybookPaths"][c] for c in program["copybooks"]]
 
 
 def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_commit: str) -> dict:
