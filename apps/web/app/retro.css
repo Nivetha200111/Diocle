@@ -850,3 +850,11 @@ main {
     font-size: 32px !important;
   }
 }
+
+/* hosted: no workspace switcher, so the menu needs its own space under the logo */
+.brand-button + .nav-label {
+  margin-top: 24px;
+}
+a.nav-item {
+  text-decoration: none;
+}

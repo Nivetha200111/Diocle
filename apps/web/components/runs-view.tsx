@@ -90,7 +90,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
   runs: RunListItem[]; selected: string | null; onSelect: (id: string) => void;
 }) {
   const [showStopped, setShowStopped] = useState(false);
-  const stopped = (r: RunListItem) => !r.certified && r.efficiency.modelCalls === 0;  // interrupted before any model call
+  const stopped = (r: RunListItem) => r.status !== "running" && !r.certified && r.efficiency.modelCalls === 0;  // interrupted
   const shown = [...runs].filter((r) => showStopped || !stopped(r))
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   const hidden = runs.filter(stopped).length;
@@ -116,7 +116,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
               <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
                 <td className="mono">{r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.command === "run" ? "translate" : "repair"}</td>
                 <td className="mono">{shortModel(r.model)}</td>
-                <td>{r.certified ? "certified" : "not certified"}</td>
+                <td>{r.status === "running" ? "running…" : r.certified ? "certified" : "not certified"}</td>
                 <td className="mono">{memoryLabel(r.memory)}</td>
                 <td className="mono">{r.efficiency.modelCalls}</td>
                 <td className="mono">{r.efficiency.toolSteps}</td>
