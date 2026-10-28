@@ -89,6 +89,14 @@ def test_only_allowed_github_owners(monkeypatch):
             parse_url(bad)
 
 
+def test_visitor_imports_allow_any_owner_but_still_check_the_url(monkeypatch):
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "Nivetha200111")
+    monkeypatch.setenv("DIOCLE_IMPORT_ANY", "1")
+    assert parse_url("https://github.com/someone-else/repo") == ("someone-else", "repo")
+    with pytest.raises(ValueError):
+        parse_url("https://github.com/a/b/../../c")
+
+
 def test_environment_and_source_findings(tmp_path):
     program = "\n".join([
         "       IDENTIFICATION DIVISION.",
