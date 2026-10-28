@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.4 (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events for runs in progress). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.5 (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": ["id", "program", "command", "certified", "javaOrigin", "events", "usage"],
   "properties": {
@@ -21,7 +21,7 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "type": "string", "enum": ["agent-step", "certification", "budget", "memory", "stage"] },
+          "type": { "type": "string", "enum": ["agent-step", "certification", "budget", "memory", "stage", "breaker"] },
           "round": { "type": "integer" },
           "step": { "type": "integer" },
           "tool": { "type": "string" },
@@ -31,7 +31,9 @@
           "passed": { "type": "boolean" },
           "result": { "type": "string" },
           "message": { "type": "string" },
-          "stage": { "type": "string", "enum": ["translating", "verifying", "repairing", "certifying", "done"] }
+          "stage": { "type": "string", "enum": ["translating", "verifying", "repairing", "certifying", "attacking", "done"] },
+          "tried": { "type": "integer" },
+          "broke": { "type": "integer" }
         }
       }
     },
@@ -52,6 +54,19 @@
     "model": { "type": ["string", "null"] },
     "javaDiff": { "type": ["string", "null"], "description": "Unified diff from the starting Java to the final Java" },
     "efficiency": { "$ref": "#/$defs/efficiency" },
+    "breaker": {
+      "type": ["object", "null"],
+      "description": "Breaker agent results after certification: designed inputs tried, how many broke the Java, whether the repair fixed them",
+      "properties": {
+        "rounds": { "type": "integer" },
+        "tried": { "type": "integer" },
+        "broke": { "type": "integer" },
+        "fixed": { "type": "boolean" },
+        "recheckBroke": { "type": "integer" },
+        "counterexamples": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "swarm": { "type": "boolean", "description": "Run picked up lessons certified by parallel agents mid-run" },
     "memory": {
       "type": ["object", "null"],
       "description": "Fix memory: lessons read at the start, and lessons stored after held-out certification passed. Null for runs saved before memory existed.",
