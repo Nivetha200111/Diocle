@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -47,13 +48,49 @@ def analyze(legacy_url: str) -> tuple[dict, Path]:
     return report, samples
 
 
-def convert(sample_dir: Path) -> str | None:
-    """Run the converter's translate + repair + certify; returns the run id, or None if it did not save one."""
-    proc = subprocess.run([str(SERVICES / "converter/.venv/bin/python"), "-m", "diocle_converter", "run", str(sample_dir)],
-                          cwd=SERVICES / "converter", text=True, capture_output=True)
-    sys.stdout.write(proc.stdout[-1500:])
-    m = re.search(r"run saved to runs/(\S+)", proc.stdout)
-    return m.group(1) if m else None
+class Progress:
+    """runs/deliveries/<id>/delivery.json (contracts/delivery.schema.json), rewritten at every step."""
+
+    def __init__(self, legacy_url: str, target_url: str):
+        self.id = f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        self.path = REPO_ROOT / "runs" / "deliveries" / self.id / "delivery.json"
+        self.state = {"id": self.id, "legacy": {"repository": legacy_url, "commit": None}, "target": target_url,
+                      "stage": "analyzing", "startedAt": _now(), "finishedAt": None, "error": None,
+                      "programs": [], "pullRequest": None}
+        self.save()
+
+    def save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.state, indent=2) + "\n")
+        tmp.replace(self.path)
+
+    def program(self, name: str) -> dict:
+        return next(p for p in self.state["programs"] if p["name"] == name)
+
+    def update(self, **fields) -> None:
+        self.state.update(fields)
+        self.save()
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def convert(sample_dir: Path, on_start=lambda run_id: None) -> str | None:
+    """Run the converter's translate + repair + certify, streaming its output; returns the run id."""
+    proc = subprocess.Popen([str(SERVICES / "converter/.venv/bin/python"), "-m", "diocle_converter", "run", str(sample_dir)],
+                            cwd=SERVICES / "converter", text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            env={**os.environ, "PYTHONUNBUFFERED": "1"})
+    run_id = None
+    for line in proc.stdout:
+        sys.stdout.write(line)
+        m = re.match(r"run started runs/(\S+)", line)
+        if m:
+            run_id = m.group(1)
+            on_start(run_id)
+    proc.wait()
+    return run_id
 
 
 def _legacy_root(report: dict) -> Path:
@@ -114,7 +151,8 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
     return "\n".join(lines)
 
 
-def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool) -> str:
+def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
+            progress: Progress | None = None) -> str:
     diocle_commit = _sh(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"]).stdout.strip()
     pushed = _sh(["git", "-C", str(REPO_ROOT), "branch", "-r", "--contains", diocle_commit]).stdout.strip()
     if not pushed and not dry_run:
@@ -129,6 +167,8 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
             run = get_run(run_ids[program["name"]]) if program["name"] in run_ids else None
             if not run or not run["certified"] or not run.get("after"):
                 skipped.append(program["name"])
+                if progress:
+                    progress.program(program["name"])["status"] = "not-certified" if run else "skipped"
                 continue
             sample = json.loads((samples / program["name"].lower() / "sample.json").read_text())
             dest = repo / "programs" / program["name"]
@@ -153,6 +193,8 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         title = f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
         url = _sh(["gh", "pr", "create", "--repo", target_url.split("github.com/")[1], "--head", branch,
                    "--title", title, "--body", body]).stdout.strip()
+        if progress:
+            progress.update(pullRequest={"url": url})
         return url
 
 
@@ -166,21 +208,46 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="build the delivery and print the PR body; push nothing")
     args = parser.parse_args(argv)
 
-    report, samples = analyze(args.legacy_url)
-    wanted = set(args.programs.split(",")) if args.programs else None
-    report["programs"] = [p for p in report["programs"] if p["convertible"] and (wanted is None or p["name"] in wanted)]
-    run_ids = {}
-    for run_id in args.runs:
-        run = get_run(run_id)
-        if run:
-            run_ids[run["program"]] = run_id
-    for program in report["programs"]:
-        if program["name"] not in run_ids:
+    progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"))
+    print(f"delivery {progress.id}", flush=True)
+    try:
+        report, samples = analyze(args.legacy_url)
+        wanted = set(args.programs.split(",")) if args.programs else None
+        report["programs"] = [p for p in report["programs"] if p["convertible"] and (wanted is None or p["name"] in wanted)]
+        progress.state["legacy"]["commit"] = report["source"]["commit"]
+        progress.update(stage="converting", programs=[
+            {"name": p["name"], "path": p["path"], "status": "queued", "runId": None} for p in report["programs"]])
+        run_ids = {}
+        for run_id in args.runs:
+            run = get_run(run_id)
+            if run:
+                run_ids[run["program"]] = run_id
+        for program in report["programs"]:
+            entry = progress.program(program["name"])
+            if program["name"] in run_ids:
+                entry.update(runId=run_ids[program["name"]], status="certified")
+                progress.save()
+                continue
             print(f"converting {program['name']} ...", flush=True)
-            run_id = convert(samples / program["name"].lower())
+            entry["status"] = "converting"
+            progress.save()
+
+            def started(run_id: str, entry=entry) -> None:
+                entry["runId"] = run_id
+                progress.save()
+
+            run_id = convert(samples / program["name"].lower(), started)
+            run = get_run(run_id) if run_id else None
+            entry.update(runId=run_id, status="certified" if run and run["certified"] else "not-certified")
+            progress.save()
             if run_id:
                 run_ids[program["name"]] = run_id
-    print(deliver(report, samples, run_ids, args.target_url.rstrip("/").removesuffix(".git"), args.dry_run))
+        progress.update(stage="delivering")
+        print(deliver(report, samples, run_ids, progress.state["target"], args.dry_run, progress))
+        progress.update(stage="done", finishedAt=_now())
+    except BaseException as e:
+        progress.update(stage="failed", error=str(e)[:500] or type(e).__name__, finishedAt=_now())
+        raise
     return 0
 
 
