@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from .client import BudgetExceeded, ModelClient
-from .memory import LESSON_SCHEMA, clean_lessons
+from .memory import LESSON_SCHEMA, clean_lessons, lesson_key
 from .prompts import REPAIR
 from .sources import Program
 from .workspace import Workspace
@@ -86,8 +86,12 @@ class RepairAgent:
     verify: Verify
     on_event: Callable[[dict], None] = lambda event: None
     hints: str = ""  # rendered fix memory from earlier certified runs
+    # Swarm mode: returns all lessons in shared memory; new ones (certified by other agents) are passed on mid-run.
+    memory_feed: Callable[[], list[dict]] | None = None
+    known_lessons: set[str] = field(default_factory=set)
     rounds: list[dict] = field(default_factory=list)
     lessons: list[dict] = field(default_factory=list)  # from the latest finish call
+    messages: list[dict] = field(default_factory=list)
 
     def _execute(self, name: str, args: dict) -> str:
         if name == "run_differential_test":
@@ -106,19 +110,27 @@ class RepairAgent:
         raise ValueError(f"unknown tool {name!r}")
 
     def run(self) -> dict:
-        settings = self.client.settings
         initial = self.verify(self.workspace.root, TEST_SEED, TEST_CASES)
         # Everything the agent needs up front, stable content first so later calls hit the prompt cache.
         java = "\n".join(f"=== {f} ===\n{self.workspace.read(f)}" for f in self.workspace.list_files())
-        messages = [
+        self.messages = [
             {"role": "system", "content": REPAIR},
             {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
              + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
              f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{summarize_report(initial)}"},
         ]
+        return self._rounds(self.client.settings.max_rounds)
+
+    def resume(self, note: str, extra_rounds: int = 2) -> dict:
+        """Continue the same conversation with new evidence (e.g. inputs a breaker agent found), then re-certify."""
+        self.messages.append({"role": "user", "content": note})
+        return self._rounds(extra_rounds)
+
+    def _rounds(self, count: int) -> dict:
         certification = None
-        for round_no in range(1, settings.max_rounds + 1):
-            finished = self._round(round_no, messages)
+        start = len(self.rounds) + 1
+        for round_no in range(start, start + count):
+            finished = self._round(round_no, self.messages)
             self.on_event({"type": "stage", "stage": "certifying", "round": round_no,
                            "message": f"Round {round_no}: certifying on {CERT_CASES} held-out inputs the agent has not seen"})
             certification = self.verify(self.workspace.root, CERT_SEED + round_no, CERT_CASES)
@@ -129,14 +141,29 @@ class RepairAgent:
                            "result": summarize_report(certification, limit=3, for_agent=False)})
             if passed:
                 break
-            messages.append({"role": "user", "content": "Certification on held-out inputs failed:\n"
-                             f"{summarize_report(certification)}\nContinue fixing."})
+            self.messages.append({"role": "user", "content": "Certification on held-out inputs failed:\n"
+                                  f"{summarize_report(certification)}\nContinue fixing."})
         certified = bool(certification and report_passes(certification))
         return {"certified": certified, "rounds": self.rounds, "certificationReport": certification,
                 "lessons": self.lessons if certified else []}
 
+    def _share_new_lessons(self, round_no: int, messages: list[dict]) -> None:
+        if self.memory_feed is None:
+            return
+        new = [l for l in self.memory_feed() if lesson_key(l["pattern"]) not in self.known_lessons]
+        if not new:
+            return
+        self.known_lessons.update(lesson_key(l["pattern"]) for l in new)
+        sources = sorted({l.get("program", "another agent") for l in new})
+        messages.append({"role": "user", "content": "Shared memory update: other agents in this migration just passed "
+                         "held-out certification and recorded these lessons (hints only):\n"
+                         + "\n".join(f"- {l['pattern']}: COBOL {l['cobol']} Java: {l['java']}" for l in new)})
+        self.on_event({"type": "memory", "round": round_no,
+                       "message": f"Received {len(new)} new lesson(s) from {', '.join(sources)} mid-run"})
+
     def _round(self, round_no: int, messages: list[dict]) -> bool:
         for step in range(1, self.client.settings.max_calls_per_round + 1):
+            self._share_new_lessons(round_no, messages)
             try:
                 choice = self.client.chat(role="repair", round=round_no, messages=messages, tools=TOOLS)
             except BudgetExceeded as e:

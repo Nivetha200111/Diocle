@@ -16,9 +16,10 @@ import sys
 import time
 from pathlib import Path
 
+from .breaker import Breaker
 from .client import ModelClient
 from .config import REPO_ROOT, Settings
-from .memory import Memory, render
+from .memory import Memory, lesson_key, render
 from .repair import RepairAgent, report_passes
 from .sources import Program
 from .translate import translate
@@ -31,9 +32,11 @@ def _verifier():
     except ImportError:
         sys.exit("diocle-verifier is not installed: pip install -e ../verifier")
 
-    def verify(sample_dir: Path):
-        def run(java_dir: Path, seed: int, random_count: int) -> dict:
-            report = verify_sample(sample_dir, java_dir, seed=seed, random_count=random_count)
+    def verify(sample_dir: Path, standing_cases: list | None = None):
+        """standing_cases (e.g. inputs that once broke the Java) are included in every later test and certification."""
+        def run(java_dir: Path, seed: int, random_count: int, extra_cases: list | None = None) -> dict:
+            cases = list(standing_cases or []) + list(extra_cases or [])
+            report = verify_sample(sample_dir, java_dir, seed=seed, random_count=random_count, extra_cases=cases)
             validate_report(report)
             return report
 
@@ -62,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
         p = sub.add_parser(name)
         p.add_argument("sample_dir", type=Path)
         p.add_argument("--no-memory", action="store_true", help="baseline: do not read or write fix memory")
+        p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
+        p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
     args = parser.parse_args(argv)
@@ -116,8 +121,11 @@ def main(argv: list[str] | None = None) -> int:
     known = memory.load() if memory else []
     if known:
         on_event({"type": "memory", "message": f"Loaded {len(known)} lessons from earlier certified repairs"})
-    verify = _verifier()(program.sample_dir)
-    agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known))
+    standing_cases: list = []
+    verify = _verifier()(program.sample_dir, standing_cases)
+    agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known),
+                        memory_feed=memory.load if (memory and args.swarm) else None,
+                        known_lessons={lesson_key(l["pattern"]) for l in known})
     on_event({"type": "stage", "stage": "verifying", "message": "Running GnuCOBOL and the Java on the same inputs"})
     first = verify(workspace.root, 1026, 200)
     (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
@@ -129,6 +137,28 @@ def main(argv: list[str] | None = None) -> int:
         outcome = {"certified": True, "rounds": [], "certificationReport": None, "lessons": []}
     else:
         outcome = agent.run()
+
+    breaker_summary = None
+    if args.breaker and outcome["certified"]:
+        meta = json.loads((program.sample_dir / "sample.json").read_text())
+        breaker = Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
+        on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent is designing inputs to break the certified Java"})
+        broken = breaker.attack(rounds=3)
+        breaker_summary = {"rounds": len({a["id"].rsplit("-", 1)[0] for a in breaker.attempts}), "tried": len(breaker.attempts),
+                           "broke": len(broken), "counterexamples": [{"input": b["case"].record, "why": b["why"], "diff": b["diff"]} for b in broken]}
+        if broken:
+            standing_cases += [b["case"] for b in broken]
+            note = ("A breaker agent found inputs where the Java differs from the COBOL. They are now part of every test "
+                    "and certification:\n" + "\n".join(f"- input={b['case'].record!r} ({b['why']}): {b['diff']}" for b in broken)
+                    + "\nFix the root cause, then finish.")
+            on_event({"type": "stage", "stage": "repairing", "message": f"Repair agent resumes with {len(broken)} counterexample(s)"})
+            outcome = agent.resume(note)
+            if outcome["certified"]:
+                on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent attacks the repaired Java once more"})
+                again = breaker.attack(rounds=1, label="recheck")
+                breaker_summary["recheckBroke"] = len(again)
+        breaker_summary["fixed"] = bool(broken) and outcome["certified"]
+        (run_dir / "breaker.json").write_text(json.dumps({**breaker_summary, "attempts": breaker.attempts}, indent=2) + "\n")
 
     learned = memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name) if memory and outcome["certified"] else 0
     usage = client.usage_summary()
@@ -149,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
         "sample": str(program.sample_dir.resolve().relative_to(REPO_ROOT)), "javaOrigin": origin, "translation": translation,
         "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"], "rounds": outcome["rounds"], "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
+        "breaker": breaker_summary, "swarm": bool(args.swarm and memory),
     }, indent=2) + "\n")
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
           f"{usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / {usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")

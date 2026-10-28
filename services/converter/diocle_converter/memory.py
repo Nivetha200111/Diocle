@@ -6,8 +6,10 @@ on the model's word alone. Lessons are hints: the next run is still certified fr
 
 from __future__ import annotations
 
+import fcntl
 import json
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,7 +34,7 @@ LESSON_SCHEMA = {
 }
 
 
-def _key(pattern: str) -> str:
+def lesson_key(pattern: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", pattern.lower()).strip()
 
 
@@ -54,18 +56,34 @@ class Memory:
     def load(self) -> list[dict]:
         return json.loads(self.path.read_text())["lessons"] if self.path.exists() else []
 
+    @contextmanager
+    def _locked(self):
+        """Parallel agents (swarm mode) share one memory file; serialize read-modify-write."""
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.path.with_suffix(".lock"), "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+
     def learn(self, lessons: list[dict], *, program: str, run_id: str) -> int:
         """Store lessons from a certified run; a lesson with a known pattern replaces the older one. Returns how many were new."""
-        stored = {_key(item["pattern"]): item for item in self.load()}
+        with self._locked():
+            return self._learn(lessons, program=program, run_id=run_id)
+
+    def _learn(self, lessons: list[dict], *, program: str, run_id: str) -> int:
+        stored = {lesson_key(item["pattern"]): item for item in self.load()}
         new = 0
         for lesson in clean_lessons(lessons):
-            key = _key(lesson["pattern"])
+            key = lesson_key(lesson["pattern"])
             new += key not in stored
             stored.pop(key, None)
             stored[key] = {**lesson, "program": program, "run": run_id}
         kept = list(stored.values())[-MAX_LESSONS:]
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps({"lessons": kept}, indent=2) + "\n")
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"lessons": kept}, indent=2) + "\n")
+        tmp.replace(self.path)
         return new
 
 

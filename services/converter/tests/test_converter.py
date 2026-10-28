@@ -182,3 +182,59 @@ def test_skill_export_has_frontmatter_and_provenance():
     assert text.startswith("---\nname: cobol-to-java-semantics\ndescription: ")
     assert "### COMPUTE ROUNDED ties" in text and "run `interest-accrual-1`" in text
     assert "_No certified lessons yet._" in render_skill([])
+
+
+def test_breaker_rejects_cases_that_do_not_fit_the_layout():
+    from diocle_converter.breaker import to_record
+    from diocle_verifier.layout import load_fields
+    fields = load_fields(json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"])
+    good = {"ACCT-ID": "TIE", "ACCT-BALANCE": "-36.50", "ACCT-RATE": "0.0500", "ACCT-DAYS": "1", "ACCT-TIER": "S"}
+    assert to_record(fields, good) == "TIE       -0000000365000500001S"
+    assert to_record(fields, {**good, "ACCT-BALANCE": "1.234"}) is None  # more decimals than the PIC holds
+    assert to_record(fields, {**good, "ACCT-DAYS": "1000"}) is None  # too many digits
+    assert to_record(fields, {**good, "ACCT-RATE": "-0.05"}) is None  # unsigned field
+    assert to_record(fields, {k: v for k, v in good.items() if k != "ACCT-TIER"}) is None
+
+
+def test_breaker_attacks_until_an_input_breaks_the_java(tmp_path):
+    from diocle_converter.breaker import Breaker
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    case = lambda bal: {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": bal},
+                                   {"name": "ACCT-RATE", "value": "0.0500"}, {"name": "ACCT-DAYS", "value": "1"},
+                                   {"name": "ACCT-TIER", "value": "S"}], "why": "tie"}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case("36.50")]})),
+                       ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case("-36.50"), case("1.234")]}))])
+
+    def verify(java_dir, seed, random_count, extra_cases):
+        results = [{"inputId": c.id, "inputSource": c.source, "input": c.record, "match": "-" not in c.record[10:11],
+                    "diff": "OUT-INTEREST differs"} for c in extra_cases]
+        return {"results": results}
+
+    events = []
+    broken = Breaker(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), verify, layout, events.append).attack(rounds=3)
+    assert [b["case"].record for b in broken] == ["X         -0000000365000500001S"]
+    assert [e["broke"] for e in events] == [0, 1] and "1 rejected" in events[1]["message"]
+    assert len(sdk.requests) == 2  # stopped at the first breaking round
+
+
+def test_swarm_agent_receives_lessons_certified_by_others_mid_run(tmp_path):
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    shared = []
+    sdk = ScriptedSDK([tool_call("compile_java"), tool_call("finish", summary="s")])
+
+    def feed():
+        if sdk.requests:  # another agent certifies after our first call
+            shared[:] = [{**LESSON, "program": "FEESCHD"}]
+        return shared
+
+    events = []
+    agent = RepairAgent(Program.load(SAMPLE), ws, ModelClient(settings(max_rounds=1), _sdk=sdk), lambda *_: report(True),
+                        events.append, memory_feed=feed)
+    agent.run()
+    assert [e["message"] for e in events if e["type"] == "memory"] == ["Received 1 new lesson(s) from FEESCHD mid-run"]
+    messages = sdk.requests[1]["messages"]  # the live conversation
+    update = next(i for i, m in enumerate(messages) if "Shared memory update" in str(m.get("content")))
+    assert messages[update - 1]["role"] == "tool" and messages[update + 1]["role"] == "assistant"  # between two calls
