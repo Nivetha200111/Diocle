@@ -69,10 +69,20 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
     program = next((p for p in report["programs"] if p["path"] == source.relative_to(legacy.resolve()).as_posix()), None)
     if program is None or program["name"] != cert["program"] or not program["convertible"]:
         raise Untrusted(f"{cert['legacy']['path']} is not the verifiable program {cert['program']} in the legacy commit")
-    files = {f["direction"]: f for f in program["files"]}
-    derived = {"input": files["input"]["layout"], "output": files["output"]["layout"]}
-    if claimed.get("layouts") != derived or claimed.get("dd") != {d: files[d]["dd"] for d in ("input", "output")}:
-        raise Untrusted("sample.json layouts or DD names differ from the legacy copybooks")
+    from diocle_analyzer.analyze import shared_keys
+
+    inputs = [f for f in program["files"] if f["direction"] == "input"]
+    outputs = [f for f in program["files"] if f["direction"] == "output"]
+    if len(inputs) == 1 and len(outputs) == 1:
+        derived_io = {"dd": {"input": inputs[0]["dd"], "output": outputs[0]["dd"]},
+                      "layouts": {"input": inputs[0]["layout"], "output": outputs[0]["layout"]}}
+        claimed_io = {"dd": claimed.get("dd"), "layouts": claimed.get("layouts")}
+    else:
+        derived_io = {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]} for f in inputs + outputs],
+                      **shared_keys(inputs)}
+        claimed_io = {k: claimed.get(k) for k in derived_io}
+    if claimed_io != derived_io:
+        raise Untrusted("sample.json files, layouts or keys differ from what the legacy copybooks define")
     sample = work / cert["program"].lower()
     (sample / "src").mkdir(parents=True)
     (sample / "copybooks").mkdir()
@@ -88,7 +98,7 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
     meta = {"program": cert["program"], "source": f"src/{source.name}", "copybookDir": "copybooks",
             "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
             "collation": "ebcdic",  # legacy code is mainframe code: CI always compares in EBCDIC order
-            "dd": claimed["dd"], "layouts": derived,
+            **derived_io,
             "javaConversion": {"dir": "java", "mainClass": cert["java"]["mainClass"]}}
     (sample / "sample.json").write_text(json.dumps(meta))
     return sample

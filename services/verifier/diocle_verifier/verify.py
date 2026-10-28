@@ -11,6 +11,7 @@ from .codec import convert_file
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
+from .multi import is_multi, verify_multi
 from .runners import CLOCK, Run, read_records, run_cobol, run_java, write_records
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
@@ -25,6 +26,11 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
     """extra_cases (e.g. inputs designed by a model, source "model") run before the generated ones."""
     sample_dir = sample_dir.resolve()
     meta = json.loads((sample_dir / "sample.json").read_text())
+    if is_multi(meta):
+        if extra_cases:
+            raise ValueError("designed input cases are single-file only")
+        java = (java_dir or sample_dir / meta["javaConversion"]["dir"]).resolve()
+        return verify_multi(sample_dir, meta, java, seed, random_count)
     in_fields = load_fields(meta["layouts"]["input"])
     out_fields = load_fields(meta["layouts"]["output"])
     java_dir = (java_dir or sample_dir / meta["javaConversion"]["dir"]).resolve()
@@ -49,10 +55,11 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
 
     results, golden_report = [], None
     if original.compiled and converted.compiled:
-        results = compare(cases, original.output_lines, converted.output_lines, out_fields)
+        results = compare(cases, original.output_lines, converted.output_lines, out_fields,
+                          record_format(meta["layouts"]["output"]))
         if golden_cases:
             results, golden_report = _replay_golden(results, cases, golden_cases, golden_expected, original, converted,
-                                                    out_fields, golden_meta)
+                                                    out_fields, golden_meta, record_format(meta["layouts"]["output"]))
         for r in results:
             r["program"] = meta["program"]
     passed = sum(r["match"] for r in results)
@@ -86,7 +93,7 @@ def _golden(sample_dir: Path, meta: dict, in_fields, out_fields):
     return cases, [r.decode("latin-1") for r in expected], spec
 
 
-def _replay_golden(results, cases, golden_cases, expected, original, converted, out_fields, spec):
+def _replay_golden(results, cases, golden_cases, expected, original, converted, out_fields, spec, fmt="line"):
     """On golden inputs the mainframe's captured output is the oracle; also report whether GnuCOBOL agreed with it."""
     first = cases.index(golden_cases[0])
     agreement, disagreements = 0, []
@@ -94,9 +101,9 @@ def _replay_golden(results, cases, golden_cases, expected, original, converted, 
         i = first + k
         if k >= len(expected):
             break
-        [vs_mainframe] = compare([case], [expected[k]], converted.output_lines[i : i + 1], out_fields)
+        [vs_mainframe] = compare([case], [expected[k]], converted.output_lines[i : i + 1], out_fields, fmt)
         results[i] = {**vs_mainframe, "oracle": "mainframe"}
-        [oracle_check] = compare([case], [expected[k]], original.output_lines[i : i + 1], out_fields)
+        [oracle_check] = compare([case], [expected[k]], original.output_lines[i : i + 1], out_fields, fmt)
         if oracle_check["match"]:
             agreement += 1
         else:

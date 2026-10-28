@@ -6,7 +6,10 @@ from .inputs import Case
 from .layout import Field, parse_record, record_length
 
 
-def compare(cases: list[Case], original: list[str], converted: list[str], out_fields: list[Field]) -> list[dict]:
+def compare(cases: list[Case], original: list[str], converted: list[str], out_fields: list[Field],
+            fmt: str = "line") -> list[dict]:
+    """fmt "line": text records whose trailing spaces the writer may trim (GnuCOBOL LINE SEQUENTIAL does), so only a
+    longer record means a field overflowed. fmt "fixed": byte records, whose length must be exact."""
     results = []
     for i, case in enumerate(cases):
         o = original[i] if i < len(original) else None
@@ -28,9 +31,10 @@ def compare(cases: list[Case], original: list[str], converted: list[str], out_fi
             if ov[f.name] != cv[f.name]
         ]
         expected_length = record_length(out_fields)
+        wrong_length = len(c) > expected_length if fmt == "line" else len(c) != expected_length
         length_note = (
             f"converted record is {len(c)} bytes, expected {expected_length}: a field overflowed its width and shifted the fields after it"
-            if len(c) != expected_length
+            if wrong_length
             else ""
         )
         result["match"] = not field_diffs and not length_note
