@@ -158,10 +158,44 @@ def test_admin_passcode_guards_starting(client, monkeypatch):
     monkeypatch.setenv("DIOCLE_HOSTED", "1")
     monkeypatch.delenv("DIOCLE_ADMIN_TOKEN", raising=False)
     assert client.post("/deliveries", json=body).status_code == 403  # hosted without a token: never
-    assert client.get("/config").json() == {"hosted": True, "startNeedsPasscode": True}
+    config = client.get("/config").json()
+    assert (config["hosted"], config["startNeedsPasscode"], config["publicImports"]["enabled"]) == (True, True, False)
     monkeypatch.setenv("DIOCLE_ADMIN_TOKEN", "s3cret-passcode")
     assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "wrong"}).status_code == 403
     assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "s3cret-passcode"}).status_code == 202
+
+
+def test_visitor_imports_need_the_sandbox_and_respect_limits(client, monkeypatch):
+    import diocle_api.deliveries as d
+    import diocle_api.public as public
+    started = []
+    monkeypatch.setattr(d.subprocess, "Popen", lambda cmd, **kw: started.append((cmd, kw["env"])))
+    monkeypatch.setattr(d, "running_delivery", lambda: None)
+    monkeypatch.setattr("diocle_api.app.running_delivery", lambda: None)
+    monkeypatch.setattr(public, "_seen", {})
+    monkeypatch.setenv("DIOCLE_HOSTED", "1")
+    monkeypatch.setenv("DIOCLE_ADMIN_TOKEN", "s3cret-passcode")
+    monkeypatch.setenv("GH_TOKEN", "must-not-reach-visitor-runs")
+    body = {"legacy": "https://github.com/someone-else/cobol-estate"}
+    monkeypatch.setenv("DIOCLE_PUBLIC_IMPORTS", "1")
+    monkeypatch.delenv("DIOCLE_SANDBOX_URL", raising=False)
+    assert client.post("/deliveries", json=body).status_code == 403  # no sandbox, no visitor imports
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://sandbox:8100")
+    monkeypatch.setenv("DIOCLE_PUBLIC_PER_VISITOR", "2")
+    monkeypatch.setattr(public, "spent_today", lambda: 0.0)
+    visitor = {"x-vercel-forwarded-for": "203.0.113.7"}
+    assert client.post("/deliveries", json=body, headers=visitor).status_code == 202
+    cmd, env = started[-1]
+    assert "--public" in cmd and "https://github.com/someone-else/cobol-estate" in cmd and len(cmd) == 7
+    assert env["DIOCLE_IMPORT_ANY"] == "1" and "GH_TOKEN" not in env
+    assert client.post("/deliveries", json={**body, "target": "https://github.com/someone-else/x"},
+                       headers=visitor).status_code == 202  # a visitor's target is ignored, never delivered to
+    assert "https://github.com/someone-else/x" not in started[-1][0]
+    assert client.post("/deliveries", json=body, headers=visitor).status_code == 429  # per-visitor limit
+    monkeypatch.setattr(public, "spent_today", lambda: 5.0)
+    other = {"x-vercel-forwarded-for": "198.51.100.9"}
+    assert client.post("/deliveries", json=body, headers=other).status_code == 429  # daily budget
+    assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "wrong"}).status_code == 403
 
 
 def test_reverify_runs_only_certified_runs_with_samples(client):

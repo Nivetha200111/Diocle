@@ -81,8 +81,9 @@ def running_delivery() -> str | None:
     return None
 
 
-def start_delivery(legacy: str, target: str, parallel: bool, breaker: bool) -> str:
-    """Start diocle_api.deliver in the background and return its id. One delivery at a time (rule 10)."""
+def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: bool, public: bool = False) -> str:
+    """Start diocle_api.deliver in the background and return its id. One delivery at a time (rule 10).
+    public: a visitor import (no target, any public repository, sandboxed, capped, no GitHub token)."""
     import os
     import re
     import sys
@@ -94,15 +95,23 @@ def start_delivery(legacy: str, target: str, parallel: bool, breaker: bool) -> s
     busy = running_delivery()
     if busy:
         raise RuntimeError(f"{busy} is still running")
-    for url in (legacy, target):
+    for url in (legacy, target) if target else (legacy,):
         if not GITHUB_URL.match(url.strip()):
             raise ValueError(f"not a GitHub repository URL: {url!r}")
-    target_repo(target)  # owner allowlist; the analyzer applies the same list to the legacy repo
+    if target:
+        target_repo(target)  # owner allowlist; the analyzer applies the same list to the legacy repo
+    elif not public:
+        raise ValueError("a target repository is required")
     delivery_id = f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-    cmd = [sys.executable, "-m", "diocle_api.deliver", legacy.strip(), target.strip(), "--id", delivery_id,
+    cmd = [sys.executable, "-m", "diocle_api.deliver", legacy.strip(), *([target.strip()] if target else []),
+           "--id", delivery_id, *(["--public"] if public else []),
            *(["--parallel"] if parallel else []), *(["--breaker"] if breaker else [])]
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    if public:  # any owner may be imported; nothing in this process tree needs GitHub write access
+        env["DIOCLE_IMPORT_ANY"] = "1"
+        env.pop("GH_TOKEN", None)
     log = runs_dir() / "deliveries" / delivery_id / "deliver.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     subprocess.Popen(cmd, cwd=Path(__file__).resolve().parents[1], stdout=log.open("w"), stderr=subprocess.STDOUT,
-                     env={**os.environ, "PYTHONUNBUFFERED": "1"}, start_new_session=True)
+                     env=env, start_new_session=True)
     return delivery_id

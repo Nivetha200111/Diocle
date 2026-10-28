@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,7 +12,8 @@ import hmac
 
 from fastapi import Header
 
-from .deliveries import get_delivery, list_deliveries, start_delivery
+from . import public
+from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery
 from .reverify import Busy, reverify_run
 from .runs import get_run, list_runs
 
@@ -60,7 +61,7 @@ def delivery(delivery_id: str) -> dict:
 class DeliveryRequest(BaseModel):
     """contracts/delivery.schema.json $defs.request"""
     legacy: str
-    target: str
+    target: str | None = None
     parallel: bool = False
     breaker: bool = False
 
@@ -77,16 +78,40 @@ def _admin_ok(token: str | None) -> bool:
 @app.get("/config")
 def config() -> dict:
     return {"hosted": os.environ.get("DIOCLE_HOSTED") == "1",
-            "startNeedsPasscode": bool(os.environ.get("DIOCLE_ADMIN_TOKEN")) or os.environ.get("DIOCLE_HOSTED") == "1"}
+            "startNeedsPasscode": bool(os.environ.get("DIOCLE_ADMIN_TOKEN")) or os.environ.get("DIOCLE_HOSTED") == "1",
+            "publicImports": public.status()}
+
+
+def _visitor(request: Request) -> str:
+    """Best-effort visitor address: Vercel's forwarded header, else the connecting address."""
+    for header in ("x-vercel-forwarded-for", "x-real-ip"):
+        if request.headers.get(header):
+            return request.headers[header].split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 @app.post("/deliveries", status_code=202)
-def start(request: DeliveryRequest, x_diocle_admin: str | None = Header(default=None)) -> dict:
-    """Start a delivery (spends model credits within the converter's caps)."""
-    if not _admin_ok(x_diocle_admin):
-        raise HTTPException(status_code=403, detail="starting a delivery needs the admin passcode")
+def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = Header(default=None)) -> dict:
+    """Start a delivery (spends model credits within the converter's caps). With the admin passcode: a pull request
+    on an allowed target. Without it: a visitor import of any public repository, sandboxed, capped, no pull request."""
+    admin = _admin_ok(x_diocle_admin)
+    if not admin:
+        if x_diocle_admin:
+            raise HTTPException(status_code=403, detail="wrong passcode")
+        if not public.enabled():
+            raise HTTPException(status_code=403, detail="starting a delivery needs the admin passcode")
     try:
-        return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker)}
+        if admin:
+            if not request.target:
+                raise ValueError("a target repository is required")
+            return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker)}
+        busy = running_delivery()
+        if busy:
+            raise RuntimeError(f"{busy} is still running; try again when it finishes")
+        public.admit(_visitor(http))
+        return {"id": start_delivery(request.legacy, None, False, False, public=True)}
+    except PermissionError as e:
+        raise HTTPException(status_code=429, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except (ValueError, SystemExit) as e:
