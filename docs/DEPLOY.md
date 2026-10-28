@@ -1,5 +1,25 @@
 # Deploying Diocle
 
+## Recommended: site on Vercel, engine on a small server
+The site is a static Next.js build; the engine (API, GnuCOBOL, JDK, the agents) needs a real server. Vercel serves the site on your domain and forwards `/api/*` to the engine at `api.<your-domain>`, so visitors only ever see one address.
+
+```
+visitor ── https://your-domain ──► Vercel (site) ── /api/* ──► https://api.your-domain ──► Caddy ──► API container
+```
+
+1. **Engine server** (Vultr, Mumbai or Bangalore; Ubuntu 24.04; at least 2 GB RAM; add `~/.ssh/diocle.pub` as its SSH key). Note its IP.
+2. **DNS**: `A` record `api` → the server IP.
+3. **Prepare it**: `ssh -i ~/.ssh/diocle root@SERVER_IP 'sh -s' < deploy/server-setup.sh`
+4. **Configure it**: on the server, `cd /opt/diocle/deploy && cp diocle.env.example diocle.env && nano diocle.env` (Meta key, `DIOCLE_ADMIN_TOKEN`, `GH_TOKEN`; `DIOCLE_WEB_ORIGINS=https://your-domain`).
+5. **Start it**: `DIOCLE_API_DOMAIN=api.your-domain docker compose -f docker-compose.api.yml up -d --build`, then check `https://api.your-domain/health`.
+6. **Load the sample estate's runs** from your Mac: `deploy/seed-runs.sh root@SERVER_IP`.
+7. **Site on Vercel**: import the GitHub repository, set the root directory to `apps/web`, and add these environment variables:
+   `NEXT_PUBLIC_DIOCLE_HOSTED=1`, `NEXT_PUBLIC_DIOCLE_API_URL=/api`, `DIOCLE_API_ORIGIN=https://api.your-domain`.
+8. **Domain on Vercel**: add `your-domain` to the project; Vercel shows the DNS record to create at your registrar.
+9. **Check**: open `https://your-domain`, open Live runs, press *Re-verify on a fresh seed*.
+
+## Alternative: everything on one server
+
 One small Ubuntu server runs everything: Caddy serves the site (a static build of the dashboard in hosted mode) with automatic HTTPS and forwards `/api` to the Diocle API, which runs the analyzer, converter and verifier (GnuCOBOL 3.2 and JDK 21 inside the image). Only ports 22, 80 and 443 are open; the API is never exposed directly. Any provider works; nothing below depends on one.
 
 ```

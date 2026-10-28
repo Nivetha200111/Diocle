@@ -1,0 +1,14 @@
+# Engine server: HTTPS for api.<domain>, forwarding to the API container. The site itself is on Vercel,
+# which forwards /api/* here. DIOCLE_API_DOMAIN is e.g. api.example.com.
+{$DIOCLE_API_DOMAIN:localhost} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	request_body {
+		max_size 16KB
+	}
+	reverse_proxy api:8000
+}
