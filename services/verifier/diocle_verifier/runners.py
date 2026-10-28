@@ -52,18 +52,21 @@ def write_records(path: Path, records: list[str], fmt: str = "line") -> None:
 
 
 def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str,
-                 out_format: tuple[str, int] = ("line", 0)) -> Run:
+                 out_format: tuple[str, int] = ("line", 0), extra_env: dict[str, str] | None = None) -> Run:
     output_path = workdir / f"{label}.out"
-    env = {**CLOCK_ENV, f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
+    env = {**CLOCK_ENV, **(extra_env or {}), f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
     proc = _exec(cmd, env=env, cwd=workdir)
     return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
 
 
 def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: Path, workdir: Path,
-              out_format: tuple[str, int] = ("line", 0), modules: list[Path] | None = None) -> Run:
-    """modules: CALLed programs, linked into the same executable (the first source is the entry point)."""
+              out_format: tuple[str, int] = ("line", 0), modules: list[Path] | None = None,
+              collation: str = "ascii") -> Run:
+    """modules: CALLed programs, linked into the same executable (the first source is the entry point).
+    collation "ebcdic" compares and sorts alphanumeric data in mainframe (EBCDIC) order."""
     exe = workdir / "original"
-    build = _exec(["cobc", "-x", "-std=ibm", "-I", str(copybook_dir), "-o", str(exe), str(source),
+    colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
+    build = _exec(["cobc", "-x", "-std=ibm", *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
                    *(str(m) for m in modules or [])])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
@@ -71,11 +74,12 @@ def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: 
 
 
 def run_java(src_dir: Path, main_class: str, dd: dict[str, str], input_path: Path, workdir: Path,
-             out_format: tuple[str, int] = ("line", 0)) -> Run:
+             out_format: tuple[str, int] = ("line", 0), collation: str = "ascii") -> Run:
     classes = workdir / "classes"
     classes.mkdir(exist_ok=True)
     sources = sorted(str(p) for p in src_dir.rglob("*.java"))
     build = _exec(["javac", "-d", str(classes), *sources])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
-    return _run_program(["java", "-cp", str(classes), main_class], dd, input_path, workdir, "converted", out_format)
+    return _run_program(["java", "-cp", str(classes), main_class], dd, input_path, workdir, "converted", out_format,
+                        {"DIOCLE_COLLATION": collation.upper()})

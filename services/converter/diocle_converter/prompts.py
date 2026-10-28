@@ -14,6 +14,8 @@ I/O contract:
   COMP/COMP-4/BINARY big-endian two's complement (2, 4 or 8 bytes by digits); COMP-5 little-endian; signed DISPLAY
   without SIGN SEPARATE carries the sign in the last digit, negative digit d written as the character d + 0x40;
   PIC 9(n)P(m) stores n digits worth value x 10^m.
+- When environment variable DIOCLE_COLLATION is EBCDIC, alphanumeric comparisons (<, >) and SORT keys follow mainframe
+  EBCDIC order (lowercase < uppercase < digits): compare the Cp037 bytes, not Java's String order.
 - Reproduce every DISPLAY to stdout exactly, and exit with the program's RETURN-CODE (System.exit) when it is not 0.
 - "Now" (ACCEPT FROM DATE/TIME/DAY, FUNCTION CURRENT-DATE) comes from environment variable DIOCLE_CLOCK when it is
   set (ISO-8601 UTC, e.g. 2000-02-29T13:45:10.00Z), otherwise from the system clock in UTC.

@@ -151,6 +151,7 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
         "program": program["name"],
         "source": f"src/{source.name}",
         "modules": [f"src/{Path(m).name}" for m in program.get("modules", [])],
+        "collation": "ebcdic",  # mainframe source: alphanumeric comparisons and sorts follow EBCDIC order
         "copybookDir": "copybooks",
         "dd": {"input": by_direction["input"]["dd"], "output": by_direction["output"]["dd"]},
         "javaConversion": {"dir": "java-conversion", "mainClass": main_class(program["name"]),
