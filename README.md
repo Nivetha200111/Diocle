@@ -39,14 +39,14 @@ Demo repositories: [quillmark-legacy](https://github.com/Nivetha200111/quillmark
 
 ## Measured so far (pilot evidence: synthetic programs, small samples; costs are estimates from list prices)
 
-- Four Quillmark programs translated from scratch and certified for about $0.025 in total, then re-proven by GitHub CI on 4,000+ fresh inputs. Those runs predate the IBM TRUNC/DISPLAY settings in the oracle (their counters print GnuCOBOL's 10-digit width) and need re-certifying.
+- Six Quillmark programs (including a packed fixed-length extract and a two-input, two-output match-merge) translated from scratch by Muse Spark and certified under the final verifier for about $0.11 in total, then re-verified by GitHub CI on 6,714 fresh inputs: [quillmark-modern#3](https://github.com/Nivetha200111/quillmark-modern/pull/3). An earlier four-program delivery (#1) predates the IBM TRUNC/DISPLAY settings and is superseded.
 - Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
 - Costs are estimates from list prices.
 
 ## Not supported yet
 - Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, files opened I-O, dynamic CALLs, several record types in one file, OCCURS DEPENDING ON, SYNCHRONIZED, PIC N or leading P scaling are reported as not convertible. Each new shape we found unhandled was added to this list with a test; there may be others.
 - Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, NUMPROC, hex float arithmetic). No real mainframe output has been tested yet.
-- The breaker agent attacks single-file programs only; so far it has not found a defect that the other inputs missed.
+- The breaker agent attacks single-file programs only; in about 250 designed attacks on certified programs it has not yet found a defect that the other inputs missed.
 
 ## Run
 
