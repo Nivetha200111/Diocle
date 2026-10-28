@@ -1,43 +1,52 @@
-"""The sandbox runs only compilers or programs built under its work roots, and runners can use it transparently."""
+"""Verification jobs run in the sandbox: only regular files go in, only the report comes back."""
 
+import io
+import os
+import tarfile
 import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 
-from diocle_verifier import runners, sandbox
+from diocle_verifier import sandbox
+from diocle_verifier.verify import verify_sample
+
+SAMPLE = Path(__file__).resolve().parents[3] / "samples" / "interest-accrual"
 
 
-def test_check_allows_compilers_and_built_programs_only(tmp_path: Path):
-    roots = [tmp_path.resolve()]
-    assert sandbox.check({"cmd": ["javac", "-version"], "cwd": str(tmp_path)}, roots) is None
-    assert sandbox.check({"cmd": [str(tmp_path / "prog")], "cwd": str(tmp_path)}, roots) is None
-    assert "not an allowed command" in sandbox.check({"cmd": ["/bin/sh", "-c", "id"]}, roots)
-    assert "not an allowed command" in sandbox.check({"cmd": [str(tmp_path / ".." / "x")]}, roots)
-    assert "cwd" in sandbox.check({"cmd": ["java"], "cwd": "/etc"}, roots)
-    assert sandbox.check({"cmd": "java"}, roots)
+def test_pack_takes_regular_files_only(tmp_path: Path):
+    (tmp_path / "sample.json").write_text("{}")
+    (tmp_path / "secret-link").symlink_to("/etc/hosts")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("x")
+    names = tarfile.open(fileobj=io.BytesIO(sandbox.pack(tmp_path, None))).getnames()
+    assert names == ["sample/sample.json"]
+
+
+def test_bundle_cannot_write_outside_the_job(tmp_path: Path):
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("../escape.txt")
+        info.size = 1
+        tar.addfile(info, io.BytesIO(b"x"))
+    import base64
+    with pytest.raises(tarfile.TarError):
+        sandbox.run_job({"bundle": base64.b64encode(buf.getvalue()).decode()})
+    assert not (Path(os.environ.get("TMPDIR", "/tmp")) / "escape.txt").exists()
 
 
 @pytest.fixture
-def server(tmp_path: Path, monkeypatch):
-    monkeypatch.setenv("DIOCLE_SANDBOX_ROOTS", str(tmp_path))
+def server(monkeypatch):
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), sandbox.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     monkeypatch.setenv("DIOCLE_SANDBOX_URL", f"http://127.0.0.1:{httpd.server_address[1]}")
-    yield tmp_path
+    yield
     httpd.shutdown()
 
 
-def test_runners_go_through_the_sandbox(server: Path, monkeypatch):
-    prog = server / "prog"
-    prog.write_text("#!/bin/sh\necho \"out:$DIOCLE_CLOCK:${META_MODEL_API_KEY:-none}\"\nexit 3\n")
-    prog.chmod(0o755)
-    monkeypatch.setenv("META_MODEL_API_KEY", "must-not-leak")
-    proc = runners._exec([str(prog)], env={"DIOCLE_CLOCK": "c"}, cwd=server)
-    assert (proc.returncode, proc.stdout) == (3, "out:c:none\n")
-
-
-def test_sandbox_refusal_is_an_error(server: Path):
-    with pytest.raises(RuntimeError, match="not an allowed command"):
-        runners._exec(["/bin/sh", "-c", "id"], cwd=server)
+def test_remote_verification_matches_local(server, monkeypatch):
+    remote = verify_sample(SAMPLE, seed=7, random_count=50)
+    monkeypatch.delenv("DIOCLE_SANDBOX_URL")
+    local = verify_sample(SAMPLE, seed=7, random_count=50)
+    assert remote["summary"] == local["summary"] and remote["summary"]["total"] > 50

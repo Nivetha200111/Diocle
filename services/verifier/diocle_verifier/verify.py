@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -23,7 +24,12 @@ def _run_meta(run: Run) -> dict:
 
 def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int = 1026, random_count: int = 200,
                   extra_cases: list[Case] | None = None) -> dict:
-    """extra_cases (e.g. inputs designed by a model, source "model") run before the generated ones."""
+    """extra_cases (e.g. inputs designed by a model, source "model") run before the generated ones.
+    With DIOCLE_SANDBOX_URL set, the whole job runs in the sandbox container (see sandbox.py)."""
+    if os.environ.get("DIOCLE_SANDBOX_URL") and not os.environ.get("DIOCLE_IN_SANDBOX"):
+        from .sandbox import remote_verify
+        return remote_verify(sample_dir.resolve(), java_dir.resolve() if java_dir else None, seed, random_count,
+                             extra_cases)
     sample_dir = sample_dir.resolve()
     meta = json.loads((sample_dir / "sample.json").read_text())
     if is_multi(meta):
