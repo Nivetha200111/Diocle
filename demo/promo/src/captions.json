@@ -1,0 +1,280 @@
+{
+ "voice": "af_heart",
+ "captions": [
+  {
+   "from": 5.6,
+   "to": 7.53,
+   "text": "Banks still run on COBOL."
+  },
+  {
+   "from": 7.53,
+   "to": 10.34,
+   "text": "People re-check converted code by hand."
+  },
+  {
+   "from": 10.34,
+   "to": 12.34,
+   "text": "AI writes Java in minutes."
+  },
+  {
+   "from": 12.34,
+   "to": 14.03,
+   "text": "So who checks the AI?"
+  },
+  {
+   "from": 14.6,
+   "to": 16.38,
+   "text": "This is Diocle."
+  },
+  {
+   "from": 18.2,
+   "to": 19.84,
+   "text": "Three Muse Spark agents."
+  },
+  {
+   "from": 19.84,
+   "to": 21.26,
+   "text": "One writes the Java,"
+  },
+  {
+   "from": 21.26,
+   "to": 22.41,
+   "text": "one attacks it,"
+  },
+  {
+   "from": 22.41,
+   "to": 23.56,
+   "text": "one repairs it."
+  },
+  {
+   "from": 23.56,
+   "to": 25.2,
+   "text": "The judge isn't a model."
+  },
+  {
+   "from": 25.2,
+   "to": 26.95,
+   "text": "It's the original program."
+  },
+  {
+   "from": 27.6,
+   "to": 30.05,
+   "text": "GNU COBOL runs the original next to"
+  },
+  {
+   "from": 30.05,
+   "to": 30.95,
+   "text": "the Java,"
+  },
+  {
+   "from": 30.95,
+   "to": 32.45,
+   "text": "on the same inputs."
+  },
+  {
+   "from": 32.45,
+   "to": 34.12,
+   "text": "Every byte must match,"
+  },
+  {
+   "from": 34.12,
+   "to": 36.58,
+   "text": "or the repair agent fixes the Java."
+  },
+  {
+   "from": 40.0,
+   "to": 41.91,
+   "text": "So we let AI rewrite a bank's"
+  },
+  {
+   "from": 41.91,
+   "to": 42.73,
+   "text": "programs,"
+  },
+  {
+   "from": 42.73,
+   "to": 44.38,
+   "text": "and tried to break them."
+  },
+  {
+   "from": 45.4,
+   "to": 47.16,
+   "text": "This is the live product."
+  },
+  {
+   "from": 47.16,
+   "to": 50.29,
+   "text": "A cheque-clearing program passed one thousand and"
+  },
+  {
+   "from": 50.29,
+   "to": 52.27,
+   "text": "four tests it had never seen."
+  },
+  {
+   "from": 56.0,
+   "to": 57.97,
+   "text": "Then the breaker attacked it."
+  },
+  {
+   "from": 57.97,
+   "to": 60.17,
+   "text": "Two of its inputs broke the Java."
+  },
+  {
+   "from": 60.17,
+   "to": 62.66,
+   "text": "The COBOL charges a twenty dollar fee."
+  },
+  {
+   "from": 62.66,
+   "to": 64.4,
+   "text": "The Java charges nothing."
+  },
+  {
+   "from": 64.4,
+   "to": 66.21,
+   "text": "The repair agent fixed it,"
+  },
+  {
+   "from": 66.21,
+   "to": 67.68,
+   "text": "and it re-certified."
+  },
+  {
+   "from": 68.8,
+   "to": 69.94,
+   "text": "Don't trust us."
+  },
+  {
+   "from": 69.94,
+   "to": 71.13,
+   "text": "Press re-verify,"
+  },
+  {
+   "from": 71.13,
+   "to": 73.18,
+   "text": "and both programs run again on a"
+  },
+  {
+   "from": 73.18,
+   "to": 74.1,
+   "text": "fresh seed."
+  },
+  {
+   "from": 75.4,
+   "to": 78.03,
+   "text": "Certified code ships as a pull request,"
+  },
+  {
+   "from": 78.03,
+   "to": 80.77,
+   "text": "and the target repository's own CI checks"
+  },
+  {
+   "from": 80.77,
+   "to": 81.65,
+   "text": "it again."
+  },
+  {
+   "from": 85.6,
+   "to": 88.3,
+   "text": "Or paste any public COBOL repository,"
+  },
+  {
+   "from": 88.3,
+   "to": 90.0,
+   "text": "and watch it convert."
+  },
+  {
+   "from": 91.6,
+   "to": 93.57,
+   "text": "Banks keep their code private,"
+  },
+  {
+   "from": 93.57,
+   "to": 95.54,
+   "text": "so the same agents run on Muse"
+  },
+  {
+   "from": 95.54,
+   "to": 96.48,
+   "text": "Spark Open,"
+  },
+  {
+   "from": 96.48,
+   "to": 97.9,
+   "text": "Meta's open weights."
+  },
+  {
+   "from": 99.0,
+   "to": 100.56,
+   "text": "We test ourselves too."
+  },
+  {
+   "from": 100.56,
+   "to": 103.02,
+   "text": "Our evaluation publishes its failures,"
+  },
+  {
+   "from": 103.02,
+   "to": 105.47,
+   "text": "including a bug our own stricter check"
+  },
+  {
+   "from": 105.47,
+   "to": 106.2,
+   "text": "caught."
+  },
+  {
+   "from": 108.5,
+   "to": 109.17,
+   "text": "Today,"
+  },
+  {
+   "from": 109.17,
+   "to": 111.7,
+   "text": "people re-check converted code by hand."
+  },
+  {
+   "from": 111.7,
+   "to": 112.71,
+   "text": "With Diocle,"
+  },
+  {
+   "from": 112.71,
+   "to": 115.29,
+   "text": "every program arrives with proof you can"
+  },
+  {
+   "from": 115.29,
+   "to": 116.02,
+   "text": "re-run."
+  },
+  {
+   "from": 117.0,
+   "to": 117.71,
+   "text": "Diocle."
+  },
+  {
+   "from": 117.71,
+   "to": 118.64,
+   "text": "Try it now,"
+  },
+  {
+   "from": 118.64,
+   "to": 120.56,
+   "text": "at diocle dot vercel dot app."
+  },
+  {
+   "from": 120.56,
+   "to": 122.37,
+   "text": "Built during the hackathon,"
+  },
+  {
+   "from": 122.37,
+   "to": 123.85,
+   "text": "with Meta Muse Spark."
+  }
+ ]
+}

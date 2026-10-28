@@ -460,5 +460,6 @@ export const TryNow: React.FC = () => (
       <div style={{ marginTop: 18 }}><Pill color={C.phosphor} delay={30} size={40}>Try it now: paste a COBOL repo at diocle.vercel.app</Pill></div>
       <Label delay={50} color={C.muted}>Everything shown was built Oct 27 – Nov 4, 2026, during the hackathon · github.com/Nivetha200111/Diocle</Label>
     </AbsoluteFill>
+    <Footnote delay={60}>Narration: synthetic voice (Kokoro, Apache 2.0).</Footnote>
   </AbsoluteFill>
 );
