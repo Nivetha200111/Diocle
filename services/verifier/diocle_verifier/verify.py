@@ -19,7 +19,9 @@ def _run_meta(run: Run) -> dict:
     return {"compiled": run.compiled, "exitCode": run.exit_code, "stdout": run.stdout, "stderr": run.stderr}
 
 
-def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int = 1026, random_count: int = 200) -> dict:
+def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int = 1026, random_count: int = 200,
+                  extra_cases: list[Case] | None = None) -> dict:
+    """extra_cases (e.g. inputs designed by a model, source "model") run before the generated ones."""
     sample_dir = sample_dir.resolve()
     meta = json.loads((sample_dir / "sample.json").read_text())
     in_fields = load_fields(meta["layouts"]["input"])
@@ -27,7 +29,7 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
     java_dir = (java_dir or sample_dir / meta["javaConversion"]["dir"]).resolve()
 
     fixtures = [Case(f"fixture-{c['id']}", "fixture", c["record"]) for c in meta.get("fixtureCases", [])]
-    cases = fixtures + generate_cases(in_fields, seed=seed, random_count=random_count)
+    cases = fixtures + list(extra_cases or []) + generate_cases(in_fields, seed=seed, random_count=random_count)
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
         input_path = work / "input.dat"
