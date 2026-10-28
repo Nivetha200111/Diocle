@@ -1,5 +1,6 @@
 """End-to-end: GnuCOBOL original vs converted Java on the synthetic interest-accrual sample."""
 
+import json
 import shutil
 from pathlib import Path
 
@@ -68,3 +69,15 @@ def test_packed_binary_and_overpunch_records_are_verified_byte_for_byte():
     naive = verify_sample(packed, random_count=50)
     fields = {d["field"] for r in naive["results"] for d in r.get("fieldDiffs", [])}
     assert {"PO-INT", "PO-NEW-BAL", "PO-HEADROOM", "PO-ITEM-UNITS", "PO-REVERSAL"} <= fields
+
+
+def test_corpus_records_run_as_cases(tmp_path):
+    sample = tmp_path / "s"
+    shutil.copytree(SAMPLE, sample)
+    meta = json.loads((sample / "sample.json").read_text())
+    (sample / "corpus.dat").write_text("CORPUS1   +0000012345670500030S\nCORPUS2   -0000000050000500365P\n")
+    meta["corpus"] = ["corpus.dat"]
+    (sample / "sample.json").write_text(json.dumps(meta))
+    report = verify_sample(sample, REFERENCE, random_count=5)
+    corpus = [r for r in report["results"] if r["inputSource"] == "corpus"]
+    assert [r["inputId"] for r in corpus] == ["corpus-0001", "corpus-0002"] and all(r["match"] for r in corpus)

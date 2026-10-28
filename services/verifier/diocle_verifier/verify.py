@@ -11,7 +11,7 @@ from .codec import convert_file
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
-from .runners import CLOCK, Run, run_cobol, run_java, write_records
+from .runners import CLOCK, Run, read_records, run_cobol, run_java, write_records
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
 
@@ -31,7 +31,10 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
 
     fixtures = [Case(f"fixture-{c['id']}", "fixture", c["record"]) for c in meta.get("fixtureCases", [])]
     golden_cases, golden_expected, golden_meta = _golden(sample_dir, meta, in_fields, out_fields)
-    cases = (fixtures + golden_cases + list(extra_cases or [])
+    in_format, in_length = record_format(meta["layouts"]["input"]), record_length(in_fields)
+    corpus = [Case(f"corpus-{i + 1:04d}", "corpus", r) for i, r in enumerate(
+        r for path in meta.get("corpus", []) for r in read_records(sample_dir / path, in_format, in_length))]
+    cases = (fixtures + golden_cases + corpus + list(extra_cases or [])
              + generate_cases(in_fields, seed=seed, random_count=random_count))
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
