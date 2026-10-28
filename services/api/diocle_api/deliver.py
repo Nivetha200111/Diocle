@@ -62,8 +62,8 @@ def target_repo(url: str) -> str:
 class Progress:
     """runs/deliveries/<id>/delivery.json (contracts/delivery.schema.json), rewritten at every step."""
 
-    def __init__(self, legacy_url: str, target_url: str):
-        self.id = f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    def __init__(self, legacy_url: str, target_url: str, delivery_id: str | None = None):
+        self.id = delivery_id or f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         self.path = REPO_ROOT / "runs" / "deliveries" / self.id / "delivery.json"
         self.state = {"id": self.id, "legacy": {"repository": legacy_url, "commit": None}, "target": target_url,
                       "stage": "analyzing", "startedAt": _now(), "finishedAt": None, "error": None,
@@ -231,9 +231,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="swarm: convert all programs at once; agents share lessons as each one certifies")
     parser.add_argument("--breaker", action="store_true", help="after certification, a breaker agent attacks each program")
     parser.add_argument("--onto", help="commit onto this existing target branch instead of opening a new pull request")
+    parser.add_argument("--id", help="delivery id to use (the API passes one so the dashboard can follow it)")
     args = parser.parse_args(argv)
 
-    progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"))
+    progress = Progress(args.legacy_url, args.target_url.rstrip("/").removesuffix(".git"), args.id)
     print(f"delivery {progress.id}", flush=True)
     try:
         target_repo(progress.state["target"])  # fail fast on a bad or disallowed target
