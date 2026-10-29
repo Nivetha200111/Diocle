@@ -1,6 +1,6 @@
 {
   "name": "chqclr",
-  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "description": "Imported from eval/unseen",
   "program": "CHQCLR",
   "source": "src/CHQCLR.cbl",
   "modules": [],
@@ -152,7 +152,7 @@
     }
   },
   "import": {
-    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "repository": "eval/unseen",
     "commit": null,
     "path": "cobol/CHQCLR.cbl",
     "job": null

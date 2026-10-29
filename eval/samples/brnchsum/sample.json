@@ -1,6 +1,6 @@
 {
   "name": "brnchsum",
-  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "description": "Imported from eval/unseen",
   "program": "BRNCHSUM",
   "source": "src/BRNCHSUM.cbl",
   "modules": [],
@@ -84,7 +84,7 @@
     }
   },
   "import": {
-    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "repository": "eval/unseen",
     "commit": null,
     "path": "cobol/BRNCHSUM.cbl",
     "job": null

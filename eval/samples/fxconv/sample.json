@@ -1,6 +1,6 @@
 {
   "name": "fxconv",
-  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "description": "Imported from eval/unseen",
   "program": "FXCONV",
   "source": "src/FXCONV.cbl",
   "modules": [],
@@ -86,7 +86,7 @@
     }
   },
   "import": {
-    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "repository": "eval/unseen",
     "commit": null,
     "path": "cobol/FXCONV.cbl",
     "job": null

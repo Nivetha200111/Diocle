@@ -1,6 +1,6 @@
 {
   "name": "loanamrt",
-  "description": "Imported from /Users/nivetha/Diocle/eval/unseen",
+  "description": "Imported from eval/unseen",
   "program": "LOANAMRT",
   "source": "src/LOANAMRT.cbl",
   "modules": [],
@@ -110,7 +110,7 @@
     }
   },
   "import": {
-    "repository": "/Users/nivetha/Diocle/eval/unseen",
+    "repository": "eval/unseen",
     "commit": null,
     "path": "cobol/LOANAMRT.cbl",
     "job": null
