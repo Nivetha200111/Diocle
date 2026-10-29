@@ -1,0 +1,50 @@
+{
+  "name": "display-report",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): operator listing of transactions, DISPLAY only and no output file; compared by stdout and exit code.",
+  "program": "TXNLIST",
+  "source": "src/TXNLIST.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Txnlist",
+    "origin": "hand-written fixture, not model output"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "files": [
+    {
+      "dd": "TXNIN",
+      "direction": "input",
+      "layout": {
+        "record": "TXN-REC",
+        "fields": [
+          {
+            "name": "TXN-ID",
+            "kind": "alnum",
+            "length": 6
+          },
+          {
+            "name": "TXN-TYPE",
+            "kind": "alnum",
+            "length": 1,
+            "values": [
+              "C",
+              "D"
+            ]
+          },
+          {
+            "name": "TXN-AMOUNT",
+            "kind": "numeric",
+            "digits": 5,
+            "scale": 2,
+            "signed": true,
+            "sign": "leading-separate"
+          }
+        ],
+        "format": "line"
+      }
+    }
+  ],
+  "displayOnly": true
+}

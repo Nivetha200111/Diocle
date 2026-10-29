@@ -222,6 +222,9 @@ class ProgramInfo:
     fd_inline: dict[str, str] = field(default_factory=dict)  # FD file name -> its inline record entries (code)
     sort_files: set[str] = field(default_factory=set)  # SD (sort work) files: internal, not program I/O
     dynamic_calls: list[str] = field(default_factory=list)  # CALL identifier: the target is only known at run time
+    resolved_calls: dict[str, str] = field(default_factory=dict)  # CALL identifier -> the one literal it can only hold
+    stdout_display: bool = False  # the PROCEDURE DIVISION DISPLAYs something to stdout (not only UPON SYSERR)
+    console_input: bool = False  # ACCEPT from the console/stdin: its input is not something the verifier can vary
 
 
 def parse_program(text: str) -> ProgramInfo:
@@ -249,6 +252,7 @@ def parse_program(text: str) -> ProgramInfo:
     exec_blocks = sorted(set(re.findall(r"\bEXEC\s+(SQL|CICS|DLI|SQLIMS)\b", code)))
     directions: dict[str, str] = {}
     tokens = re.findall(r"[A-Z0-9][A-Z0-9-]*|[^\sA-Z0-9]", code)
+    modes: dict[str, set[str]] = {}
     for i, token in enumerate(tokens):
         if token != "OPEN":
             continue
@@ -257,9 +261,14 @@ def parse_program(text: str) -> ProgramInfo:
             if word in ("INPUT", "OUTPUT", "EXTEND", "I-O"):
                 mode = word
             elif word in selects and mode:
-                directions[word] = "input" if mode == "INPUT" else "output" if mode in ("OUTPUT", "EXTEND") else "unknown"
+                modes.setdefault(word, set()).add(mode)
+                directions[word] = ("input" if mode == "INPUT" else "output" if mode in ("OUTPUT", "EXTEND")
+                                    else "io")
             else:
                 break
+    for word, seen in modes.items():
+        if "I-O" in seen and len(seen) > 1:  # opened I-O here and another way there: not a shape we can seed and compare
+            directions[word] = "unknown"
     sort_files = set(re.findall(r"\bSD\s+([A-Z0-9-]+)", code))
     for m in re.finditer(r"\bSORT\s+[A-Z0-9-]+.*?(?=\bSORT\s|$)", code):  # SORT ... USING in-files GIVING out-files
         stmt = m.group(0)
@@ -272,6 +281,133 @@ def parse_program(text: str) -> ProgramInfo:
                     break
     copybooks = list(dict.fromkeys(re.findall(r"\bCOPY\s+([A-Z0-9-]+)", code)))
     calls = list(dict.fromkeys(re.findall(r"\bCALL\s+['\"]([A-Z0-9-]+)['\"]", code)))
-    dynamic_calls = sorted(set(re.findall(r"\bCALL\s+([A-Z][A-Z0-9-]*)\b", code)))
+    dynamic_calls = sorted(set(re.findall(r"(?<![A-Z0-9-])CALL\s+([A-Z][A-Z0-9-]*)(?![A-Z0-9-])", code)))
+    procedure = _tokens(code)
+    procedure = procedure[_procedure_start(procedure):]
+    resolved, still_dynamic = _resolve_dynamic_calls(code, procedure, dynamic_calls)
+    calls = list(dict.fromkeys(calls + list(resolved.values())))
+    stdout_display, console_input = _console_use(procedure)
     return ProgramInfo(name, copybooks, selects, fd_copybooks, directions, calls, organizations, replacing,
-                       inline_records, exec_blocks, fd_inline, sort_files, dynamic_calls)
+                       inline_records, exec_blocks, fd_inline, sort_files, still_dynamic, resolved,
+                       stdout_display, console_input)
+
+
+# --- CALL identifier: resolved statically only when nothing but literals can ever be in it -------------------
+
+_TOKEN = re.compile(r"""'[^']*'|"[^"]*"|[A-Z0-9][A-Z0-9-]*|[^\sA-Z0-9]""")
+
+# Every verb that starts a statement. The verb nearest before a use of an identifier says how it is used, so an
+# incomplete list would misread a modifying statement as a harmless one: keep it complete.
+_VERBS = {"ACCEPT", "ADD", "ALLOCATE", "ALTER", "CALL", "CANCEL", "CLOSE", "COMPUTE", "CONTINUE", "DELETE", "DISPLAY",
+          "DIVIDE", "ENTRY", "EVALUATE", "EXIT", "FREE", "GENERATE", "GO", "GOBACK", "IF", "INITIALIZE", "INITIATE",
+          "INSPECT", "INVOKE", "MERGE", "MOVE", "MULTIPLY", "NEXT", "OPEN", "PERFORM", "RAISE", "READ", "RELEASE",
+          "RESUME", "RETURN", "REWRITE", "SEARCH", "SET", "SORT", "START", "STOP", "STRING", "SUBTRACT", "SUPPRESS",
+          "TERMINATE", "TRANSFORM", "UNLOCK", "UNSTRING", "USE", "VALIDATE", "WRITE", "XML", "JSON", "EXEC"}
+# Places a data item is only read: conditions and DISPLAY.
+_READ_ONLY = {"DISPLAY", "IF", "EVALUATE", "WHEN", "UNTIL"}
+
+
+def _tokens(code: str) -> list[str]:
+    return _TOKEN.findall(code)
+
+
+def _procedure_start(tokens: list[str]) -> int:
+    for i in range(len(tokens) - 1):
+        if tokens[i] == "PROCEDURE" and tokens[i + 1] == "DIVISION":
+            return i
+    return len(tokens)
+
+
+def _literal(token: str) -> str | None:
+    return token[1:-1].rstrip() if token[:1] in ("'", '"') and len(token) >= 2 else None
+
+
+def _definition(code: str, identifier: str) -> tuple[str | None, bool]:
+    """(the literal in the item's VALUE clause or None, whether the item is a plain elementary WORKING-STORAGE
+    item at level 01 or 77 that nothing redefines and that does not repeat)."""
+    start, end = code.find("WORKING-STORAGE SECTION"), code.find("PROCEDURE DIVISION")
+    linkage = code.find("LINKAGE SECTION")
+    if linkage != -1 and start != -1 and linkage > start:
+        end = min(end, linkage) if end != -1 else linkage
+    name = re.escape(identifier)
+    entries = list(re.finditer(rf"(?<![A-Z0-9-])(\d{{1,2}})\s+{name}(?![A-Z0-9-])([^.]*)\.", code))
+    if start == -1 or len(entries) != 1:
+        return None, False
+    m = entries[0]
+    if not (start < m.start() and (end == -1 or m.start() < end)):
+        return None, False  # FILE SECTION, LINKAGE or a copybook: its contents are set from outside
+    body = m.group(2)
+    elementary = (m.group(1) in ("01", "77") and re.search(r"\bPIC(?:TURE)?\b", body) is not None
+                  and not re.search(r"\b(?:REDEFINES|OCCURS|RENAMES|EXTERNAL|GLOBAL|BASED)\b", body)
+                  and not re.search(rf"\bREDEFINES\s+{name}(?![A-Z0-9-])", code))
+    value = re.search(r"""\bVALUE\s+(?:IS\s+)?('[^']*'|"[^"]*")""", body)
+    return (_literal(value.group(1)) if value else None), elementary
+
+
+def _assigned_values(procedure: list[str], identifier: str) -> list[str] | None:
+    """The literals moved into the identifier, or None when anything else can change it or lets its value escape
+    (STRING, UNSTRING, ACCEPT, READ INTO, INITIALIZE, SET, INSPECT, arithmetic, PERFORM VARYING, CALL ... USING it,
+    a subscript or reference modification, a MOVE from anything but one quoted literal)."""
+    values = []
+    for i, token in enumerate(procedure):
+        if token != identifier:
+            continue
+        if i + 1 < len(procedure) and procedure[i + 1] == "(":
+            return None
+        j = i - 1
+        while j >= 0 and procedure[j] not in _VERBS and procedure[j] not in _READ_ONLY and procedure[j] != ".":
+            j -= 1
+        if j < 0 or procedure[j] == ".":
+            return None
+        verb = procedure[j]
+        if verb == "CALL":
+            if j != i - 1:
+                return None  # passed as an argument or RETURNING target: the called program may change it
+        elif verb == "MOVE":
+            if "TO" not in procedure[j + 1 : i]:
+                continue  # the source of a MOVE: only read
+            source = procedure[j + 1 : procedure.index("TO", j + 1)]
+            if len(source) != 1 or _literal(source[0]) is None:
+                return None  # also covers MOVE CORRESPONDING and any non-literal source
+            values.append(_literal(source[0]))
+        elif verb not in _READ_ONLY:
+            return None
+    return values
+
+
+def _resolve_dynamic_calls(code: str, procedure: list[str], dynamic_calls: list[str]) -> tuple[dict[str, str], list[str]]:
+    """Split CALL identifier targets into ({identifier: the literal program name it can only hold}, still dynamic).
+
+    Resolved only when the identifier is a plain WORKING-STORAGE item, every assignment to it anywhere in the
+    PROCEDURE DIVISION is MOVE 'literal', and the VALUE clause and all those literals agree on one name. Anything
+    else that could assign it keeps the call dynamic (refused): a wrong resolution would translate the wrong
+    program, which is worse than a missed feature."""
+    resolved, still_dynamic = {}, []
+    for identifier in dynamic_calls:
+        initial, plain = _definition(code, identifier)
+        moves = _assigned_values(procedure, identifier) if plain else None
+        names = set(([initial] if initial is not None else []) + (moves or []))
+        if moves is None or len(names) != 1 or not re.fullmatch(r"[A-Z][A-Z0-9-]*", next(iter(names))):
+            still_dynamic.append(identifier)
+        else:
+            resolved[identifier] = next(iter(names))
+    return resolved, still_dynamic
+
+
+def _console_use(procedure: list[str]) -> tuple[bool, bool]:
+    """(some DISPLAY writes to stdout, some ACCEPT reads the console). DISPLAY ... UPON SYSERR goes to stderr."""
+    stdout_display = console_input = False
+    for i, token in enumerate(procedure):
+        if token == "DISPLAY":
+            j = i + 1
+            while j < len(procedure) and procedure[j] not in _VERBS and procedure[j] != ".":
+                j += 1
+            stmt = procedure[i + 1 : j]
+            upon = stmt.index("UPON") if "UPON" in stmt else -1
+            if not (upon != -1 and stmt[upon + 1 : upon + 2] in (["SYSERR"], ["STDERR"], ["ERROR"])):
+                stdout_display = True
+        elif token == "ACCEPT":
+            tail = procedure[i + 2 : i + 4]
+            if not (tail[:1] == ["FROM"] and tail[1:2] and tail[1] in ("DATE", "TIME", "DAY", "DAY-OF-WEEK")):
+                console_input = True
+    return stdout_display, console_input

@@ -30,7 +30,9 @@ def safe_env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None = None, timeout: int = 120):
-    return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout)
+    # stdin is closed: a program that ACCEPTs from the console sees end of file on both sides, never the caller's terminal.
+    return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout,
+                          stdin=subprocess.DEVNULL)
 
 
 # IBM Enterprise COBOL defaults that GnuCOBOL's -std=ibm leaves off: TRUNC(STD) (binary values are truncated to
@@ -112,9 +114,13 @@ def build_java(src_dir: Path, main_class: str, workdir: Path) -> tuple[list[str]
 
 
 def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[str, int]], workdir: Path, label: str,
-              extra_env: dict[str, str] | None = None) -> Run:
-    """Run with every DD bound: inputs DD -> file, outputs DD -> (format, record length). Outputs land per DD."""
+              extra_env: dict[str, str] | None = None, seeds: dict[str, Path] | None = None) -> Run:
+    """Run with every DD bound: inputs DD -> file, outputs DD -> (format, record length). Outputs land per DD.
+    seeds: files opened I-O. Each run gets its own copy of the seed at the DD's path (the program updates it in
+    place), and the file's final contents are read back like an output."""
     paths = {dd: workdir / f"{label}-{dd}.out" for dd in outputs}
+    for dd, seed in (seeds or {}).items():
+        paths[dd].write_bytes(seed.read_bytes())
     env = {**CLOCK_ENV, **(extra_env or {}), **{f"DD_{dd}": str(p) for dd, p in inputs.items()},
            **{f"DD_{dd}": str(p) for dd, p in paths.items()}}
     proc = _exec(cmd, env=env, cwd=workdir)

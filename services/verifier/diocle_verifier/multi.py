@@ -15,7 +15,7 @@ from pathlib import Path
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import Field, format_record, load_fields, parse_record, record_format, record_length
-from .runners import CLOCK, build_cobol, build_java, read_records, run_files, write_records
+from .runners import CLOCK, Run, build_cobol, build_java, read_records, run_files, write_records
 
 
 def file_specs(meta: dict) -> list[dict]:
@@ -27,8 +27,10 @@ def file_specs(meta: dict) -> list[dict]:
 
 
 def is_multi(meta: dict) -> bool:
+    """False only for the classic shape: exactly one input, one output, nothing opened I-O, files compared."""
     specs = file_specs(meta)
-    return sum(f["direction"] == "input" for f in specs) != 1 or sum(f["direction"] == "output" for f in specs) != 1
+    return (sum(f["direction"] == "input" for f in specs) != 1 or sum(f["direction"] == "output" for f in specs) != 1
+            or any(f["direction"] == "io" for f in specs) or bool(meta.get("displayOnly")))
 
 
 def _sort_key(value: str, collation: str) -> bytes:
@@ -84,9 +86,11 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
 
     specs = file_specs(meta)
     inputs = [s for s in specs if s["direction"] == "input"]
-    outputs = [s for s in specs if s["direction"] == "output"]
+    updated = [s for s in specs if s["direction"] == "io"]  # opened I-O: seeded from generated records, compared at the end
+    outputs = [s for s in specs if s["direction"] in ("output", "io")]
+    stdout_only = not outputs and bool(meta.get("displayOnly"))  # nothing but DISPLAY and RETURN-CODE to compare
     out_fields = {s["dd"]: load_fields(s["layout"]) for s in outputs}
-    data = _input_records(meta, sample_dir, inputs, seed, random_count)
+    data = _input_records(meta, sample_dir, inputs + updated, seed, random_count)
     collation = meta.get("collation", "ascii")
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
@@ -94,14 +98,19 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
         for s in inputs:
             paths[s["dd"]] = work / f"{s['dd']}.in"
             write_records(paths[s["dd"]], data[s["dd"]], record_format(s["layout"]))
+        seeds = {}
+        for s in updated:
+            seeds[s["dd"]] = work / f"{s['dd']}.seed"
+            write_records(seeds[s["dd"]], data[s["dd"]], record_format(s["layout"]))
         out_spec = {s["dd"]: (record_format(s["layout"]), record_length(out_fields[s["dd"]])) for s in outputs}
         cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
                                           [sample_dir / m for m in meta.get("modules", [])], collation)
         java_cmd, converted = build_java(java_dir, meta["javaConversion"]["mainClass"], work)
         if cobol_cmd:
-            original = run_files(cobol_cmd, paths, out_spec, work, "original")
+            original = run_files(cobol_cmd, paths, out_spec, work, "original", seeds=seeds)
         if java_cmd:
-            converted = run_files(java_cmd, paths, out_spec, work, "converted", {"DIOCLE_COLLATION": collation.upper()})
+            converted = run_files(java_cmd, paths, out_spec, work, "converted", {"DIOCLE_COLLATION": collation.upper()},
+                                  seeds=seeds)
 
     results: list[dict] = []
     if original.compiled and converted.compiled:
@@ -113,6 +122,8 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                 r.update({"program": meta["program"], "outputDd": dd})
                 r.pop("input", None)
                 results.append(r)
+    if stdout_only and original.compiled and converted.compiled:
+        results.append(stdout_result(meta["program"], original, converted))
     passed = sum(r["match"] for r in results)
     meta_run = lambda r: {"compiled": r.compiled, "exitCode": r.exit_code, "stdout": r.stdout, "stderr": r.stderr}
     return {
@@ -127,8 +138,41 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             "clock": CLOCK,
             "collation": collation,
             "golden": None,
-            "files": {"inputs": {dd: len(r) for dd, r in data.items()},
+            **({"stdoutCompared": True} if stdout_only else {}),
+            "files": {"inputs": {s["dd"]: len(data[s["dd"]]) for s in inputs},
+                      **({"updated": {s["dd"]: {"seeded": len(data[s["dd"]]),
+                                                "original": len(original.output_files.get(s["dd"], [])),
+                                                "converted": len(converted.output_files.get(s["dd"], []))}
+                                      for s in updated}} if updated else {}),
                       "outputs": {s["dd"]: {"original": len(original.output_files.get(s["dd"], [])),
                                             "converted": len(converted.output_files.get(s["dd"], []))} for s in outputs}},
         },
     }
+
+
+STDOUT_LIMIT = 2000
+
+
+def stdout_result(program: str, original: Run, converted: Run) -> dict:
+    """The one result of a DISPLAY-only program: stdout and exit code, byte for byte.
+
+    A program whose original printed nothing has nothing observable to compare, so it cannot pass."""
+    o, c = original.stdout, converted.stdout
+    problems = []
+    if not o:
+        problems.append("the original printed nothing to stdout: no output file and no DISPLAY text to compare")
+    if o != c:
+        o_lines, c_lines = o.splitlines(), c.splitlines()
+        n = next((i for i in range(max(len(o_lines), len(c_lines)))
+                  if (o_lines[i] if i < len(o_lines) else None) != (c_lines[i] if i < len(c_lines) else None)), 0)
+        problems.append(f"stdout line {n + 1}: original {o_lines[n] if n < len(o_lines) else '(none)'!r} "
+                        f"converted {c_lines[n] if n < len(c_lines) else '(none)'!r}"
+                        if o.rstrip("\n") != c.rstrip("\n") else "stdout differs only in the final newline")
+    if original.exit_code != converted.exit_code:
+        problems.append(f"exit code: original {original.exit_code} converted {converted.exit_code}")
+    result = {"program": program, "inputId": "stdout", "inputSource": "stdout", "outputDd": "stdout",
+              "originalOutput": o[:STDOUT_LIMIT], "convertedOutput": c[:STDOUT_LIMIT],
+              "match": not problems, "fieldDiffs": []}
+    if problems:
+        result["diff"] = "; ".join(problems)
+    return result

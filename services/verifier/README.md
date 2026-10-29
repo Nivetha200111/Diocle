@@ -89,3 +89,23 @@ generation arithmetic beyond an exact base-DSN match, and SORT `INCLUDE`/`OMIT C
 `SUM FIELDS=` or `MERGE` (the analyzer refuses all of these with a specific reason before a job reaches this
 verifier at all, so `verify_job` only ever sees the one-SORT-then-one-COBOL shape). `verify_job` is not yet
 wired into the `diocle_verifier` CLI or `verify_sample()`'s auto-dispatch; call it directly for now.
+
+## Programs with no output file, and files opened I-O (report v0.8)
+
+- **DISPLAY only** (`sample.json` `"displayOnly": true`, set by the analyzer): the one result is `stdout`
+  (`inputSource` and `outputDd` `stdout`). It matches only if stdout is byte-identical **and** the exit codes (COBOL
+  RETURN-CODE) are equal, and the original printed something: a run that printed nothing and wrote nothing cannot pass,
+  whatever the flag says. Without the flag a program with no output file has zero results and fails. Inputs
+  (if the program reads files) are generated as usual; stdin is closed, so a stray `ACCEPT` sees end of file on both sides.
+  A program with no input at all is deterministic, so this is one run, not many cases; the certificate says so
+  (`runs.stdoutCompared`, `runs.files.inputs`).
+- **Opened I-O** (`direction: "io"`): the file is seeded from generated records (plus fixtures and corpus, like an
+  input), each side gets its own copy at its DD path, and the file's final contents are compared record by record,
+  byte for byte, like an output (`runs.files.updated` lists records seeded and left by each side). Fixed-record
+  SEQUENTIAL files only; the analyzer refuses the rest.
+- Proof without model calls: `tests/test_stdout_and_update.py` runs the hand-written Java of `samples/ledger-rewrite`
+  (OPEN I-O, REWRITE), `samples/display-report` (DISPLAY only) and `samples/call-identifier` (CALL identifier) against
+  GnuCOBOL, plus mutated Java that must fail (wrong update, forgotten REWRITE, one different DISPLAY line, one
+  different exit code), a no-output no-DISPLAY program that must not pass, and `reverify` rebuilding both shapes from a
+  legacy checkout.
+- **Not done:** `verify_job` still compares output files only, so the analyzer keeps such programs out of JCL jobs.

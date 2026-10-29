@@ -1,0 +1,64 @@
+{
+  "name": "ledger-rewrite",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): monthly account master updated in place (OPEN I-O, REWRITE); compared by the final file contents.",
+  "program": "LDGRWRT",
+  "source": "src/LDGRWRT.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "LdgrWrt",
+    "origin": "hand-written fixture, not model output"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "files": [
+    {
+      "dd": "ACCTMST",
+      "direction": "io",
+      "layout": {
+        "record": "MST-REC",
+        "fields": [
+          {
+            "name": "MST-ACCT-ID",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "MST-STATUS",
+            "kind": "alnum",
+            "length": 1,
+            "values": [
+              "A",
+              "C",
+              "O"
+            ]
+          },
+          {
+            "name": "MST-BALANCE",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "trailing"
+          },
+          {
+            "name": "MST-RATE",
+            "kind": "numeric",
+            "digits": 1,
+            "scale": 4,
+            "signed": false
+          },
+          {
+            "name": "MST-FEE-CNT",
+            "kind": "numeric",
+            "digits": 3,
+            "scale": 0,
+            "signed": false
+          }
+        ],
+        "format": "fixed"
+      }
+    }
+  ]
+}

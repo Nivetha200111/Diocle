@@ -18,6 +18,20 @@ superseded runs labelled. A reviewer pass found and we fixed: `/runs` was git-ig
 `/runs/`), visitor runs saved before the marker (now detected by their sample), timezone-sensitive "interrupted"
 (now decided by the engine), and wording that overstated the recorded CHQCLR result. README: canonical #4, the `openai` package note,
 coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST).
+- **Plan step 1 done, verifier first (Oct 29, branch `worktree-agent-a6a8db8578f8d9014`, local, NOT pushed or deployed;
+  analysis contract v0.5, verification contract v0.8):** (a) programs with no output file but DISPLAY output are
+  certified on stdout + exit code (one `stdout` result; refused if the original printed nothing; `displayOnly` in
+  sample.json set by the analyzer, re-derived by `reverify`); (b) sequential fixed-record files opened I-O (REWRITE) are
+  seeded from generated records and their final contents compared byte for byte (`runs.files.updated`; both sides get
+  their own copy of the seed); (c) `CALL identifier` resolves only when nothing but literals can assign it (token-based,
+  so multi-line MOVEs are seen; STRING/UNSTRING/ACCEPT/READ INTO/LINKAGE/CALL USING/second literal all keep it refused).
+  The analyzer says convertible only for shapes the verifier handles, and a JCL job with such a COBOL step is refused
+  as a job. Proven end to end with hand-written Java (no model calls): `samples/display-report`, `samples/ledger-rewrite`,
+  `samples/call-identifier`, plus mutated-Java negative tests. Re-verified every certified run's existing Java before and
+  after: identical results (six Quillmark programs and CHQCLR pass). Measured with the analyzer only on the course repo:
+  16 of 32 programs convertible before, 25 of 32 after (9 DISPLAY-only; none use OPEN I-O or a CALL identifier). NOT
+  proven: the translator model on these shapes (no paid calls were made), and the real course programs through the
+  verifier (compiling cloned code was not run in this session).
 - **Copybooks as SQL (Oct 29, plan step 3, built on the Windows laptop):** `diocle_verifier.sqlschema` (contract
   `contracts/sql-schema.schema.json` v0.1) writes one table per file layout (`DECIMAL(p,s)` from the PIC, CHECK on
   unsigned, COMP-5 by its bytes, REDEFINES and OCCURS stated) and proves it per record: values checked against the
@@ -138,9 +152,9 @@ Before turning visitor imports on: confirm the attack test outcome, re-verify wo
 `sed -i "s/^DIOCLE_PUBLIC_IMPORTS=0/DIOCLE_PUBLIC_IMPORTS=1/" deploy/diocle.env` and
 `docker compose -f docker-compose.api.yml up -d`. Owner decides.
 
-Known gap: programs that only DISPLAY (no output file) are skipped as "writes no output file to compare";
-stdout could be compared. Seen on github.com/openmainframeproject/cobol-programming-course (17 of 34 programs
-convertible; EXEC SQL ones correctly refused). Good test repo for visitor imports.
+Former gap, now closed on the branch `worktree-agent-a6a8db8578f8d9014` (not merged, not deployed): programs that only DISPLAY are
+compared on stdout and exit code (see the first Current-state bullet). Good test repo for visitor imports:
+github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctly refused).
 
 ### Verifier correctness (independent review, 2026-10-28 late evening)
 - **Fixed:** the comparator paired output records with inputs (aggregation / fan-out programs failed even when
@@ -179,7 +193,8 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 - Prizes: post the vertical cut on **X** right after submitting (Most Viral counts engagement until Nov 8).
 
 ## Open work (priority order)
-- **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (dependencies: display-only and I-O programs,
+- **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (item 1 is built on the branch above, awaiting a reviewer pass,
+  a merge and one real model run per new sample; dependencies: display-only and I-O programs,
   whole JCL jobs, then DB2 if time; copybook to SQL schema is done). Do it on the Mac; deploy the engine first.
 0. Deploy the engine again for the SQL tab (above), then re-shoot the video against the new front page. After submitting: freeze deploys
    until judging ends (Nov 5-9), add an uptime monitor, and watch that visitor imports don't drain the credits.
@@ -202,6 +217,11 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 6. A review from a COBOL maintainer (owner arranges). Module README consistency.
 
 ## Done recently
+- 2026-10-29: **CLAUDE.md plan item 1 (more programs convert), verifier support first.** See the Current-state bullet
+  "Plan step 1 done" for what, the tests and the measurement. Commit order on the branch: contracts, verifier,
+  analyzer, converter prompt text, samples, tests, docs. Still refused: EXEC SQL/CICS/DLI, INDEXED/RELATIVE, LINE
+  SEQUENTIAL opened I-O, mixed I-O modes, dynamic CALL (anything but literals), unknown CALL targets, no output and no
+  DISPLAY, DISPLAY-only with console ACCEPT.
 - 2026-10-29: **Roadmap item 2, whole JCL job end to end (v1 scope: one SORT step feeding one COBOL step),
   all three passes done and cross-checked together** (d28a04a analyzer, cc3f3ae converter, 20a0bc0
   verifier — see each commit for its own module's detail). The analyzer groups JCL steps into jobs and

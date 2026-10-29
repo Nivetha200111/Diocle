@@ -34,7 +34,20 @@ class Program:
     def io_text(self) -> str:
         reads = ", ".join(f"DD_{f['dd']}" for f in self.files if f["direction"] == "input") or "none"
         writes = ", ".join(f"DD_{f['dd']}" for f in self.files if f["direction"] == "output")
-        return f"Input file paths come from environment variables {reads}; write the outputs to {writes}."
+        updates = ", ".join(f"DD_{f['dd']}" for f in self.files if f["direction"] == "io")
+        text = f"Input file paths come from environment variables {reads}"
+        if writes:
+            text += f"; write the outputs to {writes}"
+        text += "."
+        if updates:
+            text += (f" {updates} names a file the COBOL opens I-O: it already holds records, so read it, apply what the "
+                     "program REWRITEs, and write the result back to the same path. Records the program does not "
+                     "REWRITE, and the record length, stay byte-identical. The final file contents are compared.")
+        if not writes and not updates:
+            text += (" The program writes no file: what it DISPLAYs to stdout and its RETURN-CODE (the process exit "
+                     "code) are the whole result and are compared byte for byte, so print exactly what each DISPLAY "
+                     "prints (including numeric edited items and the newline) and nothing else on stdout.")
+        return text
 
     def as_text(self) -> str:
         parts = [f"=== {self.name}.cbl ===\n{self.cobol}"]

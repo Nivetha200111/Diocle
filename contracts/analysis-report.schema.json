@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/analysis-report.schema.json",
   "title": "AnalysisReport",
-  "description": "v0.4 (v0.2 added organization and clock, collation, float and source findings; v0.3 adds field usage, all sign modes, P scaling, OCCURS, REDEFINES and record formats; v0.4 adds job-level conversion: `jobs[]` groups JCL steps by job, classifies each step, parses SORT FIELDS=, wires step-to-step DD/DSN flow and says whether the whole job converts -- v1 scope only: one SORT step then one COBOL step). Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
+  "description": "v0.5 (adds, additively: file direction `io` for sequential files opened I-O, program `displayOnly` for programs whose only observable output is DISPLAY/RETURN-CODE, program `resolvedCalls` for CALL identifier targets resolved statically; the analyzer marks such programs convertible only because services/verifier compares them -- see verification-report v0.8). v0.4 (v0.2 added organization and clock, collation, float and source findings; v0.3 adds field usage, all sign modes, P scaling, OCCURS, REDEFINES and record formats; v0.4 adds job-level conversion: `jobs[]` groups JCL steps by job, classifies each step, parses SORT FIELDS=, wires step-to-step DD/DSN flow and says whether the whole job converts -- v1 scope only: one SORT step then one COBOL step). Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
   "type": "object",
   "required": ["version", "source", "programs", "dependencies", "findings", "jobs"],
   "properties": {
@@ -36,7 +36,7 @@
               "required": ["dd", "direction", "copybook", "layout"],
               "properties": {
                 "dd": { "type": "string", "description": "DD name from SELECT ... ASSIGN TO" },
-                "direction": { "type": "string", "enum": ["input", "output", "unknown"] },
+                "direction": { "type": "string", "enum": ["input", "output", "io", "unknown"], "description": "io: a sequential file opened I-O and updated in place (REWRITE); the verifier seeds it from generated records and compares its final contents" },
                 "dsn": { "type": ["string", "null"], "description": "Dataset name from the JCL DD statement" },
                 "organization": { "type": "string", "description": "SEQUENTIAL, LINE SEQUENTIAL, RECORD SEQUENTIAL, INDEXED or RELATIVE" },
                 "copybook": { "type": ["string", "null"] },
@@ -44,7 +44,9 @@
               }
             }
           },
-          "convertible": { "type": "boolean", "description": "True when Diocle can run it end to end: one input and one output file with supported layouts" },
+          "displayOnly": { "type": "boolean", "description": "Additive (v0.5). True when the program has no output or I-O file and its observable result is its DISPLAY output and RETURN-CODE; the verifier compares stdout and exit code. Absent or false otherwise." },
+          "resolvedCalls": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Additive (v0.5). CALL identifier -> the literal program name it can only ever hold (VALUE clause and literal MOVEs; nothing else assigns it). Those programs are in `modules` like any static CALL." },
+          "convertible": { "type": "boolean", "description": "True when Diocle can run it end to end with supported layouts: either one input and one output file, several input/output/io files, or (displayOnly) stdout and exit code" },
           "notConvertibleReason": { "type": ["string", "null"] }
         }
       }

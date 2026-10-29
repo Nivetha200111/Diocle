@@ -1,0 +1,69 @@
+{
+  "name": "call-identifier",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): payments posted with a fee module reached through CALL identifier that only ever holds one literal.",
+  "program": "FEEPOST",
+  "source": "src/FEEPOST.cbl",
+  "modules": [
+    "src/FEECALC.cbl"
+  ],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "PAYIN",
+    "output": "POSTOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "FeePost",
+    "origin": "hand-written fixture, not model output"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "PAY-REC",
+      "fields": [
+        {
+          "name": "PAY-ID",
+          "kind": "alnum",
+          "length": 6
+        },
+        {
+          "name": "PAY-AMOUNT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        }
+      ],
+      "format": "line"
+    },
+    "output": {
+      "record": "POST-REC",
+      "fields": [
+        {
+          "name": "POST-ID",
+          "kind": "alnum",
+          "length": 6
+        },
+        {
+          "name": "POST-AMOUNT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "POST-FEE",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        }
+      ],
+      "format": "line"
+    }
+  }
+}

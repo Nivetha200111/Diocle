@@ -73,15 +73,18 @@ def build_sample(program_dir: Path, legacy: Path, work: Path) -> Path:
 
     inputs = [f for f in program["files"] if f["direction"] == "input"]
     outputs = [f for f in program["files"] if f["direction"] == "output"]
-    if len(inputs) == 1 and len(outputs) == 1:
+    updated = [f for f in program["files"] if f["direction"] == "io"]
+    display_only = bool(program.get("displayOnly"))
+    if len(inputs) == 1 and len(outputs) == 1 and not updated and not display_only:
         derived_io = {"dd": {"input": inputs[0]["dd"], "output": outputs[0]["dd"]},
                       "layouts": {"input": inputs[0]["layout"], "output": outputs[0]["layout"]}}
         claimed_io = {"dd": claimed.get("dd"), "layouts": claimed.get("layouts")}
     else:
-        derived_io = {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]} for f in inputs + outputs],
-                      **shared_keys(inputs)}
+        derived_io = {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]}
+                                for f in inputs + updated + outputs],
+                      **shared_keys(inputs), **({"displayOnly": True} if display_only else {})}
         claimed_io = {k: claimed.get(k) for k in derived_io}
-    if claimed_io != derived_io:
+    if claimed_io != derived_io or bool(claimed.get("displayOnly")) != display_only:
         raise Untrusted("sample.json files, layouts or keys differ from what the legacy copybooks define")
     sample = work / cert["program"].lower()
     (sample / "src").mkdir(parents=True)

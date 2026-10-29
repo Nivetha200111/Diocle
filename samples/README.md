@@ -7,6 +7,9 @@
 | [`interest-accrual/`](interest-accrual/) | `INTACCR` batch program: daily interest accrual and maintenance fee, with planted legacy traps (half-away-from-zero rounding, truncation, silent high-order overflow). Includes a hand-written naive Java conversion (`java-conversion/`) for the "bring your own conversion" mode. `sample.json` lists the DD names, record layouts and traps. |
 | [`txn-posting/`](txn-posting/) | `TXNPOST` (Quillmark, fictional): payment, fee and interest posting with a truncated, capped payment surcharge and an overdraft limit that allows exactly -limit. |
 | [`fee-schedule/`](fee-schedule/) | `FEESCHD` (Quillmark, fictional): monthly charges by product with a balance waiver at or above the threshold, an excess-transaction fee and overdraft interest; the total wraps before the cap check. |
+| [`display-report/`](display-report/) | `TXNLIST` (Quillmark, fictional): operator listing of transactions with edited amounts. Writes no file: compared on stdout and exit code. |
+| [`ledger-rewrite/`](ledger-rewrite/) | `LDGRWRT` (Quillmark, fictional): monthly account master updated in place (OPEN I-O, REWRITE); compared on the final file contents. |
+| [`call-identifier/`](call-identifier/) | `FEEPOST` + `FEECALC` (Quillmark, fictional): the fee module is reached through `CALL WS-FEE-PGM`, an identifier that only ever holds one literal. |
 | [`daily-control/`](daily-control/) | `DAYCTRL` (Quillmark, fictional): daily interest with a running general-ledger control total, rounded per account before summing (the Quillmark leap-day ties). |
 
 Each sample has a hand-written naive Java port in `java-conversion/` (labelled as a test fixture, not model output). The samples share bug patterns on purpose (half-away-from-zero ROUNDED, truncation, silent high-order overflow, COMP counter display), so the repair agent's efficiency can be compared across programs.
