@@ -401,3 +401,30 @@ def test_schema_is_withheld_for_a_public_delivery_sample(client, tmp_path, monke
     monkeypatch.setattr(runs, "_sample_roots", lambda: [(tmp_path / "deliveries").resolve()])
     _visitor_run(tmp_path, "acct-20261028-171000", public=True)
     assert client.get("/runs/acct-20261028-171000/schema").status_code == 404
+
+
+def test_run_detail_carries_the_guard_result(client, tmp_path):
+    run_json = tmp_path / "demo-20261028-124509" / "run.json"
+    run = json.loads(run_json.read_text())
+    finding = {"severity": "block", "category": "test-gaming", "file": "A.java", "line": 7,
+               "explanation": "returns 20.00 for one account ID the COBOL never mentions"}
+    run["guard"] = {"blocked": True, "stopped": 0, "policy": [], "sourceFlags": [],
+                    "review": {"model": "meta-models/muse-spark-open-1026", "verdict": "block", "summary": "s",
+                               "findings": [finding]}}
+    run_json.write_text(json.dumps(run))
+    with (tmp_path / "demo-20261028-124509" / "events.jsonl").open("a") as f:
+        f.write(json.dumps({"type": "guard", "blocked": True, "message": "Guard review: BLOCK"}) + "\n")
+    got = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(got, CONTRACT)
+    assert got["guard"]["review"]["findings"] == [finding] and got["events"][-1]["type"] == "guard"
+
+
+def test_the_guard_model_does_not_become_the_run_model(client, tmp_path):
+    run_json = tmp_path / "demo-20261028-124509" / "run.json"
+    run = json.loads(run_json.read_text())
+    run["usage"]["modelCalls"] = [{"role": "guard", "model": "meta-models/muse-spark-open-1026"}]
+    run_json.write_text(json.dumps(run))
+    assert client.get("/runs/demo-20261028-124509").json()["model"] is None
+    run["usage"]["modelCalls"].append({"role": "repair", "model": "muse-spark-1.3-contributor"})
+    run_json.write_text(json.dumps(run))
+    assert client.get("/runs").json()[0]["model"] == "muse-spark-1.3-contributor"
