@@ -446,3 +446,17 @@ def test_the_guard_model_does_not_become_the_run_model(client, tmp_path):
     run["usage"]["modelCalls"].append({"role": "repair", "model": "muse-spark-1.3-contributor"})
     run_json.write_text(json.dumps(run))
     assert client.get("/runs").json()[0]["model"] == "muse-spark-1.3-contributor"
+
+
+def test_tiers_result_is_passed_through_and_matches_the_contract(client, tmp_path):
+    path = tmp_path / "demo-20261028-124509" / "run.json"
+    run = json.loads(path.read_text())
+    run["tiers"] = {"enabled": True, "configured": ["muse-spark-1.3-contributor", "muse-spark-1.3", "muse-wonder-1.0"],
+                    "escalations": [{"round": 2, "tier": 2, "model": "muse-spark-1.3"}],
+                    "breakerModel": "muse-wonder-1.0", "escalatedCalls": 3, "escalatedUsd": 0.021,
+                    "capCalls": 12, "capUsd": 0.5}
+    path.write_text(json.dumps(run))
+    body = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(body, CONTRACT)
+    assert body["tiers"]["escalations"][0]["model"] == "muse-spark-1.3"
+    assert body["model"] == "muse-spark-1.3-contributor"  # escalation never renames the run's default model
