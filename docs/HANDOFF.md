@@ -30,6 +30,15 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (until then the tab is simply absent).
 - **Engine deployed Oct 29 evening at c3420eb** (`/source` and `/schema` answer 200). `deploy/update-engine.sh` fails under
   macOS `sh` (`$HOST…` is read as part of the name; use `${HOST}...`); run a patched copy until fixed.
+- **Spark Open cross-checker built (Oct 29 night, Mac; run contract v0.10; NOT yet run live, NOT deployed):**
+  `services/converter/diocle_converter/crosscheck.py` + `--crosscheck` flag. After certification Muse Spark Open
+  proposes inputs and names suspected fields; every input runs through GnuCOBOL vs Java, its opinion certifies nothing,
+  a real mismatch goes to the repair agent. Own hard cap (`CROSSCHECK_MAX_CALLS`, default 2), skipped with a reason if
+  unconfigured / already on the open model / multi-file / host down. Calls merge into the run's usage (cost now priced per
+  call by its own model). Run JSON `crosscheck`, API pass-through, web panel + "Independent check" row in the model card.
+  Opt-in (costs ~$0.05 per run on Fireworks/Baseten). To try: put `OPEN_MODEL_*` in `.env`, then
+  `python -m diocle_converter run ../../samples/interest-accrual --crosscheck`. The `guard-agent` branch also claims run
+  contract v0.10; renumber one of them to v0.11 when merging.
 - **Loyalty-waiver breaker run (Oct 29 evening, Mac, `loyalty-waiver-20261029-190213`, local only, not seeded to the engine):**
   certified at round 0 (1013/1013, stdout matches), no repair needed. The breaker found nothing: 8 designed inputs matched
   (4 rejected as invalid for the layout), then 0 valid in rounds 2 and 3. 4 model calls, est. $0.012. So the breaker stays
