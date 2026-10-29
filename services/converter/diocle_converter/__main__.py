@@ -215,8 +215,12 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         s0 = first["summary"]
         on_event({"type": "stage", "stage": "repairing",
                   "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
+    unverifiable = original_failure(first)
     held_out = verify(workspace.root, CERT_SEED, CERT_CASES) if first is not None and report_passes(first) else None
-    if held_out is not None and report_passes(held_out):
+    if unverifiable:
+        on_event({"type": "stage", "stage": "done", "message": f"Not certified: {unverifiable}. Stopped before any repair round."})
+        outcome = {"certified": False, "rounds": [], "certificationReport": None, "lessons": []}
+    elif held_out is not None and report_passes(held_out):
         print("conversion already passes, including held-out inputs: no repair needed")
         outcome = {"certified": True, "rounds": [], "certificationReport": held_out, "certificationSeed": CERT_SEED,
                    "lessons": []}
@@ -261,7 +265,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
         "breaker": breaker_summary, "crosscheck": crosscheck_result, "swarm": bool(args.swarm and memory),
-        "guard": guard.summary(),
+        "guard": guard.summary(), "error": unverifiable,
     })
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
           f"{usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / {usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")
@@ -269,6 +273,18 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         print(f"fix memory: used {len(known)} lessons, learned {learned} new")
     print(f"run saved to {run_dir.relative_to(REPO_ROOT)}")
     return 0 if outcome["certified"] else 1
+
+
+def original_failure(report: dict | None) -> str | None:
+    """Why this program can never be verified, when the verifier could not compile the ORIGINAL COBOL (e.g. a missing
+    period after PROGRAM-ID that IBM's compiler accepts and GnuCOBOL -std=ibm rejects). The Java cannot fix that, so no
+    repair rounds, breaker or review should be paid for."""
+    original = ((report or {}).get("runs") or {}).get("original") or {}
+    if original.get("compiled") is not False:
+        return None
+    stderr = original.get("stderr") or ""
+    first = next((l.strip() for l in stderr.splitlines() if "error" in l), stderr.strip().splitlines()[0] if stderr.strip() else "")
+    return f"the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: {first[:240]}"
 
 
 def _analyzer_jobs(sample_dir: Path) -> list[dict]:

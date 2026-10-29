@@ -456,3 +456,14 @@ def test_a_bad_crosscheck_setting_skips_instead_of_crashing_a_certified_run(monk
     outcome, result = cli._crosscheck(SimpleNamespace(sample_dir=tmp_path), None, None, None, None, [], certified,
                                       tmp_path, settings(), lambda e: None)
     assert outcome is certified and result == {"skipped": "invalid CROSSCHECK_* setting"}
+
+
+def test_an_original_that_does_not_compile_stops_the_run_before_any_repair_round():
+    from diocle_converter.__main__ import original_failure
+    broken = {"runs": {"original": {"compiled": False, "exitCode": 1, "stdout": "", "stderr":
+              "/tmp/job/CBL0001.cobol:10: error: syntax error, unexpected ENVIRONMENT\n    10 >        ENVIRONMENT DIVISION.\n"},
+              "converted": {"compiled": True}}}
+    why = original_failure(broken)
+    assert "does not compile under GnuCOBOL" in why and "unexpected ENVIRONMENT" in why and "cannot be verified" in why
+    assert original_failure({"runs": {"original": {"compiled": True}, "converted": {"compiled": False}}}) is None  # Java errors are repairable
+    assert original_failure(None) is None and original_failure({}) is None

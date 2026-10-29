@@ -44,6 +44,11 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (until then the tab is simply absent).
 - **Engine deployed Oct 29 evening at c3420eb** (`/source` and `/schema` answer 200). `deploy/update-engine.sh` fails under
   macOS `sh` (`$HOST…` is read as part of the name; use `${HOST}...`); run a patched copy until fixed.
+- **Visitor import of the course repo found a waste (Oct 29 night):** CBL0001 (`PROGRAM-ID.    CBL0001` with no period, valid for
+  IBM, rejected by GnuCOBOL `-std=ibm`) could not compile, yet the translator and 3 repair rounds ran (27 calls, $0.037). Fixed on
+  branch `precheck` (converter `original_failure`): after the first verification, an original that does not compile stops the run
+  with that reason, before any repair round, breaker or review. Still costs the one translator call; a true pre-translation compile
+  check would have to run in the sandbox (untrusted COBOL), not done.
 - **Engine deployed Oct 29 night at ebe2beb** (guard policy + cross-check code + item 1). After deploy: CHQCLR re-verify 1004/1004,
   TXNPOST 1024/1024 (two runs), PKDPOST 1037/1037; a visitor import of quillmark-legacy certified 3/3 programs (about $0.012, guard
   blocked nothing). The guard's Baseten review is OFF on the server (no `GUARD_MODEL_*`); the cross-check key lines are in
