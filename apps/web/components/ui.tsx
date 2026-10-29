@@ -163,7 +163,7 @@ export function PrivateModeBadge() {
   return (
     <span className="badge badge-purple" title="Open weights: the same model can run on infrastructure you control.">
       <span className="status-dot" />
-      Private mode · Muse Spark Open (open weights) on Fireworks
+      Open weights · Muse Spark Open on Fireworks · private when self-hosted
     </span>
   );
 }

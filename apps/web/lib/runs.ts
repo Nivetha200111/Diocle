@@ -20,7 +20,7 @@ export type RunMemory = { enabled: boolean; used: number; learned: number; lesso
 
 export type RunListItem = {
   id: string;
-  status?: "running" | "certified" | "not-certified";
+  status?: "running" | "certified" | "not-certified" | "interrupted";
   visitor?: boolean; // from a visitor's import: shown as reported, not re-verified here
   program: string;
   command: "repair" | "run";
@@ -151,7 +151,8 @@ export type RunSource = { runId: string; program: string; cobol: SourceFile[]; j
 
 export const fetchRunSource = (id: string) => getJson<RunSource>(`/runs/${encodeURIComponent(id)}/source`);
 
-// A run left "running" by an engine restart: no model call and no heartbeat for hours.
+// A run cut off by an engine restart. Newer engines say so ("interrupted"); for older ones, a run still "running"
+// with no model call a full day after its (timezone-less) start time was certainly cut off.
 export const isInterrupted = (r: Pick<RunListItem, "status" | "createdAt" | "efficiency">, now = Date.now()) =>
-  r.status === "running" && r.efficiency.modelCalls === 0 && !!r.createdAt
-  && now - Date.parse(r.createdAt) > 2 * 3600 * 1000;
+  r.status === "interrupted" || (r.status === "running" && r.efficiency.modelCalls === 0 && !!r.createdAt
+    && now - Date.parse(r.createdAt) > 24 * 3600 * 1000);

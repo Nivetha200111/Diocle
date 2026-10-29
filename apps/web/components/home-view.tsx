@@ -20,7 +20,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
   const frames = [
     { tone: "bad", head: "BREAKER AGENT", text: `${broke[0]?.replace(": original ", "  original ").replace(" converted ", "  ≠  Java ")}` },
     { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} designed inputs broke it · patched, compiled, re-tested` },
-    { tone: "ok", head: "CERTIFIED", text: `${final} held-out inputs match, byte for byte` },
+    { tone: "ok", head: "CERTIFIED", text: `${final} held-out inputs matched` },
   ];
   const [at, setAt] = useState(0);
   useEffect(() => {
@@ -34,7 +34,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
         <strong>{check.allMatch ? "RE-VERIFIED NOW" : "DIFFERENCE FOUND"}</strong>
         <span>
           seed {check.seed} · {check.passed.toLocaleString()}/{check.total.toLocaleString()} inputs match ·
-          stdout {check.stdoutMatch ? "matches" : "differs"} · {check.seconds}s · no model involved
+          stdout {check.stdoutMatch ? "matches" : "differs"} · byte for byte · {check.seconds}s · no model involved
           {check.firstMismatch ? ` · first difference: ${check.firstMismatch}` : ""}
         </span>
       </div>
@@ -102,7 +102,7 @@ function SampleHero({ go }: { go: Go }) {
           {busy ? "Running COBOL and Java on fresh inputs…" : `▶ Try the sample (${SAMPLE_RUN.program})`}
         </button>
         <button className="button secondary" onClick={() => {
-          window.location.hash = `run=${SAMPLE_RUN.id}`;
+          window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
           go("Live runs");
         }}>Open the full run</button>
         <span className="sample-note">
@@ -136,7 +136,7 @@ function Evidence({ go }: { go: Go }) {
         <div><dt>All runs on this engine</dt><dd className="mono">{runs ? `${certified}/${runs.length}` : "…"}</dd></div>
       </dl>
       <p className="home-pr">
-        <strong>{CANONICAL.programs.length}/{CANONICAL.programs.length}</strong> is the latest delivery,
+        <strong>{CANONICAL.programs.length}/{CANONICAL.programs.length}</strong> is the canonical delivery,
         {" "}<a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>, re-verified by that
         repository&apos;s own <a href={LINKS.evidenceCi} target="_blank" rel="noreferrer">CI run</a>; about
         {" "}{usd(CANONICAL.modelSpendUsd)} of model spend for the six conversions (estimated from list prices).

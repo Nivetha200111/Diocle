@@ -62,7 +62,7 @@ function failureReason(d: Delivery, list: DeliveryListItem[]): string | null {
     return `The verifier refused to certify ${refused.join(", ")}: Diocle opens no pull request for code that does not match the original. This is the product working.${retried}`;
   }
   if (tried.length && tried.every((p) => p.status === "certified")) {
-    return `Every program was certified; the delivery stopped afterwards${d.error ? ` (${d.error})` : ""}, so no pull request came from this attempt.${retried}`;
+    return `Every program was certified; then an engine error stopped the delivery${d.error ? ` (${d.error})` : ""}, so no pull request came from this attempt.${retried}`;
   }
   return `Stopped before every program finished${d.error ? `: ${d.error}` : ""}.${retried}`;
 }
@@ -100,7 +100,7 @@ function programLed(p: DeliveryProgram): Led {
 function ProgramCard({ p }: { p: DeliveryProgram }) {
   const run = p.run;
   const log = useRef<HTMLOListElement>(null);
-  const lines = run?.events.length ?? 0;
+  const last = run?.events.length ? JSON.stringify(run.events[run.events.length - 1]) : "";  // the API sends the newest few
   useEffect(() => {
     // Live: follow the newest line. Finished: bring the verdict (the last certification line) into view.
     const box = log.current;
@@ -111,7 +111,7 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
     } else {
       box.scrollTop = box.scrollHeight;
     }
-  }, [lines, run?.status]);
+  }, [last, run?.status]);
   return (
     <section className="panel dlv-program">
       <div className="panel-heading">

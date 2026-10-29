@@ -16,8 +16,9 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
   useEffect(() => {
     fetchRuns().then(setRuns).catch(() => setRuns([]));
   }, []);
-  const kept = runs?.filter((r) => !isInterrupted(r)) ?? [];
+  const kept = runs ?? [];
   const certified = kept.filter((r) => r.certified).length;
+  const interrupted = kept.filter((r) => isInterrupted(r)).length;
   const spend = kept.reduce((n, r) => n + (r.efficiency.estimatedCostUsd ?? 0), 0);
   const privateRun = runs?.find((r) => r.model === MODELS.open && r.certified);
   const open = (id: string) => (e: React.MouseEvent) => {
@@ -116,7 +117,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
             <div><dt>Model spend, all runs (est.)</dt><dd className="mono">{usd(spend)}</dd></div>
           </dl>
           <p className="home-pr">
-            {certified}/{kept.length} includes every attempt: the two evaluation runs the old verifier rejected, and
+            {certified}/{kept.length} counts every run this engine has kept, including failed attempts (two of them
+            evaluation runs the old verifier rejected){interrupted ? `, ${interrupted} interrupted by an engine restart` : ""} and
             superseded runs. The {CANONICAL.programs.length}/{CANONICAL.programs.length} above is one delivery.
             Every certified run (except visitor imports) can be re-verified by anyone in Live runs.
           </p>

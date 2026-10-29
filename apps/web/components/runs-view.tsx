@@ -114,7 +114,7 @@ function ModelCard({ run }: { run: Run }) {
       <div className="panel-heading">
         <div>
           <h2>Meta models in this run</h2>
-          <p>Every model call is logged with its role. No other model is used anywhere in Diocle.</p>
+          <p>Every model call is logged with its role. No other model is used anywhere in Diocle. Run total: {run.usage.estimatedCostUsd === null ? "n/a" : `$${run.usage.estimatedCostUsd.toFixed(4)}`}.</p>
         </div>
         {isPrivateModel(run.model) && <PrivateModeBadge />}
       </div>
@@ -129,7 +129,7 @@ function ModelCard({ run }: { run: Run }) {
                 <td>{r.modes.map((m) => (m === "private" ? "partner host (open weights)" : "Meta Model API")).join(", ")}</td>
                 <td className="mono">{r.calls}</td>
                 <td className="mono">{r.calls ? `${tokens(r.tokensIn)} / ${tokens(r.tokensOut)}` : ""}</td>
-                <td className="mono">{r.calls ? usd(r.cost) : ""}</td>
+                <td className="mono">{r.calls ? (r.cost === null ? "n/a" : `$${r.cost.toFixed(4)}`) : ""}</td>
               </tr>
             ))}
           </tbody>
