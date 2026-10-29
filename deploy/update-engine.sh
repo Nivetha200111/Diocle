@@ -33,9 +33,10 @@ until curl -fsS -o /dev/null "$API/health"; do
 done
 
 code=$(curl -s -o /dev/null -w '%{http_code}' "$API/runs/chqclr-20261028-214355/source")
-if [ "$code" = 200 ]; then
-  echo "Done: the engine is up and serves sources. The front page now shows the Java next to the COBOL."
+schema=$(curl -s -o /dev/null -w '%{http_code}' "$API/runs/chqclr-20261028-214355/schema")
+if [ "$code" = 200 ] && [ "$schema" = 200 ]; then
+  echo "Done: the engine is up and serves sources and SQL schemas (schema.sql next to the Java)."
 else
-  echo "The api is up, but GET /runs/{id}/source answered $code (expected 200). Is the server on the latest main?" >&2
+  echo "The api is up, but GET /runs/{id}/source answered $code and /schema $schema (expected 200). Is the server on the latest main?" >&2
   exit 1
 fi

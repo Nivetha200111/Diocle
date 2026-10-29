@@ -18,13 +18,20 @@ superseded runs labelled. A reviewer pass found and we fixed: `/runs` was git-ig
 `/runs/`), visitor runs saved before the marker (now detected by their sample), timezone-sensitive "interrupted"
 (now decided by the engine), and wording that overstated the recorded CHQCLR result. README: canonical #4, the `openai` package note,
 coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST).
-- **Needs an engine deploy:** the front page and Live runs load the Java from the new `GET /runs/{id}/source`
-  (run contract v0.9). Until the engine is updated it returns 404 and the Java pane says it could not be loaded;
-  everything else works. Deploy from a machine with the SSH key (or the Vultr web console), when no delivery is
-  running: on the Mac, `git pull && deploy/update-engine.sh` (refuses while a delivery runs, updates, then checks
-  `/source` answers 200). By hand: `cd /opt/diocle && git pull && cd deploy && docker compose -f docker-compose.api.yml up -d --build`.
+- **Copybooks as SQL (Oct 29, plan step 3, built on the Windows laptop):** `diocle_verifier.sqlschema` (contract
+  `contracts/sql-schema.schema.json` v0.1) writes one table per file layout (`DECIMAL(p,s)` from the PIC, CHECK on
+  unsigned, COMP-5 by its bytes, REDEFINES and OCCURS stated) and proves it per record: values checked against the
+  published column types, then a byte-exact SQLite round trip. All 24 tables of the 11 sample and evaluation
+  programs pass on generated records, and PKDPOST's golden files pass after EBCDIC conversion. A reviewer pass found
+  the first version did not check scale or length, mixed up repeated FILLERs and cached failures; all fixed, with
+  tests. `GET /runs/{id}/schema` serves it (cached per sample, visitor runs withheld); the front page and Live runs
+  show `schema.sql` next to the Java. Tested end to end
+  locally against a local API. **Needs an engine deploy** to show live: on the Mac, `git pull && deploy/update-engine.sh`
+  (until then the tab is simply absent).
+- Engine deployed after the judge-facing pass (checked Oct 29: `GET /runs/{id}/source` answers 200, Try the sample
+  re-verified 1,004/1,004 in 1.8 s on the live site).
 - Windows note: building the web app in Git Bash rewrites `NEXT_PUBLIC_DIOCLE_API_URL=/api` into a Windows path;
-  set `MSYS_NO_PATHCONV=1` (Vercel builds are unaffected).
+  set `MSYS2_ENV_CONV_EXCL=NEXT_PUBLIC_DIOCLE_API_URL` (`MSYS_NO_PATHCONV=1` breaks next's cwd; Vercel is unaffected).
 
 **Pitch.** Diocle is a verification layer for AI-written COBOL→Java: "AI writes the code. Diocle checks it
 against the original before anyone has to trust it." Never claim proof for all inputs (README, "What certified
@@ -124,8 +131,8 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 
 ## Open work (priority order)
 - **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (dependencies: display-only and I-O programs,
-  whole JCL jobs, copybook to SQL schema, then DB2 if time). Do it on the Mac; deploy the engine first.
-0. Deploy the engine (above), then re-shoot the video against the new front page. After submitting: freeze deploys
+  whole JCL jobs, then DB2 if time; copybook to SQL schema is done). Do it on the Mac; deploy the engine first.
+0. Deploy the engine again for the SQL tab (above), then re-shoot the video against the new front page. After submitting: freeze deploys
    until judging ends (Nov 5-9), add an uptime monitor, and watch that visitor imports don't drain the credits.
 1. Watch visitor imports (spend in `/api/config`, deliveries list); finish the two in-flight jobs above.
 2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results-eval-freeze-1.json` (2/4 certified;
