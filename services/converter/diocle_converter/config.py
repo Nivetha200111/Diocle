@@ -22,6 +22,15 @@ PRICES = {
 }
 
 
+def _tier_from_env(name: str, default: int = 2) -> int:
+    """A tier number (1 to 3) from the environment; a missing, empty or non-numeric value means the default, so a typo
+    in an optional tuning knob cannot crash a run. Numbers outside 1-3 are clamped."""
+    try:
+        return max(1, min(3, int(os.environ.get(name, "") or default)))
+    except ValueError:
+        return default
+
+
 def load_dotenv(path: Path = REPO_ROOT / ".env") -> None:
     if not path.exists():
         return
@@ -79,8 +88,8 @@ class Settings:
             tiers=tiers,
             escalation_max_calls=int(os.environ.get("MODEL_ESCALATION_MAX_CALLS", "12")),
             escalation_max_usd=float(os.environ.get("MODEL_ESCALATION_MAX_USD", "0.50")),
-            breaker_tier=int(os.environ.get("MODEL_TIER_BREAKER", "2")),
-            after_break_tier=int(os.environ.get("MODEL_TIER_AFTER_BREAK", "2")),
+            breaker_tier=_tier_from_env("MODEL_TIER_BREAKER"),
+            after_break_tier=_tier_from_env("MODEL_TIER_AFTER_BREAK"),
             reasoning_effort=os.environ.get("MODEL_REASONING_EFFORT", "medium"),
             max_calls_per_run=int(os.environ.get("MODEL_MAX_CALLS_PER_RUN", "60")),
             max_calls_per_round=int(os.environ.get("MODEL_MAX_CALLS_PER_ROUND", "20")),
@@ -131,7 +140,8 @@ class Settings:
         )
 
     def tier_model(self, tier: int) -> str | None:
-        """The model for tier 1 (the default: None), 2 or 3; the highest configured tier if `tier` is above it."""
+        """The model for tier 1 (the default: None), 2 or 3; the highest configured tier if `tier` is above it. Tier
+        numbers compact over what is configured: with only MODEL_TIER_3_ID set it is tier 2. Zero or less is tier 1."""
         if tier <= 1 or not self.tiers:
             return None
         return self.tiers[min(tier - 2, len(self.tiers) - 1)]

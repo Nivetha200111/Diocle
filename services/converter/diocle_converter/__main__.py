@@ -89,7 +89,8 @@ def main(argv: list[str] | None = None) -> int:
                        "OPEN_MODEL_*) independently looks for inputs where the Java differs (about $0.05 per run)")
         p.add_argument("--tiers", action="store_true", help="escalate by task difficulty: after each failed certification "
                        "round the repair agent moves to the next tier (MODEL_TIER_2_ID, MODEL_TIER_3_ID, hosted mode), and "
-                       "the breaker attacks with the highest tier; hard caps MODEL_ESCALATION_MAX_CALLS / _MAX_USD")
+                       "the breaker attacks at MODEL_TIER_BREAKER (default 2) and a break after certification resumes repair at "
+                       "MODEL_TIER_AFTER_BREAK (default 2); hard caps MODEL_ESCALATION_MAX_CALLS / _MAX_USD")
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")

@@ -630,3 +630,19 @@ def test_the_cap_projects_the_next_call_so_a_second_large_call_is_refused():
     roomy = ModelClient(settings(tiers=TIERS, escalation_max_usd=0.50), _sdk=ScriptedSDK([ok] * 2))
     roomy.chat(role="repair", round=1, messages=[], model="muse-wonder-1.0")
     assert not roomy.escalation_exhausted()
+
+
+def test_a_bad_tier_knob_degrades_to_the_default_instead_of_crashing_a_run(monkeypatch):
+    from diocle_converter.config import _tier_from_env
+    for value, expected in (("abc", 2), ("", 2), ("9", 3), ("0", 1), ("-4", 1), ("3", 3), (" 1 ", 1), ("2.5", 2)):
+        monkeypatch.setenv("MODEL_TIER_BREAKER", value)
+        assert _tier_from_env("MODEL_TIER_BREAKER") == expected, value
+    monkeypatch.delenv("MODEL_TIER_BREAKER")
+    assert _tier_from_env("MODEL_TIER_BREAKER") == 2
+
+
+def test_tier_numbers_compact_over_what_is_configured():
+    only_two = settings(tiers=("muse-spark-1.3",))
+    assert [only_two.tier_model(n) for n in (0, 1, 2, 3, 9)] == [None, None, "muse-spark-1.3", "muse-spark-1.3", "muse-spark-1.3"]
+    none = settings()
+    assert [none.tier_model(n) for n in (1, 2, 3)] == [None, None, None]  # nothing configured: the default model
