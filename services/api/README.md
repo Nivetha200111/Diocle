@@ -10,6 +10,17 @@ Status: **read-only slice working.** It serves saved converter runs to the porta
 | `GET /runs/{id}/source` | The original COBOL (program + copybooks) and the run's Java, per `$defs.source`; not served for visitor runs |
 | `GET /runs/{id}/schema` | The run's copybooks as SQL tables with the SQLite round-trip proof (`contracts/sql-schema.schema.json` plus `runId`); computed by the verifier once per sample, no model; not served for visitor runs |
 
+## Visitor imports: uncompilable originals are skipped first
+Before any model call, `deliver.py --public` asks the verifier's compile-only job (in the sandbox, see
+[`services/verifier` README](../verifier/README.md)) whether GnuCOBOL `-std=ibm` can build each candidate program, in
+analyzer order. A program that cannot is listed as `skipped` with the reason
+`the original does not compile under GnuCOBOL -std=ibm: <message>`, calls no model, and does not use up one of the
+`DIOCLE_PUBLIC_MAX_PROGRAMS` (3) slots: the next compilable convertible program takes its place. Bounds per import:
+`DIOCLE_PUBLIC_MAX_PRECHECK` (12) programs checked and `DIOCLE_PUBLIC_PRECHECK_SECONDS` (240) in total; programs
+over the line limit or past the 3-program cap are never checked. If the sandbox is busy past the wait or unreachable
+twice, the pre-check stops for that import and the remaining programs proceed unchecked, as before. The check runs as a
+subprocess of the verifier with only `PATH`, `LANG`, `LC_ALL` and `DIOCLE_SANDBOX_URL` in its environment.
+
 ## Run
 ```sh
 cd services/api

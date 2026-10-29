@@ -34,6 +34,23 @@ difference although PostgreSQL keeps it. PostgreSQL text cannot hold NUL bytes, 
 data need BYTEA there. Variant records (several record types behind one REDEFINES) are kept as the redefined bytes,
 not split into typed columns per variant.
 
+## Compile check of the original (before any model call)
+Contract: [`contracts/compile-check.schema.json`](../../contracts/compile-check.schema.json) v0.1.
+`diocle_verifier.precheck.compile_original(sample_dir, wait=None)` answers `ok`, `fail` (with the compiler's first
+errors) or `unknown`. It compiles the ORIGINAL only, with the same invocation as verification
+(`runners.build_cobol`: `cobc -x -std=ibm` + `IBM_FLAGS`, the sample's copybook dir, its CALLed modules, its collation)
+and runs nothing. It exists so a program that GnuCOBOL cannot build (for example `PROGRAM-ID. X` with no period,
+which IBM accepts) is found before the translator is paid for. CLI: `python -m diocle_verifier.precheck SAMPLE_DIR [--wait S]`.
+- Where it runs: with `DIOCLE_SANDBOX_URL` set (and not `DIOCLE_IN_SANDBOX`) the sample is packed (regular files only,
+  8 MB cap) and posted to the sandbox's `POST /compile`; the compile happens there, as the unprivileged user in the
+  private tmpfs, and is never done in the calling process, not even as a fallback. Without a sandbox URL (developer
+  machines) it compiles locally, like `verify_sample`.
+- Limits: `cobc` 30 s, whole compile job 60 s (a real verification job may take 300 s), reply at most 16 KB; the
+  message is at most 600 characters, the first four error lines, absolute paths reduced to file names (the client
+  strips them again, whatever the sandbox sent). The sandbox still runs one job at a time and answers 503 when busy; the
+  client retries for `wait` seconds (default `DIOCLE_SANDBOX_WAIT`) and then answers `unknown`.
+- `unknown` (busy, unreachable, bad answer, unreadable sample) means "not checked": callers proceed as before.
+
 ## Run
 Requires GnuCOBOL 3.x (`brew install gnucobol`), a JDK, and Python 3.11+.
 

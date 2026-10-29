@@ -4,6 +4,18 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
+## Compile pre-check for visitor imports (Oct 30, branch `worktree-agent-aeaa1ad23cf3a94b1`, local, NOT pushed or deployed)
+- `diocle_verifier.precheck.compile_original` + sandbox `POST /compile` (contract `contracts/compile-check.schema.json` v0.1):
+  compiles the ORIGINAL with the verification flags inside the sandbox (60 s job limit, 8 MB in, 16 KB out, paths stripped),
+  never in the engine process when `DIOCLE_SANDBOX_URL` is set. `deliver.py --public` uses it before the translator: an
+  uncompilable original is `skipped` with the compiler's reason and does not use a slot of the 3 (max 12 checked,
+  240 s total, stops after two "unknown" answers). Needs an engine deploy AND a sandbox image rebuild (new endpoint).
+- Measured with the analyzer + this check on cobol-programming-course (24 analyzer-convertible, 8 compile under `-std=ibm`:
+  CBL0013, CBL0014, CBL0015, CBLC2, DEPTPAY, EMPPAY, HELLO, PAYROL00; 15 fail on `PROGRAM-ID.` without a period
+  ("unexpected ENVIRONMENT"), PAYROL0X on a numeric-edited name). Repo LICENSE is CC-BY-4.0; 24 of 32 program files carry an
+  SPDX CC-BY-4.0 header (6 of the 8 compilable ones do not, the repo LICENSE covers them).
+- Not done: making near-miss originals compile (e.g. inserting the missing period) would change the original, so it is not claimed.
+
 ## Where things stand at the end of Oct 29 (night, Mac)
 - **origin/main** has everything below; the engine on Vultr was redeployed at 71ac3b3 (guard policy, cross-check code, tiers, item 1,
   pre-check fix). After that: only the tier-2 breaker default (5af5672/4409559) and docs are on main but not deployed (CLI only).
@@ -76,8 +88,8 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
 - **Visitor import of the course repo found a waste (Oct 29 night):** CBL0001 (`PROGRAM-ID.    CBL0001` with no period, valid for
   IBM, rejected by GnuCOBOL `-std=ibm`) could not compile, yet the translator and 3 repair rounds ran (27 calls, $0.037). Fixed on
   branch `precheck` (converter `original_failure`): after the first verification, an original that does not compile stops the run
-  with that reason, before any repair round, breaker or review. Still costs the one translator call; a true pre-translation compile
-  check would have to run in the sandbox (untrusted COBOL), not done.
+  with that reason, before any repair round, breaker or review. Still costs the one translator call; a pre-translation compile
+  check for visitor imports now exists (see the Oct 30 section).
 - **Engine deployed Oct 29 night at ebe2beb** (guard policy + cross-check code + item 1). After deploy: CHQCLR re-verify 1004/1004,
   TXNPOST 1024/1024 (two runs), PKDPOST 1037/1037; a visitor import of quillmark-legacy certified 3/3 programs (about $0.012, guard
   blocked nothing). The guard's Baseten review is OFF on the server (no `GUARD_MODEL_*`); the cross-check key lines are in
