@@ -50,7 +50,7 @@ def run(tmp_path, monkeypatch, names, answers, **kw):
 
 
 def test_uncompilable_programs_are_skipped_and_the_next_compilable_ones_take_the_slots(tmp_path, monkeypatch):
-    bad = {"status": "fail", "message": "CBL0001.cbl:4: error: syntax error"}
+    bad = {"status": "fail", "diagnostics": ["CBL0001.cbl:4: error: syntax error"]}
     keep, skipped, fake = run(tmp_path, monkeypatch, ["A", "B", "C", "D", "E"], {"A": bad, "B": bad})
     assert keep == ["C", "D", "E"]
     reasons = {s["name"]: s["reason"] for s in skipped}
@@ -74,7 +74,7 @@ def test_over_long_programs_are_not_checked_either(tmp_path, monkeypatch):
 
 
 def test_the_number_of_checks_is_bounded(tmp_path, monkeypatch):
-    bad = {"status": "fail", "message": "e"}
+    bad = {"status": "fail", "diagnostics": ["a.cbl:1: error: e"]}
     names = [f"P{i}" for i in range(20)]
     keep, skipped, fake = run(tmp_path, monkeypatch, names, {n: bad for n in names}, max_checks=5)
     assert len(fake.calls) == 5
@@ -96,7 +96,7 @@ def test_each_check_waits_at_most_what_is_left_and_runs_with_a_minimal_environme
 
 
 def test_an_unavailable_sandbox_does_not_block_and_the_check_stops_after_two_unknowns(tmp_path, monkeypatch):
-    unknown = {"status": "unknown", "message": "the sandbox was busy"}
+    unknown = {"status": "unknown", "note": "the sandbox was busy"}
     names = ["A", "B", "C", "D"]
     keep, skipped, fake = run(tmp_path, monkeypatch, names, {n: unknown for n in names})
     assert keep == ["A", "B", "C"] and len(fake.calls) == 2  # C and beyond: no more asking
@@ -112,7 +112,7 @@ def test_garbage_or_crashes_count_as_no_answer(tmp_path, monkeypatch):
 
 
 def test_a_long_reason_is_cut(tmp_path, monkeypatch):
-    _, skipped, _ = run(tmp_path, monkeypatch, ["A"], {"A": {"status": "fail", "message": "m" * 5000}})
+    _, skipped, _ = run(tmp_path, monkeypatch, ["A"], {"A": {"status": "fail", "diagnostics": ["m" * 5000, "b", "c", "d", "e"]}})
     assert len(skipped[0]["reason"]) < 700
 
 
@@ -134,16 +134,37 @@ def test_an_unreadable_precheck_is_logged_with_the_stderr_tail_and_recorded(tmp_
         stdout="", stderr="Traceback ...\nModuleNotFoundError: No module named 'diocle_verifier'\n", returncode=1))
     pre = deliver.CompilePrecheck(tmp_path, 3, 10)
     assert pre.failure("Z") is None
-    assert "ModuleNotFoundError" in capsys.readouterr().out
-    assert "ModuleNotFoundError" in pre.record()["notes"][0] and pre.record()["checked"] == 1
+    assert "ModuleNotFoundError" in capsys.readouterr().out  # the raw tail goes to the server-side log only
+    assert pre.record()["notes"] == [deliver.NOTE_UNREADABLE] and pre.record()["checked"] == 1
+    assert "ModuleNotFoundError" not in json.dumps(pre.record())
 
 
 def test_stopping_after_two_unknowns_is_visible_with_its_reason(tmp_path, monkeypatch):
-    unknown = {"status": "unknown", "message": "the sandbox was busy"}
+    unknown = {"status": "unknown", "note": "the sandbox was busy"}
     names = ["A", "B", "C"]
     programs = make_samples(tmp_path, names)
     monkeypatch.setattr(deliver.subprocess, "run", FakeVerifier({n: unknown for n in names}))
     pre = deliver.CompilePrecheck(tmp_path, 12, 240)
     deliver._visitor_caps(programs, tmp_path, pre)
     rec = pre.record()
-    assert rec["checked"] == 2 and "did not answer twice" in rec["stopped"] and any("busy" in n for n in rec["notes"])
+    assert rec["checked"] == 2 and "did not answer twice" in rec["stopped"] and rec["notes"] == [deliver.NOTE_UNKNOWN]
+
+
+def test_notes_never_carry_child_or_sandbox_text(tmp_path, monkeypatch):
+    make_samples(tmp_path, ["Z"])
+    monkeypatch.setattr(deliver.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        stdout=json.dumps({"status": "unknown", "note": "TOPSECRET sandbox body"}) + "\n", stderr="TOPSECRET", returncode=0))
+    pre = deliver.CompilePrecheck(tmp_path, 3, 10)
+    pre.failure("Z")
+
+    def boom(*a, **k):
+        raise OSError("TOPSECRET path")
+
+    monkeypatch.setattr(deliver.subprocess, "run", boom)
+    pre.failure("Z")
+    assert "TOPSECRET" not in json.dumps(pre.record())
+
+
+def test_a_failure_without_diagnostics_is_not_believed(tmp_path, monkeypatch):
+    _, skipped, _ = run(tmp_path, monkeypatch, ["A"], {"A": {"status": "fail", "message": "old shape"}})
+    assert skipped == []

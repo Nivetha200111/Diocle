@@ -221,6 +221,12 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         return url
 
 
+# The only strings that reach delivery.json `precheck.notes`: fixed phrases, never output of a child, the sandbox or a program.
+NOTE_UNREADABLE = "the pre-check subprocess output could not be read"
+NOTE_NOT_RUN = "the pre-check subprocess could not run"
+NOTE_UNKNOWN = "the sandbox could not check a program (busy, unreachable or returned an error)"
+
+
 class CompilePrecheck:
     """Before any model call: can GnuCOBOL build the original? Asks the verifier's compile-only job, which runs in the
     sandbox (never in this process). Bounded: at most DIOCLE_PUBLIC_MAX_PRECHECK programs and
@@ -245,7 +251,7 @@ class CompilePrecheck:
         self.left -= 1
         self.checked += 1
         wait = min(30.0, remaining)
-        answer = {"status": "unknown"}
+        answer, noted = {"status": "unknown"}, len(self.notes)
         try:
             proc = subprocess.run(
                 [str(SERVICES / "verifier/.venv/bin/python"), "-I", "-m", "diocle_verifier.precheck",
@@ -254,20 +260,24 @@ class CompilePrecheck:
                 env={k: v for k, v in os.environ.items() if k in ("PATH", "LANG", "LC_ALL", "DIOCLE_SANDBOX_URL")})
             try:
                 answer = json.loads(proc.stdout.strip().splitlines()[-1])
+                if not isinstance(answer, dict):
+                    raise ValueError("not an object")
             except (ValueError, IndexError):
-                # a silently broken pre-check must be visible: the tail of the child's stderr (no env, no secrets)
-                tail = (proc.stderr or "")[-300:].strip()
-                self.notes.append(f"{name}: unreadable pre-check output (exit {proc.returncode}): {tail}"[:400])
-                print(self.notes[-1], flush=True)
+                answer = {"status": "unknown"}
+                # Visible to the operator in deliver.log (server side) only; the delivery record gets a fixed phrase.
+                print(f"precheck {name}: unreadable output (exit {proc.returncode}); stderr tail: "
+                      f"{(proc.stderr or '')[-300:].strip()!r}", flush=True)
+                self.notes.append(NOTE_UNREADABLE)
         except (OSError, subprocess.SubprocessError) as e:
-            self.notes.append(f"{name}: pre-check could not run: {type(e).__name__}")
-            print(self.notes[-1], flush=True)
+            print(f"precheck {name}: could not run: {type(e).__name__}", flush=True)
+            self.notes.append(NOTE_NOT_RUN)
         if answer.get("status") == "fail":
-            return str(answer.get("message") or "the compiler rejected the program")[:600]
+            found = [d[:200] for d in (answer.get("diagnostics") or []) if isinstance(d, str)][:4]
+            return " | ".join(found) if found else None  # a failure without a diagnostic is not believed
         if answer.get("status") != "ok":
             self.unknown += 1
-            if answer.get("message"):
-                self.notes.append(f"{name}: not checked: {str(answer['message'])[:200]}")
+            if len(self.notes) == noted and NOTE_UNKNOWN not in self.notes[-1:]:
+                self.notes.append(NOTE_UNKNOWN)
             if self.unknown >= 2:
                 self.stopped = "the sandbox did not answer twice (busy, unreachable or failed); the rest proceed unchecked"
                 print(f"precheck stopped: {self.stopped}", flush=True)
