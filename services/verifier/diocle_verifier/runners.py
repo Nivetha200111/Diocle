@@ -83,7 +83,7 @@ def run_java(src_dir: Path, main_class: str, dd: dict[str, str], input_path: Pat
     classes = workdir / "classes"
     classes.mkdir(exist_ok=True)
     sources = sorted(str(p) for p in src_dir.rglob("*.java"))
-    build = _exec(["javac", "-d", str(classes), *sources])
+    build = _exec(["javac", "-proc:none", "-d", str(classes), *sources])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
     return _run_program(["java", "-cp", str(classes), main_class], dd, input_path, workdir, "converted", out_format,
@@ -105,7 +105,7 @@ def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[P
 def build_java(src_dir: Path, main_class: str, workdir: Path) -> tuple[list[str] | None, Run | None]:
     classes = workdir / "classes"
     classes.mkdir(exist_ok=True)
-    build = _exec(["javac", "-d", str(classes), *sorted(str(p) for p in src_dir.rglob("*.java"))])
+    build = _exec(["javac", "-proc:none", "-d", str(classes), *sorted(str(p) for p in src_dir.rglob("*.java"))])
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
     return ["java", "-cp", str(classes), main_class], None
