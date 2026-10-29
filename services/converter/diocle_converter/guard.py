@@ -37,7 +37,7 @@ _ESCAPES = {"b": chr(8), "t": chr(9), "n": chr(10), "f": chr(12), "r": chr(13), 
 
 # Matched against code with comments and string contents blanked, after unicode escapes are decoded.
 _BLOCK = [
-    ("network", r"\b(?:java|javax|jdk)\s*\.\s*net\b|\bcom\s*\.\s*sun\s*\.\s*net\b|\bjava\s*\.\s*rmi\b|\bjavax\s*\.\s*naming\b"
+    ("network", r"\b(?:java|javax|jdk)\s*\.\s*net\b|\b(?:com\s*\.\s*)?sun\s*\.\s*net\b|\bjava\s*\.\s*rmi\b|\bjavax\s*\.\s*naming\b"
                 r"|Socket|Datagram|\bjavax\s*\.\s*xml\b", "network access (sockets, URLs, RMI, JNDI or an XML parser that fetches)"),
     ("process", r"\bRuntime\b|\bProcess(?:Builder|Handle)?\b|\.\s*exec\s*\(|\bjdk\s*\.\s*jshell\b|\bJShell\b",
      "starts or controls processes"),
@@ -48,7 +48,7 @@ _BLOCK = [
      "reflection or dynamically loaded code"),
     ("native", r"\bSystem\s*\.\s*load(?:Library)?\s*\(|\bnative\b|\bjava\s*\.\s*lang\s*\.\s*foreign\b|\bLinker\b",
      "native code"),
-    ("environment", r"\bSystem\s*\.\s*getProperties\s*\(|\b(?:java\s*\.\s*lang|javax)\s*\.\s*management\b|\bManagementFactory\b",
+    ("environment", r"\bSystem\s*::\s*getenv\b|\bSystem\s*\.\s*getProperties\s*\(|\b(?:java\s*\.\s*lang|javax)\s*\.\s*management\b|\bManagementFactory\b",
      "reads all system properties or the JVM's management interface"),
 ]
 _FLAG = [

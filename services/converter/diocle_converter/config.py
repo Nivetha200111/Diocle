@@ -95,13 +95,17 @@ class Settings:
         model = os.environ.get("GUARD_MODEL_ID", "")
         if not (api_key and base_url and model):
             return None
+        try:
+            max_calls = int(os.environ.get("GUARD_MAX_CALLS", "2"))
+        except ValueError:  # a bad cap degrades to the policy-only guard instead of crashing the run
+            return None
         return cls(
             mode="private" if "muse-spark-open" in model else "hosted",
             base_url=base_url,
             api_key=api_key,
             model=model,
             reasoning_effort=os.environ.get("GUARD_REASONING_EFFORT", "medium"),
-            max_calls_per_run=int(os.environ.get("GUARD_MAX_CALLS", "2")),
+            max_calls_per_run=max_calls,
             max_calls_per_round=1,
             max_rounds=1,
         )

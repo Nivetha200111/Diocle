@@ -67,6 +67,8 @@ def test_every_sample_conversion_in_the_repository_passes_the_policy():
     ('System.loadLibrary("x");', "native"),
     ("var p = java.lang.management.ManagementFactory.getRuntimeMXBean().getSystemProperties();", "environment"),
     ("System.out.println(System.getenv());", "environment"),
+    ("java.util.function.Supplier<java.util.Map<String, String>> s = System::getenv;", "environment"),
+    ('var c = new sun.net.www.protocol.http.HttpURLConnection(null, null);', "network"),
     ("System.out.println(System.getenv(/**/));", "environment"),
     ('String k = System.getenv("META_MODEL_API_KEY");', "environment"),
     ('String k = System.getenv(("META_MODEL_API_KEY"));', "environment"),
@@ -250,3 +252,15 @@ def test_guard_calls_are_capped_and_priced_with_their_own_model(tmp_path):
     assert usage_of(calls)["estimatedCostUsd"] == pytest.approx(0.10 + 0.20 + 1.25 + 4.25)
     calls.append(ModelCall("guard", 0, "private", "unknown-model", 1, 0, 1, 0, 1))
     assert usage_of(calls)["estimatedCostUsd"] is None  # unpriced: fails closed for the visitor budget
+
+
+def test_a_bad_guard_call_cap_degrades_to_policy_only(monkeypatch):
+    import diocle_converter.config as config
+    from diocle_converter.config import Settings
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **k: None)
+    for name, value in (("GUARD_MODEL_API_KEY", "k"), ("GUARD_MODEL_BASE_URL", "u"), ("GUARD_MODEL_ID", "m"),
+                        ("GUARD_MAX_CALLS", "abc")):
+        monkeypatch.setenv(name, value)
+    assert Settings.guard_from_env() is None
+    monkeypatch.setenv("GUARD_MAX_CALLS", "1")
+    assert Settings.guard_from_env().max_calls_per_run == 1
