@@ -44,6 +44,12 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (until then the tab is simply absent).
 - **Engine deployed Oct 29 evening at c3420eb** (`/source` and `/schema` answer 200). `deploy/update-engine.sh` fails under
   macOS `sh` (`$HOST…` is read as part of the name; use `${HOST}...`); run a patched copy until fixed.
+- **Model tiers built (Oct 29 night, branch `tiers`, run contract v0.12, not deployed):** `--tiers` escalates the repair agent
+  tier 1 (`muse-spark-1.3-contributor`) -> `MODEL_TIER_2_ID` -> `MODEL_TIER_3_ID` after each failed certification round, breaker
+  uses the highest tier, own hard caps (`MODEL_ESCALATION_MAX_CALLS` 12, `MODEL_ESCALATION_MAX_USD` 0.50), falls back to tier 1 when
+  spent. Muse Wonder (`muse-wonder-1.0`) answered a tool-call and a structured-output test through the Meta key ($0.007), but
+  whether higher tiers repair better is NOT measured: run the comparison (e.g. CHQCLR vs INTACCR on tier 1 vs 2 vs 3, est. $0.30-0.60,
+  needs owner OK) before claiming it. Wonder's $4/$20 price is third-party, unconfirmed.
 - **Visitor import of the course repo found a waste (Oct 29 night):** CBL0001 (`PROGRAM-ID.    CBL0001` with no period, valid for
   IBM, rejected by GnuCOBOL `-std=ibm`) could not compile, yet the translator and 3 repair rounds ran (27 calls, $0.037). Fixed on
   branch `precheck` (converter `original_failure`): after the first verification, an original that does not compile stops the run
