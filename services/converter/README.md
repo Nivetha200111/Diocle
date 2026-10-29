@@ -40,6 +40,37 @@ configured, when the run itself is already on the open model, for multi-file pro
 run is never failed by it). It is opt-in because it spends on a second host (about $0.05 per run at list price).
 Result: run.json `crosscheck` (run contract v0.10), its calls appear in the run's model card as "Independent check".
 
+## Printout intake (`transcribe`): photo of a listing to COBOL
+
+`python -m diocle_converter transcribe IMAGE --out SAMPLE_DIR [--against ORIGINAL_SAMPLE]` (`vision.py`, record contract
+`contracts/transcription.schema.json` v0.1). A vision model reads a PNG/JPEG (at most 2 MB, judged by its bytes) of a
+fixed-format COBOL listing and writes the source to `SAMPLE_DIR/src/<PROGRAM-ID>.cbl`; `transcription.json` records the model,
+tokens, cost, attempts and both gate results. **Off unless `VISION_MODEL_ID` is set** (we use Meta's `muse-wonder-1.0`, on the
+same Meta Model API key: `VISION_MODEL_BASE_URL`/`VISION_MODEL_API_KEY` fall back to `META_MODEL_*`). The model is never the
+judge:
+1. **Compile gate:** `cobc -fsyntax-only -std=ibm` with the verifier's IBM flags, locally. A failure sends the compiler errors back once
+   more (the same image, the previous answer and the errors); there is no other re-prompt.
+2. **Differential gate** (needs `--against`): the transcription and the original are both built with GnuCOBOL and run on the same
+   1,013 generated inputs (the verifier's generator and comparator, seed 1026); output records, stdout and exit code must match.
+   A mismatch is reported as status `differs`, never hidden or "repaired" by the model. The original's copybooks are copied
+   into `SAMPLE_DIR` (they are not on the printout) and a `sample.json` without any Java is written.
+Without `--against` the best status is `compiled-unchecked`: it compiles, and nothing proves it is what the paper said.
+Hard caps (rule 10): `VISION_MAX_CALLS` (3), `VISION_MAX_USD` (0.20, checked before each call against a worst case of the
+whole `VISION_MAX_OUTPUT_TOKENS` (5000) at the output price, so a second call can be refused after an expensive first), and every call is
+logged with tokens and cost. Muse Wonder's reasoning tokens bill as output ($20/M, third-party price, unconfirmed), `reasoning_effort`
+is `low` (`VISION_REASONING_EFFORT`). The compile check runs the local `cobc` on text a model wrote: this is the CLI path for our own
+synthetic printouts, not a designed engine/API path (compiling untrusted text would belong in the sandbox).
+
+Proven once, on one synthetic printout (`samples/loyalty-waiver-printout`, rendered from `samples/loyalty-waiver` by
+`demo/render-listing.py`): Wonder accepted the image part, transcribed 44 lines in one call (1,586 in / 3,018 out tokens
+including 2,596 reasoning, $0.067), it compiled first time and matched the original on 1,013 of 1,013 inputs. **Not proven:** that this
+holds for other printouts, photos (this image is clean, rendered, not a camera shot), other fonts, long programs or handwriting. The
+transcription was NOT textually identical: the model collapsed runs of spaces on 4 lines (comment indent, `FD  LY-FILE`, the
+`PIC` alignment), which does not change behaviour; reading column positions off an image is its weakest point. And the
+differential only samples: random inputs rarely hit exact boundaries (the same weakness the breaker agent exists for, e.g. `NOT <
+5000.00` read as `>` would change only the inputs at exactly 5000.00), so `verified-identical` means "no difference on 1,013
+generated inputs", not equality for all inputs.
+
 ## Guard agent (in progress, not yet run against a live model)
 `guard.py` watches the other agents (translator, repair, breaker) for leaks and test gaming.
 - **Policy** (deterministic, every run): checked on the workspace before Java is executed (every differential test,

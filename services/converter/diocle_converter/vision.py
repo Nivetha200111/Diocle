@@ -229,8 +229,9 @@ def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, cl
     while True:
         n = len(attempts) + 1
         spent = usage_of(client.calls)["estimatedCostUsd"] or 0.0
-        # worst case for the next call: a generous input estimate plus the whole output-token cap
-        worst = (len(image.data) / 3 + 6000) * price[0] / 1e6 + tok_cap * price[2] / 1e6
+        # worst case for the next call: a generous flat input estimate (a 1000x1100 page is about 1.5k image tokens; the
+        # bytes of the file say nothing about tokens) plus the whole output-token cap
+        worst = 12000 * price[0] / 1e6 + tok_cap * price[2] / 1e6
         if n > settings.max_calls_per_run:
             reason = f"call cap reached ({settings.max_calls_per_run})"
             break

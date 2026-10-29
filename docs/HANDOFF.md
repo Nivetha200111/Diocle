@@ -29,6 +29,16 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## Current state (updated 2026-10-29)
 
+- **Printout intake built and run once (Oct 30, Mac, branch `worktree-agent-a13889e328de92c45`, local, NOT pushed or deployed; contract
+  `contracts/transcription.schema.json` v0.1):** `python -m diocle_converter transcribe IMAGE --out DIR [--against SAMPLE]`
+  (`services/converter/diocle_converter/vision.py`, off unless `VISION_MODEL_ID` is set, e.g. `muse-wonder-1.0`). **Muse Wonder accepts
+  OpenAI-style `image_url` base64 parts through our Meta key** (probe $0.005). The model transcribes; the gates decide: `cobc -fsyntax-only
+  -std=ibm` (one re-prompt with the errors) and a differential of the transcription vs the original on 1,013 generated inputs. Proven once:
+  `samples/loyalty-waiver-printout` (greenbar PNG rendered by `demo/render-listing.py`): 1 call, $0.067, compiled, 1013/1013 matched.
+  Not proven: photos (the image is a clean render), other programs/fonts, long listings. The model collapsed runs of spaces on 4 lines
+  (harmless here), and random inputs rarely hit exact boundaries, so a boundary mis-read (`5000.00`) could pass: the status is "no
+  difference on 1,013 inputs", not equality. CLI only: no engine/API path (compiling model text would need the sandbox). Total spend
+  for the build and the one real run: about $0.07. Caps: `VISION_MAX_CALLS` 3, `VISION_MAX_USD` 0.20, `VISION_MAX_OUTPUT_TOKENS` 5000.
 **Judge-facing pass (Oct 29, from an outside scoring review).** Web: front page shows CHQCLR's COBOL next to its
 certified Java with a verdict strip replaying the breaker story and **Try the sample** (public re-verify on a fresh
 seed; tested against the live engine: 1,004/1,004 in 1.8 s); "Powered by Meta Muse Spark" in the top bar; per-run
@@ -255,6 +265,7 @@ github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctl
 6. A review from a COBOL maintainer (owner arranges). Module README consistency.
 
 ## Done recently
+- 2026-10-30: printout intake (see Current state): contract, `vision.py`, CLI, 12 tests (scripted fake client; two use real cobc), renderer, one real end-to-end run.
 - 2026-10-29: **CLAUDE.md plan item 1 (more programs convert), verifier support first.** See the Current-state bullet
   "Plan step 1 done" for what, the tests and the measurement. Commit order on the branch: contracts, verifier,
   analyzer, converter prompt text, samples, tests, docs. Still refused: EXEC SQL/CICS/DLI, INDEXED/RELATIVE, LINE

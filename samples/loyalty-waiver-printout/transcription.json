@@ -1,0 +1,65 @@
+{
+  "version": "0.1",
+  "status": "verified-identical",
+  "reason": null,
+  "image": {
+    "name": "listing.png",
+    "mediaType": "image/png",
+    "bytes": 106219,
+    "sha256": "6fea8860dc388788d02e8a127071e2cf8027719ce06d1203922acf68946acfec"
+  },
+  "model": "muse-wonder-1.0",
+  "program": "LOYWAIVE",
+  "source": "src/LOYWAIVE.cbl",
+  "attempts": [
+    {
+      "n": 1,
+      "finishReason": "stop",
+      "lines": 44,
+      "compile": {
+        "ok": true,
+        "errors": ""
+      }
+    }
+  ],
+  "usage": {
+    "calls": 1,
+    "inputTokens": 1586,
+    "cachedInputTokens": 0,
+    "outputTokens": 3018,
+    "estimatedCostUsd": 0.066704,
+    "modelCalls": [
+      {
+        "role": "vision-transcribe",
+        "round": 1,
+        "mode": "hosted",
+        "model": "muse-wonder-1.0",
+        "inputTokens": 1586,
+        "cachedInputTokens": 0,
+        "outputTokens": 3018,
+        "reasoningTokens": 2596,
+        "latencyMs": 35649
+      }
+    ]
+  },
+  "caps": {
+    "maxCalls": 3,
+    "maxUsd": 0.2,
+    "maxOutputTokens": 5000
+  },
+  "compile": {
+    "ok": true,
+    "errors": ""
+  },
+  "differential": {
+    "against": "samples/loyalty-waiver",
+    "ran": true,
+    "seed": 1026,
+    "inputs": 1013,
+    "matched": 1013,
+    "mismatched": 0,
+    "stdoutMatch": true,
+    "exitCodeMatch": true,
+    "firstMismatches": []
+  }
+}
