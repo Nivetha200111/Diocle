@@ -91,6 +91,7 @@ class RepairAgent:
     known_lessons: set[str] = field(default_factory=set)
     escalate: bool = False  # --tiers: after each failed certification round, use the next tier's model
     escalations: list[dict] = field(default_factory=list)  # [{round, tier, model}] for run.json
+    _failed_before_resume: int = 0  # failed rounds before the latest resume(): new evidence restarts at tier 1
     rounds: list[dict] = field(default_factory=list)
     lessons: list[dict] = field(default_factory=list)  # from the latest finish call
     messages: list[dict] = field(default_factory=list)
@@ -129,6 +130,7 @@ class RepairAgent:
     def resume(self, note: str, extra_rounds: int = 2) -> dict:
         """Continue the same conversation with new evidence (e.g. inputs a breaker agent found), then re-certify."""
         self.messages.append({"role": "user", "content": note})
+        self._failed_before_resume = sum(1 for r in self.rounds if not r.get("certified"))
         return self._rounds(extra_rounds)
 
     def _rounds(self, count: int) -> dict:
@@ -180,7 +182,7 @@ class RepairAgent:
         Falls back to the default model when the escalation caps are spent, so a run can still finish."""
         if not self.escalate or not self.client.settings.tiers:
             return None
-        failed = sum(1 for r in self.rounds if not r.get("certified"))
+        failed = sum(1 for r in self.rounds if not r.get("certified")) - self._failed_before_resume
         model = self.client.settings.tier_model(1 + failed)
         if model is None or self.client.escalation_exhausted():
             return None

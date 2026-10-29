@@ -142,7 +142,7 @@ class Breaker:
         for round_no in range(1, rounds + 1):
             try:
                 choice = self.client.chat(role=self.role, round=round_no, messages=messages, response_format=self.schema,
-                                          model=self.model)
+                                          model=None if self.client.escalation_exhausted() else self.model)
             except BudgetExceeded as e:
                 self.on_event({"type": self.event_type, "round": round_no, "message": f"budget: {e}", "tried": 0, "broke": 0})
                 return []

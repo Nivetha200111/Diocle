@@ -568,3 +568,30 @@ def test_the_breaker_attacks_with_the_model_it_is_given(tmp_path):
     Breaker(Program.load(SAMPLE), ws, ModelClient(settings(tiers=TIERS), _sdk=sdk), lambda *a, **k: {"results": []},
             layout, lambda e: None, model="muse-wonder-1.0").attack(rounds=1)
     assert sdk.requests[0]["model"] == "muse-wonder-1.0"
+
+
+def test_the_breaker_falls_back_to_the_default_model_when_the_escalation_caps_are_spent(tmp_path):
+    from diocle_converter.breaker import Breaker
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": []}))])
+    client = ModelClient(settings(tiers=TIERS, escalation_max_calls=1), _sdk=sdk)
+    client.escalated_calls = 1  # the repair agent already spent the escalation budget
+    events = []
+    Breaker(Program.load(SAMPLE), ws, client, lambda *a, **k: {"results": []}, layout, events.append,
+            model="muse-wonder-1.0").attack(rounds=1)
+    assert sdk.requests[0]["model"] == "muse-spark-1.3-contributor"  # it attacked, rather than silently doing nothing
+    assert events[0]["tried"] == 0 and "budget" not in events[0]["message"]
+
+
+def test_new_evidence_after_a_breaker_break_restarts_the_repair_agent_at_tier_one(tmp_path):
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    finish = lambda: tool_call("finish", summary="try")
+    sdk = ScriptedSDK([finish(), finish(), finish(), finish()])
+    client = ModelClient(settings(tiers=TIERS, max_rounds=2, max_calls_per_run=20), _sdk=sdk)
+    agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), lambda e: None, escalate=True)
+    agent.run()  # round 1 on tier 1, round 2 on tier 2 after a failed certification
+    agent.resume("A breaker found a counterexample.", extra_rounds=1)
+    assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-spark-1.3", "muse-spark-1.3-contributor"]
