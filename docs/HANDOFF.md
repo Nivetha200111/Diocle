@@ -44,7 +44,11 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (until then the tab is simply absent).
 - **Engine deployed Oct 29 evening at c3420eb** (`/source` and `/schema` answer 200). `deploy/update-engine.sh` fails under
   macOS `sh` (`$HOST…` is read as part of the name; use `${HOST}...`); run a patched copy until fixed.
-- **Spark Open cross-checker built and run live twice (Oct 29 night, Mac; run contract v0.10; NOT deployed):**
+- **Engine deployed Oct 29 night at ebe2beb** (guard policy + cross-check code + item 1). After deploy: CHQCLR re-verify 1004/1004,
+  TXNPOST 1024/1024 (two runs), PKDPOST 1037/1037; a visitor import of quillmark-legacy certified 3/3 programs (about $0.012, guard
+  blocked nothing). The guard's Baseten review is OFF on the server (no `GUARD_MODEL_*`); the cross-check key lines are in
+  `deploy/diocle.env` but nothing starts it. Not yet run on the engine: any DISPLAY-only / I-O / CALL-identifier program.
+- **Spark Open cross-checker built and run live twice (Oct 29 night, Mac; run contract v0.10; deployed with the engine at 7c28841 and later, but CLI-only: nothing on the server starts it):**
   `services/converter/diocle_converter/crosscheck.py` + `--crosscheck` flag. After certification Muse Spark Open
   proposes inputs and names suspected fields; every input runs through GnuCOBOL vs Java, its opinion certifies nothing,
   a real mismatch goes to the repair agent. Own hard cap (`CROSSCHECK_MAX_CALLS`, default 2), skipped with a reason if
@@ -152,7 +156,7 @@ Before turning visitor imports on: confirm the attack test outcome, re-verify wo
 `sed -i "s/^DIOCLE_PUBLIC_IMPORTS=0/DIOCLE_PUBLIC_IMPORTS=1/" deploy/diocle.env` and
 `docker compose -f docker-compose.api.yml up -d`. Owner decides.
 
-Former gap, now closed on the branch `worktree-agent-a6a8db8578f8d9014` (not merged, not deployed): programs that only DISPLAY are
+Former gap, now closed (merged and deployed to the engine at ebe2beb, Oct 29 night; no model conversion of these shapes has run yet): programs that only DISPLAY are
 compared on stdout and exit code (see the first Current-state bullet). Good test repo for visitor imports:
 github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctly refused).
 
