@@ -45,7 +45,7 @@ export type Verification = {
 };
 
 export type RunEvent = {
-  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker";
+  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker" | "crosscheck";
   stage?: string;
   tried?: number;
   broke?: number;
@@ -85,11 +85,12 @@ export type Run = {
   efficiency: Efficiency;
   memory: RunMemory;
   breaker?: Breaker | null;
+  crosscheck?: Crosscheck | null;
 };
 
 // One logged model call. mode "hosted" is Muse Spark on the Meta Model API; "private" is Muse Spark Open on a partner host.
 export type ModelCall = {
-  role: "translator" | "repair" | "breaker" | string;
+  role: "translator" | "repair" | "breaker" | "crosscheck" | string;
   round: number;
   mode: string;
   model: string;
@@ -105,6 +106,7 @@ const PRICES: Record<string, [number, number, number]> = {
   "muse-spark-1.3-contributor": [0.10, 0.002, 0.20],
   "muse-spark-1.3": [1.25, 0.15, 4.25],
   "accounts/fireworks/models/muse-spark-open": [1.25, 0.15, 4.25],
+  "meta-models/muse-spark-open-1026": [1.25, 0.15, 4.25],
 };
 
 export function callCostUsd(c: ModelCall): number | null {
@@ -122,6 +124,20 @@ export type Breaker = {
   repairCycles: number;
   fixed: boolean;
   counterexamples: { input: string; why: string; diff: string }[];
+};
+
+// contracts/run.schema.json crosscheck: Muse Spark Open independently looks for inputs where the Java differs. Its opinion
+// certifies nothing; only cases that really differ on GnuCOBOL vs Java count.
+export type Crosscheck = {
+  model?: string;
+  casesProposed?: number;
+  casesValid?: number;
+  mismatches?: number;
+  repairCycles?: number;
+  fixed?: boolean;
+  suspected?: { field: string; concern: string }[];
+  counterexamples?: { input: string; why: string; diff: string }[];
+  skipped?: string;
 };
 
 async function getJson<T>(path: string): Promise<T> {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Efficiency, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
+import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 
@@ -87,10 +87,41 @@ function BreakerPanel({ b }: { b: Breaker }) {
   );
 }
 
+function CrosscheckPanel({ c }: { c: Crosscheck }) {
+  if (c.skipped) return null;  // the model card already shows the role as not needed; the trace says why it was skipped
+  const found = c.mismatches ?? 0;
+  return (
+    <section className={`panel breaker-panel ${found ? "breaker-broke" : ""}`}>
+      <div className="panel-heading">
+        <div>
+          <h2><ShieldAlert size={14} /> Independent check · Muse Spark Open (open weights)</h2>
+          <p>
+            After certification, a different model ({c.model}) read the COBOL and the Java and proposed {c.casesProposed ?? 0} inputs;
+            {" "}{c.casesValid ?? 0} fit the layout and were run through GnuCOBOL and the Java.{" "}
+            {found
+              ? `${found} really differed${c.fixed ? "; the repair agent fixed them and the Java re-certified." : "; not yet fixed."}`
+              : "None differed."}{" "}
+            The model&apos;s opinion certifies nothing; only the comparison does.
+          </p>
+        </div>
+      </div>
+      {(c.suspected?.length ?? 0) > 0 && (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead><tr><th>Field it suspected</th><th>Its concern (opinion, not evidence)</th></tr></thead>
+            <tbody>{c.suspected!.map((x, i) => <tr key={i}><td className="mono">{x.field}</td><td>{x.concern}</td></tr>)}</tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const ROLES: [string, string, string][] = [
   ["translator", "Translator", "writes the first Java from the COBOL"],
   ["repair", "Repair agent", "reads failures, patches, compiles, re-tests"],
   ["breaker", "Breaker agent", "designs inputs to break certified Java"],
+  ["crosscheck", "Independent check", "a second, open-weight model hunts for a divergence"],
 ];
 
 // Which Meta model did what in this run, from the logged calls: role → model ID → tokens → cost.
@@ -393,6 +424,7 @@ function RunDetail({ run }: { run: Run }) {
       </div>
 
       {run.breaker && <BreakerPanel b={run.breaker} />}
+      {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
 
       <ReverifyPanel run={run} />
 
@@ -423,7 +455,7 @@ function RunDetail({ run }: { run: Run }) {
                   </div>
                 </li>
               ) : (
-                <li key={i} className={`trace-cert ${["memory", "stage"].includes(e.type) ? "memory" : e.type === "breaker" ? (e.broke ? "fail" : "pass") : e.passed ? "pass" : "fail"}`}>
+                <li key={i} className={`trace-cert ${["memory", "stage"].includes(e.type) ? "memory" : ["breaker", "crosscheck"].includes(e.type) ? (e.broke ? "fail" : "pass") : e.passed ? "pass" : "fail"}`}>
                   {e.type === "certification"
                     ? `Round ${e.round} certification on held-out inputs: ${e.passed ? "PASS" : "FAIL"} · ${e.result?.split("\n")[0]}`
                     : e.message}
