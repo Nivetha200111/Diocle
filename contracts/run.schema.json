@@ -243,6 +243,7 @@
             "properties": { "field": { "type": "string" }, "concern": { "type": "string" } }
           }
         },
+        "rejectedBecause": { "type": "object", "description": "Why proposed cases did not fit the input layout, with counts", "additionalProperties": { "type": "integer" } },
         "counterexamples": { "type": "array", "items": { "type": "object" } },
         "skipped": { "type": "string" }
       }
