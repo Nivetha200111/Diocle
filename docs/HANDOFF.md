@@ -30,7 +30,7 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (until then the tab is simply absent).
 - **Engine deployed Oct 29 evening at c3420eb** (`/source` and `/schema` answer 200). `deploy/update-engine.sh` fails under
   macOS `sh` (`$HOST…` is read as part of the name; use `${HOST}...`); run a patched copy until fixed.
-- **Spark Open cross-checker built (Oct 29 night, Mac; run contract v0.10; NOT yet run live, NOT deployed):**
+- **Spark Open cross-checker built and run live twice (Oct 29 night, Mac; run contract v0.10; NOT deployed):**
   `services/converter/diocle_converter/crosscheck.py` + `--crosscheck` flag. After certification Muse Spark Open
   proposes inputs and names suspected fields; every input runs through GnuCOBOL vs Java, its opinion certifies nothing,
   a real mismatch goes to the repair agent. Own hard cap (`CROSSCHECK_MAX_CALLS`, default 2), skipped with a reason if
@@ -38,7 +38,12 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   call by its own model). Run JSON `crosscheck`, API pass-through, web panel + "Independent check" row in the model card.
   Opt-in (costs ~$0.05 per run on Fireworks/Baseten). To try: put `OPEN_MODEL_*` in `.env`, then
   `python -m diocle_converter run ../../samples/interest-accrual --crosscheck`. The `guard-agent` branch also claims run
-  contract v0.10; renumber one of them to v0.11 when merging.
+  contract v0.10; renumber one of them to v0.11 when merging. Live results on interest-accrual (Fireworks, ~$0.03-0.04
+  per cross-check, both runs certified, 0 real mismatches): the first prompt got only 2 of 15 and 1 of 13 proposed cases
+  accepted (10 "too many digits or a sign on an unsigned field", 2 "not a number": the prompt itself invited overflow and
+  malformed content, which the layout cannot express). The prompt was rewritten to state the layout rules; NOT yet re-run
+  (~$0.04), so check `crosscheck.rejectedBecause` in run.json on the next run. Reviewer pass: push OK; noted
+  `deliver.py:152` formats a None cost if a call is on an unpriced model (not reachable today, --crosscheck is CLI only).
 - **Loyalty-waiver breaker run (Oct 29 evening, Mac, `loyalty-waiver-20261029-190213`, local only, not seeded to the engine):**
   certified at round 0 (1013/1013, stdout matches), no repair needed. The breaker found nothing: 8 designed inputs matched
   (4 rejected as invalid for the layout), then 0 valid in rounds 2 and 3. 4 model calls, est. $0.012. So the breaker stays
