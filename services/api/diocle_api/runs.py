@@ -6,6 +6,8 @@ import difflib
 import json
 import os
 import re
+import stat
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -41,8 +43,33 @@ def _verification(path: Path, limit: int = 8) -> dict | None:
     }
 
 
-def _status(run: dict) -> str:
-    return run.get("status") or ("certified" if run["certified"] else "not-certified")
+STALE_SECONDS = 30 * 60  # no model call takes this long; a "running" run silent for longer was cut off
+
+
+def _status(run: dict, path: Path | None = None) -> str:
+    status = run.get("status") or ("certified" if run["certified"] else "not-certified")
+    if status == "running" and path is not None:
+        touched = [f.stat().st_mtime for f in (path / "run.json", path / "events.jsonl") if f.exists()]
+        if touched and time.time() - max(touched) > STALE_SECONDS:
+            return "interrupted"  # the engine restarted or the job was stopped mid-run
+    return status
+
+
+def is_visitor(path: Path, run: dict) -> bool:
+    """A visitor's run: marked by its delivery, or (for runs saved before the marker, or caught before it is written)
+    sampled from a visitor delivery's checkout. When the delivery record cannot be read, assume visitor: that only
+    withholds sources and public re-verification."""
+    if (path / "visitor").exists():
+        return True
+    deliveries = (runs_dir() / "deliveries").resolve()
+    try:
+        rel = _sample_dir(run).resolve().relative_to(deliveries)
+    except ValueError:
+        return False
+    try:
+        return bool(json.loads((deliveries / rel.parts[0] / "delivery.json").read_text()).get("public"))
+    except (OSError, ValueError, IndexError):
+        return True
 
 
 def _sample_dir(run: dict) -> Path:
@@ -138,7 +165,7 @@ def list_runs() -> list[dict]:
         calls = usage.get("modelCalls", [])
         items.append({
             "id": path.name, "program": run["program"], "command": run["command"], "certified": run["certified"],
-            "status": _status(run), "visitor": (path / "visitor").exists(),
+            "status": _status(run, path), "visitor": is_visitor(path, run),
             "createdAt": _created_at(path.name), "rounds": len(run.get("rounds", [])),
             "calls": usage.get("calls", 0), "estimatedCostUsd": usage.get("estimatedCostUsd"),
             "model": calls[0]["model"] if calls else None, "efficiency": _efficiency(run, _events(path)),
@@ -151,18 +178,38 @@ SOURCE_MAX_BYTES = 200_000
 SOURCE_MAX_FILES = 40
 
 
+def _read_capped(f: Path) -> tuple[bytes, bool] | None:
+    """A regular file's first SOURCE_MAX_BYTES, opened without following a final symlink; None for anything else."""
+    try:
+        fd = os.open(f, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return None
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return None
+        data = os.read(fd, SOURCE_MAX_BYTES + 1)
+    finally:
+        os.close(fd)
+    return data[:SOURCE_MAX_BYTES], len(data) > SOURCE_MAX_BYTES
+
+
 def _source_files(base: Path, files: list[Path]) -> list[dict]:
     """Regular files inside base only (no symlinks out), each capped, for reading side by side."""
     out = []
     root = base.resolve()
     for f in files[:SOURCE_MAX_FILES]:
-        if f.is_symlink() or not f.is_file() or not f.resolve().is_relative_to(root):
+        if f.is_symlink() or not f.resolve().is_relative_to(root):
             continue
-        data = f.read_bytes()
-        out.append({"path": f.relative_to(base).as_posix(),
-                    "text": data[:SOURCE_MAX_BYTES].decode("latin-1"),
-                    "truncated": len(data) > SOURCE_MAX_BYTES})
+        read = _read_capped(f)
+        if read is None:
+            continue
+        out.append({"path": f.relative_to(base).as_posix(), "text": read[0].decode("latin-1"), "truncated": read[1]})
     return out
+
+
+def _sample_roots() -> list[Path]:
+    return [(REPO_ROOT / "samples").resolve(), (REPO_ROOT / "eval" / "samples").resolve(),
+            (runs_dir() / "deliveries").resolve()]
 
 
 def get_source(run_id: str) -> dict | None:
@@ -172,24 +219,29 @@ def get_source(run_id: str) -> dict | None:
         return None
     path = runs_dir() / run_id
     meta = path / "run.json"
-    if not meta.exists() or (path / "visitor").exists():
+    if not meta.exists():
         return None
     try:
         run = json.loads(meta.read_text()) | {"_id": run_id}
     except json.JSONDecodeError:
         return None
+    if is_visitor(path, run):
+        return None
     sample = _sample_dir(run)
-    allowed = [REPO_ROOT.resolve(), runs_dir().resolve()]
     cobol: list[dict] = []
-    info_file = sample / "sample.json"
-    if info_file.is_file() and any(sample.resolve().is_relative_to(a) for a in allowed):
-        info = json.loads(info_file.read_text())
-        files = [sample / info["source"]]
-        if info.get("copybookDir"):
-            files += sorted((sample / info["copybookDir"]).glob("*.cpy"))
-        cobol = _source_files(sample, files)
+    if any(sample.resolve().is_relative_to(r) for r in _sample_roots()):
+        try:
+            info = json.loads((sample / "sample.json").read_text())
+            files = [sample / info["source"]]
+            if info.get("copybookDir"):
+                files += sorted((sample / info["copybookDir"]).glob("*.cpy"))
+            cobol = _source_files(sample, files)
+        except (OSError, ValueError, KeyError, TypeError):
+            cobol = []  # no readable sample: show the Java alone
     java_dir = path / "java"
-    java = _source_files(java_dir, sorted(java_dir.rglob("*.java"))) if java_dir.is_dir() else []
+    java = []
+    if java_dir.is_dir() and not java_dir.is_symlink() and java_dir.resolve().is_relative_to(path.resolve()):
+        java = _source_files(java_dir, sorted(java_dir.rglob("*.java")))
     return {"runId": run_id, "program": run["program"], "cobol": cobol, "java": java}
 
 
@@ -215,8 +267,8 @@ def get_run(run_id: str) -> dict | None:
         "command": run["command"],
         "createdAt": _created_at(run_id),
         "certified": run["certified"],
-        "status": _status(run),
-        "visitor": (path / "visitor").exists(),
+        "status": _status(run, path),
+        "visitor": is_visitor(path, run),
         "certificationSeed": run.get("certificationSeed"),
         "error": run.get("error"),
         "javaOrigin": origin,

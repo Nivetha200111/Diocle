@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.9 (adds the source response) (v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.9 (adds the source response and the interrupted status) (v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -50,12 +50,8 @@
     },
     "status": {
       "type": "string",
-      "enum": [
-        "running",
-        "certified",
-        "not-certified"
-      ],
-      "description": "running while the converter is still working; events grow as it goes"
+      "enum": ["running", "certified", "not-certified", "interrupted"],
+      "description": "running while the converter is still working (events grow as it goes); interrupted when a running run has been silent for 30 minutes (the engine restarted or the job was stopped)"
     },
     "javaOrigin": {
       "type": "string",

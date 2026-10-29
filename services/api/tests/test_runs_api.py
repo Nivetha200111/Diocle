@@ -203,7 +203,62 @@ def test_visitor_imports_need_the_sandbox_and_respect_limits(client, monkeypatch
     assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "wrong"}).status_code == 403
 
 
-def test_source_serves_cobol_next_to_java(client, tmp_path):
+@pytest.fixture
+def samples_here(tmp_path, monkeypatch):
+    """The fixture's sample lives in the temp runs dir, outside the real sample roots."""
+    import diocle_api.runs as runs
+    monkeypatch.setattr(runs, "_sample_roots", lambda: [(tmp_path / "samples").resolve()])
+
+
+def _visitor_run(tmp_path, run_id: str, public: bool) -> None:
+    delivery = tmp_path / "deliveries" / "delivery-20261028-170821"
+    sample = delivery / "samples" / "acct"
+    sample.mkdir(parents=True)
+    (delivery / "delivery.json").write_text(json.dumps({"id": delivery.name, "public": public}))
+    (sample / "sample.json").write_text(json.dumps({"source": "ACCT.cbl"}))
+    (sample / "ACCT.cbl").write_text("       PROGRAM-ID. ACCT.\n")
+    (tmp_path / run_id / "java").mkdir(parents=True)
+    (tmp_path / run_id / "java" / "Acct.java").write_text("class Acct {}\n")
+    (tmp_path / run_id / "run.json").write_text(json.dumps({
+        "program": "ACCT", "command": "run", "sample": str(sample), "certified": True, "rounds": [], "usage": {}}))
+
+
+def test_a_visitor_run_without_its_marker_is_still_a_visitor_run(client, tmp_path):
+    # Runs saved before the marker existed, or read before the delivery writes it, are found by their sample.
+    _visitor_run(tmp_path, "acct-20261028-170822", public=True)
+    assert client.get("/runs/acct-20261028-170822").json()["visitor"] is True
+    assert client.get("/runs/acct-20261028-170822/source").status_code == 404
+    assert client.post("/runs/acct-20261028-170822/reverify").status_code == 400
+
+
+def test_an_admin_delivery_run_is_not_a_visitor_run(client, tmp_path):
+    _visitor_run(tmp_path, "acct-20261028-194951", public=False)
+    assert client.get("/runs/acct-20261028-194951").json()["visitor"] is False
+    source = client.get("/runs/acct-20261028-194951/source").json()
+    assert [f["path"] for f in source["cobol"]] == ["ACCT.cbl"] and source["java"][0]["path"] == "Acct.java"
+
+
+def test_a_silent_running_run_reads_as_interrupted(client, tmp_path):
+    import os
+    import time
+    run = tmp_path / "demo-20261028-124509"
+    meta = json.loads((run / "run.json").read_text())
+    (run / "run.json").write_text(json.dumps({**meta, "status": "running", "certified": False}))
+    assert client.get("/runs").json()[0]["status"] == "running"
+    old = time.time() - 31 * 60
+    for f in ("run.json", "events.jsonl"):
+        os.utime(run / f, (old, old))
+    assert client.get("/runs").json()[0]["status"] == "interrupted"
+    jsonschema.validate(client.get("/runs/demo-20261028-124509").json(), CONTRACT)
+
+
+def test_source_survives_a_broken_sample(client, tmp_path, samples_here):
+    (tmp_path / "samples" / "demo" / "sample.json").write_text("{not json")
+    source = client.get("/runs/demo-20261028-124509/source")
+    assert source.status_code == 200 and source.json()["cobol"] == [] and source.json()["java"]
+
+
+def test_source_serves_cobol_next_to_java(client, tmp_path, samples_here):
     source = client.get("/runs/demo-20261028-124509/source").json()
     jsonschema.validate(source, {"$ref": "#/$defs/source", "$defs": CONTRACT["$defs"]})
     assert [f["path"] for f in source["cobol"]] == ["DEMO.cbl", "copybooks/REC.cpy"]
@@ -214,7 +269,7 @@ def test_source_serves_cobol_next_to_java(client, tmp_path):
     assert client.get("/runs/demo-20261028-124509/source").status_code == 404  # visitor code is not served
 
 
-def test_source_skips_files_outside_the_sample_and_the_run(client, tmp_path):
+def test_source_skips_files_outside_the_sample_and_the_run(client, tmp_path, samples_here):
     import os
     secret = tmp_path.parent / f"{tmp_path.name}-secret.txt"
     secret.write_text("SECRET")

@@ -14,7 +14,7 @@ import threading
 import time
 from pathlib import Path
 
-from .runs import REPO_ROOT, RUN_ID, runs_dir
+from .runs import REPO_ROOT, RUN_ID, is_visitor, runs_dir
 
 VERIFIER = REPO_ROOT / "services" / "verifier"
 _lock = threading.Lock()
@@ -35,7 +35,7 @@ def reverify_run(run_id: str, cases: int = 1000) -> dict | None:
     sample = REPO_ROOT / run.get("sample", "")
     if not run.get("certified") or not run.get("sample") or not (sample / "sample.json").exists():
         raise ValueError("only certified runs with a recorded sample can be re-verified")
-    if (run_path / "visitor").exists():
+    if is_visitor(run_path, run | {"_id": run_id}):
         raise ValueError("runs from visitor imports are not re-verified here")
     if not _lock.acquire(blocking=False):
         raise Busy("another re-verification is running; try again in a few seconds")
