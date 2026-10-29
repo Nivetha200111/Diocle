@@ -45,10 +45,11 @@ export type Verification = {
 };
 
 export type RunEvent = {
-  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker";
+  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker" | "guard";
   stage?: string;
   tried?: number;
   broke?: number;
+  blocked?: boolean;
   round?: number;
   step?: number;
   tool?: string;
@@ -85,6 +86,7 @@ export type Run = {
   efficiency: Efficiency;
   memory: RunMemory;
   breaker?: Breaker | null;
+  guard?: Guard | null;
 };
 
 // One logged model call. mode "hosted" is Muse Spark on the Meta Model API; "private" is Muse Spark Open on a partner host.
@@ -105,6 +107,7 @@ const PRICES: Record<string, [number, number, number]> = {
   "muse-spark-1.3-contributor": [0.10, 0.002, 0.20],
   "muse-spark-1.3": [1.25, 0.15, 4.25],
   "accounts/fireworks/models/muse-spark-open": [1.25, 0.15, 4.25],
+  "meta-models/muse-spark-open-1026": [1.25, 0.15, 4.25],
 };
 
 export function callCostUsd(c: ModelCall): number | null {
@@ -113,6 +116,24 @@ export function callCostUsd(c: ModelCall): number | null {
 }
 
 export const isPrivateModel = (model: string | null | undefined) => !!model && model.includes("muse-spark-open");
+
+// Who served a model, from its ID: the same Meta weights reach us through different hosts.
+export const hostOf = (model: string) =>
+  model.startsWith("accounts/fireworks/") ? "Fireworks"
+    : model.startsWith("meta-models/") ? "Baseten"
+      : model.startsWith("muse-spark-1") ? "Meta Model API" : "partner host";
+
+// contracts/run.schema.json $defs.guard: the guard agent's policy findings and its model review.
+export type GuardFinding = {
+  severity: "block" | "flag"; category: string; file: string | null; line: number | null; explanation: string;
+};
+export type Guard = {
+  blocked: boolean;
+  stopped?: number;
+  policy: GuardFinding[];
+  sourceFlags?: GuardFinding[];
+  review: { model: string; verdict: "pass" | "flag" | "block" | "error"; summary: string; findings: GuardFinding[] } | null;
+};
 
 // contracts/run.schema.json breaker: a second agent designs inputs to break the certified Java.
 export type Breaker = {
