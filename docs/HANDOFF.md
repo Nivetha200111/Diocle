@@ -154,7 +154,7 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 
 ## Done recently
 - 2026-10-29: **Roadmap item 2, whole JCL job end to end (v1 scope: one SORT step feeding one COBOL step),
-  all three passes done and cross-checked together** (d28a04a analyzer, cc3f3ae converter, 9b1b3a0
+  all three passes done and cross-checked together** (d28a04a analyzer, cc3f3ae converter, 20a0bc0
   verifier — see each commit for its own module's detail). The analyzer groups JCL steps into jobs and
   reports convertibility (`jobs[]`, refuses anything beyond the v1 shape with a specific reason); the
   converter generates a deterministic Java SORT-emulation class plus one driver per job that runs steps via
