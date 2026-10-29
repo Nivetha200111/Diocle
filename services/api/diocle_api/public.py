@@ -29,6 +29,9 @@ def limits() -> dict:
         "perVisitorPerDay": int(os.environ.get("DIOCLE_PUBLIC_PER_VISITOR", "3")),
         "maxPrograms": int(os.environ.get("DIOCLE_PUBLIC_MAX_PROGRAMS", "3")),
         "maxLines": int(os.environ.get("DIOCLE_PUBLIC_MAX_LINES", "1500")),
+        # compile-only check of the originals before any model call (deliver.py): bounded, so it cannot burn sandbox time
+        "maxPrecheck": int(os.environ.get("DIOCLE_PUBLIC_MAX_PRECHECK", "12")),
+        "precheckSeconds": float(os.environ.get("DIOCLE_PUBLIC_PRECHECK_SECONDS", "240")),
     }
 
 

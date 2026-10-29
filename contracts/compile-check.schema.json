@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diocle.dev/contracts/compile-check.schema.json",
+  "title": "Compile check of the original COBOL",
+  "description": "v0.2 (v0.1 had one joined `message` string; a joined string had to be re-split by the reader, which untrusted compiler output must never be). Answer of the sandbox job POST /compile and of diocle_verifier.precheck.compile_original(). Asks one question before any model call: can GnuCOBOL build the ORIGINAL program with the flags verification uses (cobc -x -std=ibm + IBM_FLAGS, the sample's copybook dir, its CALLed modules, its collation)? Nothing is run, only compiled. Untrusted COBOL is compiled only inside the sandbox when DIOCLE_SANDBOX_URL is set. status 'fail' only when cobc itself printed `file:line: error: ...` diagnostics; everything else that went wrong (killed compiler, full disk, timeout, busy or unreachable sandbox) is 'unknown', meaning the check was not made: callers proceed as if there were no check. Readers filter `diagnostics` again, string by string.",
+  "type": "object",
+  "required": ["version", "status", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": "0.2"},
+    "status": {"enum": ["ok", "fail", "unknown"]},
+    "note": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "A fixed phrase for 'unknown' (for example 'the sandbox was busy'); empty otherwise. Never built from compiler output, a program, a file or a sandbox error body."
+    },
+    "diagnostics": {
+      "type": "array",
+      "maxItems": 4,
+      "description": "Only for 'fail', at least one. Each string is one cobc diagnostic in the form `FILE:LINE: error: TEXT`, FILE reduced to a file name, TEXT limited to words of GnuCOBOL's own messages (anything else, including quoted names and the content of COPYed files, is replaced by '...'). Context lines cobc echoes from source files never appear.",
+      "items": {"type": "string", "maxLength": 200, "pattern": "^[\\w.$-]+:\\d+: error: [ -~]*$"}
+    }
+  }
+}

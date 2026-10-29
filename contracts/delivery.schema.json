@@ -65,6 +65,18 @@
         "null"
       ]
     },
+    "precheck": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Visitor imports only: the compile-only check of the original programs (contracts/compile-check.schema.json). checked = programs asked; stopped = why the check ended early (sandbox busy or unreachable, time or count bound) or null; notes = fixed phrases only (never output of a subprocess, the sandbox or a program; raw details stay in the server-side deliver.log).",
+      "properties": {
+        "checked": {"type": "integer"},
+        "stopped": {"type": ["string", "null"]},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
     "programs": {
       "type": "array",
       "items": {
