@@ -87,6 +87,7 @@ export type Run = {
   memory: RunMemory;
   breaker?: Breaker | null;
   crosscheck?: Crosscheck | null;
+  tiers?: Tiers | null;
   guard?: Guard | null;
 };
 
@@ -158,6 +159,18 @@ export type Crosscheck = {
   suspected?: { field: string; concern: string }[];
   counterexamples?: { input: string; why: string; diff: string }[];
   skipped?: string;
+};
+
+// contracts/run.schema.json tiers: the repair agent moves up one model tier after each failed certification round.
+export type Tiers = {
+  enabled: boolean;
+  configured: string[];
+  escalations: { round: number; tier: number; model: string }[];
+  breakerModel?: string | null;
+  escalatedCalls?: number;
+  escalatedUsd?: number;
+  capCalls?: number;
+  capUsd?: number;
 };
 
 async function getJson<T>(path: string): Promise<T> {

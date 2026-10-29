@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
+import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 
@@ -83,6 +83,29 @@ function BreakerPanel({ b }: { b: Breaker }) {
           </table>
         </div>
       )}
+    </section>
+  );
+}
+
+// Model tiers: which model the repair agent used when, with the hard caps on the stronger (pricier) models.
+function TiersPanel({ t }: { t: Tiers }) {
+  const ups = t.escalations ?? [];
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Model tiers</h2>
+          <p>
+            Tier 1 {t.configured?.[0]} writes and repairs first.{" "}
+            {ups.length
+              ? `After a failed certification round the repair agent moved up: ${ups.map((u) => `round ${u.round} on ${u.model}`).join(", ")}.`
+              : "It never needed a higher tier."}{" "}
+            {t.breakerModel ? `The breaker attacked with ${t.breakerModel}. ` : ""}
+            Calls above tier 1 are capped at {t.capCalls} calls and ${t.capUsd?.toFixed(2)} per run; this run used {t.escalatedCalls ?? 0} calls
+            (about ${(t.escalatedUsd ?? 0).toFixed(4)}).
+          </p>
+        </div>
+      </div>
     </section>
   );
 }
@@ -471,6 +494,7 @@ function RunDetail({ run }: { run: Run }) {
 
       {run.breaker && <BreakerPanel b={run.breaker} />}
       {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
+      {run.tiers?.enabled && <TiersPanel t={run.tiers} />}
 
       {run.guard && <GuardPanel g={run.guard} />}
 
