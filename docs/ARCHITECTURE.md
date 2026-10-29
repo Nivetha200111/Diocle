@@ -1,6 +1,6 @@
 # Architecture
 
-> The first section describes what is **implemented and tested**. Everything from "Overview" down is the original target design; where it differs from what was built, the first section wins. Diagram of the target design: [architecture.drawio](architecture.drawio) (open in [diagrams.net](https://app.diagrams.net) or the VS Code Draw.io Integration extension).
+> The first section describes what is **implemented and tested**. Everything from "Overview" down is the original target design; where it differs from what was built, the first section wins. Diagram: [architecture.drawio](architecture.drawio), page 1 as built (Oct 29), page 2 the original target design (Oct 27) (open in [diagrams.net](https://app.diagrams.net) or the VS Code Draw.io Integration extension).
 
 ## Flow that runs today (implemented)
 

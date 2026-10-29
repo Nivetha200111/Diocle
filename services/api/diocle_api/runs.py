@@ -72,6 +72,11 @@ def is_visitor(path: Path, run: dict) -> bool:
         return True
 
 
+def _agents_model(calls: list[dict]) -> str | None:
+    """The model the run's agents used; the guard and the cross-check use their own models and do not define the run's mode."""
+    return next((c["model"] for c in calls if c.get("role") not in ("guard", "crosscheck")), None)
+
+
 def _sample_dir(run: dict) -> Path:
     if run.get("sample"):
         return REPO_ROOT / run["sample"]
@@ -168,7 +173,7 @@ def list_runs() -> list[dict]:
             "status": _status(run, path), "visitor": is_visitor(path, run),
             "createdAt": _created_at(path.name), "rounds": len(run.get("rounds", [])),
             "calls": usage.get("calls", 0), "estimatedCostUsd": usage.get("estimatedCostUsd"),
-            "model": calls[0]["model"] if calls else None, "efficiency": _efficiency(run, _events(path)),
+            "model": _agents_model(calls), "efficiency": _efficiency(run, _events(path)),
             "memory": run.get("memory"),
         })
     return items
@@ -277,11 +282,12 @@ def get_run(run_id: str) -> dict | None:
         "before": _verification(path / "initial-verification.json"),
         "after": _verification(path / "verification-report.json"),
         "usage": {"cachedInputTokens": 0, **run.get("usage", {"calls": 0, "inputTokens": 0, "outputTokens": 0})},
-        "model": calls[0]["model"] if calls else None,
+        "model": _agents_model(calls),
         "javaDiff": _java_diff(run, path),
         "efficiency": _efficiency(run, events),
         "memory": run.get("memory"),
         "breaker": run.get("breaker"),
         "crosscheck": run.get("crosscheck"),
+        "guard": run.get("guard"),
         "swarm": run.get("swarm", False),
     }

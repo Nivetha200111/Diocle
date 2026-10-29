@@ -37,8 +37,7 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   unconfigured / already on the open model / multi-file / host down. Calls merge into the run's usage (cost now priced per
   call by its own model). Run JSON `crosscheck`, API pass-through, web panel + "Independent check" row in the model card.
   Opt-in (costs ~$0.05 per run on Fireworks/Baseten). To try: put `OPEN_MODEL_*` in `.env`, then
-  `python -m diocle_converter run ../../samples/interest-accrual --crosscheck`. The `guard-agent` branch also claims run
-  contract v0.10; renumber one of them to v0.11 when merging. Live results on interest-accrual (Fireworks, ~$0.03-0.04
+  `python -m diocle_converter run ../../samples/interest-accrual --crosscheck`. The guard fields became run contract v0.11 when the branches merged. Live results on interest-accrual (Fireworks, ~$0.03-0.04
   per cross-check, both runs certified, 0 real mismatches): the first prompt got only 2 of 15 and 1 of 13 proposed cases
   accepted (10 "too many digits or a sign on an unsigned field", 2 "not a number": the prompt itself invited overflow and
   malformed content, which the layout cannot express). The prompt was rewritten to state the layout rules; NOT yet re-run
@@ -54,6 +53,28 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (9e8d697, b70bc64, c1b5c3b, kept on local branch `backup-pre-rebase`) were NOT pushed; item 1 of CLAUDE.md "Current
   priority" is still open. The duplicate copybook-DDL commit (f031fe0) was dropped in favour of the upstream
   `sqlschema`. SORT keys are CH only (ZD/PD/BI refused). The JCL job check (`verify_job`) is not deployed to the engine.
+- **Guard agent (Oct 29, merged with the cross-checker on branch `guard-merge`, merge-ready, NOT pushed or deployed):** a "manager" agent over the translator, repair, breaker and cross-check agents
+  (`services/converter/diocle_converter/guard.py`, run contract v0.11; the cross-checker is v0.10). Policy before any Java runs
+  (refuses Java that openly uses the network, processes, reflection/native code, other env vars or literal outside
+  paths; the repair agent is told why; a speed bump, the sandbox is the boundary),
+  COBOL scanned for text aimed at an AI, and one review of the final Java by Muse Spark Open on **Baseten**
+  (`GUARD_MODEL_*`, own key, `GUARD_MAX_CALLS=2`) that can revoke certification. The guard reviews after the cross-check,
+  so it sees the final Java. Guard and cross-check calls are all logged in the run's usage, each priced by its own model,
+  each with its own hard cap (`GUARD_MAX_CALLS`, `CROSSCHECK_MAX_CALLS`); a failure of either never fails a certified run
+  and neither can certify anything. **Live Baseten test still owed (no key was available when merging):**
+  add the Baseten key as `GUARD_MODEL_API_KEY` in `.env`, `cd services/converter && .venv/bin/python -m pytest -q &&
+  .venv/bin/python -m diocle_converter smoke` (both models answer), then
+  `.venv/bin/python -m diocle_converter run ../../samples/interest-accrual --breaker --crosscheck` (about $0.05 Meta + a few cents
+  per open-model host) and check run.json `guard.review.verdict` and `crosscheck`. Then push, put the key in `deploy/diocle.env` on the server
+  (owner types it), `deploy/seed-runs.sh` and `deploy/update-engine.sh`. Fireworks stays the private-mode host.
+  **Review findings fixed (Oct 29, Windows):** comments set aside and literals decoded before the rules (the comment,
+  text-block, octal and method-reference bypasses are refused; words in comments and strings no longer block);
+  reflection, management, jshell, javax.xml and socket-channel rules added; only the program's own DD names, never
+  KEY/TOKEN/SECRET-like ones; computed or missing getenv names refused; review answers read finding by finding;
+  random fence per call with quoted findings inside it; cut sources never a clean pass; refusals go back to the repair
+  agent at the start and at certification; smoke sends the real guard request and warns on an unpriced model;
+  provider errors stored as type and HTTP status only; verifier javac gets -proc:none. Still to do: the live Baseten
+  test above, then merge.
 - Engine deployed after the judge-facing pass (checked Oct 29: `GET /runs/{id}/source` answers 200, Try the sample
   re-verified 1,004/1,004 in 1.8 s on the live site).
 - Windows note: building the web app in Git Bash rewrites `NEXT_PUBLIC_DIOCLE_API_URL=/api` into a Windows path;

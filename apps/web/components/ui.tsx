@@ -159,11 +159,11 @@ export function MetaBadge() {
 }
 
 // Private mode: the same agents on Meta's open weights, served by a partner host.
-export function PrivateModeBadge() {
+export function PrivateModeBadge({ host = "Fireworks" }: { host?: string }) {
   return (
     <span className="badge badge-purple" title="Open weights: the same model can run on infrastructure you control.">
       <span className="status-dot" />
-      Open weights · Muse Spark Open on Fireworks · private when self-hosted
+      Open weights · Muse Spark Open on {host} · private when self-hosted
     </span>
   );
 }

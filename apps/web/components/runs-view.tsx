@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
+import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 
@@ -122,7 +122,51 @@ const ROLES: [string, string, string][] = [
   ["repair", "Repair agent", "reads failures, patches, compiles, re-tests"],
   ["breaker", "Breaker agent", "designs inputs to break certified Java"],
   ["crosscheck", "Independent check", "a second, open-weight model hunts for a divergence"],
+  ["guard", "Guard agent", "reviews the final Java for leaks and test gaming; can revoke certification"],
 ];
+
+const where = (f: GuardFinding) => (f.file ? `${f.file}${f.line ? `:${f.line}` : ""}` : f.line ? `line ${f.line}` : "");
+
+// The guard agent: its policy runs before any Java executes; its model review reads the final Java next to the COBOL.
+function GuardPanel({ g }: { g: Guard }) {
+  const review = g.review;
+  const findings = [...g.policy.map((f) => ({ ...f, by: "policy" })), ...(g.sourceFlags ?? []).map((f) => ({ ...f, by: "policy (COBOL)" })),
+    ...(review?.findings ?? []).map((f) => ({ ...f, by: "review" }))];
+  return (
+    <section className={`panel breaker-panel ${g.blocked ? "breaker-broke" : ""}`}>
+      <div className="panel-heading">
+        <div>
+          <h2><ShieldAlert size={14} /> Guard agent</h2>
+          <p>
+            {g.blocked ? "Blocked: this run is not certified because of the guard. " : ""}
+            The policy checked the Java before every test{g.stopped ? ` and refused to run it ${g.stopped} time(s); the repair agent was told why` : " and found nothing it had to stop"}.{" "}
+            {review
+              ? review.verdict === "error"
+                ? `The model review (${review.model}) did not complete (${review.summary}); certification stands on the tests and the policy.`
+                : `Model review by ${review.model} on ${hostOf(review.model)}: ${review.verdict.toUpperCase()}. ${review.summary}`
+              : "No model review in this run (policy only, or the run was not certified)."}
+            {" "}The policy is a speed bump; the sandbox is the boundary.
+          </p>
+        </div>
+      </div>
+      {findings.length > 0 && (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead><tr><th>Severity</th><th>Found by</th><th>Kind</th><th>Where</th><th>What</th></tr></thead>
+            <tbody>
+              {findings.map((f, i) => (
+                <tr key={i}>
+                  <td>{f.severity}</td><td>{f.by}</td><td>{f.category}</td>
+                  <td className="mono">{where(f)}</td><td>{f.explanation}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // Which Meta model did what in this run, from the logged calls: role → model ID → tokens → cost.
 function ModelCard({ run }: { run: Run }) {
@@ -147,7 +191,7 @@ function ModelCard({ run }: { run: Run }) {
           <h2>Meta models in this run</h2>
           <p>Every model call is logged with its role. No other model is used anywhere in Diocle. Run total: {run.usage.estimatedCostUsd === null ? "n/a" : `$${run.usage.estimatedCostUsd.toFixed(4)}`}.</p>
         </div>
-        {isPrivateModel(run.model) && <PrivateModeBadge />}
+        {isPrivateModel(run.model) && <PrivateModeBadge host={hostOf(run.model ?? "")} />}
       </div>
       <div className="table-scroll">
         <table className="data-table">
@@ -157,7 +201,7 @@ function ModelCard({ run }: { run: Run }) {
               <tr key={r.role} className={r.calls ? "" : "model-card-idle"}>
                 <td><strong>{r.label}</strong><br /><small>{r.does}</small></td>
                 <td className="mono">{r.models.join(", ") || "not needed in this run"}</td>
-                <td>{r.modes.map((m) => (m === "private" ? "partner host (open weights)" : "Meta Model API")).join(", ")}</td>
+                <td>{r.models.map((m) => (isPrivateModel(m) ? `${hostOf(m)} (open weights)` : hostOf(m))).join(", ")}</td>
                 <td className="mono">{r.calls}</td>
                 <td className="mono">{r.calls ? `${tokens(r.tokensIn)} / ${tokens(r.tokensOut)}` : ""}</td>
                 <td className="mono">{r.calls ? (r.cost === null ? "n/a" : `$${r.cost.toFixed(4)}`) : ""}</td>
@@ -395,7 +439,9 @@ function RunDetail({ run }: { run: Run }) {
         <div>
           <div className="runs-badges">
             <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>
-            {isPrivateModel(run.model) && <PrivateModeBadge />}
+            {isPrivateModel(run.model) && <PrivateModeBadge host={hostOf(run.model ?? "")} />}
+            {run.guard?.blocked && <Badge tone="amber">Blocked by the guard</Badge>}
+            {run.guard?.review?.verdict === "error" && <Badge tone="amber">Guard review unavailable</Badge>}
           </div>
           <h2>{run.program} · {run.command === "repair"
             ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
@@ -426,6 +472,8 @@ function RunDetail({ run }: { run: Run }) {
       {run.breaker && <BreakerPanel b={run.breaker} />}
       {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
 
+      {run.guard && <GuardPanel g={run.guard} />}
+
       <ReverifyPanel run={run} />
 
       <SourcePanel run={run} />
@@ -455,7 +503,7 @@ function RunDetail({ run }: { run: Run }) {
                   </div>
                 </li>
               ) : (
-                <li key={i} className={`trace-cert ${["memory", "stage"].includes(e.type) ? "memory" : ["breaker", "crosscheck"].includes(e.type) ? (e.broke ? "fail" : "pass") : e.passed ? "pass" : "fail"}`}>
+                <li key={i} className={`trace-cert ${["memory", "stage"].includes(e.type) ? "memory" : ["breaker", "crosscheck"].includes(e.type) ? (e.broke ? "fail" : "pass") : e.type === "guard" ? (e.blocked ? "fail" : "memory") : e.passed ? "pass" : "fail"}`}>
                   {e.type === "certification"
                     ? `Round ${e.round} certification on held-out inputs: ${e.passed ? "PASS" : "FAIL"} · ${e.result?.split("\n")[0]}`
                     : e.message}

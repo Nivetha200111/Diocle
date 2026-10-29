@@ -11,6 +11,7 @@ from typing import Callable
 from diocle_verifier.verify import passes
 
 from .client import BudgetExceeded, ModelClient
+from .guard import GuardBlocked
 from .memory import LESSON_SCHEMA, clean_lessons, lesson_key
 from .prompts import REPAIR
 from .sources import Program
@@ -109,14 +110,17 @@ class RepairAgent:
         raise ValueError(f"unknown tool {name!r}")
 
     def run(self) -> dict:
-        initial = self.verify(self.workspace.root, TEST_SEED, TEST_CASES)
+        try:
+            initial = summarize_report(self.verify(self.workspace.root, TEST_SEED, TEST_CASES))
+        except GuardBlocked as e:  # the starting Java uses something the guard will not run: the agent removes it
+            initial = f"{e}\nRemove that code, then run the differential test."
         # Everything the agent needs up front, stable content first so later calls hit the prompt cache.
         java = "\n".join(f"=== {f} ===\n{self.workspace.read(f)}" for f in self.workspace.list_files())
         self.messages = [
             {"role": "system", "content": REPAIR},
             {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
              + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
-             f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{summarize_report(initial)}"},
+             f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{initial}"},
         ]
         return self._rounds(self.client.settings.max_rounds)
 
@@ -132,7 +136,15 @@ class RepairAgent:
             finished = self._round(round_no, self.messages)
             self.on_event({"type": "stage", "stage": "certifying", "round": round_no,
                            "message": f"Round {round_no}: certifying on {CERT_CASES} held-out inputs the agent has not seen"})
-            certification = self.verify(self.workspace.root, CERT_SEED + round_no, CERT_CASES)
+            try:
+                certification = self.verify(self.workspace.root, CERT_SEED + round_no, CERT_CASES)
+            except GuardBlocked as e:  # not run; the agent is told why and gets the next round
+                certification = None
+                self.rounds.append({"round": round_no, "finishedByAgent": finished, "certified": False,
+                                    "seed": CERT_SEED + round_no, "refusedByGuard": str(e)[:500]})
+                self.on_event({"type": "certification", "round": round_no, "passed": False, "result": str(e)[:500]})
+                self.messages.append({"role": "user", "content": f"{e}\nRemove that code, then finish again."})
+                continue
             passed = report_passes(certification)
             self.rounds.append({"round": round_no, "finishedByAgent": finished, "certified": passed,
                                 "seed": CERT_SEED + round_no, "summary": certification["summary"]})

@@ -23,11 +23,31 @@ configured, when the run itself is already on the open model, for multi-file pro
 run is never failed by it). It is opt-in because it spends on a second host (about $0.05 per run at list price).
 Result: run.json `crosscheck` (run contract v0.10), its calls appear in the run's model card as "Independent check".
 
+## Guard agent (in progress, not yet run against a live model)
+`guard.py` watches the other agents (translator, repair, breaker) for leaks and test gaming.
+- **Policy** (deterministic, every run): checked on the workspace before Java is executed (every differential test,
+  certification and breaker attack). Unicode escapes are decoded, comments set aside and string literals (text blocks,
+  octal escapes) decoded first. It refuses Java that openly uses the network, starts processes, uses reflection,
+  dynamically loaded or native code, reads environment variables other than the program's own DD names,
+  `DIOCLE_CLOCK` and `DIOCLE_COLLATION`, or names literal paths outside its working files. A refusal goes back to the
+  repair agent (as a test result, at the start or at certification), which can remove the code. Threads, deletes and
+  system properties are flagged. COBOL lines that look addressed to an AI are flagged.
+- **Review** (`GUARD_MODEL_*`, e.g. Muse Spark Open on Baseten, its own key, capped by `GUARD_MAX_CALLS`): one call
+  after a run is certified (and after the breaker), reading the final Java (comments removed) next to the COBOL
+  (comment lines removed), fenced with a random token per call. The answer is read finding by finding; a `block`
+  revokes certification and fix-memory lessons. Sources cut for length are never a clean pass. A failed review is
+  recorded as `error` (type and HTTP status only) and does not revoke: the tests and the policy stand, and anyone able
+  to break the answer could as easily talk the model into "pass". `smoke` sends the guard's real request.
+- Results go to `run.json` (`guard`, run contract v0.11) and the trace (`guard` events); its calls are logged and
+  priced with the run's.
+- **Limits:** the policy is a speed bump, not a boundary. Java that builds a path or a class name at run time gets past
+  it; only the sandbox (no secrets, no network, nothing kept) stops that. A model can be talked round.
+
 ## Run
 ```sh
 cd services/converter
 python3 -m venv .venv && .venv/bin/pip install -e ../verifier -e . pytest jsonschema
-.venv/bin/python -m diocle_converter smoke                                     # one tiny call: checks key + endpoint
+.venv/bin/python -m diocle_converter smoke                                     # one tiny call per model: checks keys + endpoints
 .venv/bin/python -m diocle_converter repair ../../samples/interest-accrual     # bring your own conversion: repair the naive Java
 .venv/bin/python -m diocle_converter run ../../samples/interest-accrual        # Meta model translates, then verify + repair
 .venv/bin/python -m pytest -q                                                  # unit tests (scripted API double, no credits used)
