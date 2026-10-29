@@ -469,24 +469,32 @@ function RunDetail({ run }: { run: Run }) {
           <div className="panel-heading">
             <div>
               <h2>What was wrong before</h2>
-              <p>Mismatches between GnuCOBOL and the starting Java.</p>
+              <p>
+                {!run.before
+                  ? "No verification of the starting Java was recorded for this run."
+                  : run.before.failed === 0
+                    ? `The starting Java already matched GnuCOBOL on all ${run.before.total} test inputs, so no repair was needed.`
+                    : "Mismatches between GnuCOBOL and the starting Java."}
+              </p>
             </div>
-            <Badge tone="amber">{run.before?.failed ?? 0} failing</Badge>
+            {run.before && <Badge tone={run.before.failed === 0 ? "green" : "amber"}>{run.before.failed === 0 ? "all matched" : `${run.before.failed} failing`}</Badge>}
           </div>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead><tr><th>Case</th><th>Source</th><th>Difference</th></tr></thead>
-              <tbody>
-                {(run.before?.failingExamples ?? []).map((f) => (
-                  <tr key={f.inputId}>
-                    <td className="mono">{f.inputId}</td>
-                    <td>{f.inputSource}</td>
-                    <td className="mono mismatch runs-diff-cell">{f.diff}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {(run.before?.failed ?? 0) > 0 && (
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead><tr><th>Case</th><th>Source</th><th>Difference</th></tr></thead>
+                <tbody>
+                  {(run.before?.failingExamples ?? []).map((f) => (
+                    <tr key={f.inputId}>
+                      <td className="mono">{f.inputId}</td>
+                      <td>{f.inputSource}</td>
+                      <td className="mono mismatch runs-diff-cell">{f.diff}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </div>
 
