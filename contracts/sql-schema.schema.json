@@ -16,7 +16,7 @@
         "required": ["table", "record", "recordLength", "columns", "ddl", "roundTrip"],
         "properties": {
           "dd": { "type": ["string", "null"], "description": "DD name of the file this layout describes" },
-          "direction": { "type": ["string", "null"], "enum": ["input", "output", "unknown", null] },
+          "direction": { "type": ["string", "null"], "enum": ["input", "output", "io", "unknown", null] },
           "table": { "type": "string" },
           "record": { "type": "string", "description": "01-level record name" },
           "recordLength": { "type": "integer", "minimum": 1 },
