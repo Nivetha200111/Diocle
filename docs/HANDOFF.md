@@ -19,6 +19,28 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **Deploy checklist, NOT exercised in a real container: every sandbox test (compile and verify) uses the sandbox's HTTP handler in-process on a developer machine. The compile path's setuid/kill/cleanup as root, the tmpfs, memory and pids limits and the hung-gcc path (a stuck cobc killed at 30 s / the 60 s job limit) have NOT been run in the container. After a deploy someone must rebuild and recreate the sandbox (`docker compose ps` and image ids show it is the new image), run `docker compose exec api python -I -m diocle_verifier.precheck <sample dir>` once, and confirm it answers `ok` or `fail` (not `unknown`).
 - Not done: making near-miss originals compile (e.g. inserting the missing period) would change the original, so it is not claimed.
 
+## Oct 30 early morning: what is pushed but NOT deployed (owner action needed)
+- **origin/main (3c8a6db) is ahead of the live engine (71ac3b3).** The auto-mode permission check denied the production deploy
+  (the earlier seed of three runs went through after the owner authorized it in chat; the deploy did not), so it was not retried.
+  **To deploy, from the Mac with the SSH key:** `git pull && deploy/update-engine.sh` (it refuses while a delivery runs; the script's
+  `$HOST` echo bug is fixed on main). Then run the reviewer's checklist for the sandbox compile pre-check:
+  1. `docker compose -f docker-compose.api.yml ps` and `docker inspect` both `deploy-api-1` and `deploy-sandbox-1`: the **sandbox image
+     must have been rebuilt** (an old sandbox answers 404 on `/compile`, which degrades to the old behaviour with no skipping).
+  2. `docker compose -f docker-compose.api.yml exec -T api python -I -m diocle_verifier.precheck /opt/diocle/samples/interest-accrual`
+     must print `ok` (not `unknown`); if it prints `unknown`, the `python -I` editable install is not working in the container.
+  3. `curl -X POST https://diocle.vercel.app/api/runs/chqclr-20261028-214355/reverify` still 1004/1004; health ok.
+  4. A visitor import of github.com/openmainframeproject/cobol-programming-course should now skip the 16 originals that do not
+     compile under -std=ibm (15 lack a period after PROGRAM-ID) and take CBL0013/CBL0014/CBL0015 (a few cents). If it does not,
+     read `precheck` in the delivery record (fixed-phrase notes) and `deliver.log`.
+- **Pushed this night (all reviewed, tests green: analyzer 81, converter 163, verifier 93, api 48):** sandboxed compile-only pre-check
+  of visitor originals (contract compile-check v0.2, delivery.precheck; the message filter keeps only masked cobc diagnostics, was
+  hardened over three review rounds against COPY-echo leaks; NOT exercised in a real sandbox container, see checklist above); printout
+  to COBOL intake with Muse Wonder (CLI only; running the model's COBOL is opt-in `--run-model-code`; one real run: 1,013/1,013 for
+  $0.067, third-party Wonder price); tier-2 breaker defaults; uptime workflow (.github/workflows/uptime.yml); live seed of the Wonder
+  and Spark-1.3 tiers runs and the cross-check run (done, re-verifiable).
+- **Wonder vs Spark 1.3 as breaker (one run each, INTACCR):** both found the real sign-of-zero defect; Wonder in round 1 ($0.62 run),
+  Spark 1.3 in round 3 ($0.41 run). Not a measurement of which is better.
+
 ## Where things stand at the end of Oct 29 (night, Mac)
 - **origin/main** has everything below; the engine on Vultr was redeployed at 71ac3b3 (guard policy, cross-check code, tiers, item 1,
   pre-check fix). After that: only the tier-2 breaker default (5af5672/4409559) and docs are on main but not deployed (CLI only).
