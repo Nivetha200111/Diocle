@@ -23,6 +23,14 @@ configured, when the run itself is already on the open model, for multi-file pro
 run is never failed by it). It is opt-in because it spends on a second host (about $0.05 per run at list price).
 Result: run.json `crosscheck` (run contract v0.10), its calls appear in the run's model card as "Independent check".
 
+## File shapes the translator is told about
+
+`Program.io_text()` tells the model how each DD is used: inputs from `DD_x`, outputs written to `DD_y`, files opened I-O
+(`io`) read from and written back to the same path with untouched records byte-identical, and, when the program writes
+no file, that its DISPLAY output and exit code are the whole result. No new model call or limit was added for these
+shapes (rule 10); the repair agent sees the one `stdout` result like any failing case. The breaker and cross-check
+skip them (they need exactly one input and one output file).
+
 ## Run
 ```sh
 cd services/converter
