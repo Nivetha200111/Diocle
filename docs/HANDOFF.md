@@ -37,7 +37,7 @@ This repository is public: never write secrets, passcodes, personal details or e
   `samples/loyalty-waiver-printout` (greenbar PNG rendered by `demo/render-listing.py`): 1 call, $0.067, compiled, 1013/1013 matched.
   Not proven: photos (the image is a clean render), other programs/fonts, long listings. The model collapsed runs of spaces on 4 lines
   (harmless here), and random inputs rarely hit exact boundaries, so a boundary mis-read (`5000.00`) could pass: the status is "no
-  difference on 1,013 inputs", not equality. CLI only: no engine/API path (compiling model text would need the sandbox). Total spend
+  difference on 1,013 inputs", not equality. CLI only: no engine/API path. **`--against` builds and runs model-written COBOL on the host, unsandboxed: only for our own synthetic printouts on a dev machine** (deny-list for CALL SYSTEM/CBL_/dynamic CALL; `--out` must be empty and not overlap `--against`; the original is snapshotted; exit code 0 only for verified-identical). A reviewer pass found a false-pass (`--out` == `--against`) and other gaps; all fixed with regression tests. Total spend
   for the build and the one real run: about $0.07. Caps: `VISION_MAX_CALLS` 3, `VISION_MAX_USD` 0.20, `VISION_MAX_OUTPUT_TOKENS` 5000.
 **Judge-facing pass (Oct 29, from an outside scoring review).** Web: front page shows CHQCLR's COBOL next to its
 certified Java with a verdict strip replaying the breaker story and **Try the sample** (public re-verify on a fresh

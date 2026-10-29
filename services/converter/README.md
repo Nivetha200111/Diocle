@@ -61,6 +61,17 @@ logged with tokens and cost. Muse Wonder's reasoning tokens bill as output ($20/
 is `low` (`VISION_REASONING_EFFORT`). The compile check runs the local `cobc` on text a model wrote: this is the CLI path for our own
 synthetic printouts, not a designed engine/API path (compiling untrusted text would belong in the sandbox).
 
+**Safety and limits of the gates (reviewed).** `--against` **builds and runs model-written COBOL on the host** with plain
+subprocesses (no sandbox; each run limited to 120 s, the compile to 60 s): use it only for our own synthetic printouts on a dev
+machine, never for text from strangers. A small deny-list refuses (status `refused`, never compiled, run or written, no
+further calls) a transcription containing `CALL 'SYSTEM'`, any `CBL_*` or `C$*` routine, a `CALL` of an identifier, or a
+`CALL` of a program not listed in the original's `sample.json` `modules` (comment lines are skipped); it is a speed bump, not
+a sandbox. `--out` must be new or empty and must not overlap `--against` (refused, 0 calls, nothing written); the original is also
+snapshotted into a temp directory before anything is written and the differential uses the snapshot. `verified-identical` needs at
+least one compared output record (or non-empty stdout): an original that writes nothing gives `compiled-unchecked`. A timeout in
+the compile or a run is reported (`compile-failed`, or a differential with `ran: false` and status `compiled-unchecked`).
+Exit codes of `transcribe`: 0 only for `verified-identical`; 2 `compiled-unchecked`, 3 `differs`, 4 `compile-failed`, 5 `refused`, 6 `no-transcription`.
+
 Proven once, on one synthetic printout (`samples/loyalty-waiver-printout`, rendered from `samples/loyalty-waiver` by
 `demo/render-listing.py`): Wonder accepted the image part, transcribed 44 lines in one call (1,586 in / 3,018 out tokens
 including 2,596 reasoning, $0.067), it compiled first time and matched the original on 1,013 of 1,013 inputs. **Not proven:** that this

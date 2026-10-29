@@ -158,6 +158,11 @@ def main(argv: list[str] | None = None) -> int:
         raise
 
 
+# transcribe exit codes: 0 only when the transcription was proven identical to the original
+EXIT_CODES = {"verified-identical": 0, "compiled-unchecked": 2, "differs": 3, "compile-failed": 4, "refused": 5,
+              "no-transcription": 6}
+
+
 def _transcribe(args) -> int:
     from .vision import transcribe
 
@@ -170,8 +175,9 @@ def _transcribe(args) -> int:
     d = record["differential"]
     if d and d["ran"]:
         print(f"differential vs {d['against']}: {d['matched']}/{d['inputs']} inputs matched, stdout {d['stdoutMatch']}, exit code {d['exitCodeMatch']}")
-    print(f"record: {args.out / 'transcription.json'}")
-    return 0 if record["status"] in ("verified-identical", "compiled-unchecked") else 1
+    if not (record.get("reason") or "").startswith("--out"):  # an --out refusal writes nothing
+        print(f"record: {args.out / 'transcription.json'}")
+    return EXIT_CODES.get(record["status"], 1)
 
 
 def _smoke(client: ModelClient, guard_client: ModelClient | None) -> int:
