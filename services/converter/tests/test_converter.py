@@ -585,13 +585,17 @@ def test_the_breaker_falls_back_to_the_default_model_when_the_escalation_caps_ar
     assert events[0]["tried"] == 0 and "budget" not in events[0]["message"]
 
 
-def test_new_evidence_after_a_breaker_break_restarts_the_repair_agent_at_tier_one(tmp_path):
+def test_new_evidence_after_a_breaker_break_sends_the_repair_agent_straight_to_the_top_tier(tmp_path):
     ws = Workspace(tmp_path / "java")
     ws.write("IntAccr.java", "class IntAccr {}")
     finish = lambda: tool_call("finish", summary="try")
-    sdk = ScriptedSDK([finish(), finish(), finish(), finish()])
-    client = ModelClient(settings(tiers=TIERS, max_rounds=2, max_calls_per_run=20), _sdk=sdk)
-    agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), lambda e: None, escalate=True)
-    agent.run()  # round 1 on tier 1, round 2 on tier 2 after a failed certification
+    sdk = ScriptedSDK([finish(), finish()])
+    events = []
+    client = ModelClient(settings(tiers=TIERS, max_rounds=1, max_calls_per_run=20), _sdk=sdk)
+    agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), events.append, escalate=True)
+    agent.run()  # the first Java passed certification in a real run; here one tier-1 round
     agent.resume("A breaker found a counterexample.", extra_rounds=1)
-    assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-spark-1.3", "muse-spark-1.3-contributor"]
+    # a Java that passed 1,000+ tests and was then broken is the hard residual case: top tier at once, not tier 2
+    assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-wonder-1.0"]
+    assert agent.escalations[-1] == {"round": 2, "tier": 3, "model": "muse-wonder-1.0"}
+    assert "breaker input" in [e["message"] for e in events if "Escalating" in e.get("message", "")][-1]

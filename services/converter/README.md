@@ -18,7 +18,9 @@ Opt-in escalation by task difficulty, hosted mode only. `META_MODEL_ID` is tier 
 `MODEL_TIER_3_ID` (e.g. `muse-wonder-1.0`, $4/$20, price per third-party coverage, unconfirmed on dev.meta.ai) are other
 models on the same host and key. With `--tiers` the repair agent stays on tier 1 until a certification round fails, then
 moves up one tier per failed round (each move is a trace event and a `tiers.escalations` entry in run.json), and the
-breaker attacks with the highest configured tier. Hard caps (rule 10) on everything above tier 1: `MODEL_ESCALATION_MAX_CALLS`
+breaker attacks with the highest configured tier. When the breaker (or the cross-check) breaks a Java that had already
+certified, the repair agent resumes at the highest tier straight away: that is the hard residual case, and the new evidence
+is a counterexample GnuCOBOL confirmed. Hard caps (rule 10) on everything above tier 1: `MODEL_ESCALATION_MAX_CALLS`
 (default 12) and `MODEL_ESCALATION_MAX_USD` (default 0.50) per run, counted as calls happen; when spent, the run falls back to
 tier 1 and still finishes. A model with no entry in `PRICES` counts as the whole cap (fail closed), and the cap is checked
 before each call, so one large call can overshoot it. The contributor tier lets Meta use requests to improve its products;
