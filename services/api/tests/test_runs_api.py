@@ -401,3 +401,18 @@ def test_schema_is_withheld_for_a_public_delivery_sample(client, tmp_path, monke
     monkeypatch.setattr(runs, "_sample_roots", lambda: [(tmp_path / "deliveries").resolve()])
     _visitor_run(tmp_path, "acct-20261028-171000", public=True)
     assert client.get("/runs/acct-20261028-171000/schema").status_code == 404
+
+
+def test_crosscheck_result_is_passed_through_and_matches_the_contract(client, tmp_path):
+    path = tmp_path / "demo-20261028-124509" / "run.json"
+    run = json.loads(path.read_text())
+    run["crosscheck"] = {"model": "accounts/fireworks/models/muse-spark-open", "casesProposed": 15, "casesValid": 12,
+                         "mismatches": 0, "repairCycles": 0, "fixed": False,
+                         "suspected": [{"field": "OUT-FEE", "concern": "rounding"}], "counterexamples": []}
+    path.write_text(json.dumps(run))
+    body = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(body, CONTRACT)
+    assert body["crosscheck"]["casesValid"] == 12
+    run["crosscheck"] = {"skipped": "no CROSSCHECK_MODEL_* or OPEN_MODEL_* configured"}
+    path.write_text(json.dumps(run))
+    jsonschema.validate(client.get("/runs/demo-20261028-124509").json(), CONTRACT)

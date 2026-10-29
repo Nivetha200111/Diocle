@@ -282,5 +282,6 @@ def get_run(run_id: str) -> dict | None:
         "efficiency": _efficiency(run, events),
         "memory": run.get("memory"),
         "breaker": run.get("breaker"),
+        "crosscheck": run.get("crosscheck"),
         "swarm": run.get("swarm", False),
     }
