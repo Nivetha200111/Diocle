@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.9 (adds the source response and the interrupted status) (v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.10 (adds the guard agent: guard events and the guard result) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -80,7 +80,8 @@
               "budget",
               "memory",
               "stage",
-              "breaker"
+              "breaker",
+              "guard"
             ]
           },
           "round": {
@@ -118,8 +119,13 @@
               "repairing",
               "certifying",
               "attacking",
+              "guarding",
               "done"
             ]
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "guard events: the guard stopped this Java from running or revoked its certification"
           },
           "tried": {
             "type": "integer"
@@ -221,6 +227,9 @@
         }
       }
     },
+    "guard": {
+      "$ref": "#/$defs/guard"
+    },
     "swarm": {
       "type": "boolean",
       "description": "Run picked up lessons certified by parallel agents mid-run"
@@ -278,6 +287,37 @@
     }
   },
   "$defs": {
+    "guardFinding": {
+      "type": "object",
+      "required": ["severity", "category", "explanation"],
+      "properties": {
+        "severity": { "type": "string", "enum": ["block", "flag"] },
+        "category": { "type": "string", "enum": ["network", "process", "dynamic-code", "native", "environment", "filesystem", "concurrency", "obfuscation", "test-gaming", "prompt-injection", "other"] },
+        "file": { "type": ["string", "null"] },
+        "line": { "type": ["integer", "null"] },
+        "explanation": { "type": "string" }
+      }
+    },
+    "guard": {
+      "type": ["object", "null"],
+      "description": "The guard agent's result. policy: deterministic checks run before any Java is executed and on the COBOL for text aimed at an AI. review: one Meta-model review of the final Java against the COBOL, on its own key (GUARD_MODEL_*), null when not configured.",
+      "required": ["blocked", "policy"],
+      "properties": {
+        "blocked": { "type": "boolean", "description": "The run ended uncertified because of the guard (review verdict block, or Java the policy would not run)" },
+        "stopped": { "type": "integer", "description": "Times the policy refused to run the Java; the repair agent is told why and can fix it" },
+        "policy": { "type": "array", "items": { "$ref": "#/$defs/guardFinding" } },
+        "sourceFlags": { "type": "array", "items": { "$ref": "#/$defs/guardFinding" }, "description": "Text in the COBOL aimed at an AI, or other suspicious content" },
+        "review": {
+          "type": ["object", "null"],
+          "properties": {
+            "model": { "type": "string" },
+            "verdict": { "type": "string", "enum": ["pass", "flag", "block", "error"] },
+            "summary": { "type": "string" },
+            "findings": { "type": "array", "items": { "$ref": "#/$defs/guardFinding" } }
+          }
+        }
+      }
+    },
     "source": {
       "type": "object",
       "description": "GET /runs/{id}/source: the original COBOL (program and copybooks) next to the run's Java, for reading side by side. Not served for visitor runs.",
