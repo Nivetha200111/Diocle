@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
   "type": "object",
   "required": [
     "version",
@@ -55,7 +55,8 @@
               "golden",
               "corpus",
               "files",
-              "output"
+              "output",
+              "stdout"
             ],
             "description": "How the input was generated. 'files': an output record of a multi-file run, whose inputs are whole generated files. 'output': a record of a program whose outputs do not map one to one to its inputs (aggregation, fan-out); compared by position in the output."
           },
@@ -96,7 +97,7 @@
           },
           "outputDd": {
             "type": "string",
-            "description": "Output file (DD name) this record belongs to, for programs with several output files."
+            "description": "Output file (DD name) this record belongs to, for programs with several output files; 'stdout' for the single stdout/exit-code result of a DISPLAY-only program."
           }
         }
       }
@@ -183,6 +184,10 @@
         "stdoutMatch": {
           "type": "boolean"
         },
+        "stdoutCompared": {
+          "type": "boolean",
+          "description": "Additive (v0.8). True when stdout and exit code are the program's only compared output (a DISPLAY-only program); results then holds one `stdout` result."
+        },
         "exitCodeMatch": {
           "type": "boolean",
           "description": "Both programs ended with the same exit code (COBOL RETURN-CODE)."
@@ -242,6 +247,10 @@
           ],
           "description": "Multi-file runs: records per input DD, and records each side wrote per output DD.",
           "properties": {
+            "updated": {
+              "type": "object",
+              "description": "Additive (v0.8). Files opened I-O, by DD: records seeded, and records each side left in the file."
+            },
             "inputs": {
               "type": "object"
             },
