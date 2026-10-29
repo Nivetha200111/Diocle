@@ -83,6 +83,8 @@ def load_image(path: Path) -> Image:
     if size > MAX_IMAGE_BYTES:
         raise ImageRejected(f"image is {size} bytes; the limit is {MAX_IMAGE_BYTES} (2 MB)")
     data = path.read_bytes()
+    if len(data) > MAX_IMAGE_BYTES:  # the file may have grown between stat and read
+        raise ImageRejected(f"image is {len(data)} bytes; the limit is {MAX_IMAGE_BYTES} (2 MB)")
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         media = "image/png"
     elif data.startswith(b"\xff\xd8\xff"):
@@ -110,7 +112,7 @@ def program_id(source: str) -> str | None:
     return m.group(1).upper() if m else None
 
 
-def compile_check(source: Path, copybook_dir: Path | None) -> dict:
+def compile_check(source: Path, copybook_dir: Path | None, timeout: int = 60) -> dict:
     """cobc -fsyntax-only with the verifier's flags. {"ok": bool, "errors": str}"""
     try:
         from diocle_verifier.runners import IBM_FLAGS, _exec
@@ -120,21 +122,26 @@ def compile_check(source: Path, copybook_dir: Path | None) -> dict:
     if copybook_dir and copybook_dir.is_dir():
         cmd += ["-I", str(copybook_dir)]
     try:
-        proc = _exec(cmd + [str(source)])
+        proc = _exec(cmd + [str(source)], timeout=timeout)
     except FileNotFoundError:
         return {"ok": False, "errors": "cobc (GnuCOBOL) is not installed"}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "errors": f"cobc did not finish within {timeout} s"}
     text = (proc.stderr + proc.stdout).replace(str(source.parent) + "/", "")
     return {"ok": proc.returncode == 0, "errors": text.strip()[:3000]}
 
 
-def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS, seed: int = DIFF_SEED) -> dict:
+def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS, seed: int = DIFF_SEED,
+                 timeout: int = 120) -> dict:
     """Run the original (against/sample.json's source) and the transcription on the same generated inputs; compare the
-    whole output sequence, stdout and exit code. Uses the verifier's generator, runner and comparator."""
+    whole output sequence, stdout and exit code. Uses the verifier's generator, builder and comparator.
+    WARNING: this builds and RUNS the transcription (model-written COBOL) on this machine with plain subprocesses, with
+    no sandbox. Only for our own synthetic printouts on a dev machine. Each program run is limited to `timeout` seconds."""
     from diocle_verifier.diff import compare
     from diocle_verifier.inputs import Case, generate_cases
     from diocle_verifier.layout import load_fields, record_format, record_length
     from diocle_verifier.multi import is_multi
-    from diocle_verifier.runners import run_cobol, write_records
+    from diocle_verifier.runners import CLOCK_ENV, Run, _exec, build_cobol, read_records, write_records
 
     rec = {"against": str(against), "ran": False, "seed": seed, "inputs": 0, "matched": 0, "mismatched": 0}
     meta = json.loads((against / "sample.json").read_text())
@@ -154,13 +161,27 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
         work_o.mkdir(), work_t.mkdir()
         input_path = Path(tmp) / "input.dat"
         write_records(input_path, [c.record for c in cases], in_fmt)
-        orig = run_cobol(against / meta["source"], copybooks, meta["dd"], input_path, work_o, out_fmt, modules, collation)
-        trans = run_cobol(source, copybooks, meta["dd"], input_path, work_t, out_fmt, modules, collation)
+        def run(src: Path, work: Path, label: str) -> Run:
+            cmd, failed = build_cobol(src, copybooks, work, modules, collation)
+            if failed:
+                return failed
+            out = work / f"{label}.out"
+            env = {**CLOCK_ENV, f"DD_{meta['dd']['input']}": str(input_path), f"DD_{meta['dd']['output']}": str(out)}
+            proc = _exec(cmd, env=env, cwd=work, timeout=timeout)
+            return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(out, *out_fmt))
+
+        try:
+            orig = run(against / meta["source"], work_o, "original")
+            trans = run(source, work_t, "transcribed")
+        except subprocess.TimeoutExpired:
+            return {**rec, "inputs": len(cases), "reason": f"a program did not finish within {timeout} s (timed out)"}
     rec["inputs"] = len(cases)
     if not orig.compiled:
         return {**rec, "reason": "the original does not compile with GnuCOBOL: " + orig.stderr.strip()[:300]}
     if not trans.compiled:
         return {**rec, "reason": "the transcription does not build: " + trans.stderr.strip()[:300]}
+    if not orig.output_lines and not orig.stdout.strip():
+        return {**rec, "reason": "the original wrote no output records and no stdout: nothing to compare, so no proof"}
     results = compare(cases, orig.output_lines, trans.output_lines, out_fields, out_fmt[0])
     bad = [r for r in results if not r["match"]]
     stdout_match, exit_match = orig.stdout == trans.stdout, orig.exit_code == trans.exit_code
@@ -168,10 +189,30 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
     mismatched = len(bad) + (0 if stdout_match else 1) + (0 if exit_match else 1)
     if not identical and not mismatched:  # same values, differing only in trailing blanks
         mismatched = 1
-    return {**rec, "ran": True, "matched": len(results) - len(bad), "mismatched": mismatched,
+    return {**rec, "ran": True, "outputRecords": len(orig.output_lines), "matched": len(results) - len(bad), "mismatched": mismatched,
             "stdoutMatch": stdout_match, "exitCodeMatch": exit_match,
             "firstMismatches": [{k: r.get(k) for k in ("inputId", "input", "originalOutput", "convertedOutput", "fieldDiffs")
                                  if k in r} for r in bad[:5]]}
+
+
+_DENY_ANYWHERE = re.compile(r"CBL_|C[$]|[\"']\s*SYSTEM\s*[\"']", re.I)
+
+
+def unsafe_calls(source: str, allowed_programs=frozenset()) -> str | None:
+    """A reason when the transcription could do more than read and write the program's files: CALL "SYSTEM", any CBL_*
+    or C$* routine, a CALL to an identifier (dynamic) or to a program that is not listed. Comment lines are skipped.
+    A small deny-list, not a sandbox: the differential still runs this text on the host (see differential())."""
+    code = "\n".join(ln for ln in source.splitlines() if not (len(ln) > 6 and ln[6] in "*/"))
+    m = _DENY_ANYWHERE.search(code)
+    if m:
+        return f"the transcription mentions {m.group(0).strip()!r} (system or CBL_/C$ routines are not allowed)"
+    for call in re.finditer(r"\bCALL\s+(\S+)", code, re.I):
+        target = call.group(1).rstrip(".")
+        if not (target[:1] in ("'", '"') and len(target) > 2):
+            return f"CALL {target}: only CALLs to quoted program names listed with the original are allowed"
+        if target.strip("\"'").upper() not in allowed_programs:
+            return f"CALL {target}: not a program listed with the original"
+    return None
 
 
 def _caps() -> tuple[float, int]:
@@ -191,17 +232,50 @@ def _refused(image_info: dict, reason: str, settings: Settings | None, caps: dic
             "caps": caps, "compile": None, "differential": None}
 
 
+def _out_dir_problem(out_dir: Path, against: Path | None) -> str | None:
+    """--out must be a new or empty directory that does not overlap the original: nothing is overwritten silently, and the
+    transcription can never replace the original it is about to be compared with."""
+    if against is not None:
+        o, a = out_dir.resolve(), Path(against).resolve()
+        if o == a or a in o.parents or o in a.parents:
+            return f"--out ({out_dir}) overlaps --against ({against}): refusing, the original must not be touched"
+    if out_dir.exists() and (not out_dir.is_dir() or any(out_dir.iterdir())):
+        return f"--out ({out_dir}) exists and is not an empty directory: refusing to overwrite"
+    return None
+
+
 def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, client: ModelClient | None = None,
                against: Path | None = None, max_usd: float | None = None, max_output_tokens: int | None = None,
-               check: Callable[[Path, Path | None], dict] = compile_check,
-               diff: Callable[..., dict] = differential, log: Callable[[str], None] = print) -> dict:
+               check: Callable[..., dict] = compile_check, diff: Callable[..., dict] = differential,
+               timeout: int | None = None, log: Callable[[str], None] = print) -> dict:
     """Run the intake. Always returns a record (contracts/transcription.schema.json); writes it, and the COBOL when one
-    compiled or was the best attempt, under out_dir. Raises nothing for a model or gate failure: the status says what happened."""
+    was produced, under out_dir (never into an existing non-empty directory, never over the original). Raises nothing for
+    a model or gate failure: the status says what happened. With `against`, the original is snapshotted into a temp
+    directory first and every comparison uses the snapshot. `timeout` (seconds) limits each cobc or program run."""
     usd_cap, tok_cap = _caps()
     usd_cap = usd_cap if max_usd is None else max_usd
     tok_cap = tok_cap if max_output_tokens is None else max_output_tokens
     caps = {"maxCalls": settings.max_calls_per_run if settings else 0, "maxUsd": usd_cap, "maxOutputTokens": tok_cap}
     out_dir = Path(out_dir)
+    problem = _out_dir_problem(out_dir, against)
+    if problem:  # nothing is written anywhere: not even the record
+        placeholder = {"name": Path(image_path).name, "mediaType": None, "bytes": 0, "sha256": ""}
+        return _refused(placeholder, problem, settings, caps)
+    if against is None:
+        return _transcribe(image_path, out_dir, settings, client, None, None, caps, check, diff, timeout, log)
+    against = Path(against)
+    if not (against / "sample.json").is_file():
+        placeholder = {"name": Path(image_path).name, "mediaType": None, "bytes": 0, "sha256": ""}
+        return _finish(_refused(placeholder, f"--against: no sample.json in {against}", settings, caps), out_dir)
+    with tempfile.TemporaryDirectory(prefix="diocle-original-") as tmp:
+        snapshot = Path(tmp) / "original"
+        shutil.copytree(against, snapshot)
+        return _transcribe(image_path, out_dir, settings, client, snapshot, str(against), caps, check, diff, timeout, log)
+
+
+def _transcribe(image_path, out_dir, settings, client, against, against_label, caps, check, diff, timeout, log) -> dict:
+    usd_cap, tok_cap = caps["maxUsd"], caps["maxOutputTokens"]
+    extra = {"timeout": timeout} if timeout else {}
     try:
         image = load_image(image_path)
     except ImageRejected as e:
@@ -215,16 +289,15 @@ def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, cl
         return _finish(_refused(info, f"{settings.model} has no price in PRICES; the cost cap fails closed", settings, caps), out_dir)
     client = client or ModelClient(settings)
 
-    copybooks = None
+    copybooks, allowed = None, set()
     if against:
-        meta_path = Path(against) / "sample.json"
-        if not meta_path.is_file():
-            return _finish(_refused(info, f"--against: no sample.json in {against}", settings, caps), out_dir)
-        copybooks = Path(against) / json.loads(meta_path.read_text())["copybookDir"]
+        meta = json.loads((against / "sample.json").read_text())
+        copybooks = against / meta["copybookDir"]
+        allowed = {Path(m).stem.upper() for m in meta.get("modules", [])}
 
     messages: list[dict] = [{"role": "user", "content": [
         {"type": "text", "text": PROMPT}, {"type": "image_url", "image_url": {"url": image.data_url()}}]}]
-    attempts, source, compiled, reason = [], "", None, None
+    attempts, source, compiled, reason, refusal = [], "", None, None, None
     price = PRICES[settings.model]
     while True:
         n = len(attempts) + 1
@@ -257,10 +330,15 @@ def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, cl
                                          + (" (output token cap reached before an answer)" if choice.finish_reason == "length" else "")}})
             reason = attempts[-1]["compile"]["errors"]
             break
+        refusal = unsafe_calls(source, allowed)
+        if refusal:  # never compiled, never run, never written
+            attempts.append({"n": n, "finishReason": choice.finish_reason, "lines": source.count("\n"),
+                             "compile": {"ok": False, "errors": "not compiled: " + refusal}})
+            break
         with tempfile.TemporaryDirectory(prefix="diocle-vision-") as tmp:
             src_path = Path(tmp) / "TRANSCRIBED.cbl"
             src_path.write_text(source)
-            compiled = check(src_path, copybooks)
+            compiled = check(src_path, copybooks, **extra)
         attempts.append({"n": n, "finishReason": choice.finish_reason, "lines": source.count("\n"), "compile": compiled})
         log(f"attempt {n}: compile {'OK' if compiled['ok'] else 'FAILED'}")
         if compiled["ok"]:
@@ -268,8 +346,11 @@ def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, cl
         messages += [{"role": "assistant", "content": text}, {"role": "user", "content": RETRY.format(errors=compiled["errors"])}]
 
     record = {"version": VERSION, "status": "no-transcription", "reason": reason, "image": info, "model": settings.model,
-              "program": program_id(source) if source else None, "source": None, "attempts": attempts,
+              "program": program_id(source) if source and not refusal else None, "source": None, "attempts": attempts,
               "usage": usage_of(client.calls), "caps": caps, "compile": compiled, "differential": None}
+    if refusal:
+        record["status"], record["reason"] = "refused", refusal
+        return _finish(record, out_dir)
     if source:
         name = record["program"] or re.sub(r"[^A-Za-z0-9]", "", Path(image.name).stem).upper() or "PROGRAM"
         record["source"] = f"src/{name}.cbl"
@@ -278,13 +359,19 @@ def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, cl
     if compiled and compiled["ok"]:
         record["reason"] = None
         if against:
-            record["differential"] = diff(Path(against), out_dir / record["source"])
-            d = record["differential"]
+            try:
+                d = diff(against, out_dir / record["source"], **extra)
+            except subprocess.TimeoutExpired:
+                d = {"against": str(against), "ran": False, "inputs": 0, "matched": 0, "mismatched": 0,
+                     "reason": "timed out"}
+            d["against"] = against_label  # the snapshot is a temp directory; name the original
+            record["differential"] = d
             if not d["ran"]:
-                record["status"], record["reason"] = "compiled-unchecked", "differential could not run: " + d.get("reason", "")
+                record["status"], record["reason"] = "compiled-unchecked", "differential could not run: " + (d.get("reason") or "")
             else:
-                record["status"] = "verified-identical" if d["mismatched"] == 0 and d["inputs"] > 0 else "differs"
-            _copy_sample_files(Path(against), out_dir, record)
+                # a pass needs something actually compared: at least one output record (or stdout, checked in differential())
+                record["status"] = "verified-identical" if d["mismatched"] == 0 and d["inputs"] > 0 and d.get("outputRecords", 1) > 0 else "differs"
+            _copy_sample_files(against, Path(against_label).name, out_dir, record)
         else:
             record["status"] = "compiled-unchecked"
             record["reason"] = "no original supplied (--against), so the transcription is NOT checked against anything"
@@ -294,7 +381,7 @@ def transcribe(image_path: Path, out_dir: Path, *, settings: Settings | None, cl
     return _finish(record, out_dir)
 
 
-def _copy_sample_files(against: Path, out_dir: Path, record: dict) -> None:
+def _copy_sample_files(against: Path, against_name: str, out_dir: Path, record: dict) -> None:
     """Make out_dir a usable sample: the original's copybooks (they are not on the printout) and a sample.json that
     says where the source came from. No Java is claimed."""
     meta = json.loads((against / "sample.json").read_text())
@@ -302,7 +389,7 @@ def _copy_sample_files(against: Path, out_dir: Path, record: dict) -> None:
     if (against / meta["copybookDir"]).is_dir() and not dest.exists():
         shutil.copytree(against / meta["copybookDir"], dest)
     meta["description"] = (f"SYNTHETIC. Transcribed from the image {record['image']['name']} by {record['model']}; "
-                           f"status {record['status']} (see transcription.json). Copybooks copied from {against.name}.")
+                           f"status {record['status']} (see transcription.json). Copybooks copied from {against_name}.")
     meta["source"] = record["source"]
     meta.pop("javaConversion", None)
     (out_dir / "sample.json").write_text(json.dumps(meta, indent=2) + "\n")
