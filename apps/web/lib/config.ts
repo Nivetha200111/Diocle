@@ -17,7 +17,8 @@ export const LINKS = {
   buildLog: "https://github.com/Nivetha200111/Diocle/blob/main/docs/BUILD_LOG.md",
 };
 
-// The one delivery cited everywhere: quillmark-modern#4, all six programs under one pinned verifier. The numbers
+// The one delivery cited everywhere: quillmark-modern#4 (it re-delivers INTACCR; the repo's CI re-verifies all six programs
+// under one pinned verifier, which is where these numbers come from). The numbers
 // come from that pull request's GitHub Actions run (LINKS.evidenceCi) and docs/EVIDENCE.md; that delivery is not
 // in this engine's delivery list, so they are cited here with their source rather than counted live.
 export const CANONICAL = {

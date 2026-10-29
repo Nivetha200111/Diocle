@@ -333,7 +333,7 @@ export default function DeliveryView() {
           {failureReason(delivery, list) && <p className="dlv-reason">{failureReason(delivery, list)}</p>}
           <p className="dlv-canonical">
             The delivery we cite as evidence is <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>:
-            all six programs under one pinned verifier, re-checked by that repository&apos;s CI.
+            it re-delivers INTACCR, and that repository&apos;s CI re-verifies all six programs under one pinned verifier.
           </p>
         </div>
       </section>

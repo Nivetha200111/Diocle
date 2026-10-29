@@ -220,7 +220,7 @@ export default function HomeView({ go }: { go: Go }) {
         <ul className="home-list home-links">
           <li><a href={LINKS.legacy} target="_blank" rel="noreferrer">quillmark-mainframe</a>: an export of z/OS libraries (COBOL, copybooks, JCL, procedures, DB2, CICS, IMS, EBCDIC extracts).</li>
           <li><a href={LINKS.target} target="_blank" rel="noreferrer">quillmark-java</a>: starts empty; Diocle delivers certified programs as pull requests and its CI re-checks them.</li>
-          <li><a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>: six programs under one pinned verifier, re-verified by GitHub CI on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh inputs.</li>
+          <li><a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>: re-delivers INTACCR, and the repository&apos;s CI re-verifies all six programs under one pinned verifier on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh inputs.</li>
           <li><a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a>: what was built during the hackathon, including the mistakes we found.</li>
         </ul>
         <p className="home-more"><a href={LINKS.diocle} target="_blank" rel="noreferrer">Source on GitHub <ExternalLink size={11} /></a></p>
