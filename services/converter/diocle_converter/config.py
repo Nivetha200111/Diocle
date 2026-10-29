@@ -51,6 +51,10 @@ class Settings:
     tiers: tuple[str, ...] = ()
     escalation_max_calls: int = 12
     escalation_max_usd: float = 0.50
+    # Which tier does what with --tiers. Defaults are tier 2 (muse-spark-1.3): in a real run one Muse Wonder breaker
+    # call cost about $0.22-0.37 (reasoning tokens bill at $20/M), 96% of the run's cost. Set 3 to opt in to Wonder.
+    breaker_tier: int = 2  # the tier that designs breaker attacks
+    after_break_tier: int = 2  # the tier the repair agent resumes at when a certified Java is broken
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -75,6 +79,8 @@ class Settings:
             tiers=tiers,
             escalation_max_calls=int(os.environ.get("MODEL_ESCALATION_MAX_CALLS", "12")),
             escalation_max_usd=float(os.environ.get("MODEL_ESCALATION_MAX_USD", "0.50")),
+            breaker_tier=int(os.environ.get("MODEL_TIER_BREAKER", "2")),
+            after_break_tier=int(os.environ.get("MODEL_TIER_AFTER_BREAK", "2")),
             reasoning_effort=os.environ.get("MODEL_REASONING_EFFORT", "medium"),
             max_calls_per_run=int(os.environ.get("MODEL_MAX_CALLS_PER_RUN", "60")),
             max_calls_per_round=int(os.environ.get("MODEL_MAX_CALLS_PER_ROUND", "20")),

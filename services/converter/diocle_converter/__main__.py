@@ -273,7 +273,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
         "breaker": breaker_summary, "crosscheck": crosscheck_result, "swarm": bool(args.swarm and memory),
         "tiers": ({"enabled": True, "configured": [settings.model, *settings.tiers], "escalations": agent.escalations,
-                   "breakerModel": settings.tier_model(3), "escalatedCalls": client.escalated_calls,
+                   "breakerModel": settings.tier_model(settings.breaker_tier), "escalatedCalls": client.escalated_calls,
                    "escalatedUsd": round(client.escalated_usd, 6), "capCalls": settings.escalation_max_calls,
                    "capUsd": settings.escalation_max_usd} if args.tiers and settings.tiers else None),
         "guard": guard.summary(), "error": unverifiable,
@@ -424,7 +424,7 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
         return outcome, {"rounds": 0, "tried": 0, "broke": 0, "repairCycles": 0, "fixed": False, "counterexamples": [],
                          "skipped": "multi-file program"}
     breaker = attacker or Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event,
-                                  model=settings.tier_model(3) if tiered else None)  # the strongest tier attacks
+                                  model=settings.tier_model(settings.breaker_tier) if tiered else None)  # tier 2 by default
     found: list[dict] = []
     cycles = 0
     on_event({"type": "stage", "stage": "attacking", "message": f"{who} is designing inputs to break the certified Java"})

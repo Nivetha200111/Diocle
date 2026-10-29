@@ -91,7 +91,7 @@ class RepairAgent:
     known_lessons: set[str] = field(default_factory=set)
     escalate: bool = False  # --tiers: after each failed certification round, use the next tier's model
     escalations: list[dict] = field(default_factory=list)  # [{round, tier, model}] for run.json
-    _after_break: bool = False  # resume() was called: a certified Java was shown wrong, so repair starts at the top tier
+    _after_break: bool = False  # resume() was called: a certified Java was shown wrong, so repair starts at settings.after_break_tier
     rounds: list[dict] = field(default_factory=list)
     lessons: list[dict] = field(default_factory=list)  # from the latest finish call
     messages: list[dict] = field(default_factory=list)
@@ -183,7 +183,9 @@ class RepairAgent:
         if not self.escalate or not self.client.settings.tiers:
             return None
         failed = sum(1 for r in self.rounds if not r.get("certified"))
-        tier = 1 + failed + (len(self.client.settings.tiers) if self._after_break else 0)  # clamped to the top tier
+        tier = 1 + failed
+        if self._after_break:
+            tier = max(tier, self.client.settings.after_break_tier)  # clamped to the top configured tier by tier_model
         model = self.client.settings.tier_model(tier)
         if model is None or self.client.escalation_exhausted():
             return None

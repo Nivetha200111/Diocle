@@ -585,20 +585,37 @@ def test_the_breaker_falls_back_to_the_default_model_when_the_escalation_caps_ar
     assert events[0]["tried"] == 0 and "budget" not in events[0]["message"]
 
 
-def test_new_evidence_after_a_breaker_break_sends_the_repair_agent_straight_to_the_top_tier(tmp_path):
-    ws = Workspace(tmp_path / "java")
-    ws.write("IntAccr.java", "class IntAccr {}")
-    finish = lambda: tool_call("finish", summary="try")
-    sdk = ScriptedSDK([finish(), finish()])
-    events = []
-    client = ModelClient(settings(tiers=TIERS, max_rounds=1, max_calls_per_run=20), _sdk=sdk)
-    agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), events.append, escalate=True)
-    agent.run()  # the first Java passed certification in a real run; here one tier-1 round
-    agent.resume("A breaker found a counterexample.", extra_rounds=1)
-    # a Java that passed 1,000+ tests and was then broken is the hard residual case: top tier at once, not tier 2
-    assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-wonder-1.0"]
-    assert agent.escalations[-1] == {"round": 2, "tier": 3, "model": "muse-wonder-1.0"}
-    assert "breaker or cross-check input" in [e["message"] for e in events if "Escalating" in e.get("message", "")][-1]
+def test_new_evidence_after_a_breaker_break_resumes_repair_at_the_configured_tier(tmp_path):
+    for after_break, expected in ((2, "muse-spark-1.3"), (3, "muse-wonder-1.0")):  # tier 2 is the default
+        ws = Workspace(tmp_path / f"java{after_break}")
+        ws.write("IntAccr.java", "class IntAccr {}")
+        finish = lambda: tool_call("finish", summary="try")
+        sdk = ScriptedSDK([finish(), finish()])
+        events = []
+        extra = {} if after_break == 2 else {"after_break_tier": 3}
+        client = ModelClient(settings(tiers=TIERS, max_rounds=1, max_calls_per_run=20, **extra), _sdk=sdk)
+        agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), events.append, escalate=True)
+        agent.run()  # one tier-1 round (in a real run the first Java had already certified)
+        agent.resume("A breaker found a counterexample.", extra_rounds=1)
+        assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", expected]
+        assert agent.escalations[-1] == {"round": 2, "tier": after_break, "model": expected}
+        assert "breaker or cross-check input" in [e["message"] for e in events if "Escalating" in e.get("message", "")][-1]
+
+
+def test_the_breaker_and_after_break_tiers_default_to_tier_two_and_can_be_changed(monkeypatch):
+    import diocle_converter.config as config
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **k: None)
+    for name, value in (("MODEL_MODE", "hosted"), ("META_MODEL_API_KEY", "k"), ("META_MODEL_BASE_URL", "u"),
+                        ("META_MODEL_ID", "muse-spark-1.3-contributor"), ("MODEL_TIER_2_ID", "muse-spark-1.3"),
+                        ("MODEL_TIER_3_ID", "muse-wonder-1.0")):
+        monkeypatch.setenv(name, value)
+    monkeypatch.delenv("MODEL_TIER_BREAKER", raising=False)
+    monkeypatch.delenv("MODEL_TIER_AFTER_BREAK", raising=False)
+    s = Settings.from_env()
+    assert (s.breaker_tier, s.after_break_tier) == (2, 2)
+    assert s.tier_model(s.breaker_tier) == "muse-spark-1.3"  # not Wonder: one Wonder breaker call measured $0.22-0.37
+    monkeypatch.setenv("MODEL_TIER_BREAKER", "3")
+    assert Settings.from_env().tier_model(Settings.from_env().breaker_tier) == "muse-wonder-1.0"
 
 
 def test_the_cap_projects_the_next_call_so_a_second_large_call_is_refused():
