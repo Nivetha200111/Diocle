@@ -1,5 +1,178 @@
 <mxfile host="app.diagrams.net" agent="Diocle docs">
-  <diagram id="diocle-architecture" name="Architecture (planned)">
+  <diagram id="diocle-as-built" name="Architecture (as built, Oct 29)">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1110" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ab-title" value="&lt;b&gt;Diocle · as built (Oct 29, 2026)&lt;/b&gt; · AI writes the code; Diocle checks it against the original before anyone has to trust it. &amp;nbsp;&lt;font color='#2e7d32'&gt;Green dashed = added Oct 29.&lt;/font&gt;" style="text;html=1;fontSize=16;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-people" value="&lt;b&gt;People&lt;/b&gt;&lt;br&gt;Judges and visitors: browse, Try the sample, import any public repo&lt;br&gt;&lt;br&gt;Owner: passcode for pull-request delivery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-web" value="&lt;b&gt;apps/web&lt;/b&gt; · Next.js on Vercel (redeploys on every push to main) · &lt;code&gt;/api/*&lt;/code&gt; rewritten to the engine" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="60" width="930" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-home" value="&lt;b&gt;Home&lt;/b&gt;&lt;br&gt;CHQCLR's COBOL next to its certified Java&lt;br&gt;Verdict strip: breaker → repair → certified&lt;br&gt;Try the sample: re-verify on a fresh seed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="285" y="95" width="215" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-sqltab" value="schema.sql tab next to the Java" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;strokeColor=#2e7d32;dashed=1;strokeWidth=2;fillColor=#e8f5e9;" vertex="1" parent="1">
+          <mxGeometry x="285" y="160" width="215" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-delivery" value="&lt;b&gt;Delivery&lt;/b&gt;&lt;br&gt;Paste a GitHub repo → analysis, conversion, live log&lt;br&gt;Visitors: daily budget, results on the site&lt;br&gt;Owner: delivered as a pull request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="510" y="95" width="220" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-runs" value="&lt;b&gt;Live runs&lt;/b&gt;&lt;br&gt;Agent trace, before/after, re-verify&lt;br&gt;Model card: role · model · host · tokens · cost&lt;br&gt;COBOL next to Java (and schema.sql)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="740" y="95" width="220" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-guardpanel" value="Guard panel + guard row in the model card" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;strokeColor=#2e7d32;dashed=1;strokeWidth=2;fillColor=#e8f5e9;" vertex="1" parent="1">
+          <mxGeometry x="745" y="160" width="210" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-evidence" value="&lt;b&gt;Evidence&lt;/b&gt;&lt;br&gt;Canonical delivery quillmark-modern#4: 6 programs, 6,719 fresh CI inputs, 0 differences&lt;br&gt;Evaluation, private mode, corrections" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="970" y="95" width="220" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-github" value="&lt;b&gt;GitHub&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="60" width="410" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-src" value="&lt;b&gt;Source repositories&lt;/b&gt;&lt;br&gt;Any public repo (visitor import)&lt;br&gt;quillmark-legacy, quillmark-mainframe (owner's sample estate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1245" y="90" width="185" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-target" value="&lt;b&gt;Target repository&lt;/b&gt;&lt;br&gt;Pull request + certificate per program&lt;br&gt;&lt;b&gt;Target CI&lt;/b&gt; (GitHub Actions): builds GnuCOBOL 3.2 + JDK 21 and re-verifies on fresh inputs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="90" width="190" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-engine" value="&lt;b&gt;Engine&lt;/b&gt; · Vultr VM (1 vCPU, 2 GB) · Docker compose: caddy, api, sandbox" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#f8f8f8;strokeColor=#333333;verticalAlign=bottom;align=right;spacingRight=12;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="1600" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-caddy" value="&lt;b&gt;caddy&lt;/b&gt;&lt;br&gt;HTTPS (sslip.io), reverse proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#eeeeee;" vertex="1" parent="1">
+          <mxGeometry x="420" y="255" width="200" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-api" value="&lt;b&gt;api container&lt;/b&gt; (holds the model keys) · FastAPI &lt;code&gt;services/api&lt;/code&gt;: /runs · /runs/{id} · /runs/{id}/source · &lt;font color='#2e7d32'&gt;&lt;b&gt;/runs/{id}/schema&lt;/b&gt;&lt;/font&gt; · /runs/{id}/reverify · /deliveries · /config" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="325" width="1180" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-analyzer" value="&lt;b&gt;1 · services/analyzer&lt;/b&gt; (deterministic, no model)&lt;br&gt;• clone (no symlinks, 300 MB cap)&lt;br&gt;• copybook layouts: DISPLAY, COMP-3, COMP, COMP-5, P scaling, OCCURS, REDEFINES, COPY REPLACING&lt;br&gt;• SELECT/FD/OPEN + JCL (procs, symbolics, DD overrides) → files&lt;br&gt;• static CALLs followed and linked together&lt;br&gt;• risk flags: ROUNDED, truncation, overflow, clock, EBCDIC order&lt;br&gt;• refused with a reason: EXEC SQL/CICS/DLI, INDEXED/RELATIVE, I-O, dynamic CALL&lt;br&gt;→ analysis report + sample (layouts, DD wiring)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#fff8e1;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="250" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-store" value="&lt;b&gt;runs/&lt;/b&gt; on the server&lt;br&gt;run.json: rounds, model calls, cost, breaker, guard&lt;br&gt;events.jsonl: the agent trace&lt;br&gt;java/ · verification reports · deliveries/ · memory.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#eeeeee;" vertex="1" parent="1">
+          <mxGeometry x="80" y="650" width="250" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-converter" value="&lt;b&gt;2 · services/converter&lt;/b&gt; · Meta models only · hard caps on calls, rounds and attacks" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#f3e5f5;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="380" width="430" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-translator" value="&lt;b&gt;Translator&lt;/b&gt; (Muse Spark)&lt;br&gt;whole program → one Java 21 class, structured output" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="365" y="415" width="195" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-repair" value="&lt;b&gt;Repair agent&lt;/b&gt; (Muse Spark, tool use)&lt;br&gt;run_differential_test · read_cobol_source · read_java_file · patch_java · compile_java · finish&lt;br&gt;cannot certify itself" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="575" y="415" width="190" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-breaker" value="&lt;b&gt;Breaker agent&lt;/b&gt; (Muse Spark)&lt;br&gt;designs inputs to break certified Java" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="365" y="485" width="195" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-memory" value="&lt;b&gt;Fix memory&lt;/b&gt;&lt;br&gt;lessons kept only from certified runs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="575" y="525" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-guard" value="&lt;b&gt;Guard agent&lt;/b&gt; (branch guard-agent, not merged; not yet run against a live model)&lt;br&gt;&lt;b&gt;Policy&lt;/b&gt;, checked before Java runs: refuses Java that openly uses the network, processes, reflection or native code, other environment variables or literal outside paths; flags text in the COBOL aimed at an AI. A speed bump; the sandbox is the boundary&lt;br&gt;&lt;b&gt;Review&lt;/b&gt; of the final certified Java against the COBOL by Muse Spark Open on Baseten (own key): leaks or test gaming → certification revoked" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;strokeColor=#2e7d32;dashed=1;strokeWidth=2;fillColor=#e8f5e9;" vertex="1" parent="1">
+          <mxGeometry x="365" y="590" width="400" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-private" value="&lt;b&gt;Private mode&lt;/b&gt;: the same agents on Muse Spark Open (open weights; Fireworks today)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="365" y="720" width="400" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-verifier" value="&lt;b&gt;3 · services/verifier&lt;/b&gt; · the oracle, no model" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#e1f5fe;strokeColor=#0277bd;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="380" width="420" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-inputs" value="&lt;b&gt;Inputs&lt;/b&gt;&lt;br&gt;PIC boundaries · seeded random · fixtures · corpus records · breaker cases" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="815" y="415" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-cobol" value="&lt;b&gt;Original: GnuCOBOL 3.2&lt;/b&gt;&lt;br&gt;cobc -x -std=ibm, IBM TRUNC(STD) and DISPLAY defaults, EBCDIC collation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1015" y="415" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-java" value="&lt;b&gt;Converted: Java 21&lt;/b&gt;&lt;br&gt;same DD_ files, pinned clock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1015" y="495" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-compare" value="&lt;b&gt;Compare byte for byte&lt;/b&gt;&lt;br&gt;output records · stdout · exit code" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="815" y="495" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-cert" value="&lt;b&gt;Certification&lt;/b&gt;: 1,000 held-out inputs the agents never saw · golden EBCDIC replay where mainframe output exists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="815" y="555" width="390" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-sql" value="&lt;b&gt;sqlschema&lt;/b&gt;: copybooks → SQL tables (DECIMAL(p,s) from the PIC); proof: values fit the column types and come back from SQLite byte for byte" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;strokeColor=#2e7d32;dashed=1;strokeWidth=2;fillColor=#e8f5e9;" vertex="1" parent="1">
+          <mxGeometry x="815" y="615" width="390" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-reverify" value="&lt;b&gt;reverify&lt;/b&gt;: Try the sample (fresh seed, no model) and the target repository's CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="815" y="680" width="390" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-mcp" value="&lt;b&gt;services/mcp&lt;/b&gt;: the same checks as MCP tools for any agent (runs locally)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="815" y="735" width="390" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-deliver" value="&lt;b&gt;4 · deliver&lt;/b&gt; → GitHub target repository&lt;br&gt;Owner: certified Java + certificate as a pull request&lt;br&gt;Visitor import: any public repo, up to 3 programs, daily budget, read-only fix memory, results on the site only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="800" y="810" width="420" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-sandbox" value="&lt;b&gt;sandbox container&lt;/b&gt;&lt;br&gt;No secrets · internal network only · read-only root filesystem&lt;br&gt;&lt;br&gt;Imported COBOL and model-written Java compile and run here, as &lt;i&gt;nobody&lt;/i&gt; in a private tmpfs; every leftover process is killed and the job's files deleted afterwards; busy → 503, job timeout 300 s&lt;br&gt;&lt;br&gt;The api refuses requests from the sandbox's address" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#ffebee;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="325" width="360" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-boundary" value="&lt;b&gt;Trust boundary&lt;/b&gt;&lt;br&gt;Visitor code never runs in the api container. The guard's policy is an extra layer in front of it; the sandbox is the boundary." style="text;html=1;whiteSpace=wrap;fontSize=10;align=left;verticalAlign=top;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="600" width="340" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-models" value="&lt;b&gt;Meta models&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#f3e5f5;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="970" width="1180" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-modelnote" value="Keys in .env on the server. Every call is logged with its role, tokens, latency and estimated cost; hard caps per run." style="text;html=1;whiteSpace=wrap;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1000" width="235" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-meta" value="&lt;b&gt;Meta Model API&lt;/b&gt;&lt;br&gt;Muse Spark (muse-spark-1.3-contributor)&lt;br&gt;translator · repair agent · breaker agent (hosted mode)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1000" width="300" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-fireworks" value="&lt;b&gt;Fireworks&lt;/b&gt;&lt;br&gt;Muse Spark Open (open weights)&lt;br&gt;private mode: the same agents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="620" y="1000" width="280" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-baseten" value="&lt;b&gt;Baseten&lt;/b&gt;&lt;br&gt;Muse Spark Open (meta-models/muse-spark-open-1026)&lt;br&gt;guard agent review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;strokeColor=#2e7d32;dashed=1;strokeWidth=2;fillColor=#e8f5e9;" vertex="1" parent="1">
+          <mxGeometry x="920" y="1000" width="280" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-legend" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;Solid: data and hand-offs (contracts/*.schema.json)&lt;br&gt;&lt;font color='#9673a6'&gt;Purple dashed: model calls&lt;/font&gt;&lt;br&gt;&lt;font color='#b85450'&gt;Red dashed: test results back to the repair agent&lt;/font&gt;&lt;br&gt;&lt;font color='#2e7d32'&gt;Green dashed box: added Oct 29&lt;/font&gt;&lt;br&gt;All COBOL and data are synthetic (fictional Quillmark Trust &amp;amp; Savings)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#fafafa;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="970" width="380" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ab-people" target="ab-web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e2" value="/api/*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=0.269;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ab-web" target="ab-caddy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.441;entryY=0;" edge="1" parent="1" source="ab-caddy" target="ab-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e4" value="clone" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.15;" edge="1" parent="1" source="ab-src" target="ab-analyzer">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1337" y="210" /><mxPoint x="50" y="210" /><mxPoint x="50" y="417" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="ab-e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.26;entryX=0;entryY=0.5;" edge="1" parent="1" source="ab-analyzer" target="ab-translator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.3;entryX=0;entryY=0.8;" edge="1" parent="1" source="ab-guard" target="ab-compare">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="790" y="626" /><mxPoint x="790" y="535" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="ab-e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#b85450;fontColor=#b85450;exitX=0;exitY=0.3;entryX=1;entryY=0.7;" edge="1" parent="1" source="ab-compare" target="ab-repair">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="790" y="510" /><mxPoint x="790" y="485" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="ab-e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.1875;entryX=0;entryY=0.5;" edge="1" parent="1" source="ab-verifier" target="ab-sandbox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="ab-deliver" target="ab-target">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1250" y="857" /><mxPoint x="1250" y="222" /><mxPoint x="1535" y="222" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="ab-e10" value="translator · repair · breaker" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#9673a6;fontColor=#9673a6;exitX=0.233;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ab-converter" target="ab-meta">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e11" value="private mode" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#9673a6;fontColor=#9673a6;exitX=0.9;exitY=1;entryX=0.375;entryY=0;" edge="1" parent="1" source="ab-private" target="ab-fireworks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab-e12" value="guard review" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#9673a6;fontColor=#9673a6;exitX=1;exitY=0.85;entryX=0.1;entryY=0;" edge="1" parent="1" source="ab-guard" target="ab-baseten">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="790" y="692" /><mxPoint x="790" y="950" /><mxPoint x="948" y="950" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="ab-e13" value="certified" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ab-verifier" target="ab-deliver">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="diocle-architecture" name="Architecture (planned, Oct 27)">
     <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1360" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />

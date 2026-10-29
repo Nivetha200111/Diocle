@@ -28,6 +28,29 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   show `schema.sql` next to the Java. Tested end to end
   locally against a local API. **Needs an engine deploy** to show live: on the Mac, `git pull && deploy/update-engine.sh`
   (until then the tab is simply absent).
+- **Guard agent (Oct 29, branch `guard-agent`, not merged):** a "manager" agent over the translator, repair and
+  breaker agents (`services/converter/diocle_converter/guard.py`, run contract v0.10). Policy before any Java runs
+  (network, processes, reflection/native code, other env vars, outside paths: never run; the repair agent is told why),
+  COBOL scanned for text aimed at an AI, and one review of the final Java by Muse Spark Open on **Baseten**
+  (`GUARD_MODEL_*`, own key, `GUARD_MAX_CALLS=2`) that can revoke certification. Policy checked against every
+  model-written Java on the live engine (17 runs) and the samples: nothing blocked. Live runs shows a Guard panel and the
+  guard's row in the model card. Built on Windows without a key: **test on the Mac before merging**:
+  add the Baseten key as `GUARD_MODEL_API_KEY` in `.env`, `cd services/converter && .venv/bin/python -m pytest -q &&
+  .venv/bin/python -m diocle_converter smoke` (both models answer), then
+  `.venv/bin/python -m diocle_converter run ../../samples/interest-accrual --breaker` (about $0.05 Meta + a few cents
+  Baseten) and check run.json `guard.review.verdict`. Then merge, put the key in `deploy/diocle.env` on the server
+  (owner types it), `deploy/seed-runs.sh` and `deploy/update-engine.sh`. Fireworks stays the private-mode host.
+  **Work in progress: a reviewer pass found issues to fix before merging:** (1) the policy is easy to bypass
+  (comments inside qualified names, method references, `getMethod/invoke`, `getContextClassLoader`, path parts
+  joined at run time, text blocks, octal escapes, javax.xml/javax.management/jshell) and blocks harmless words in
+  comments and strings: strip comments and decode literals first, add the cheap rules, and word the docs as "a speed
+  bump; the sandbox is the boundary" (no "never run"); (2) docs say "reviews every run": it reviews certified runs
+  only, and has not run against a live model; (3) parse review findings one by one so a partly malformed answer
+  with a block still revokes; (4) random per-call fences, attacker-quoted text inside them, and a cut review is never a
+  clean pass; (5) a refusal on the first or the certification verify kills the run: hand it to the repair agent;
+  (6) smoke should send the real guard request (json_schema) and warn on an unpriced model; (7) allow only the
+  program's own DD names, refuse KEY/TOKEN/SECRET-like ones; (8) store the error type, not the provider's message;
+  (9) a test that every verify path goes through the gate.
 - Engine deployed after the judge-facing pass (checked Oct 29: `GET /runs/{id}/source` answers 200, Try the sample
   re-verified 1,004/1,004 in 1.8 s on the live site).
 - Windows note: building the web app in Git Bash rewrites `NEXT_PUBLIC_DIOCLE_API_URL=/api` into a Windows path;
