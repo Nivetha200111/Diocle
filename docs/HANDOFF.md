@@ -21,7 +21,8 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
 - **Needs an engine deploy:** the front page and Live runs load the Java from the new `GET /runs/{id}/source`
   (run contract v0.9). Until the engine is updated it returns 404 and the Java pane says it could not be loaded;
   everything else works. Deploy from a machine with the SSH key (or the Vultr web console), when no delivery is
-  running: `cd /opt/diocle && git pull && cd deploy && docker compose -f docker-compose.api.yml up -d --build`.
+  running: on the Mac, `git pull && deploy/update-engine.sh` (refuses while a delivery runs, updates, then checks
+  `/source` answers 200). By hand: `cd /opt/diocle && git pull && cd deploy && docker compose -f docker-compose.api.yml up -d --build`.
 - Windows note: building the web app in Git Bash rewrites `NEXT_PUBLIC_DIOCLE_API_URL=/api` into a Windows path;
   set `MSYS_NO_PATHCONV=1` (Vercel builds are unaffected).
 
