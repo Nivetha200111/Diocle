@@ -97,12 +97,12 @@ def run_java(src_dir: Path, main_class: str, dd: dict[str, str], input_path: Pat
 
 
 def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[Path] | None = None,
-                collation: str = "ascii") -> tuple[list[str] | None, Run | None]:
+                collation: str = "ascii", timeout: int = 120) -> tuple[list[str] | None, Run | None]:
     """Compile once; returns (command to run, None) or (None, failed Run)."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
     build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
-                   *(str(m) for m in modules or [])])
+                   *(str(m) for m in modules or [])], timeout=timeout)
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
     return [str(exe)], None

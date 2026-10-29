@@ -36,6 +36,9 @@ from pathlib import Path
 MAX_BUNDLE = 64 * 1024 * 1024  # bytes of sample + Java, packed
 MAX_REPORT = 64 * 1024 * 1024
 JOB_TIMEOUT = 300  # real jobs take seconds; a stuck or hostile job holds the sandbox at most this long
+COMPILE_JOB_TIMEOUT = 60  # a compile-only check (POST /compile) is cheap, so it holds the sandbox far shorter
+MAX_COMPILE_BUNDLE = 8 * 1024 * 1024  # a compile check takes the sample only (no Java)
+MAX_COMPILE_REPORT = 16 * 1024
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
 
@@ -88,6 +91,36 @@ def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_cou
             time.sleep(3)
 
 
+def remote_compile(sample_dir: Path, wait: float | None = None):
+    """Compile-only check of the original in the sandbox (contracts/compile-check.schema.json).
+    Retries while the sandbox is busy for at most `wait` seconds (default DIOCLE_SANDBOX_WAIT), then raises Busy."""
+    from .precheck import CompileCheck, clean_message
+
+    packed = pack(sample_dir, None)
+    if len(packed) > MAX_COMPILE_BUNDLE:
+        raise ValueError("the sample is too large for a compile check")
+    body = json.dumps({"bundle": base64.b64encode(packed).decode()}).encode()
+    deadline = time.time() + (float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800")) if wait is None else wait)
+    while True:
+        req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/compile", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=COMPILE_JOB_TIMEOUT + 30) as resp:
+                answer = json.loads(resp.read(MAX_COMPILE_REPORT))
+            break
+        except urllib.error.HTTPError as e:
+            detail = e.read(2000).decode(errors="replace")
+            if e.code != 503:
+                raise RuntimeError(f"sandbox: {detail}") from e
+            if time.time() >= deadline:
+                raise Busy("busy") from e
+            time.sleep(min(3, max(0.0, deadline - time.time())))
+    if not isinstance(answer, dict) or answer.get("status") not in ("ok", "fail") or not isinstance(answer.get("message", ""), str):
+        raise ValueError("the sandbox answered with something that is not a compile check")
+    # Whatever came back is shown to people and to nobody else: paths reduced again, size bounded again.
+    return CompileCheck(answer["status"], clean_message(answer.get("message", "")) if answer["status"] == "fail" else "")
+
+
 # --- server side (the sandbox container) ---------------------------------------------------------------------
 
 def _others() -> list[int]:
@@ -129,31 +162,37 @@ def _job_user() -> dict:
     return {"user": JOB_UID, "group": JOB_UID, "extra_groups": []}
 
 
-def run_job(job: dict) -> dict:
+def run_job(job: dict, kind: str = "verify") -> dict:
+    """kind "verify": the whole verification; kind "compile": compile the original only (shorter limits)."""
+    if kind not in ("verify", "compile"):
+        raise ValueError("unknown job kind")
     if not _job_lock.acquire(blocking=False):
         raise Busy("busy")
+    compile_only = kind == "compile"
+    timeout = COMPILE_JOB_TIMEOUT if compile_only else JOB_TIMEOUT
+    max_report = MAX_COMPILE_REPORT if compile_only else MAX_REPORT
     try:
         data = base64.b64decode(job["bundle"], validate=True)
-        if len(data) > MAX_BUNDLE:
+        if len(data) > (MAX_COMPILE_BUNDLE if compile_only else MAX_BUNDLE):
             raise ValueError("bundle too large")
-        params = {"seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
-                  "java": bool(job.get("java")), "extraCases": job.get("extraCases") or [],
-                  "bundle": job["bundle"]}
+        params = {"kind": kind, "bundle": job["bundle"]} if compile_only else {
+            "kind": kind, "seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
+            "java": bool(job.get("java")), "extraCases": job.get("extraCases") or [], "bundle": job["bundle"]}
         proc = subprocess.Popen([sys.executable, "-m", "diocle_verifier.sandbox", "--job"], stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=_job_env(),
                                 start_new_session=True, cwd="/", **_job_user())
-        timer = threading.Timer(JOB_TIMEOUT, lambda: _kill_all() if _in_container() else proc.kill())
+        timer = threading.Timer(timeout, lambda: _kill_all() if _in_container() else proc.kill())
         timer.start()
         try:
             proc.stdin.write(json.dumps(params).encode())
             proc.stdin.close()
             err = []
             threading.Thread(target=lambda: err.append(proc.stderr.read(64 * 1024)), daemon=True).start()
-            out = proc.stdout.read(MAX_REPORT + 1)
+            out = proc.stdout.read(max_report + 1)
             proc.wait()
         finally:
             timer.cancel()
-        if proc.returncode != 0 or len(out) > MAX_REPORT:
+        if proc.returncode != 0 or len(out) > max_report:
             tail = (err[0] if err else b"").decode(errors="replace")[-1500:]
             raise RuntimeError(f"verifier failed (exit {proc.returncode}): {tail}")
         return json.loads(out)
@@ -181,6 +220,11 @@ def _job_main() -> int:
         work = Path(tmp)
         with tarfile.open(fileobj=io.BytesIO(base64.b64decode(params["bundle"], validate=True)), mode="r:gz") as tar:
             tar.extractall(work, filter="data")  # no absolute paths, no "..", no links out of work
+        if params.get("kind") == "compile":
+            from .precheck import compile_local
+
+            sys.stdout.write(json.dumps(compile_local(work / "sample").to_json()))
+            return 0
         cases = [Case(c["id"], c["source"], c["record"]) for c in params["extraCases"]]
         report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
                                random_count=params["randomCount"], extra_cases=cases or None)
@@ -190,14 +234,15 @@ def _job_main() -> int:
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/verify":
+        if self.path not in ("/verify", "/compile"):
             return self._send(404, {"error": "not found"})
+        kind = self.path[1:]
         length = int(self.headers.get("Content-Length", "0"))
-        if length > MAX_BUNDLE * 2:
+        if length > (MAX_COMPILE_BUNDLE * 2 if kind == "compile" else MAX_BUNDLE * 2):
             return self._send(413, {"error": "job too large"})
         try:
             job = json.loads(self.rfile.read(length))
-            self._send(200, run_job(job))
+            self._send(200, run_job(job, kind))
         except Busy:
             self._send(503, {"error": "busy"})
         except (ValueError, KeyError, TypeError, tarfile.TarError, RuntimeError) as e:
