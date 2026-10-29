@@ -40,7 +40,7 @@ PROMPT = """This is a photograph or scan of a COBOL program listing printed on f
 Transcribe it into COBOL source, exactly as printed.
 
 Rules:
-- Fixed format: columns 1-6 are the sequence area, column 7 is the indicator (* for a comment, - for a continuation),
+- Fixed format: columns 1-6 are the sequence area, column 7 is the indicator (* for a comment; this tool does not accept continuation lines),
   columns 8-72 hold the code. Keep every character in the column it is printed in; do not re-indent, tidy or "fix" anything.
 - If the page has a gutter of printer line numbers on the left (separated by a vertical rule), it is NOT part of the
   source: leave it out. If the sequence area (columns 1-6) is blank on paper, write six spaces.
@@ -113,6 +113,22 @@ def program_id(source: str) -> str | None:
     return m.group(1).upper() if m else None
 
 
+def own_diagnostics(raw: str, file_name: str, max_lines: int = 20, max_chars: int = 1500) -> str:
+    """Only `<file_name>:N: error: <message>` lines about the transcription's own file survive; every other line (other
+    files, echoed source context, notes) is dropped and quoted text is masked, so a file the compiler happened to read can
+    never leak through the errors into the record or the retry prompt."""
+    keep = []
+    pattern = re.compile(r"^(?:\S*/)?" + re.escape(file_name) + r":(\d+): error: (.*)$")
+    for line in raw.splitlines():
+        m = pattern.match(line.strip())
+        if m:
+            msg = re.sub(r"'[^']*'|\"[^\"]*\"", "<text>", m.group(2))
+            keep.append(f"{file_name}:{m.group(1)}: error: {msg}")
+    if not keep:
+        return "cobc rejected the source (no diagnostics about the transcription itself were kept)"
+    return "\n".join(keep[:max_lines])[:max_chars]
+
+
 def compile_check(source: Path, copybook_dir: Path | None, timeout: int = 60) -> dict:
     """cobc -fsyntax-only with the verifier's flags. {"ok": bool, "errors": str}"""
     try:
@@ -128,8 +144,7 @@ def compile_check(source: Path, copybook_dir: Path | None, timeout: int = 60) ->
         return {"ok": False, "errors": "cobc (GnuCOBOL) is not installed"}
     except subprocess.TimeoutExpired:
         return {"ok": False, "errors": f"cobc did not finish within {timeout} s"}
-    text = (proc.stderr + proc.stdout).replace(str(source.parent) + "/", "")
-    return {"ok": proc.returncode == 0, "errors": text.strip()[:3000]}
+    return {"ok": proc.returncode == 0, "errors": "" if proc.returncode == 0 else own_diagnostics(proc.stderr + "\n" + proc.stdout, source.name)}
 
 
 def sandbox_profile(work: Path, exe: Path) -> str:
@@ -244,7 +259,7 @@ _DIRECTIVE = re.compile(r">>|^\s*[$]\s*SET\b|SOURCE\s*-?\s*FORMAT", re.I | re.M)
 def layout_problem(source: str) -> str | None:
     """Only plain fixed-format text is accepted, so comment indicators can be read reliably: no tabs, no compiler
     directives (>>SOURCE FORMAT IS FREE, $ SET, ...), nothing in columns 1-6 but blanks or digits, an indicator in
-    column 7 of blank, *, / or -, and nothing after column 72."""
+    column 7 of blank, * or / (never - : no continuation lines), and nothing after column 72."""
     if "\t" in source:
         return "tabs are not accepted (columns would be uncertain)"
     if _DIRECTIVE.search(source):
@@ -254,8 +269,11 @@ def layout_problem(source: str) -> str | None:
             continue
         if len(line) < 7 or not (line[:6].strip().isdigit() or not line[:6].strip()):
             return f"line {n} is not fixed format (columns 1-6 must be blank or digits, code starts in column 7 or later)"
-        if line[6] not in " */-":
-            return f"line {n}: column 7 must be blank, *, / or - (found {line[6]!r})"
+        if line[6] == "-":
+            return (f"line {n}: continuation lines (column 7 '-') are not accepted: they can split a keyword "
+                    "across lines so the scans never see it")
+        if line[6] not in " */":
+            return f"line {n}: column 7 must be blank, * or / (found {line[6]!r})"
         if line[72:].strip():
             return f"line {n} has text after column 72"
     return None
@@ -278,10 +296,11 @@ def unsafe_calls(source: str, allowed_programs=frozenset()) -> str | None:
     return None
 
 
-def file_problem(source: str, dd_names: set[str], copybooks: set[str]) -> str | None:
-    """ASSIGN TO only the original's DD names (no paths, no literals) and COPY only the original's copybooks."""
+def file_problem(source: str, dd_names: set[str] | None, copybooks: set[str]) -> str | None:
+    """COPY only the original's copybooks (none at all without an original: cobc would read the named file and echo it).
+    ASSIGN TO only the original's DD names (no paths, no literals) when there is an original (dd_names is not None)."""
     code = "\n".join(ln for ln in source.splitlines() if not (len(ln) > 6 and ln[6] in "*/"))
-    for m in re.finditer(r"\bASSIGN\s+(?:TO\s+)?(\S+)", code, re.I):
+    for m in re.finditer(r"\bASSIGN\s+(?:TO\s+)?(\S+)", code, re.I) if dd_names is not None else ():
         target = m.group(1).rstrip(".")
         if target.upper() not in {d.upper() for d in dd_names}:
             return f"ASSIGN TO {target}: only the original's DD names {sorted(dd_names)} are allowed"
@@ -296,8 +315,7 @@ def scan_transcription(source: str, *, programs=frozenset(), dd_names: set[str] 
                        copybooks: set[str] | None = None) -> str | None:
     """Best-effort refusal scan of model text before it is compiled or run: NOT a security boundary (a model can build
     names at run time, and no deny-list is airtight). Running it stays opt-in (transcribe's run_model_code)."""
-    return (layout_problem(source) or unsafe_calls(source, programs)
-            or (file_problem(source, dd_names, copybooks or set()) if dd_names is not None else None))
+    return layout_problem(source) or unsafe_calls(source, programs) or file_problem(source, dd_names, copybooks or set())
 
 
 def _caps() -> tuple[float, int]:
