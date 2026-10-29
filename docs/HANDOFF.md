@@ -42,7 +42,7 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   accepted (10 "too many digits or a sign on an unsigned field", 2 "not a number": the prompt itself invited overflow and
   malformed content, which the layout cannot express). The prompt was rewritten to state the layout rules; NOT yet re-run
   (~$0.04), so check `crosscheck.rejectedBecause` in run.json on the next run. Reviewer pass: push OK; noted
-  `deliver.py:152` formats a None cost if a call is on an unpriced model (not reachable today, --crosscheck is CLI only).
+  `deliver.py` formatted a None cost if a call was on an unpriced model: fixed on `guard-merge` (prints n/a).
 - **Loyalty-waiver breaker run (Oct 29 evening, Mac, `loyalty-waiver-20261029-190213`, local only, not seeded to the engine):**
   certified at round 0 (1013/1013, stdout matches), no repair needed. The breaker found nothing: 8 designed inputs matched
   (4 rejected as invalid for the layout), then 0 valid in rounds 2 and 3. 4 model calls, est. $0.012. So the breaker stays
@@ -73,8 +73,10 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   KEY/TOKEN/SECRET-like ones; computed or missing getenv names refused; review answers read finding by finding;
   random fence per call with quoted findings inside it; cut sources never a clean pass; refusals go back to the repair
   agent at the start and at certification; smoke sends the real guard request and warns on an unpriced model;
-  provider errors stored as type and HTTP status only; verifier javac gets -proc:none. Still to do: the live Baseten
-  test above, then merge.
+  provider errors stored as type and HTTP status only; verifier javac gets -proc:none. Merge notes: the flaky
+  `test_start_delivery_validates_and_allows_one_at_a_time` passed only because its 409 came from the same-second delivery-id
+  check (the test wrote an old `startedAt`); it now writes a current time and asserts "still running". Still to do: the
+  live Baseten test above, then push `guard-merge` (or merge it to main) and deploy.
 - Engine deployed after the judge-facing pass (checked Oct 29: `GET /runs/{id}/source` answers 200, Try the sample
   re-verified 1,004/1,004 in 1.8 s on the live site).
 - Windows note: building the web app in Git Bash rewrites `NEXT_PUBLIC_DIOCLE_API_URL=/api` into a Windows path;
