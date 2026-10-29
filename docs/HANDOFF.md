@@ -4,6 +4,29 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
+## Where things stand at the end of Oct 29 (night, Mac)
+- **origin/main** has everything below; the engine on Vultr was redeployed at 71ac3b3 (guard policy, cross-check code, tiers, item 1,
+  pre-check fix). After that: only the tier-2 breaker default (5af5672/4409559) and docs are on main but not deployed (CLI only).
+- **Built and pushed this session:** whole JCL job v1 (rebased), guard agent merged (policy live, Baseten model review OFF: needs
+  `GUARD_MODEL_*` in `.env` and on the server + a live smoke test), independent Spark Open cross-check (`--crosscheck`, CLI only,
+  run on Baseten OK), item 1 (DISPLAY-only, OPEN I-O, CALL identifier; analyzer + verifier; no real model conversion of these shapes yet),
+  stop-before-repair when the original COBOL does not compile (CBL0001 of the OpenMainframe course burned 27 calls before this),
+  model tiers `--tiers` (tier 1 contributor, 2 muse-spark-1.3, 3 muse-wonder-1.0; hard caps; breaker and after-break repair at tier 2;
+  Wonder opt-in), README model-roles diagram + Meta-key note.
+- **Evidence from the first real tiers run** (interest-accrual-20261029-230750, local `runs/` only): Muse Wonder as breaker found a real
+  sign-of-zero overflow defect (-000000000 vs +000000000, the INTACCR issue), cheap-tier repair fixed it for ~$0.02, re-certified;
+  but two Wonder breaker calls cost $0.595 of the run's $0.619. A second run with the tier-2 breaker was in progress (result not recorded
+  here: check `runs/` in the worktree or re-run `python -m diocle_converter run ../../samples/interest-accrual --tiers --breaker`).
+- **Video:** draft-2 (2:42) rendered with ElevenLabs narration; owner rejected the first voice pacing, approved the new voice id
+  (in `.env`, never committed); a full re-render with story-driven pauses (`diocle-draft-3.mp4`) was started. Voice is a synthetic
+  non-Meta voice: the end card says so. Meta's `muse-voice-transcribe-1.0` only transcribes; no Muse text-to-speech exists on the API.
+- **Owner to do next:** listen to draft-3; decide whether the next cut should feature the Wonder catch (needs a clean run on screen,
+  ~$0.6 with Wonder) ; add `GUARD_MODEL_*` if the guard review should run; decide the INTACCR re-delivery to quillmark-modern;
+  fix site wording ("6/6" for quillmark-modern#4 is the repo CI, #4 itself re-delivers INTACCR; stale "19/23 runs" counter);
+  upload the video and submit by Nov 4, 9 PM ET (your own cutoff Nov 4 7:30 PM IST).
+- **Not done / not claimed:** Glimmer and Voice (no such models on the key), DB2/EXEC SQL, whether higher tiers repair better
+  (measured once: the cheap tier was enough), a real model conversion of DISPLAY-only/I-O programs.
+
 ## Current state (updated 2026-10-29)
 
 **Judge-facing pass (Oct 29, from an outside scoring review).** Web: front page shows CHQCLR's COBOL next to its
