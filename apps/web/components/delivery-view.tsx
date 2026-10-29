@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ExternalLink, GitPullRequest, TriangleAlert } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, GitPullRequest, Plus, TriangleAlert } from "lucide-react";
 import { API_URL } from "@/lib/runs";
-import { LINKS, useApiConfig } from "@/lib/config";
+import { CANONICAL, LINKS, useApiConfig } from "@/lib/config";
+import { Skeleton } from "./ui";
 import { fetchDeliveries, fetchDelivery, startDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
@@ -48,12 +49,69 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
   ];
 }
 
+// Why a delivery failed, in words a reader can act on. A refusal to certify is the product working; an engine
+// error after every program certified is not a verdict on the code.
+function failureReason(d: Delivery, list: DeliveryListItem[]): string | null {
+  if (d.stage !== "failed") return null;
+  const tried = d.programs.filter((p) => p.status !== "skipped");
+  const refused = tried.filter((p) => p.status === "not-certified").map((p) => p.name);
+  const later = list.find((o) => o.stage === "done" && o.legacy.repository === d.legacy.repository
+    && o.target === d.target && o.startedAt > d.startedAt);
+  const retried = later ? ` A later delivery of the same repository (${later.id}) completed.` : "";
+  if (refused.length) {
+    return `The verifier refused to certify ${refused.join(", ")}: Diocle opens no pull request for code that does not match the original. This is the product working.${retried}`;
+  }
+  if (tried.length && tried.every((p) => p.status === "certified")) {
+    return `Every program was certified; the delivery stopped afterwards${d.error ? ` (${d.error})` : ""}, so no pull request came from this attempt.${retried}`;
+  }
+  return `Stopped before every program finished${d.error ? `: ${d.error}` : ""}.${retried}`;
+}
+
+// The page heading's "New delivery" button: disabled, with the reason, while it could not start anything.
+export function NewDeliveryButton({ onClick }: { onClick: () => void }) {
+  const config = useApiConfig();
+  const [running, setRunning] = useState<string | null>(null);
+  useEffect(() => {
+    const load = () => fetchDeliveries()
+      .then((items) => setRunning(items.find((d) => !["done", "failed"].includes(d.stage))?.id ?? null))
+      .catch(() => setRunning(null));
+    load();
+    const t = setInterval(load, 10000);
+    return () => clearInterval(t);
+  }, []);
+  const imports = config?.publicImports;
+  const reason = running ? `${running} is running; one job at a time`
+    : imports?.enabled && !imports.budgetLeft ? "today's conversion budget is used up" : null;
+  return (
+    <div className="new-delivery">
+      <button className="button primary" disabled={!!reason} onClick={onClick}>
+        <Plus size={17} />
+        New delivery
+      </button>
+      {reason && <small className="new-delivery-reason">{reason}</small>}
+    </div>
+  );
+}
+
 function programLed(p: DeliveryProgram): Led {
   return p.status === "certified" ? "ok" : p.status === "converting" ? "busy" : p.status === "queued" ? "off" : "bad";
 }
 
 function ProgramCard({ p }: { p: DeliveryProgram }) {
   const run = p.run;
+  const log = useRef<HTMLOListElement>(null);
+  const lines = run?.events.length ?? 0;
+  useEffect(() => {
+    // Live: follow the newest line. Finished: bring the verdict (the last certification line) into view.
+    const box = log.current;
+    if (!box) return;
+    const verdict = [...box.querySelectorAll<HTMLElement>(".dlv-ev-certification")].pop();
+    if (run?.status !== "running" && verdict) {
+      box.scrollTop += verdict.getBoundingClientRect().top - box.getBoundingClientRect().top - 8;
+    } else {
+      box.scrollTop = box.scrollHeight;
+    }
+  }, [lines, run?.status]);
   return (
     <section className="panel dlv-program">
       <div className="panel-heading">
@@ -65,7 +123,7 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
           </p>
         </div>
       </div>
-      <ol className="trace-list dlv-log">
+      <ol className="trace-list dlv-log" ref={log}>
         {!run && <li className="dlv-idle">{p.status === "queued" ? "waiting for its turn…" : "no run recorded"}</li>}
         {run?.events.map((e, i) => (
           <li key={i} className={`dlv-line dlv-ev-${e.type}${e.type === "breaker" && e.broke ? " dlv-broke" : ""}`}>
@@ -238,10 +296,10 @@ export default function DeliveryView() {
       </div>
     );
   }
-  if (list === null) return <div className="panel runs-empty"><p>Loading deliveries…</p></div>;
+  if (list === null) return <><Skeleton rows={3} label="Loading deliveries" /><Skeleton rows={5} label="Loading delivery" /></>;
   const form = <StartDelivery busy={anyRunning} onStarted={started} />;
   if (list.length === 0) return form;
-  if (!delivery) return <>{form}<div className="panel runs-empty"><p>Starting… the first stage appears in a few seconds.</p></div></>;
+  if (!delivery) return <>{form}<Skeleton rows={5} label="Loading delivery" /></>;
 
   const running = !["done", "failed"].includes(delivery.stage);
   return (
@@ -257,7 +315,7 @@ export default function DeliveryView() {
 
             {list.length > 1 && (
               <select className="dlv-select" value={selected ?? ""} onChange={(e) => setSelected(e.target.value)}>
-                {list.map((d) => <option key={d.id} value={d.id}>{d.id} · {d.stage}</option>)}
+                {list.map((d) => <option key={d.id} value={d.id}>{d.id} · {d.stage}{d.target ? "" : " · visitor import"}</option>)}
               </select>
             )}
           </div>
@@ -270,7 +328,12 @@ export default function DeliveryView() {
           </h2>
           <p>
             {delivery.target ? "COBOL in, certified Java out as a pull request." : "COBOL in, Java verified against the original out."} Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
-            {delivery.error ? ` · error: ${delivery.error}` : ""}
+            {delivery.error && delivery.stage !== "failed" ? ` · error: ${delivery.error}` : ""}
+          </p>
+          {failureReason(delivery, list) && <p className="dlv-reason">{failureReason(delivery, list)}</p>}
+          <p className="dlv-canonical">
+            The delivery we cite as evidence is <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>:
+            all six programs under one pinned verifier, re-checked by that repository&apos;s CI.
           </p>
         </div>
       </section>

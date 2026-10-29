@@ -10,7 +10,7 @@ const plexMono = IBM_Plex_Mono({ weight: ["400", "600"], subsets: ["latin"], var
 export const metadata: Metadata = {
   title: "Diocle: COBOL to Java, verified",
   description:
-    "An interactive frontend preview of Diocle, the COBOL modernization workspace. All migration data is synthetic.",
+    "AI writes the code; Diocle checks it against the original COBOL before anyone has to trust it. Built with Meta Muse Spark. All programs and data are synthetic.",
 };
 
 export default function RootLayout({

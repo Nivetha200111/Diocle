@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, fetchRun, fetchRuns, reverifyRun, type Breaker, type Efficiency, type Reverify, type Run, type RunListItem, type RunMemory, type Verification } from "@/lib/runs";
-import { Badge } from "./ui";
+import { API_URL, callCostUsd, fetchRun, fetchRunSource, fetchRuns, isInterrupted, isPrivateModel, reverifyRun, type Breaker, type Efficiency, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type Verification } from "@/lib/runs";
+import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
+import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
 const usd = (n: number | null) => (n === null ? "n/a" : `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`);
@@ -86,6 +87,111 @@ function BreakerPanel({ b }: { b: Breaker }) {
   );
 }
 
+const ROLES: [string, string, string][] = [
+  ["translator", "Translator", "writes the first Java from the COBOL"],
+  ["repair", "Repair agent", "reads failures, patches, compiles, re-tests"],
+  ["breaker", "Breaker agent", "designs inputs to break certified Java"],
+];
+
+// Which Meta model did what in this run, from the logged calls: role → model ID → tokens → cost.
+function ModelCard({ run }: { run: Run }) {
+  const calls = run.usage.modelCalls ?? [];
+  if (calls.length === 0) return null;
+  const rows = ROLES.map(([role, label, does]) => {
+    const mine = calls.filter((c: ModelCall) => c.role === role);
+    const costs = mine.map(callCostUsd);
+    return {
+      role, label, does, calls: mine.length,
+      models: [...new Set(mine.map((c) => c.model))],
+      modes: [...new Set(mine.map((c) => c.mode))],
+      tokensIn: mine.reduce((n, c) => n + c.inputTokens, 0),
+      tokensOut: mine.reduce((n, c) => n + c.outputTokens, 0),
+      cost: costs.some((c) => c === null) ? null : costs.reduce<number>((n, c) => n + (c ?? 0), 0),
+    };
+  });
+  return (
+    <section className="panel model-card">
+      <div className="panel-heading">
+        <div>
+          <h2>Meta models in this run</h2>
+          <p>Every model call is logged with its role. No other model is used anywhere in Diocle.</p>
+        </div>
+        {isPrivateModel(run.model) && <PrivateModeBadge />}
+      </div>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead><tr><th>Role</th><th>Model ID</th><th>Served by</th><th>Calls</th><th>Tokens in / out</th><th>Est. cost</th></tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.role} className={r.calls ? "" : "model-card-idle"}>
+                <td><strong>{r.label}</strong><br /><small>{r.does}</small></td>
+                <td className="mono">{r.models.join(", ") || "not needed in this run"}</td>
+                <td>{r.modes.map((m) => (m === "private" ? "partner host (open weights)" : "Meta Model API")).join(", ")}</td>
+                <td className="mono">{r.calls}</td>
+                <td className="mono">{r.calls ? `${tokens(r.tokensIn)} / ${tokens(r.tokensOut)}` : ""}</td>
+                <td className="mono">{r.calls ? usd(r.cost) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// The original COBOL next to the Java this run produced, so a reader can compare them line by line.
+function SourcePanel({ run }: { run: Run }) {
+  const [source, setSource] = useState<RunSource | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [cobolFile, setCobolFile] = useState(0);
+  const [javaFile, setJavaFile] = useState(0);
+  useEffect(() => {
+    setSource(null);
+    setFailed(false);
+    setCobolFile(0);
+    setJavaFile(0);
+    if (run.visitor) return;
+    fetchRunSource(run.id).then(setSource).catch(() => setFailed(true));
+  }, [run.id, run.visitor]);
+  if (run.visitor || failed) return null;  // visitor code is not served; the trace and diff below still tell the story
+  if (!source) return <Skeleton rows={4} label="Loading the COBOL and the Java" />;
+  if (source.cobol.length === 0 && source.java.length === 0) return null;
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>COBOL next to Java</h2>
+          <p>Left: the original program and its copybooks. Right: the Java {run.certified ? "that was certified" : "as the run left it"}.</p>
+        </div>
+      </div>
+      <div className="source-split">
+        <SourcePane label="COBOL" files={source.cobol} at={cobolFile} pick={setCobolFile} />
+        <SourcePane label="JAVA" files={source.java} at={javaFile} pick={setJavaFile} />
+      </div>
+    </section>
+  );
+}
+
+export function SourcePane({ label, files, at = 0, pick, placeholder }: {
+  label: string; files: RunSource["cobol"]; at?: number; pick?: (i: number) => void; placeholder?: string;
+}) {
+  const file = files[at];
+  return (
+    <div className="source-pane">
+      <div className="source-tabs" role="tablist" aria-label={`${label} files`}>
+        <span className="source-lang">{label}</span>
+        {files.map((f, i) => (
+          <button key={f.path} type="button" role="tab" aria-selected={i === at} className={i === at ? "active" : ""}
+                  onClick={() => pick?.(i)}>
+            {f.path.split("/").pop()}
+          </button>
+        ))}
+      </div>
+      <pre className="source-code">{file ? file.text + (file.truncated ? "\n… (truncated)" : "") : placeholder ?? "not recorded"}</pre>
+    </div>
+  );
+}
+
 function EfficiencyPanel({ e }: { e: Efficiency }) {
   const perMillion = e.costPer1kLinesUsd === null ? null : e.costPer1kLinesUsd * 1000;
   const rows: [string, string][] = [
@@ -125,7 +231,9 @@ function EfficiencyTable({ runs, selected, onSelect }: {
   runs: RunListItem[]; selected: string | null; onSelect: (id: string) => void;
 }) {
   const [showStopped, setShowStopped] = useState(false);
-  const stopped = (r: RunListItem) => r.status !== "running" && !r.certified && r.efficiency.modelCalls === 0;  // interrupted
+  const [allColumns, setAllColumns] = useState(false);
+  const stopped = (r: RunListItem) => isInterrupted(r)
+    || (r.status !== "running" && !r.certified && r.efficiency.modelCalls === 0);  // interrupted
   const shown = [...runs].filter((r) => showStopped || !stopped(r))
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   const hidden = runs.filter(stopped).length;
@@ -134,7 +242,11 @@ function EfficiencyTable({ runs, selected, onSelect }: {
       <div className="panel-heading">
         <div>
           <h2>Agent efficiency across runs</h2>
-          <p>Newest first. Click a row to open it.{hidden > 0 && <> {" "}
+          <p>Newest first. Click a row to open it.{" "}
+            <button type="button" className="text-button" onClick={() => setAllColumns(!allColumns)}>
+              {allColumns ? "Fewer columns" : "Show all columns"}
+            </button>
+            {hidden > 0 && <>{" "}
             <button type="button" className="text-button" onClick={() => setShowStopped(!showStopped)}>
               {showStopped ? "Hide" : "Show"} {hidden} interrupted
             </button></>}</p>
@@ -143,23 +255,27 @@ function EfficiencyTable({ runs, selected, onSelect }: {
       <div className="table-scroll eff-scroll">
         <table className="data-table eff-table">
           <thead>
-            <tr><th>Run</th><th>Model</th><th>Result</th><th>Memory</th><th>Calls</th><th>Steps</th><th>Cache</th>
-              <th>Tokens</th><th>Model time</th><th>Cost</th><th>$ / 1k lines</th></tr>
+            {allColumns
+              ? <tr><th>Run</th><th>Model</th><th>Result</th><th>Memory</th><th>Calls</th><th>Steps</th><th>Cache</th>
+                  <th>Tokens</th><th>Model time</th><th>Cost</th><th>$ / 1k lines</th></tr>
+              : <tr><th>Run</th><th>Model</th><th>Result</th><th>Calls</th><th>Cost</th></tr>}
           </thead>
           <tbody>
             {shown.map((r) => (
               <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
                 <td className="mono">{r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.command === "run" ? "translate" : "repair"}</td>
-                <td className="mono">{shortModel(r.model)}</td>
-                <td>{r.status === "running" ? "running…" : r.certified ? "certified" : "not certified"}{r.visitor ? " · visitor import" : ""}</td>
-                <td className="mono">{memoryLabel(r.memory)}</td>
+                <td className="mono">{r.model ? shortModel(r.model) : "none yet"}</td>
+                <td>{isInterrupted(r) ? "interrupted (engine restarted)" : r.status === "running" ? "running…" : r.certified ? "certified" : "not certified"}{r.visitor ? " · visitor import" : ""}{SUPERSEDED[r.id] ? " · superseded" : ""}</td>
+                {allColumns && <td className="mono">{memoryLabel(r.memory)}</td>}
                 <td className="mono">{r.efficiency.modelCalls}</td>
-                <td className="mono">{r.efficiency.toolSteps}</td>
-                <td className="mono">{Math.round(r.efficiency.cacheHitRate * 100)}%</td>
-                <td className="mono">{tokens(r.efficiency.totalTokens)}</td>
-                <td className="mono">{seconds(r.efficiency.modelTimeMs)}</td>
+                {allColumns && <>
+                  <td className="mono">{r.efficiency.toolSteps}</td>
+                  <td className="mono">{Math.round(r.efficiency.cacheHitRate * 100)}%</td>
+                  <td className="mono">{tokens(r.efficiency.totalTokens)}</td>
+                  <td className="mono">{seconds(r.efficiency.modelTimeMs)}</td>
+                </>}
                 <td className="mono">{usd(r.efficiency.estimatedCostUsd)}</td>
-                <td className="mono">{usd(r.efficiency.costPer1kLinesUsd)}</td>
+                {allColumns && <td className="mono">{usd(r.efficiency.costPer1kLinesUsd)}</td>}
               </tr>
             ))}
           </tbody>
@@ -240,7 +356,7 @@ function RunDetail({ run }: { run: Run }) {
         <div>
           <div className="runs-badges">
             <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>
-            
+            {isPrivateModel(run.model) && <PrivateModeBadge />}
           </div>
           <h2>{run.program} · {run.command === "repair"
             ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
@@ -250,6 +366,7 @@ function RunDetail({ run }: { run: Run }) {
             <br />
             Model: <span className="mono">{run.model ?? "none"}</span> · {run.createdAt?.replace("T", " ")} · run <span className="mono">{run.id}</span>
           </p>
+          {SUPERSEDED[run.id] && <p className="dlv-reason">{SUPERSEDED[run.id]}</p>}
         </div>
       </div>
 
@@ -269,9 +386,13 @@ function RunDetail({ run }: { run: Run }) {
 
       {run.breaker && <BreakerPanel b={run.breaker} />}
 
-      <EfficiencyPanel e={run.efficiency} />
-
       <ReverifyPanel run={run} />
+
+      <SourcePanel run={run} />
+
+      <ModelCard run={run} />
+
+      <EfficiencyPanel e={run.efficiency} />
 
       <div className="runs-grid">
         <section className="panel">
@@ -357,7 +478,9 @@ export default function RunsView() {
     fetchRuns()
       .then((items) => {
         setRuns(items);
-        setSelected((current) => fromHash() ?? current ?? items[0]?.id ?? null);
+        // With no link to a run, open the front-page sample (the breaker story) if this engine has it.
+        const sample = items.find((r) => r.id === SAMPLE_RUN.id)?.id;
+        setSelected((current) => fromHash() ?? current ?? sample ?? items[0]?.id ?? null);
       })
       .catch(() => setError("unreachable"));
     const follow = () => {
@@ -384,7 +507,7 @@ export default function RunsView() {
       </div>
     );
   }
-  if (runs === null) return <div className="panel runs-empty"><p>Loading runs…</p></div>;
+  if (runs === null) return <><Skeleton rows={6} label="Loading runs" /><Skeleton rows={3} label="Loading run" /></>;
   if (runs.length === 0) {
     return (
       <div className="panel runs-empty">
@@ -394,8 +517,11 @@ export default function RunsView() {
   }
   return (
     <>
-      <EfficiencyTable runs={runs} selected={selected} onSelect={setSelected} />
-      {run ? <RunDetail run={run} /> : <div className="panel runs-empty"><p>Loading run…</p></div>}
+      <EfficiencyTable runs={runs} selected={selected} onSelect={(id) => {
+        setSelected(id);
+        window.history.replaceState(null, "", `#run=${encodeURIComponent(id)}`);  // the address now links to this run
+      }} />
+      {run && run.id === selected ? <RunDetail run={run} /> : <Skeleton rows={4} label="Loading run" />}
     </>
   );
 }

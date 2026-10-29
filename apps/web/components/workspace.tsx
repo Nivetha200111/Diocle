@@ -53,20 +53,27 @@ import {
   type Migration,
   type View,
 } from "@/lib/demo";
-import { Badge, Brand, DemoNote, Modal, Pipeline, Progress } from "./ui";
+import { Badge, Brand, DemoNote, MetaBadge, Modal, Pipeline, Progress } from "./ui";
 import DependencyGraph from "./dependency-graph";
 import RunsView from "./runs-view";
-import DeliveryView from "./delivery-view";
+import DeliveryView, { NewDeliveryButton } from "./delivery-view";
+import EvidenceView from "./evidence-view";
 import HomeView from "./home-view";
 import { HOSTED, LINKS } from "@/lib/config";
 
 // Views backed by real runs and deliveries come first; the rest is the original mock, labelled as such.
-const realViews = ["Home", "Delivery", "Live runs"];
+const realViews = ["Home", "Delivery", "Live runs", "Evidence"];
+
+// Each real view has its own address, so a link opens the page it names.
+const PATHS: Partial<Record<View, string>> = { Home: "/", Delivery: "/delivery", "Live runs": "/runs", Evidence: "/evidence" };
+const viewForPath = (path: string) =>
+  (Object.entries(PATHS).find(([, p]) => p === (path.replace(/\/+$/, "") || "/"))?.[0] as View | undefined);
 
 const allNav = [
   { name: "Home", icon: Monitor },
   { name: "Delivery", icon: GitPullRequest },
   { name: "Live runs", icon: Activity },
+  { name: "Evidence", icon: CircleCheck },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Migrations", icon: FolderGit2 },
   { name: "Dependency graph", icon: Network },
@@ -90,6 +97,7 @@ const descriptions: Record<View, string> = {
   "Live runs": "Real agent runs: what broke, what the agent did, and the proof.",
   Home: "",
   Delivery: "A legacy GitHub repository migrated live: analyze, convert, certify, open a pull request, re-verify in CI.",
+  Evidence: "What Diocle has shown so far, with a link to check each claim. Failures and corrections included.",
   Settings: "Workspace name and model configuration.",
 };
 
@@ -693,8 +701,8 @@ function VerificationView({ onReport }: { onReport: () => void }) {
   );
 }
 
-export default function Workspace() {
-  const [view, setView] = useState<View>("Home");
+export default function Workspace({ initialView = "Home" }: { initialView?: View }) {
+  const [view, setView] = useState<View>(initialView);
   const [migrations, setMigrations] = useState<Migration[]>(initialMigrations);
   const [modal, setModal] = useState<
     "new" | "search" | "activity" | "help" | "profile" | null
@@ -727,15 +735,30 @@ export default function Workspace() {
     toastTimer.current = setTimeout(() => setToast(""), 4500);
   }
   useEffect(() => {
-    // "#run=<id>" links (from a delivery's program cards) open that run in Live runs.
+    // "#run=<id>" links (from a delivery's program cards, docs/EVIDENCE.md) open that run in Live runs.
     const follow = () => {
-      if (window.location.hash.startsWith("#run=")) setView("Live runs");
+      if (!window.location.hash.startsWith("#run=")) return;
+      setView("Live runs");
+      if (window.location.pathname !== PATHS["Live runs"]) {
+        window.history.replaceState(null, "", `${PATHS["Live runs"]}${window.location.hash}`);
+      }
     };
+    // Back and forward move between views.
+    const back = () => setView(viewForPath(window.location.pathname) ?? "Home");
     follow();
     window.addEventListener("hashchange", follow);
-    return () => window.removeEventListener("hashchange", follow);
+    window.addEventListener("popstate", back);
+    return () => {
+      window.removeEventListener("hashchange", follow);
+      window.removeEventListener("popstate", back);
+    };
   }, []);
   function navigate(next: View) {
+    const path = PATHS[next];
+    if (path && window.location.pathname !== path) {
+      const keep = next === "Live runs" && window.location.hash.startsWith("#run=") ? window.location.hash : "";
+      window.history.pushState(null, "", path + keep);
+    }
     setView(next);
     setMobileNav(false);
     setModal(null);
@@ -964,11 +987,12 @@ export default function Workspace() {
             >
               <Menu size={20} />
             </button>
-            <span className="breadcrumb-workspace">Diocle</span>
+            <button type="button" className="breadcrumb-workspace link-button" onClick={() => navigate("Home")}>Diocle</button>
             <ChevronRight size={13} />
             <span>{view}</span>
           </div>
           <div className="topbar-actions">
+            <MetaBadge />
             {(HOSTED || realViews.includes(view)) && (
               <a className="topbar-link" href={LINKS.diocle} target="_blank" rel="noreferrer">
                 <CodeXml size={15} /> Source
@@ -1065,13 +1089,10 @@ export default function Workspace() {
               <p>{descriptions[view]}</p>
             </div>
             {realViews.includes(view) ? (
-              <button className="button primary" onClick={() => {
+              <NewDeliveryButton onClick={() => {
                 navigate("Delivery");
                 setTimeout(() => document.getElementById("new-delivery")?.scrollIntoView({ behavior: "smooth" }), 50);
-              }}>
-                <Plus size={17} />
-                New delivery
-              </button>
+              }} />
             ) : (
               <button className="button primary" onClick={() => setModal("new")}>
                 <Plus size={17} />
@@ -1488,6 +1509,16 @@ export default function Workspace() {
             </div>
           )}
 
+          {view === "Evidence" && (
+            <div className="view-content">
+              <EvidenceView openRun={(id) => {
+                window.history.pushState(null, "", `/runs#run=${encodeURIComponent(id)}`);
+                setView("Live runs");
+                window.scrollTo({ top: 0 });
+              }} />
+            </div>
+          )}
+
           {view === "Reports" && (
             <div className="view-content">
               <div className="report-intro">
@@ -1634,7 +1665,7 @@ export default function Workspace() {
               <a href={LINKS.certified} target="_blank" rel="noreferrer">what “certified” means</a>
             </span>
             <span>
-              Meta Global AI Developer Hackathon 2026
+              Built Oct 27 to Nov 4 2026 at the Meta Global AI Developer Hackathon · Meta Muse Spark and Muse Spark Open
             </span>
           </footer>
         </main>

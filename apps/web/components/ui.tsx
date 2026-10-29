@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { Check, CircleHelp, X } from "lucide-react";
+import { Check, CircleHelp, Sparkles, X } from "lucide-react";
 
 export function Brand({ small = false }: { small?: boolean }) {
   return (
@@ -144,6 +144,46 @@ export function Pipeline({ active = 3 }: { active?: number }) {
           <span>{step}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Meta credit, shown on every page: the product's only models are Meta's.
+export function MetaBadge() {
+  return (
+    <span className="meta-badge" title="Translator, repair agent and breaker agent: Meta Muse Spark. Private mode: Muse Spark Open.">
+      <Sparkles size={13} aria-hidden="true" />
+      Powered by Meta Muse Spark
+    </span>
+  );
+}
+
+// Private mode: the same agents on Meta's open weights, served by a partner host.
+export function PrivateModeBadge() {
+  return (
+    <span className="badge badge-purple" title="Open weights: the same model can run on infrastructure you control.">
+      <span className="status-dot" />
+      Private mode · Muse Spark Open (open weights) on Fireworks
+    </span>
+  );
+}
+
+// A mainframe term with its plain-English meaning on hover or keyboard focus.
+export function Term({ children, tip }: { children: ReactNode; tip: string }) {
+  return (
+    <span className="term" tabIndex={0}>
+      {children}
+      <span role="tooltip" className="term-tip">{tip}</span>
+    </span>
+  );
+}
+
+// Placeholder bars while data loads, so the page keeps its shape.
+export function Skeleton({ rows = 3, label = "Loading" }: { rows?: number; label?: string }) {
+  return (
+    <div className="panel skeleton" aria-busy="true" aria-label={label}>
+      <span className="skeleton-title" />
+      {Array.from({ length: rows }, (_, i) => <span key={i} className="skeleton-row" style={{ width: `${92 - i * 11}%` }} />)}
     </div>
   );
 }

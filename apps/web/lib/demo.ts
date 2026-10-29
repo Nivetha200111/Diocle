@@ -9,6 +9,7 @@ export type View =
   | "Reports"
   | "Live runs"
   | "Delivery"
+  | "Evidence"
   | "Settings";
 export type Migration = {
   id: string;

@@ -78,6 +78,7 @@ export type Run = {
     cachedInputTokens: number;
     outputTokens: number;
     estimatedCostUsd: number | null;
+    modelCalls?: ModelCall[];
   };
   model: string | null;
   javaDiff: string | null;
@@ -85,6 +86,33 @@ export type Run = {
   memory: RunMemory;
   breaker?: Breaker | null;
 };
+
+// One logged model call. mode "hosted" is Muse Spark on the Meta Model API; "private" is Muse Spark Open on a partner host.
+export type ModelCall = {
+  role: "translator" | "repair" | "breaker" | string;
+  round: number;
+  mode: string;
+  model: string;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+};
+
+// Mirrors PRICES in services/converter/diocle_converter/config.py (USD per million tokens: input, cached input,
+// output), so the per-role split adds up to the run's own estimate.
+const PRICES: Record<string, [number, number, number]> = {
+  "muse-spark-1.3-contributor": [0.10, 0.002, 0.20],
+  "muse-spark-1.3": [1.25, 0.15, 4.25],
+  "accounts/fireworks/models/muse-spark-open": [1.25, 0.15, 4.25],
+};
+
+export function callCostUsd(c: ModelCall): number | null {
+  const p = PRICES[c.model];
+  return p ? ((c.inputTokens - c.cachedInputTokens) * p[0] + c.cachedInputTokens * p[1] + c.outputTokens * p[2]) / 1e6 : null;
+}
+
+export const isPrivateModel = (model: string | null | undefined) => !!model && model.includes("muse-spark-open");
 
 // contracts/run.schema.json breaker: a second agent designs inputs to break the certified Java.
 export type Breaker = {
@@ -116,3 +144,14 @@ export async function reverifyRun(id: string): Promise<Reverify> {
   if (!response.ok) throw new Error(data.detail ?? `HTTP ${response.status}`);
   return data as Reverify;
 }
+
+// contracts/run.schema.json $defs.source: the original COBOL next to the run's Java.
+export type SourceFile = { path: string; text: string; truncated?: boolean };
+export type RunSource = { runId: string; program: string; cobol: SourceFile[]; java: SourceFile[] };
+
+export const fetchRunSource = (id: string) => getJson<RunSource>(`/runs/${encodeURIComponent(id)}/source`);
+
+// A run left "running" by an engine restart: no model call and no heartbeat for hours.
+export const isInterrupted = (r: Pick<RunListItem, "status" | "createdAt" | "efficiency">, now = Date.now()) =>
+  r.status === "running" && r.efficiency.modelCalls === 0 && !!r.createdAt
+  && now - Date.parse(r.createdAt) > 2 * 3600 * 1000;
