@@ -30,6 +30,11 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   (until then the tab is simply absent).
 - **Engine deployed Oct 29 evening at c3420eb** (`/source` and `/schema` answer 200). `deploy/update-engine.sh` fails under
   macOS `sh` (`$HOST…` is read as part of the name; use `${HOST}...`); run a patched copy until fixed.
+- **Loyalty-waiver breaker run (Oct 29 evening, Mac, `loyalty-waiver-20261029-190213`, local only, not seeded to the engine):**
+  certified at round 0 (1013/1013, stdout matches), no repair needed. The breaker found nothing: 8 designed inputs matched
+  (4 rejected as invalid for the layout), then 0 valid in rounds 2 and 3. 4 model calls, est. $0.012. So the breaker stays
+  unproven on this sample: no red to repair, and the 5000.00 boundary was not shown to be missed. Use CHQCLR's
+  20.00 vs 0.00 as the red, repair, certified story.
 - **Reviewed and rebased Oct 29 evening:** reviewer pass on the JCL-job commits found two blockers, both resolved. The
   analyzer had marked DISPLAY-only and OPEN I-O programs convertible with no verifier support, so those commits
   (9e8d697, b70bc64, c1b5c3b, kept on local branch `backup-pre-rebase`) were NOT pushed; item 1 of CLAUDE.md "Current
@@ -154,8 +159,8 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
    BRNCHSUM and LOANAMRT failed because the old comparator rejected aggregation/fan-out; their final Java passes
    the corrected comparator on fresh seeds). Next: full re-run with the corrected verifier under a new tag
    (`eval-freeze-2`), reported next to the original. Costs about $0.3.
-4. Breaker test on `samples/loyalty-waiver` (narrow 5000.00 defect): `repair --breaker`. The breaker is
-   reported as unproven until it finds a defect other inputs missed.
+4. Breaker test on `samples/loyalty-waiver`: run once Oct 29, found nothing (see Current state). The breaker is
+   still unproven until it finds a defect other inputs missed.
 5. Demo video (under 3 min): one visible failure and repair on the live site, then re-verify.
 6. A review from a COBOL maintainer (owner arranges). Module README consistency.
 
