@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/transcription.schema.json",
+  "title": "PrintoutTranscriptionRecord",
+  "description": "v0.1. Written by `python -m diocle_converter transcribe IMAGE --out SAMPLE_DIR` as SAMPLE_DIR/transcription.json: a vision model (Muse Wonder) reads an image of a COBOL listing and writes fixed-format COBOL; the model is never the judge. A compiler check (cobc -fsyntax-only -std=ibm) and, when an original is supplied, a byte-for-byte differential run of the transcription against the original (both compiled with GnuCOBOL, same generated inputs) decide whether the transcription is right.",
+  "type": "object",
+  "required": ["version", "status", "image", "model", "attempts", "usage", "caps", "compile", "differential"],
+  "properties": {
+    "version": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["verified-identical", "differs", "compiled-unchecked", "compile-failed", "no-transcription", "refused"],
+      "description": "verified-identical: compiled and every differential input matched byte for byte. differs: compiled but the differential found a mismatch (reported, never hidden). compiled-unchecked: compiled but not checked against the original (none supplied, running model code was not opted into, or the differential could not run), so correctness is NOT established. compile-failed: still not valid COBOL after the last attempt. no-transcription: the model returned no usable text. refused: the feature is off, the image or --out was rejected before any call, or the transcription failed the refusal scan (directives, tabs, free format, forbidden CALL, ASSIGN/COPY of anything but the original's names) (it is then never compiled, run or written)."
+    },
+    "reason": { "type": ["string", "null"], "description": "Why for refused / compile-failed / no-transcription / a differential that could not run" },
+    "image": {
+      "type": "object",
+      "required": ["name", "mediaType", "bytes", "sha256"],
+      "properties": {
+        "name": { "type": "string" },
+        "mediaType": { "type": ["string", "null"], "enum": ["image/png", "image/jpeg", null] },
+        "bytes": { "type": "integer" },
+        "sha256": { "type": "string" }
+      }
+    },
+    "model": { "type": ["string", "null"], "description": "Vision model ID from VISION_MODEL_ID; null when the feature was off" },
+    "program": { "type": ["string", "null"], "description": "PROGRAM-ID read from the transcription" },
+    "source": { "type": ["string", "null"], "description": "Path of the written COBOL, relative to the output sample directory" },
+    "attempts": {
+      "type": "array",
+      "description": "One entry per model call. A failed compile sends the compiler errors back for at most one more attempt.",
+      "items": {
+        "type": "object",
+        "required": ["n", "compile"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1 },
+          "finishReason": { "type": ["string", "null"] },
+          "lines": { "type": "integer" },
+          "compile": { "$ref": "#/$defs/compile" }
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "description": "Token use per call, priced at the model's list price (reasoning tokens bill as output); estimatedCostUsd is null for an unpriced model",
+      "required": ["calls", "inputTokens", "outputTokens", "estimatedCostUsd"],
+      "properties": {
+        "calls": { "type": "integer" },
+        "inputTokens": { "type": "integer" },
+        "cachedInputTokens": { "type": "integer" },
+        "outputTokens": { "type": "integer" },
+        "estimatedCostUsd": { "type": ["number", "null"] },
+        "modelCalls": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "caps": {
+      "type": "object",
+      "required": ["maxCalls", "maxUsd", "maxOutputTokens"],
+      "properties": {
+        "maxCalls": { "type": "integer" },
+        "maxUsd": { "type": "number" },
+        "maxOutputTokens": { "type": "integer" }
+      }
+    },
+    "compile": { "oneOf": [{ "type": "null", "description": "No transcription to compile (refused / no-transcription)" }, { "$ref": "#/$defs/compile" }] },
+    "differential": {
+      "oneOf": [
+        { "type": "null", "description": "No original supplied, or the transcription did not compile" },
+        {
+          "type": "object",
+          "required": ["against", "ran", "inputs", "matched", "mismatched"],
+          "properties": {
+            "against": { "type": "string", "description": "The original sample directory, as given" },
+            "ran": { "type": "boolean", "description": "false when the differential could not run (reason says why)" },
+            "reason": { "type": ["string", "null"] },
+            "seed": { "type": "integer" },
+            "inputs": { "type": "integer" },
+            "outputRecords": { "type": "integer", "description": "Output records the original wrote; verified-identical needs at least one (or non-empty stdout), otherwise ran is false" },
+            "stdoutCompared": { "type": "boolean", "description": "The original's stdout was non-empty, so it counts as compared (a DISPLAY-only original has outputRecords 0)" },
+            "sandbox": { "type": "string", "enum": ["sandbox-exec", "none"], "description": "Whether the transcription's executable ran under a macOS sandbox-exec profile" },
+            "matched": { "type": "integer" },
+            "mismatched": { "type": "integer" },
+            "stdoutMatch": { "type": "boolean" },
+            "exitCodeMatch": { "type": "boolean" },
+            "firstMismatches": { "type": "array", "items": { "type": "object" }, "maxItems": 5 }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "compile": {
+      "type": "object",
+      "description": "cobc -fsyntax-only -std=ibm with the verifier's IBM flags",
+      "required": ["ok"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "errors": { "type": "string", "description": "Compiler messages, truncated" }
+      }
+    }
+  }
+}

@@ -4,6 +4,8 @@
   python -m diocle_converter repair SAMPLE [--java-dir]  verify an existing conversion and repair it (bring your own)
   python -m diocle_converter run SAMPLE                  translate with the Meta model, then verify and repair
   python -m diocle_converter run-job SAMPLE_WITH_JCL     convert a whole SORT-then-COBOL JCL job end to end
+  python -m diocle_converter transcribe IMAGE --out DIR [--against SAMPLE]
+                                                         photo of a COBOL listing to COBOL (vision model, see vision.py)
 
 repair and run read fix memory (runs/memory.json) and add to it when held-out certification passes.
 A guard agent watches every run: its policy refuses to run Java that openly reaches beyond its files, and when
@@ -94,9 +96,19 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
+    tr = sub.add_parser("transcribe", help="photo/scan of a COBOL listing to COBOL, gated by the compiler and a differential run")
+    tr.add_argument("image", type=Path, help="PNG or JPEG, at most 2 MB")
+    tr.add_argument("--out", type=Path, required=True, help="sample directory to write (src/*.cbl, transcription.json)")
+    tr.add_argument("--against", type=Path, help="the original sample to prove the transcription identical to")
+    tr.add_argument("--run-model-code", action="store_true", help="allow the differential to BUILD AND RUN the model-written "
+                    "COBOL on this machine (macOS: under sandbox-exec). Off by default: without it the best status is "
+                    "compiled-unchecked. Only for our own synthetic printouts on a dev machine.")
     job_parser = sub.add_parser("run-job")
     job_parser.add_argument("sample_dir", type=Path)
     args = parser.parse_args(argv)
+
+    if args.command == "transcribe":
+        return _transcribe(args)
 
     settings = Settings.from_env()
     client = ModelClient(settings)
@@ -147,6 +159,28 @@ def main(argv: list[str] | None = None) -> int:
                                              "usage": usage_of(client.calls + (guard_client.calls if guard_client else [])),
                                              "guard": guard.summary(), "error": _describe(e)})
         raise
+
+
+# transcribe exit codes: 0 only when the transcription was proven identical to the original
+EXIT_CODES = {"verified-identical": 0, "compiled-unchecked": 2, "differs": 3, "compile-failed": 4, "refused": 5,
+              "no-transcription": 6}
+
+
+def _transcribe(args) -> int:
+    from .vision import transcribe
+
+    settings = Settings.vision_from_env()
+    print(f"vision model: {settings.model if settings else 'off (VISION_MODEL_ID is empty)'}")
+    record = transcribe(args.image, args.out, settings=settings, against=args.against, run_model_code=args.run_model_code)
+    cost = record["usage"]["estimatedCostUsd"]
+    print(f"status: {record['status']}" + (f" ({record['reason']})" if record.get("reason") else ""))
+    print(f"calls: {record['usage']['calls']}, cost: " + ("n/a" if cost is None else f"${cost:.4f}"))
+    d = record["differential"]
+    if d and d["ran"]:
+        print(f"differential vs {d['against']}: {d['matched']}/{d['inputs']} inputs matched, stdout {d['stdoutMatch']}, exit code {d['exitCodeMatch']}")
+    if not (record.get("reason") or "").startswith("--out"):  # an --out refusal writes nothing
+        print(f"record: {args.out / 'transcription.json'}")
+    return EXIT_CODES.get(record["status"], 1)
 
 
 def _smoke(client: ModelClient, guard_client: ModelClient | None) -> int:

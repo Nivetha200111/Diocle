@@ -139,6 +139,24 @@ class Settings:
             max_rounds=1,
         )
 
+    @classmethod
+    def vision_from_env(cls) -> "Settings | None":
+        """The vision model for printout transcription (VISION_MODEL_ID). Empty ID = feature off (None). The host and key
+        fall back to the hosted META_MODEL_* ones, because Muse Wonder is served on the same Meta Model API key."""
+        load_dotenv()
+        model = os.environ.get("VISION_MODEL_ID", "")
+        base_url = os.environ.get("VISION_MODEL_BASE_URL") or os.environ.get("META_MODEL_BASE_URL", "")
+        api_key = os.environ.get("VISION_MODEL_API_KEY") or os.environ.get("META_MODEL_API_KEY", "")
+        if not (model and base_url and api_key):
+            return None
+        try:
+            max_calls = max(1, int(os.environ.get("VISION_MAX_CALLS", "3")))
+        except ValueError:
+            max_calls = 3
+        return cls(mode="hosted", base_url=base_url, api_key=api_key, model=model,
+                   reasoning_effort=os.environ.get("VISION_REASONING_EFFORT", "low"),
+                   max_calls_per_run=max_calls, max_calls_per_round=max_calls, max_rounds=1)
+
     def tier_model(self, tier: int) -> str | None:
         """The model for tier 1 (the default: None), 2 or 3; the highest configured tier if `tier` is above it. Tier
         numbers compact over what is configured: with only MODEL_TIER_3_ID set it is tier 2. Zero or less is tier 1."""

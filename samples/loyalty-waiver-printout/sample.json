@@ -1,0 +1,69 @@
+{
+  "name": "loyalty-waiver",
+  "description": "SYNTHETIC. Transcribed from the image listing.png by muse-wonder-1.0; status verified-identical (see transcription.json). Copybooks copied from loyalty-waiver.",
+  "program": "LOYWAIVE",
+  "source": "src/LOYWAIVE.cbl",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "LOYIN",
+    "output": "LOYOUT"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "LY-REC",
+      "fields": [
+        {
+          "name": "LY-ACCT",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "LY-BALANCE",
+          "kind": "numeric",
+          "digits": 7,
+          "scale": 2,
+          "signed": true,
+          "sign": "leading-separate"
+        },
+        {
+          "name": "LY-TENURE-MONTHS",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 0,
+          "signed": false
+        }
+      ],
+      "format": "line"
+    },
+    "output": {
+      "record": "LO-REC",
+      "fields": [
+        {
+          "name": "LO-ACCT",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "LO-FEE",
+          "kind": "numeric",
+          "digits": 2,
+          "scale": 2,
+          "signed": false
+        },
+        {
+          "name": "LO-CODE",
+          "kind": "alnum",
+          "length": 2
+        }
+      ],
+      "format": "line"
+    }
+  },
+  "traps": [
+    {
+      "paragraph": "1000-FEE",
+      "behaviour": "NOT < 5000.00 waives at exactly 5000.00; a port using > charges that account."
+    }
+  ]
+}
