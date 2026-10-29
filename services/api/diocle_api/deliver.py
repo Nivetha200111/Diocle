@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -220,8 +221,44 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         return url
 
 
-def _visitor_caps(programs: list[dict], samples: Path) -> tuple[list[dict], list[dict]]:
-    """Visitor imports convert at most DIOCLE_PUBLIC_MAX_PROGRAMS programs of DIOCLE_PUBLIC_MAX_LINES lines each."""
+class CompilePrecheck:
+    """Before any model call: can GnuCOBOL build the original? Asks the verifier's compile-only job, which runs in the
+    sandbox (never in this process). Bounded: at most DIOCLE_PUBLIC_MAX_PRECHECK programs and
+    DIOCLE_PUBLIC_PRECHECK_SECONDS in total per import; an unavailable or busy sandbox means "no answer" and the
+    program proceeds as before. Two answers of "no answer" end the pre-check for this import."""
+
+    def __init__(self, samples: Path, max_checks: int, seconds: float):
+        self.samples, self.left, self.deadline, self.unknown = samples, max_checks, time.time() + seconds, 0
+
+    def failure(self, name: str) -> str | None:
+        """The compiler's reason when the original does not compile, else None (compiles, or could not be checked)."""
+        remaining = self.deadline - time.time()
+        if self.left <= 0 or remaining <= 0 or self.unknown >= 2:
+            return None
+        self.left -= 1
+        wait = min(30.0, remaining)
+        answer = {"status": "unknown"}
+        try:
+            proc = subprocess.run(
+                [str(SERVICES / "verifier/.venv/bin/python"), "-I", "-m", "diocle_verifier.precheck",
+                 str(self.samples / name.lower()), "--wait", str(wait)],
+                capture_output=True, text=True, timeout=wait + 120, cwd=SERVICES / "verifier",
+                env={k: v for k, v in os.environ.items() if k in ("PATH", "LANG", "LC_ALL", "DIOCLE_SANDBOX_URL")})
+            answer = json.loads(proc.stdout.strip().splitlines()[-1])
+        except (OSError, ValueError, IndexError, subprocess.SubprocessError):
+            pass
+        if answer.get("status") == "fail":
+            return str(answer.get("message") or "the compiler rejected the program")[:600]
+        if answer.get("status") != "ok":
+            self.unknown += 1
+        return None
+
+
+def _visitor_caps(programs: list[dict], samples: Path, precheck: CompilePrecheck | None = None
+                  ) -> tuple[list[dict], list[dict]]:
+    """Visitor imports convert at most DIOCLE_PUBLIC_MAX_PROGRAMS programs of DIOCLE_PUBLIC_MAX_LINES lines each.
+    With a precheck, a program whose original does not compile is skipped (with the compiler's reason) before any
+    model call and does not use up one of the program slots: the next compilable program takes its place."""
     max_programs = int(os.environ.get("DIOCLE_PUBLIC_MAX_PROGRAMS", "3"))
     max_lines = int(os.environ.get("DIOCLE_PUBLIC_MAX_LINES", "1500"))
     keep, skipped = [], []
@@ -230,6 +267,11 @@ def _visitor_caps(programs: list[dict], samples: Path) -> tuple[list[dict], list
         lines = len((samples / p["name"].lower() / meta["source"]).read_bytes().splitlines())
         reason = (f"{lines} lines; visitor imports take up to {max_lines}" if lines > max_lines else
                   f"visitor imports convert up to {max_programs} programs" if len(keep) >= max_programs else None)
+        if reason is None and precheck is not None:
+            why = precheck.failure(p["name"])
+            if why:
+                reason = f"the original does not compile under GnuCOBOL -std=ibm: {why}"
+                print(f"precheck {p['name']}: {reason}", flush=True)
         if reason:
             skipped.append({"name": p["name"], "path": p["path"], "status": "skipped", "runId": None, "reason": reason})
         else:
@@ -276,7 +318,11 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 seen[p["name"]] = p["path"]
         if args.public:
-            report["programs"], skipped = _visitor_caps(report["programs"], samples)
+            from . import public
+
+            lim = public.limits()
+            report["programs"], skipped = _visitor_caps(
+                report["programs"], samples, CompilePrecheck(samples, lim["maxPrecheck"], lim["precheckSeconds"]))
         max_programs = int(os.environ.get("DIOCLE_MAX_PROGRAMS", "10"))  # rule 10: bound spend per delivery
         if len(report["programs"]) > max_programs:
             raise SystemExit(f"{len(report['programs'])} programs exceed DIOCLE_MAX_PROGRAMS={max_programs}; "
