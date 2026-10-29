@@ -426,3 +426,28 @@ def test_numeric_sort_key_formats_are_refused_until_decoded():
         spec = parse_sort_fields(f"  SORT FIELDS=(1,8,{fmt},A)")
         assert spec.unsupported and "only CH" in spec.unsupported
     assert parse_sort_fields("  SORT FIELDS=(1,8,CH,A)").unsupported is None
+
+
+def _call_program(storage: str, procedure: str):
+    from diocle_analyzer.cobol import parse_program
+    return parse_program("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. C.\n       DATA DIVISION.\n"
+                         "       WORKING-STORAGE SECTION.\n" + storage + "       PROCEDURE DIVISION.\n" + procedure)
+
+
+def test_call_identifier_resolves_only_when_nothing_unseen_can_change_it():
+    plain = "       01  PGM  PIC X(8) VALUE 'FEECALC'.\n"
+    ok = _call_program(plain, "           CALL PGM.\n           STOP RUN.\n")
+    assert ok.dynamic_calls == [] and ok.calls == ["FEECALC"]
+    refused = {
+        "an 88-level condition name (SET ... TO TRUE changes the value unseen)":
+            plain + "           88  OTHER-P VALUE 'OTHERPG'.\n",
+        "a level-66 RENAMES alias": plain + "       66  ALT RENAMES PGM.\n",
+        "a literal longer than its PIC X(4)": "       01  PGM  PIC X(4) VALUE 'FEECALC'.\n",
+        "a COPY member that could redefine it": plain + "           COPY EXTRA.\n",
+        "a numeric picture": "       01  PGM  PIC 9(4) VALUE 1.\n",
+    }
+    for why, storage in refused.items():
+        got = _call_program(storage, "           CALL PGM.\n           STOP RUN.\n")
+        assert got.calls == [] and got.dynamic_calls == ["PGM"], why
+    too_long = _call_program("       01  PGM  PIC X(4) VALUE 'ABCD'.\n", "           MOVE 'FEECALC' TO PGM.\n           CALL PGM.\n")
+    assert too_long.calls == [] and too_long.dynamic_calls == ["PGM"]  # a MOVE literal is truncated the same way

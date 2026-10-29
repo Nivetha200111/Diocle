@@ -31,8 +31,12 @@ def safe_env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None = None, timeout: int = 120):
     # stdin is closed: a program that ACCEPTs from the console sees end of file on both sides, never the caller's terminal.
-    return subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, text=True, timeout=timeout,
+    # Bytes decoded 1:1 as latin-1: stdout is the whole result of a DISPLAY-only program, so non-UTF-8 bytes must not
+    # raise and a lone CR must not be turned into LF (text mode would do both).
+    proc = subprocess.run(cmd, env=safe_env(env), cwd=cwd, capture_output=True, timeout=timeout,
                           stdin=subprocess.DEVNULL)
+    proc.stdout, proc.stderr = proc.stdout.decode("latin-1"), proc.stderr.decode("latin-1")
+    return proc
 
 
 # IBM Enterprise COBOL defaults that GnuCOBOL's -std=ibm leaves off: TRUNC(STD) (binary values are truncated to

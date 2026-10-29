@@ -322,9 +322,18 @@ def _literal(token: str) -> str | None:
     return token[1:-1].rstrip() if token[:1] in ("'", '"') and len(token) >= 2 else None
 
 
-def _definition(code: str, identifier: str) -> tuple[str | None, bool]:
+def _pic_width(body: str) -> int | None:
+    """Characters in an alphanumeric PIC (X(8), XXXX); None for any other picture."""
+    m = re.search(r"\bPIC(?:TURE)?\s+(?:IS\s+)?([A-Z0-9()]+)", body)
+    if not m or not re.fullmatch(r"(?:X(?:\(\d+\))?)+", m.group(1)):
+        return None
+    return sum(int(r) if r else 1 for r in re.findall(r"X(?:\((\d+)\))?", m.group(1)))
+
+
+def _definition(code: str, identifier: str) -> tuple[str | None, bool, int | None]:
     """(the literal in the item's VALUE clause or None, whether the item is a plain elementary WORKING-STORAGE
-    item at level 01 or 77 that nothing redefines and that does not repeat)."""
+    item at level 01 or 77 that nothing redefines, renames, gives condition names to, or repeats, and its PIC X
+    width). Copybooks are not expanded, so any COPY in WORKING-STORAGE (which could redefine it) keeps it dynamic."""
     start, end = code.find("WORKING-STORAGE SECTION"), code.find("PROCEDURE DIVISION")
     linkage = code.find("LINKAGE SECTION")
     if linkage != -1 and start != -1 and linkage > start:
@@ -332,16 +341,19 @@ def _definition(code: str, identifier: str) -> tuple[str | None, bool]:
     name = re.escape(identifier)
     entries = list(re.finditer(rf"(?<![A-Z0-9-])(\d{{1,2}})\s+{name}(?![A-Z0-9-])([^.]*)\.", code))
     if start == -1 or len(entries) != 1:
-        return None, False
+        return None, False, None
     m = entries[0]
     if not (start < m.start() and (end == -1 or m.start() < end)):
-        return None, False  # FILE SECTION, LINKAGE or a copybook: its contents are set from outside
+        return None, False, None  # FILE SECTION, LINKAGE or a copybook: its contents are set from outside
     body = m.group(2)
     elementary = (m.group(1) in ("01", "77") and re.search(r"\bPIC(?:TURE)?\b", body) is not None
                   and not re.search(r"\b(?:REDEFINES|OCCURS|RENAMES|EXTERNAL|GLOBAL|BASED)\b", body)
-                  and not re.search(rf"\bREDEFINES\s+{name}(?![A-Z0-9-])", code))
+                  and not re.search(rf"\bREDEFINES\s+{name}(?![A-Z0-9-])", code)
+                  and not re.search(rf"\bRENAMES\s+{name}(?![A-Z0-9-])", code)  # a level-66 alias can assign it
+                  and not re.match(r"\s*88\s", code[m.end():])  # SET condition TO TRUE changes it unseen
+                  and not re.search(r"\bCOPY\s", code[start : end if end != -1 else len(code)]))
     value = re.search(r"""\bVALUE\s+(?:IS\s+)?('[^']*'|"[^"]*")""", body)
-    return (_literal(value.group(1)) if value else None), elementary
+    return (_literal(value.group(1)) if value else None), elementary, _pic_width(body)
 
 
 def _assigned_values(procedure: list[str], identifier: str) -> list[str] | None:
@@ -384,10 +396,12 @@ def _resolve_dynamic_calls(code: str, procedure: list[str], dynamic_calls: list[
     program, which is worse than a missed feature."""
     resolved, still_dynamic = {}, []
     for identifier in dynamic_calls:
-        initial, plain = _definition(code, identifier)
+        initial, plain, width = _definition(code, identifier)
         moves = _assigned_values(procedure, identifier) if plain else None
         names = set(([initial] if initial is not None else []) + (moves or []))
-        if moves is None or len(names) != 1 or not re.fullmatch(r"[A-Z][A-Z0-9-]*", next(iter(names))):
+        # a literal longer than the item's PIC X(n) is truncated at run time, so the name would be wrong
+        if (moves is None or len(names) != 1 or not re.fullmatch(r"[A-Z][A-Z0-9-]*", next(iter(names)))
+                or width is None or len(next(iter(names))) > width):
             still_dynamic.append(identifier)
         else:
             resolved[identifier] = next(iter(names))

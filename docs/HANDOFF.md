@@ -29,7 +29,7 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   as a job. Proven end to end with hand-written Java (no model calls): `samples/display-report`, `samples/ledger-rewrite`,
   `samples/call-identifier`, plus mutated-Java negative tests. Re-verified every certified run's existing Java before and
   after: identical results (six Quillmark programs and CHQCLR pass). Measured with the analyzer only on the course repo:
-  16 of 32 programs convertible before, 25 of 32 after (9 DISPLAY-only; none use OPEN I-O or a CALL identifier). NOT
+  16 of 32 programs analyzer-convertible before, 25 of 32 after (9 DISPLAY-only; none use OPEN I-O or a CALL identifier; this says nothing about certification). Reviewer pass done: CALL-identifier resolver tightened (88-levels, level-66 RENAMES, PIC width, COPY members refused), verifier stdout decoded byte-for-byte as latin-1, README states that a DISPLAY that never fires fails only at verification. NOT
   proven: the translator model on these shapes (no paid calls were made), and the real course programs through the
   verifier (compiling cloned code was not run in this session).
 - **Copybooks as SQL (Oct 29, plan step 3, built on the Windows laptop):** `diocle_verifier.sqlschema` (contract
