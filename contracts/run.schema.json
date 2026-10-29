@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.9 (adds the source response and the interrupted status) (v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.10 (adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -80,7 +80,8 @@
               "budget",
               "memory",
               "stage",
-              "breaker"
+              "breaker",
+              "crosscheck"
             ]
           },
           "round": {
@@ -219,6 +220,31 @@
             "type": "object"
           }
         }
+      }
+    },
+    "crosscheck": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Independent cross-check after certification: Muse Spark Open (open weights, its own host and key) designs inputs where it thinks the Java differs from the COBOL. Every case runs through GnuCOBOL and the Java, so the model's opinion certifies nothing; a mismatch goes to the repair agent. `skipped` (a reason) is set instead of the counts when it did not run.",
+      "properties": {
+        "model": { "type": "string" },
+        "casesProposed": { "type": "integer" },
+        "casesValid": { "type": "integer", "description": "Cases that fit the input layout and were actually run" },
+        "mismatches": { "type": "integer", "description": "Valid cases on which GnuCOBOL and the Java really differed" },
+        "repairCycles": { "type": "integer" },
+        "fixed": { "type": "boolean" },
+        "suspected": {
+          "type": "array",
+          "description": "Fields the model says may diverge. An opinion, never evidence.",
+          "items": {
+            "type": "object",
+            "properties": { "field": { "type": "string" }, "concern": { "type": "string" } }
+          }
+        },
+        "counterexamples": { "type": "array", "items": { "type": "object" } },
+        "skipped": { "type": "string" }
       }
     },
     "swarm": {
