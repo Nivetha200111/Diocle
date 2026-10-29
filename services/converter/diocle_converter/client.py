@@ -32,6 +32,7 @@ class ModelClient:
     calls: list[ModelCall] = field(default_factory=list)
     escalated_calls: int = 0  # calls made with a higher tier's model, counted here (not inferred from the model ID)
     escalated_usd: float = 0.0  # their cost; an unpriced model counts as the whole cap (fail closed)
+    escalated_max_call_usd: float = 0.0  # the dearest single escalated call so far, to project the next one
     _sdk: object = None
 
     def __post_init__(self) -> None:
@@ -42,7 +43,9 @@ class ModelClient:
 
     def escalation_exhausted(self) -> bool:
         """True once calls made on a higher tier (chat(model=...)) hit their own caps: a call count and a dollar amount."""
+        # Projected: another call like the dearest one so far must still fit, so one large call cannot blow far past the cap.
         return (self.escalated_calls >= self.settings.escalation_max_calls
+                or self.escalated_usd + self.escalated_max_call_usd > self.settings.escalation_max_usd
                 or self.escalated_usd >= self.settings.escalation_max_usd)
 
     def chat(self, *, role: str, round: int, messages: list[dict], tools=None, response_format=None, model: str | None = None):
@@ -80,7 +83,9 @@ class ModelClient:
         if escalated:
             cost = _call_cost(self.calls[-1])
             self.escalated_calls += 1
-            self.escalated_usd += self.settings.escalation_max_usd if cost is None else cost
+            cost = self.settings.escalation_max_usd if cost is None else cost
+            self.escalated_usd += cost
+            self.escalated_max_call_usd = max(self.escalated_max_call_usd, cost)
         return response.choices[0]
 
     def _with_retries(self, kwargs: dict, attempts: int = 4):

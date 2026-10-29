@@ -189,7 +189,7 @@ class RepairAgent:
             return None
         if not self.escalations or self.escalations[-1]["model"] != model:
             self.escalations.append({"round": round_no, "tier": min(tier, 1 + len(self.client.settings.tiers)), "model": model})
-            why = ("a certified Java was shown wrong by new evidence (a breaker input)" if self._after_break
+            why = ("a certified Java was shown wrong by new evidence (a breaker or cross-check input)" if self._after_break
                    else f"{failed} failed certification round(s)")
             self.on_event({"type": "stage", "stage": "repairing", "round": round_no,
                            "message": f"Escalating the repair agent to {model} after {why}"})

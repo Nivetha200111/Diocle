@@ -23,7 +23,7 @@ certified, the repair agent resumes at the highest tier straight away: that is t
 is a counterexample GnuCOBOL confirmed. Hard caps (rule 10) on everything above tier 1: `MODEL_ESCALATION_MAX_CALLS`
 (default 12) and `MODEL_ESCALATION_MAX_USD` (default 0.50) per run, counted as calls happen; when spent, the run falls back to
 tier 1 and still finishes. A model with no entry in `PRICES` counts as the whole cap (fail closed), and the cap is checked
-before each call, so one large call can overshoot it. The contributor tier lets Meta use requests to improve its products;
+before each call and projects one more call as dear as the dearest escalated call so far, so a second large call is refused; there is no output-token limit, so the first large call can still overshoot (a Wonder call with a long repair conversation measured about $0.22). The breaker's attack calls spend the same cap first, so a repair resume after a break may find it spent and fall back to tier 1. The contributor tier lets Meta use requests to improve its products;
 escalating to a paid tier also sends those rounds to a model that does not. Whether higher tiers repair better has not been
 measured yet. Private mode (Muse Spark Open) has no tiers.
 

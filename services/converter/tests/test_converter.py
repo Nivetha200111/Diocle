@@ -598,4 +598,18 @@ def test_new_evidence_after_a_breaker_break_sends_the_repair_agent_straight_to_t
     # a Java that passed 1,000+ tests and was then broken is the hard residual case: top tier at once, not tier 2
     assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-wonder-1.0"]
     assert agent.escalations[-1] == {"round": 2, "tier": 3, "model": "muse-wonder-1.0"}
-    assert "breaker input" in [e["message"] for e in events if "Escalating" in e.get("message", "")][-1]
+    assert "breaker or cross-check input" in [e["message"] for e in events if "Escalating" in e.get("message", "")][-1]
+
+
+def test_the_cap_projects_the_next_call_so_a_second_large_call_is_refused():
+    ok = ChatCompletionMessage(role="assistant", content="ok")
+    sdk = ScriptedSDK([ok] * 4)
+    # each Wonder call here costs (200 fresh in x $4 + 800 cached x $0.20 + 200 out x $20) / 1e6 = $0.00496
+    client = ModelClient(settings(tiers=TIERS, escalation_max_usd=0.009), _sdk=sdk)
+    client.chat(role="repair", round=1, messages=[], model="muse-wonder-1.0")
+    assert client.escalated_usd < 0.009 and client.escalation_exhausted()  # 0.00496 + 0.00496 would pass 0.009
+    with pytest.raises(BudgetExceeded, match="escalation cap"):
+        client.chat(role="repair", round=2, messages=[], model="muse-wonder-1.0")
+    roomy = ModelClient(settings(tiers=TIERS, escalation_max_usd=0.50), _sdk=ScriptedSDK([ok] * 2))
+    roomy.chat(role="repair", round=1, messages=[], model="muse-wonder-1.0")
+    assert not roomy.escalation_exhausted()

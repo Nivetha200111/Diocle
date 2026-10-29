@@ -230,7 +230,7 @@
     },
     "tiers": {
       "type": ["object", "null"],
-      "description": "Model escalation (converter --tiers, hosted mode): the repair agent moves up one tier after each failed certification round and the breaker attacks with the highest tier. Tier 1 is the run's default model; higher tiers are other models on the same host and key, with their own hard caps (calls and dollars per run). Null when escalation was not used. Every call's model is in usage.modelCalls.",
+      "description": "Model escalation (converter --tiers, hosted mode): the repair agent moves up one tier after each failed certification round, goes straight to the highest tier when a breaker or cross-check input breaks a Java that had certified, and the breaker attacks with the highest tier. Tier 1 is the run's default model; higher tiers are other models on the same host and key, with their own hard caps (calls and dollars per run). Null when escalation was not used. Every call's model is in usage.modelCalls.",
       "properties": {
         "enabled": { "type": "boolean" },
         "configured": { "type": "array", "items": { "type": "string" }, "description": "Tier 1, 2, 3 model IDs, simplest first" },
