@@ -47,6 +47,10 @@ class Busy(RuntimeError):
     pass
 
 
+class SandboxError(RuntimeError):
+    """The sandbox answered with an error status. The body is for the operator's log only, never for a visitor."""
+
+
 # --- client side (the API container) -------------------------------------------------------------------------
 
 def pack(sample_dir: Path, java_dir: Path | None) -> bytes:
@@ -94,7 +98,7 @@ def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_cou
 def remote_compile(sample_dir: Path, wait: float | None = None):
     """Compile-only check of the original in the sandbox (contracts/compile-check.schema.json).
     Retries while the sandbox is busy for at most `wait` seconds (default DIOCLE_SANDBOX_WAIT), then raises Busy."""
-    from .precheck import CompileCheck, clean_message
+    from .precheck import MAX_DIAGNOSTICS, NOTE_SANDBOX, CompileCheck, clean_diagnostic
 
     packed = pack(sample_dir, None)
     if len(packed) > MAX_COMPILE_BUNDLE:
@@ -111,19 +115,25 @@ def remote_compile(sample_dir: Path, wait: float | None = None):
         except urllib.error.HTTPError as e:
             detail = e.read(2000).decode(errors="replace")
             if e.code != 503:
-                raise RuntimeError(f"sandbox: {detail}") from e
+                print(f"sandbox /compile answered {e.code}: {detail[:300]}", file=sys.stderr)
+                raise SandboxError(f"HTTP {e.code}") from e
             if time.time() >= deadline:
                 raise Busy("busy") from e
             time.sleep(min(3, max(0.0, deadline - time.time())))
-    if not isinstance(answer, dict) or answer.get("status") not in ("ok", "fail") or not isinstance(answer.get("message", ""), str):
+    if not isinstance(answer, dict) or answer.get("status") not in ("ok", "fail", "unknown"):
         raise ValueError("the sandbox answered with something that is not a compile check")
-    # Whatever came back is shown to people and to nobody else: paths reduced again, size bounded again.
     if answer["status"] == "ok":
         return CompileCheck("ok")
-    message = clean_message(answer.get("message", ""))  # filtered again: only cobc diagnostics, whatever the sandbox sent
-    if not message:
+    if answer["status"] == "unknown":
+        return CompileCheck("unknown", NOTE_SANDBOX)  # its note is not repeated
+    raw = answer.get("diagnostics")
+    if not isinstance(raw, list):
+        raise ValueError("the sandbox reported a failure without diagnostics")
+    # Whatever came back is filtered again, one string at a time: only cobc-shaped, masked diagnostics survive.
+    found = [d for d in (clean_diagnostic(x) for x in raw[:20] if isinstance(x, str)) if d][:MAX_DIAGNOSTICS]
+    if not found:
         raise ValueError("the sandbox reported a failure without a compiler diagnostic")
-    return CompileCheck("fail", message)
+    return CompileCheck("fail", diagnostics=found)
 
 
 # --- server side (the sandbox container) ---------------------------------------------------------------------

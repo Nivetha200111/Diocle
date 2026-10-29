@@ -10,7 +10,7 @@ import jsonschema
 import pytest
 
 from diocle_verifier import precheck, sandbox
-from diocle_verifier.precheck import CompileCheck, clean_message, compile_original
+from diocle_verifier.precheck import CompileCheck, clean_diagnostic, compile_original, diagnostics
 
 ROOT = Path(__file__).resolve().parents[3]
 SAMPLE = ROOT / "samples" / "interest-accrual"
@@ -39,25 +39,67 @@ def test_an_original_that_does_not_compile_says_why(monkeypatch, tmp_path):
     monkeypatch.delenv("DIOCLE_SANDBOX_URL", raising=False)
     got = compile_original(broken_sample(tmp_path))
     assert got.status == "fail" and "error" in got.message
-    assert str(tmp_path) not in got.message and "/" not in got.message.replace("|", "")  # paths reduced to file names
+    assert str(tmp_path) not in got.message and "/" not in got.message  # paths reduced to file names
     jsonschema.validate(got.to_json(), CONTRACT)
 
 
 def test_messages_keep_only_cobc_diagnostics_without_paths():
     raw = ("/var/tmp/job-abc123/sample/src/X.cbl:12: error: syntax error, unexpected ENVIRONMENT\n"
            "       4 > password=hunter2 error in line\n/etc/hosts:3: warning: whatever\n" + "x" * 5000)
-    msg = clean_message(raw)
-    assert msg == "X.cbl:12: error: syntax error, unexpected ENVIRONMENT"
+    assert diagnostics(raw) == ["X.cbl:12: error: syntax error, unexpected ENVIRONMENT"]
     many = "\n".join(f"/tmp/a/b.cbl:{i}: error: e{i}" for i in range(50))
-    assert clean_message(many).count("error:") == 4 and len(clean_message(many + "z" * 9000)) <= precheck.MAX_MESSAGE
-    assert clean_message("just some text with error in it") == ""  # no fallback to arbitrary lines
-    assert clean_message(msg) == msg  # idempotent: the client filters the sandbox's answer again
+    assert len(diagnostics(many)) == 4 and len(diagnostics(many + "z" * 9000)) == 4
+    assert diagnostics("just some text with error in it") == []  # no fallback to arbitrary lines
+    d = diagnostics(raw)[0]
+    assert clean_diagnostic(d) == d  # idempotent: the client filters the sandbox's answer again
+    assert all(len(x) <= precheck.MAX_DIAGNOSTIC for x in diagnostics(many))
 
 
-def test_quoted_and_odd_tokens_are_cut():
-    msg = clean_message("/a/b.cbl:5: error: 'SECRET-VALUE-9' is not defined\n/a/b.cbl:6: error: syntax error, unexpected 'hunter2 pw'"
-                        "\n/a/b.cbl:7: error: syntax error, unexpected hunter2!")
-    assert "SECRET" not in msg and "hunter2" not in msg and "is not defined" in msg and "unexpected ..." in msg
+def test_gcc_diagnostics_are_not_cobc_diagnostics():
+    assert diagnostics("foo.c:12:5: error: expected ';' before 'x'\n/tmp/a/foo.c:3:1: error: oops") == []
+
+
+def test_quoted_and_odd_tokens_are_masked():
+    out = diagnostics("/a/b.cbl:5: error: 'SECRET-VALUE-9' is not defined\n"
+                      "/a/b.cbl:6: error: syntax error, unexpected 'hunter2 pw'\n"
+                      "/a/b.cbl:7: error: syntax error, unexpected TOPSECRET-sk-ABC123, expecting ENVIRONMENT\n"
+                      "/a/b.cbl:8: error: syntax error, unexpected Identifier (Area B)")
+    text = " | ".join(out)
+    assert "SECRET" not in text and "hunter2" not in text and "sk-ABC" not in text
+    assert out[0].endswith("'...' is not defined")
+    assert "unexpected ..., expecting ENVIRONMENT" in out[2]
+    assert out[3].endswith("unexpected Identifier (Area B)")
+
+
+def test_file_trouble_is_one_generic_reason_with_no_visitor_path():
+    a = diagnostics("b.cbl:5: error: /etc/hosts: No such file or directory")
+    b = diagnostics("b.cbl:5: error: /root/x: Permission denied")
+    c = diagnostics("b.cbl:5: error: NOSUCH: No such file or directory")
+    assert a == b == c == ["b.cbl:5: error: cannot read a COPY file"]
+
+
+def test_context_lines_are_dropped_before_matching_and_nothing_is_cut_on_pipes():
+    """The exact leak a reviewer reproduced: cobc echoes `    2 |        <line>`; the line is cut at ' | ' by a joined-string reader."""
+    text = ("LEAK.cpy:1: error: unbalanced parentheses\n"
+            "    1 |        01 FOO PIC X(.\n"
+            "    2 |        q.cob:1: error: TOPSECRET-sk-ABC123 hunter2\n"
+            "    3 |        01 BAR PIC X.\n"
+            "       q.cob:1: error: TOPSECRET-sk-ABC123 hunter2\n"
+            "q.cob:1: error: TOPSECRET-sk-ABC123 hunter2 | other:2: error: TOPSECRET\n")
+    out = diagnostics(text)
+    assert out[0] == "LEAK.cpy:1: error: unbalanced parentheses"
+    assert "TOPSECRET" not in " ".join(out) and "hunter2" not in " ".join(out) and "sk-ABC" not in " ".join(out)
+
+
+def test_the_exact_leaking_copybook_through_real_cobc(monkeypatch, tmp_path):
+    monkeypatch.delenv("DIOCLE_SANDBOX_URL", raising=False)
+    sample = _copy_sample(tmp_path, "LEAK")
+    (sample / "copybooks" / "LEAK.cpy").write_text(
+        "       01 FOO PIC X(.\n       q.cob:1: error: TOPSECRET-sk-ABC123 hunter2\n       01 BAR PIC X.\n")
+    got = compile_original(sample)
+    assert "TOPSECRET" not in got.message and "hunter2" not in got.message and "sk-ABC" not in got.message
+    assert got.status in ("fail", "unknown")
+    jsonschema.validate(got.to_json(), CONTRACT)
 
 
 def _copy_sample(tmp_path: Path, copy_target: str) -> Path:
@@ -85,7 +127,7 @@ def test_a_copied_file_never_leaks_into_the_message(monkeypatch, tmp_path, absol
 def test_the_environment_case_stays_readable(monkeypatch, tmp_path):
     monkeypatch.delenv("DIOCLE_SANDBOX_URL", raising=False)
     got = compile_original(broken_sample(tmp_path))
-    assert got.status == "fail" and "error: syntax error, unexpected" in got.message
+    assert got.status == "fail" and got.diagnostics[0].endswith("syntax error, unexpected ENVIRONMENT")
 
 
 def test_a_failure_without_a_diagnostic_is_unknown_not_fail(monkeypatch):
@@ -168,7 +210,8 @@ def test_a_lying_sandbox_answer_is_not_trusted(monkeypatch):
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), sandbox.Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     monkeypatch.setenv("DIOCLE_SANDBOX_URL", f"http://127.0.0.1:{httpd.server_address[1]}")
-    monkeypatch.setattr(sandbox, "run_job", lambda job, kind="verify": {"status": "fail", "message": "/secret/place/x.cbl:4: error: bad 'TOPSECRET'\n   9 > leaked error line\n" + "y" * 9000})
+    monkeypatch.setattr(sandbox, "run_job", lambda job, kind="verify": {"status": "fail", "diagnostics": ["/secret/place/x.cbl:4: error: bad 'TOPSECRET'", "   9 > x.cbl:1: error: leaked",
+                                                                           "    2 |        q.cob:1: error: LEAKED", "gcc.c:1:2: error: no", 7, "y" * 9000]})
     got = compile_original(SAMPLE)
     httpd.shutdown()
     assert got.status == "fail" and got.message == "x.cbl:4: error: bad '...'"
@@ -178,7 +221,9 @@ def test_a_lying_sandbox_answer_is_not_trusted(monkeypatch):
 def test_a_nonsense_answer_is_unknown(server, monkeypatch):
     monkeypatch.setattr(sandbox, "run_job", lambda job, kind="verify": {"status": "maybe"})
     assert compile_original(SAMPLE).status == "unknown"
-    monkeypatch.setattr(sandbox, "run_job", lambda job, kind="verify": {"status": "fail", "message": "4 > leaked error text"})
+    monkeypatch.setattr(sandbox, "run_job", lambda job, kind="verify": {"status": "fail", "diagnostics": ["4 > leaked error text"]})
+    assert compile_original(SAMPLE).status == "unknown"
+    monkeypatch.setattr(sandbox, "run_job", lambda job, kind="verify": {"status": "fail", "message": "a:1: error: old shape"})
     assert compile_original(SAMPLE).status == "unknown"  # a failure without a cobc diagnostic is not believed
 
 
@@ -198,7 +243,7 @@ def test_compile_jobs_have_their_own_small_limits(server):
     assert sandbox.COMPILE_JOB_TIMEOUT < sandbox.JOB_TIMEOUT
 
 
-def test_a_hostile_bundle_cannot_write_outside_the_job():
+def test_a_hostile_bundle_cannot_write_outside_the_job(monkeypatch):
     import base64
     import io
     import tarfile
@@ -208,5 +253,7 @@ def test_a_hostile_bundle_cannot_write_outside_the_job():
         info = tarfile.TarInfo("../escape.txt")
         info.size = 1
         tar.addfile(info, io.BytesIO(b"x"))
-    with pytest.raises(RuntimeError, match="outside the destination"):
+    monkeypatch.setattr(sandbox, "_job_lock", threading.Lock())
+    with pytest.raises(RuntimeError, match="outside the destination") as e:
         sandbox.run_job({"bundle": base64.b64encode(buf.getvalue()).decode()}, "compile")
+    assert not isinstance(e.value, sandbox.Busy) and "OutsideDestinationError" in str(e.value)

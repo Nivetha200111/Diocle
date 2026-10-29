@@ -24,15 +24,17 @@ def test_pack_takes_regular_files_only(tmp_path: Path):
     assert names == ["sample/sample.json"]
 
 
-def test_bundle_cannot_write_outside_the_job(tmp_path: Path):
+def test_bundle_cannot_write_outside_the_job(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(sandbox, "_job_lock", threading.Lock())  # not the process-wide lock another test's server may hold
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
         info = tarfile.TarInfo("../escape.txt")
         info.size = 1
         tar.addfile(info, io.BytesIO(b"x"))
     import base64
-    with pytest.raises(RuntimeError, match="outside the destination"):
+    with pytest.raises(RuntimeError, match="outside the destination") as e:
         sandbox.run_job({"bundle": base64.b64encode(buf.getvalue()).decode()})  # extraction happens in the job
+    assert not isinstance(e.value, sandbox.Busy) and "OutsideDestinationError" in str(e.value)
     assert not (Path(os.environ.get("TMPDIR", "/tmp")) / "escape.txt").exists()
 
 

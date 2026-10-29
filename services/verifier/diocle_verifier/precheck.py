@@ -13,50 +13,84 @@ import os
 import re
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .runners import build_cobol
 
-VERSION = "0.1"
-MAX_MESSAGE = 600
+VERSION = "0.2"
+MAX_DIAGNOSTICS = 4
+MAX_DIAGNOSTIC = 200
 COMPILE_TIMEOUT = 30  # seconds for cobc; the sandbox job limit for a compile is longer (sandbox.COMPILE_JOB_TIMEOUT)
 
+# Fixed phrases for "unknown": nothing a program, a COPYed file or the sandbox says ever becomes part of them.
+NOTE_BUSY = "the sandbox was busy"
+NOTE_SANDBOX = "the sandbox could not check this program"
+NOTE_SANDBOX_ERROR = "the sandbox returned an error"
+NOTE_NO_DIAGNOSTIC = "the compiler failed without a diagnostic"
+NOTE_TIMEOUT = f"compiling took longer than {COMPILE_TIMEOUT} seconds"
+NOTE_PREPARE = "could not prepare the check"
+
 _PATH = re.compile(r"(?<![\w./-])(?:/[^\s:()'\"<>|]+)+")
+_DIAG = re.compile(r"^([\w.$-]+):(\d+): error: (.*)$")  # cobc's own form; gcc's `foo.c:12:5: error:` does not match
+_CONTEXT = re.compile(r"^\s*(\d+\s*)?[|>]")  # cobc echoes source lines as `    2 |  <line>` or `>`: never diagnostics
+_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+_TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9-]*|\d+|.", re.S)
+_FILE_TROUBLE = re.compile(r"No such file|Permission denied|Is a directory|Not a directory|cannot open|Too many open", re.I)
+_PUNCT = set(",.:;()' -/")
 
 
 @dataclass
 class CompileCheck:
+    """status "fail" carries `diagnostics` (a list, never a joined string); "unknown" carries a fixed `note`."""
+
     status: str  # "ok" | "fail" | "unknown"
-    message: str = ""
+    note: str = ""
+    diagnostics: list[str] = field(default_factory=list)
+
+    @property
+    def message(self) -> str:
+        """For people: the diagnostics for a failure, else the note."""
+        return " | ".join(self.diagnostics) if self.diagnostics else self.note
 
     def to_json(self) -> dict:
-        return {"version": VERSION, "status": self.status, "message": self.message}
+        return {"version": VERSION, "status": self.status, "note": self.note, "diagnostics": list(self.diagnostics)}
 
 
-_DIAG = re.compile(r"^([^\s|>]+):(\d+): error: (.*)$")
-_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
-_UNEXPECTED = re.compile(r"unexpected (\S+)")
-_WORD = re.compile(r"^[A-Z][A-Z0-9-]{1,30}$")
+def _mask(body: str) -> str:
+    """Words of cobc's own messages pass; anything else (a name, a literal, a file's content) becomes '...'."""
+    from .diag_words import WORDS
+
+    if _FILE_TROUBLE.search(body):
+        return "cannot read a COPY file"  # one reason: absent, unreadable and forbidden paths are not told apart
+    out = []
+    for tok in _TOKEN.findall(_QUOTED.sub("'...'", body)):
+        if tok[0].isalpha():
+            out.append(tok if tok.lower() in WORDS or tok in ("A", "B") else "...")
+        elif tok.isdigit() or tok in _PUNCT:
+            out.append(tok)
+        # any other character (control, non-ASCII, symbols) is dropped
+    return re.sub(r"(\.\.\.\s*){2,}", "... ", "".join(out)).strip()[:160]
 
 
-def clean_message(text: str) -> str:
-    """Only cobc's own diagnostics, `file:line: error: text`, and nothing else. cobc also echoes context lines of any
-    file the source COPYs (even an absolute path), so such lines, 'warning' lines and every unrecognised line are
-    dropped. Inside a kept line, quoted text is replaced by '...', an 'unexpected X' keeps X only when it looks
-    like a COBOL word, absolute paths are reduced to file names, and the whole is bounded. Idempotent: the output
-    (entries joined by ' | ') passes through again unchanged, which the client relies on."""
-    kept = []
-    for raw in re.split(r"\r?\n| \| ", text):
-        m = _DIAG.match(_PATH.sub(lambda g: g.group(0).rstrip("/").rsplit("/", 1)[-1], raw.strip()))
-        if not m:
-            continue
-        name, line, body = m.groups()
-        body = _QUOTED.sub("'...'", body)
-        body = _UNEXPECTED.sub(lambda u: u.group(0) if _WORD.match(u.group(1)) or u.group(1) == "'...'" else "unexpected ...", body)
-        body = "".join(c for c in body if " " <= c <= "~")[:160]
-        kept.append(f"{name.rsplit('/', 1)[-1][:60]}:{line}: error: {body}")
-    return " | ".join(kept[:4])[:MAX_MESSAGE]
+def clean_diagnostic(raw: str) -> str | None:
+    """One line of compiler output -> a safe `file:line: error: text`, or None when it is not cobc's own diagnostic.
+    Idempotent, so the client can apply it again to what the sandbox sent."""
+    if len(raw) > 2000 or _CONTEXT.match(raw):
+        return None
+    m = _DIAG.match(_PATH.sub(lambda g: g.group(0).rstrip("/").rsplit("/", 1)[-1], raw))
+    if not m:
+        return None
+    name, line, body = m.groups()
+    return f"{name[:60]}:{line[:6]}: error: {_mask(body)}"[:MAX_DIAGNOSTIC]
+
+
+def diagnostics(text: str) -> list[str]:
+    """cobc's `file:line: error: ...` lines only. The text is split on line ends and nothing else: cobc echoes source
+    context (`    2 |        <line of a file the program COPYs>`), which is dropped before any matching, and no
+    separator that file content could contain is ever used to cut it into 'lines'."""
+    found = (clean_diagnostic(raw) for raw in re.split(r"\r\n|\n|\r", text))
+    return [d for d in found if d][:MAX_DIAGNOSTICS]
 
 
 def compile_local(sample_dir: Path) -> CompileCheck:
@@ -69,29 +103,31 @@ def compile_local(sample_dir: Path) -> CompileCheck:
                                     [sample_dir / m for m in meta.get("modules", [])], meta.get("collation", "ascii"),
                                     timeout=COMPILE_TIMEOUT)
         except subprocess.TimeoutExpired:
-            return CompileCheck("unknown", f"compiling took longer than {COMPILE_TIMEOUT} seconds")
+            return CompileCheck("unknown", NOTE_TIMEOUT)
     if failed is None:
         return CompileCheck("ok")
     # "fail" only when cobc itself says why. A killed gcc, a full tmpfs, the pids limit or silence prove nothing.
-    message = clean_message(failed.stderr + "\n" + failed.stdout) if (failed.exit_code or 0) > 0 else ""
-    return CompileCheck("fail", message) if message else CompileCheck("unknown", "the compiler failed without a diagnostic")
+    found = diagnostics(failed.stderr + "\n" + failed.stdout) if (failed.exit_code or 0) > 0 else []
+    return CompileCheck("fail", diagnostics=found) if found else CompileCheck("unknown", NOTE_NO_DIAGNOSTIC)
 
 
 def compile_original(sample_dir: Path, wait: float | None = None) -> CompileCheck:
     """wait: seconds to keep retrying while the sandbox is busy (default DIOCLE_SANDBOX_WAIT; callers pass less)."""
     if os.environ.get("DIOCLE_SANDBOX_URL") and not os.environ.get("DIOCLE_IN_SANDBOX"):
-        from .sandbox import Busy, remote_compile
+        from .sandbox import Busy, SandboxError, remote_compile
 
         try:
             return remote_compile(sample_dir.resolve(), wait)
         except Busy:
-            return CompileCheck("unknown", "the sandbox was busy")
-        except (OSError, ValueError, RuntimeError) as e:  # unreachable, refused, bad answer: never compile here instead
-            return CompileCheck("unknown", f"the sandbox could not check: {str(e)[:200]}")
+            return CompileCheck("unknown", NOTE_BUSY)
+        except SandboxError:  # the sandbox refused or failed: its body is never shown
+            return CompileCheck("unknown", NOTE_SANDBOX_ERROR)
+        except (OSError, ValueError, RuntimeError):  # unreachable, bad answer: never compile here instead
+            return CompileCheck("unknown", NOTE_SANDBOX)
     try:
         return compile_local(sample_dir)
-    except (OSError, ValueError, KeyError) as e:
-        return CompileCheck("unknown", f"could not prepare the check: {str(e)[:200]}")
+    except (OSError, ValueError, KeyError):
+        return CompileCheck("unknown", NOTE_PREPARE)
 
 
 def main(argv: list[str] | None = None) -> int:
