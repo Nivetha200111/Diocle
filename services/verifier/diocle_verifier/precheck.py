@@ -73,3 +73,19 @@ def compile_original(sample_dir: Path, wait: float | None = None) -> CompileChec
         return compile_local(sample_dir)
     except (OSError, ValueError, KeyError) as e:
         return CompileCheck("unknown", f"could not prepare the check: {str(e)[:200]}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """python -m diocle_verifier.precheck SAMPLE_DIR [--wait SECONDS]: prints the compile-check JSON (always exit 0)."""
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="diocle_verifier.precheck")
+    parser.add_argument("sample_dir", type=Path)
+    parser.add_argument("--wait", type=float, default=None, help="seconds to retry while the sandbox is busy")
+    args = parser.parse_args(argv)
+    print(json.dumps(compile_original(args.sample_dir, args.wait).to_json()), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
