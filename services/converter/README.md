@@ -68,15 +68,16 @@ synthetic printouts, not a designed engine/API path (compiling untrusted text wo
   our own synthetic printouts on a dev machine, never for text from strangers; each program run is limited to 120 s, the compile to 60 s.
 - **The refusal scan is a best-effort filter and NOT a security boundary.** Before anything is compiled the text must be plain
   fixed format (no tabs, no compiler directives such as `>>SOURCE FORMAT IS FREE` or `$ SET`, columns 1-6 blank or digits, column 7
-  one of blank `*` `/` `-`, nothing after column 72); it must not contain `CALL 'SYSTEM'`, any `CBL_*` or `C$*` routine, a `CALL` of an
+  one of blank `*` `/`, nothing after column 72; **continuation lines (column 7 `-`) are refused outright** because they can split a keyword (`COP` + `-  Y "/etc/hosts"`, `CA` + `-  LL`) so the scans never see it); it must not contain `CALL 'SYSTEM'`, any `CBL_*` or `C$*` routine, a `CALL` of an
   identifier or of a program not listed in the original's `modules`; with `--against`, `ASSIGN TO` may name only the original's DD names
-  (no paths or literals) and `COPY` only the original's own copybooks. A refusal is status `refused`: never compiled, run or
+  (no paths or literals) and `COPY` only the original's own copybooks (without an original no `COPY` at all, since cobc would read the named file). A refusal is status `refused`: never compiled, run or
   written, no further model calls. A determined model can still build names or behaviour at run time in ways no deny-list sees.
 - **macOS defense in depth:** where `sandbox-exec` exists, the transcription's executable (only that, not cobc and not the original)
   runs under a profile that denies network, denies file writes outside its own work directory (plus `/dev/null` and the tty) and denies
   executing anything but itself (`differential.sandbox` says `sandbox-exec`; elsewhere `none`). It does NOT limit reads (the GnuCOBOL
   runtime and the input are read from all over the disk, so file contents can still be read), CPU or memory (only the 120 s timeout),
   and `sandbox-exec` is deprecated by Apple. The compile step runs `cobc` unsandboxed on the scanned text.
+- **Compiler output is filtered** before it goes into `transcription.json` or back to the model as the retry prompt: only `<transcription file>:N: error: <message>` lines about the transcription's own file survive (max 20 lines, 1,500 characters), quoted text is masked, and everything else (other files, echoed source lines) is dropped, so a file the compiler read cannot leak through its errors.
 - `--out` must be new or empty, not a symbolic link, and must not overlap `--against` (refused, 0 calls, nothing written); the
   original is also snapshotted into a temp directory before anything is written and the differential uses the snapshot. The original's
   copybooks are copied to `SAMPLE_DIR/copybooks` (never a name that could collide) and `sample.json` points there; the original's
