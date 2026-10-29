@@ -16,7 +16,7 @@ if [ -n "$running" ] && [ "${FORCE:-0}" != 1 ]; then
   exit 1
 fi
 
-echo "Updating $HOST…"
+echo "Updating ${HOST}..."
 ssh -i "$KEY" "$HOST" 'set -e
 cd /opt/diocle
 git pull --ff-only
