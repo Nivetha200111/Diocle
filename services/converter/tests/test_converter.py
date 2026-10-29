@@ -465,5 +465,6 @@ def test_an_original_that_does_not_compile_stops_the_run_before_any_repair_round
               "converted": {"compiled": True}}}
     why = original_failure(broken)
     assert "does not compile under GnuCOBOL" in why and "unexpected ENVIRONMENT" in why and "cannot be verified" in why
+    assert "/tmp/job" not in why and "CBL0001.cobol:10: error" in why  # the sandbox temp path is not echoed
     assert original_failure({"runs": {"original": {"compiled": True}, "converted": {"compiled": False}}}) is None  # Java errors are repairable
     assert original_failure(None) is None and original_failure({}) is None

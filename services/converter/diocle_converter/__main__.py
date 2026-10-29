@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -284,6 +285,7 @@ def original_failure(report: dict | None) -> str | None:
         return None
     stderr = original.get("stderr") or ""
     first = next((l.strip() for l in stderr.splitlines() if "error" in l), stderr.strip().splitlines()[0] if stderr.strip() else "")
+    first = re.sub(r"^\S*/", "", first)  # keep the file name, not the sandbox's temp path
     return f"the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: {first[:240]}"
 
 

@@ -46,7 +46,7 @@
         "string",
         "null"
       ],
-      "description": "Set when the converter crashed; the run is then not certified"
+      "description": "Set when the converter crashed, or when the run stopped cleanly because the original COBOL does not compile under GnuCOBOL and so cannot be verified; the run is then not certified"
     },
     "status": {
       "type": "string",
