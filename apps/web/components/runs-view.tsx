@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, callCostUsd, fetchRun, fetchRunSource, fetchRuns, isInterrupted, isPrivateModel, reverifyRun, type Breaker, type Efficiency, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type Verification } from "@/lib/runs";
+import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Efficiency, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 
@@ -145,13 +145,20 @@ function SourcePanel({ run }: { run: Run }) {
   const [failed, setFailed] = useState(false);
   const [cobolFile, setCobolFile] = useState(0);
   const [javaFile, setJavaFile] = useState(0);
+  const [sql, setSql] = useState<SourceFile | null>(null);
   useEffect(() => {
     setSource(null);
     setFailed(false);
     setCobolFile(0);
     setJavaFile(0);
+    setSql(null);
     if (run.visitor) return;
-    fetchRunSource(run.id).then(setSource).catch(() => setFailed(true));
+    let live = true;  // a slow answer for the previous run must not land next to this run's Java
+    fetchRunSource(run.id).then((s) => live && setSource(s)).catch(() => live && setFailed(true));
+    fetchRunSchema(run.id).then((s) => live && setSql(schemaFile(s))).catch(() => live && setSql(null));  // older engines: Java only
+    return () => {
+      live = false;
+    };
   }, [run.id, run.visitor]);
   if (run.visitor || failed) return null;  // visitor code is not served; the trace and diff below still tell the story
   if (!source) return <Skeleton rows={4} label="Loading the COBOL and the Java" />;
@@ -161,12 +168,13 @@ function SourcePanel({ run }: { run: Run }) {
       <div className="panel-heading">
         <div>
           <h2>COBOL next to Java</h2>
-          <p>Left: the original program and its copybooks. Right: the Java {run.certified ? "that was certified" : "as the run left it"}.</p>
+          <p>Left: the original program and its copybooks. Right: the Java {run.certified ? "that was certified" : "as the run left it"}
+            {sql ? ", and the copybooks as SQL tables (schema.sql)" : ""}.</p>
         </div>
       </div>
       <div className="source-split">
         <SourcePane label="COBOL" files={source.cobol} at={cobolFile} pick={setCobolFile} />
-        <SourcePane label="JAVA" files={source.java} at={javaFile} pick={setJavaFile} />
+        <SourcePane label={sql ? "JAVA · SQL" : "JAVA"} files={sql ? [...source.java, sql] : source.java} at={javaFile} pick={setJavaFile} />
       </div>
     </section>
   );

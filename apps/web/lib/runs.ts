@@ -151,6 +151,26 @@ export type RunSource = { runId: string; program: string; cobol: SourceFile[]; j
 
 export const fetchRunSource = (id: string) => getJson<RunSource>(`/runs/${encodeURIComponent(id)}/source`);
 
+// contracts/sql-schema.schema.json: the copybooks as SQL tables, with the SQLite round trip that proves they hold
+// every byte. Deterministic, no model.
+export type SqlSchema = {
+  runId: string; ddl: string;
+  tables: { table: string; record: string; roundTrip: { records: number; identical: number; sources: string[] } }[];
+  summary: { tables: number; records: number; identical: number; passed: boolean };
+};
+
+export const fetchRunSchema = (id: string) => getJson<SqlSchema>(`/runs/${encodeURIComponent(id)}/schema`);
+
+const count = (n: number) => n.toLocaleString("en-US");
+
+export const schemaFile = (s: SqlSchema): SourceFile => ({
+  path: "schema.sql",
+  text: "-- The copybooks as SQL tables, generated without a model.\n"
+    + `-- Round trip: ${s.summary.passed ? "all " : ""}${count(s.summary.identical)} of ${count(s.summary.records)} generated `
+    + "records (PIC boundaries and seeded random values) fit\n-- these column types, went into an SQLite copy of the "
+    + `tables and came back byte for byte${s.summary.passed ? "." : "; the others did not."}\n\n${s.ddl}`,
+});
+
 // A run cut off by an engine restart. Newer engines say so ("interrupted"); for older ones, a run still "running"
 // with no model call a full day after its (timezone-less) start time was certainly cut off.
 export const isInterrupted = (r: Pick<RunListItem, "status" | "createdAt" | "efficiency">, now = Date.now()) =>

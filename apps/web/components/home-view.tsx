@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, SAMPLE_RUN } from "@/lib/config";
-import { fetchRun, fetchRunSource, fetchRuns, reverifyRun, type Reverify, type Run, type RunListItem, type SourceFile } from "@/lib/runs";
+import { fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, reverifyRun, schemaFile, type Reverify, type Run, type RunListItem, type SourceFile } from "@/lib/runs";
 import { SAMPLE_COBOL, SAMPLE_RECORDED } from "@/lib/sample";
 import { SourcePane } from "./runs-view";
 import { Term } from "./ui";
@@ -58,6 +58,7 @@ function SampleHero({ go }: { go: Go }) {
   const [offline, setOffline] = useState(false);
   const [cobol, setCobol] = useState<SourceFile[]>(SAMPLE_COBOL);
   const [java, setJava] = useState<SourceFile[] | null>(null);
+  const [sql, setSql] = useState<SourceFile | null>(null);
   const [cobolAt, setCobolAt] = useState(0);
   const [javaAt, setJavaAt] = useState(0);
   const [check, setCheck] = useState<Reverify | null>(null);
@@ -71,6 +72,7 @@ function SampleHero({ go }: { go: Go }) {
         setJava(s.java);
       })
       .catch(() => setJava([]));
+    fetchRunSchema(SAMPLE_RUN.id).then((s) => setSql(schemaFile(s))).catch(() => setSql(null));  // older engines: Java only
   }, []);
   async function tryIt() {
     setBusy(true);
@@ -88,12 +90,13 @@ function SampleHero({ go }: { go: Go }) {
       <div className="panel-heading">
         <div>
           <h2>{SAMPLE_RUN.program}: cheque clearing, COBOL → Java</h2>
-          <p>A synthetic program Muse Spark had never seen. Left: the original. Right: the Java Diocle certified.</p>
+          <p>A synthetic program Muse Spark had never seen. Left: the original. Right: the Java Diocle certified{sql ? ", and its copybooks as SQL tables (schema.sql)" : ""}.</p>
         </div>
       </div>
       <div className="source-split">
         <SourcePane label="COBOL" files={cobol} at={cobolAt} pick={setCobolAt} />
-        <SourcePane label="JAVA" files={java ?? []} at={javaAt} pick={setJavaAt}
+        <SourcePane label={java?.length && sql ? "JAVA · SQL" : "JAVA"} files={java?.length && sql ? [...java, sql] : java ?? []}
+          at={javaAt} pick={setJavaAt}
           placeholder={java === null ? "Loading the certified Java…" : "The certified Java could not be loaded from the engine.\nOpen the full run for its trace, checks and\nthe re-verify button."} />
       </div>
       <VerdictStrip run={run} offline={offline} check={check} />
