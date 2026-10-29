@@ -44,3 +44,10 @@ def test_pr_body_credits_the_models_not_the_coding_assistant():
             "agent": {"modelCalls": 1, "rounds": 1, "memoryLessonsUsed": 0, "estimatedCostUsd": 0.001}}
     body = deliver._pr_body({"source": {"location": "https://github.com/o/r", "commit": "a" * 40}}, [(run, cert)], [])
     assert "Muse Spark" in body and "Claude" not in body
+
+
+def test_pr_body_survives_an_unpriced_model():
+    cert = {"program": "P", "verification": {"passed": 2, "total": 2, "stdoutMatch": True},
+            "agent": {"modelCalls": 1, "rounds": 1, "memoryLessonsUsed": 0, "estimatedCostUsd": None}}
+    body = deliver._pr_body({"source": {"location": "https://github.com/o/r", "commit": "a" * 40}}, [({}, cert)], [])
+    assert "| n/a |" in body

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import jsonschema
@@ -144,10 +145,12 @@ def test_start_delivery_validates_and_allows_one_at_a_time(client, tmp_path, mon
     running = tmp_path / "deliveries" / ok.json()["id"]
     (running / "delivery.json").write_text(json.dumps({
         "id": ok.json()["id"], "legacy": {"repository": "a", "commit": None}, "target": "b", "stage": "converting",
-        "startedAt": "2026-10-28T12:30:00+00:00", "finishedAt": None, "programs": [], "pullRequest": None}))
+        "startedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"), "finishedAt": None, "programs": [],
+        "pullRequest": None}))  # just started, no pid yet: counts as running. (A fixed old time made the 409 come from
+    # the same-second id check instead, so the test passed or failed with the clock.)
     busy = client.post("/deliveries", json={"legacy": "https://github.com/Nivetha200111/a",
                                              "target": "https://github.com/Nivetha200111/b"})
-    assert busy.status_code == 409 and len(started) == 1
+    assert busy.status_code == 409 and "still running" in busy.json()["detail"] and len(started) == 1
 
 
 def test_admin_passcode_guards_starting(client, monkeypatch):

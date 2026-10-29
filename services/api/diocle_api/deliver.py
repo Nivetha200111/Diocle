@@ -137,6 +137,11 @@ def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_com
     }
 
 
+def _usd(cost: float | None) -> str:
+    """A cost for the PR table; n/a when a call was on a model without a known price (the run's cost is then None)."""
+    return "n/a" if cost is None else f"${cost:.4f}"
+
+
 def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str]) -> str:
     src = report["source"]
     lines = [
@@ -149,7 +154,7 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         v, a = cert["verification"], cert["agent"]
         lines.append(f"| `{cert['program']}` | {before} | **{v['passed']}/{v['total']}** match, stdout "
                      f"{'matches' if v['stdoutMatch'] else 'differs'} | {a['modelCalls']} calls, {a['rounds']} round(s), "
-                     f"{a['memoryLessonsUsed']} lessons from memory | ${a['estimatedCostUsd']:.4f} |")
+                     f"{a['memoryLessonsUsed']} lessons from memory | {_usd(a['estimatedCostUsd'])} |")
     if skipped:
         lines += ["", "**Not delivered** (not certified or not convertible): " + ", ".join(f"`{s}`" for s in skipped)]
     lines += ["", "Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
