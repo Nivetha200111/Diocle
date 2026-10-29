@@ -17,6 +17,7 @@ from .deliveries import get_delivery, list_deliveries, running_delivery, start_d
 from .deliver import GITHUB_URL
 from .reverify import Busy, reverify_run
 from .runs import get_run, get_source, list_runs
+from .schema import run_schema
 
 app = FastAPI(title="Diocle API", version="0.1.0")
 app.add_middleware(
@@ -83,6 +84,14 @@ def run_source(run_id: str) -> dict:
     result = get_source(run_id)
     if result is None:
         raise HTTPException(status_code=404, detail="run not found")
+    return result
+
+
+@app.get("/runs/{run_id}/schema")
+def run_sql_schema(run_id: str) -> dict:
+    result = run_schema(run_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no schema for this run")
     return result
 
 

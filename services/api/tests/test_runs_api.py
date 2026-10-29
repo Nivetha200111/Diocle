@@ -349,3 +349,55 @@ def test_visitor_runs_are_labelled_and_not_reverified(client):
     import pytest
     with pytest.raises(ValueError, match="visitor"):
         reverify_run("demo-20261028-124509")
+
+
+def test_schema_serves_tables_and_the_round_trip_proof(client, tmp_path, samples_here):
+    import diocle_api.schema as schema
+
+    schema._cache.clear()
+    sample = tmp_path / "samples" / "demo"
+    layout = {"record": "REC", "fields": [{"name": "REC-ID", "kind": "alnum", "length": 4},
+                                          {"name": "REC-AMT", "kind": "numeric", "digits": 5, "scale": 2, "signed": True,
+                                           "usage": "packed"}], "format": "fixed"}
+    (sample / "sample.json").write_text(json.dumps({"source": "DEMO.cbl", "program": "DEMO", "dd": {"input": "IN", "output": "OUT"},
+                                                    "layouts": {"input": layout, "output": layout}}))
+    got = client.get("/runs/demo-20261028-124509/schema")
+    assert got.status_code == 200
+    body = got.json()
+    jsonschema.validate(body, json.loads((CONTRACT_DIR / "sql-schema.schema.json").read_text()))
+    assert body["runId"] == "demo-20261028-124509" and body["summary"]["passed"]
+    assert [t["table"] for t in body["tables"]] == ["rec", "rec_out"]
+    assert '"rec_amt" DECIMAL(7,2) NOT NULL' in body["ddl"]
+    assert client.get("/runs/missing-run/schema").status_code == 404
+    assert client.get("/runs/..%2F..%2Fetc/schema").status_code == 404
+    (tmp_path / "demo-20261028-124509" / "visitor").write_text("")
+    assert client.get("/runs/demo-20261028-124509/schema").status_code == 404  # visitor layouts are not served
+
+
+def test_schema_is_404_without_a_readable_sample(client, tmp_path, samples_here):
+    import diocle_api.schema as schema
+
+    schema._cache.clear()
+    (tmp_path / "samples" / "demo" / "sample.json").write_text("{not json")
+    assert client.get("/runs/demo-20261028-124509/schema").status_code == 404
+
+
+def test_schema_failures_are_not_cached(client, tmp_path, samples_here, monkeypatch):
+    import diocle_api.schema as schema
+
+    schema._cache.clear()
+    sample = tmp_path / "samples" / "demo"
+    (sample / "sample.json").write_text("{not json")
+    assert client.get("/runs/demo-20261028-124509/schema").status_code == 404
+    layout = {"record": "REC", "fields": [{"name": "REC-ID", "kind": "alnum", "length": 4}]}
+    (sample / "sample.json").write_text(json.dumps({"source": "DEMO.cbl", "dd": {"input": "IN", "output": "OUT"},
+                                                    "layouts": {"input": layout, "output": layout}}))
+    assert client.get("/runs/demo-20261028-124509/schema").status_code == 200  # fixed sample: computed again
+
+
+def test_schema_is_withheld_for_a_public_delivery_sample(client, tmp_path, monkeypatch):
+    import diocle_api.runs as runs
+
+    monkeypatch.setattr(runs, "_sample_roots", lambda: [(tmp_path / "deliveries").resolve()])
+    _visitor_run(tmp_path, "acct-20261028-171000", public=True)
+    assert client.get("/runs/acct-20261028-171000/schema").status_code == 404
