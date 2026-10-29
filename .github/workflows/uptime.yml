@@ -1,0 +1,25 @@
+# Pings the live site and the engine behind it every 15 minutes. A failed run emails the person who last edited this file's
+# schedule, so an outage during judging (Nov 5-9) is noticed. Disable it in the Actions tab after judging ends.
+name: uptime
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Site answers
+        run: curl -fsS --max-time 20 --retry 2 --retry-delay 10 -o /dev/null https://diocle.vercel.app/
+      - name: Engine answers
+        run: |
+          body=$(curl -fsS --max-time 20 --retry 2 --retry-delay 10 https://diocle.vercel.app/api/health)
+          echo "$body"
+          echo "$body" | grep -q '"status":"ok"'
+      - name: Runs are listed and one certified run is readable
+        run: |
+          curl -fsS --max-time 30 https://diocle.vercel.app/api/runs | grep -q '"certified"'
+          curl -fsS --max-time 30 -o /dev/null https://diocle.vercel.app/api/runs/chqclr-20261028-214355/source
