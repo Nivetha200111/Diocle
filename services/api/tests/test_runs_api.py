@@ -203,6 +203,29 @@ def test_visitor_imports_need_the_sandbox_and_respect_limits(client, monkeypatch
     assert client.post("/deliveries", json=body, headers={"X-Diocle-Admin": "wrong"}).status_code == 403
 
 
+def test_source_serves_cobol_next_to_java(client, tmp_path):
+    source = client.get("/runs/demo-20261028-124509/source").json()
+    jsonschema.validate(source, {"$ref": "#/$defs/source", "$defs": CONTRACT["$defs"]})
+    assert [f["path"] for f in source["cobol"]] == ["DEMO.cbl", "copybooks/REC.cpy"]
+    assert [(f["path"], f["text"].strip(), f["truncated"]) for f in source["java"]] == [("A.java", "class A {}", False)]
+    assert client.get("/runs/missing-run/source").status_code == 404
+    assert client.get("/runs/..%2F..%2Fetc/source").status_code == 404
+    (tmp_path / "demo-20261028-124509" / "visitor").write_text("")
+    assert client.get("/runs/demo-20261028-124509/source").status_code == 404  # visitor code is not served
+
+
+def test_source_skips_files_outside_the_sample_and_the_run(client, tmp_path):
+    import os
+    secret = tmp_path.parent / f"{tmp_path.name}-secret.txt"
+    secret.write_text("SECRET")
+    try:
+        os.symlink(secret, tmp_path / "demo-20261028-124509" / "java" / "Leak.java")
+    except OSError:
+        pytest.skip("symlinks need extra privileges on this machine")
+    source = client.get("/runs/demo-20261028-124509/source").json()
+    assert all("SECRET" not in f["text"] for f in source["java"] + source["cobol"])
+
+
 def test_reverify_runs_only_certified_runs_with_samples(client):
     assert client.post("/runs/missing-run/reverify").status_code == 404
     assert client.post("/runs/demo-20261028-124509/reverify").status_code == 502  # its sample has no real COBOL

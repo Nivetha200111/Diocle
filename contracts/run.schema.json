@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.8 (adds visitor) (v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.9 (adds the source response) (v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -282,6 +282,26 @@
     }
   },
   "$defs": {
+    "source": {
+      "type": "object",
+      "description": "GET /runs/{id}/source: the original COBOL (program and copybooks) next to the run's Java, for reading side by side. Not served for visitor runs.",
+      "required": ["runId", "program", "cobol", "java"],
+      "properties": {
+        "runId": { "type": "string" },
+        "program": { "type": "string" },
+        "cobol": { "type": "array", "items": { "$ref": "#/$defs/sourceFile" } },
+        "java": { "type": "array", "items": { "$ref": "#/$defs/sourceFile" } }
+      }
+    },
+    "sourceFile": {
+      "type": "object",
+      "required": ["path", "text"],
+      "properties": {
+        "path": { "type": "string", "description": "Relative to the sample (COBOL) or to the run's java/ directory" },
+        "text": { "type": "string" },
+        "truncated": { "type": "boolean" }
+      }
+    },
     "reverify": {
       "type": "object",
       "description": "POST /runs/{id}/reverify: the run's certified Java and the original COBOL re-run on fresh random inputs. No model calls.",

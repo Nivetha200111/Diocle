@@ -147,6 +147,52 @@ def list_runs() -> list[dict]:
     return items
 
 
+SOURCE_MAX_BYTES = 200_000
+SOURCE_MAX_FILES = 40
+
+
+def _source_files(base: Path, files: list[Path]) -> list[dict]:
+    """Regular files inside base only (no symlinks out), each capped, for reading side by side."""
+    out = []
+    root = base.resolve()
+    for f in files[:SOURCE_MAX_FILES]:
+        if f.is_symlink() or not f.is_file() or not f.resolve().is_relative_to(root):
+            continue
+        data = f.read_bytes()
+        out.append({"path": f.relative_to(base).as_posix(),
+                    "text": data[:SOURCE_MAX_BYTES].decode("latin-1"),
+                    "truncated": len(data) > SOURCE_MAX_BYTES})
+    return out
+
+
+def get_source(run_id: str) -> dict | None:
+    """contracts/run.schema.json $defs.source: the original COBOL next to the run's Java. Visitor runs are not served:
+    their code comes from repositories Diocle does not control."""
+    if not RUN_ID.match(run_id):
+        return None
+    path = runs_dir() / run_id
+    meta = path / "run.json"
+    if not meta.exists() or (path / "visitor").exists():
+        return None
+    try:
+        run = json.loads(meta.read_text()) | {"_id": run_id}
+    except json.JSONDecodeError:
+        return None
+    sample = _sample_dir(run)
+    allowed = [REPO_ROOT.resolve(), runs_dir().resolve()]
+    cobol: list[dict] = []
+    info_file = sample / "sample.json"
+    if info_file.is_file() and any(sample.resolve().is_relative_to(a) for a in allowed):
+        info = json.loads(info_file.read_text())
+        files = [sample / info["source"]]
+        if info.get("copybookDir"):
+            files += sorted((sample / info["copybookDir"]).glob("*.cpy"))
+        cobol = _source_files(sample, files)
+    java_dir = path / "java"
+    java = _source_files(java_dir, sorted(java_dir.rglob("*.java"))) if java_dir.is_dir() else []
+    return {"runId": run_id, "program": run["program"], "cobol": cobol, "java": java}
+
+
 def get_run(run_id: str) -> dict | None:
     if not RUN_ID.match(run_id):
         return None

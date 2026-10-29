@@ -16,7 +16,7 @@ from . import public
 from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
 from .deliver import GITHUB_URL
 from .reverify import Busy, reverify_run
-from .runs import get_run, list_runs
+from .runs import get_run, get_source, list_runs
 
 app = FastAPI(title="Diocle API", version="0.1.0")
 app.add_middleware(
@@ -73,6 +73,14 @@ def runs() -> list[dict]:
 @app.get("/runs/{run_id}")
 def run(run_id: str) -> dict:
     result = get_run(run_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    return result
+
+
+@app.get("/runs/{run_id}/source")
+def run_source(run_id: str) -> dict:
+    result = get_source(run_id)
     if result is None:
         raise HTTPException(status_code=404, detail="run not found")
     return result
