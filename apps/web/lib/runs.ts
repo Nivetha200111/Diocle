@@ -110,6 +110,7 @@ const PRICES: Record<string, [number, number, number]> = {
   "muse-spark-1.3": [1.25, 0.15, 4.25],
   "accounts/fireworks/models/muse-spark-open": [1.25, 0.15, 4.25],
   "meta-models/muse-spark-open-1026": [1.25, 0.15, 4.25],
+  "muse-wonder-1.0": [4.0, 0.2, 20.0],  // per third-party coverage, unconfirmed on dev.meta.ai
 };
 
 export function callCostUsd(c: ModelCall): number | null {
@@ -123,7 +124,7 @@ export const isPrivateModel = (model: string | null | undefined) => !!model && m
 export const hostOf = (model: string) =>
   model.startsWith("accounts/fireworks/") ? "Fireworks"
     : model.startsWith("meta-models/") ? "Baseten"
-      : model.startsWith("muse-spark-1") ? "Meta Model API" : "partner host";
+      : (model.startsWith("muse-spark-1") || model.startsWith("muse-wonder")) ? "Meta Model API" : "partner host";
 
 // contracts/run.schema.json $defs.guard: the guard agent's policy findings and its model review.
 export type GuardFinding = {

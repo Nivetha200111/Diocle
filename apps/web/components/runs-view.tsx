@@ -102,7 +102,7 @@ function TiersPanel({ t }: { t: Tiers }) {
               : "It never needed a higher tier."}{" "}
             {t.breakerModel ? `The breaker attacked with ${t.breakerModel}. ` : ""}
             Calls above tier 1 are capped at {t.capCalls} calls and ${t.capUsd?.toFixed(2)} per run; this run used {t.escalatedCalls ?? 0} calls
-            (about ${(t.escalatedUsd ?? 0).toFixed(4)}).
+            (about ${(t.escalatedUsd ?? 0).toFixed(4)}; a model with no known price counts as the whole cap).
           </p>
         </div>
       </div>
