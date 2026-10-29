@@ -229,13 +229,21 @@ class CompilePrecheck:
 
     def __init__(self, samples: Path, max_checks: int, seconds: float):
         self.samples, self.left, self.deadline, self.unknown = samples, max_checks, time.time() + seconds, 0
+        self.checked, self.stopped, self.notes = 0, None, []
+
+    def record(self) -> dict:
+        """For delivery.json (`precheck`): how many were asked and why the check ended early, if it did."""
+        return {"checked": self.checked, "stopped": self.stopped, "notes": self.notes[-5:]}
 
     def failure(self, name: str) -> str | None:
         """The compiler's reason when the original does not compile, else None (compiles, or could not be checked)."""
         remaining = self.deadline - time.time()
         if self.left <= 0 or remaining <= 0 or self.unknown >= 2:
+            self.stopped = self.stopped or ("the sandbox did not answer twice (busy, unreachable or failed)" if self.unknown >= 2
+                                            else "the time bound was used up" if remaining <= 0 else "the program count bound was reached")
             return None
         self.left -= 1
+        self.checked += 1
         wait = min(30.0, remaining)
         answer = {"status": "unknown"}
         try:
@@ -244,13 +252,25 @@ class CompilePrecheck:
                  str(self.samples / name.lower()), "--wait", str(wait)],
                 capture_output=True, text=True, timeout=wait + 120, cwd=SERVICES / "verifier",
                 env={k: v for k, v in os.environ.items() if k in ("PATH", "LANG", "LC_ALL", "DIOCLE_SANDBOX_URL")})
-            answer = json.loads(proc.stdout.strip().splitlines()[-1])
-        except (OSError, ValueError, IndexError, subprocess.SubprocessError):
-            pass
+            try:
+                answer = json.loads(proc.stdout.strip().splitlines()[-1])
+            except (ValueError, IndexError):
+                # a silently broken pre-check must be visible: the tail of the child's stderr (no env, no secrets)
+                tail = (proc.stderr or "")[-300:].strip()
+                self.notes.append(f"{name}: unreadable pre-check output (exit {proc.returncode}): {tail}"[:400])
+                print(self.notes[-1], flush=True)
+        except (OSError, subprocess.SubprocessError) as e:
+            self.notes.append(f"{name}: pre-check could not run: {type(e).__name__}")
+            print(self.notes[-1], flush=True)
         if answer.get("status") == "fail":
             return str(answer.get("message") or "the compiler rejected the program")[:600]
         if answer.get("status") != "ok":
             self.unknown += 1
+            if answer.get("message"):
+                self.notes.append(f"{name}: not checked: {str(answer['message'])[:200]}")
+            if self.unknown >= 2:
+                self.stopped = "the sandbox did not answer twice (busy, unreachable or failed); the rest proceed unchecked"
+                print(f"precheck stopped: {self.stopped}", flush=True)
         return None
 
 
@@ -321,8 +341,9 @@ def main(argv: list[str] | None = None) -> int:
             from . import public
 
             lim = public.limits()
-            report["programs"], skipped = _visitor_caps(
-                report["programs"], samples, CompilePrecheck(samples, lim["maxPrecheck"], lim["precheckSeconds"]))
+            pre = CompilePrecheck(samples, lim["maxPrecheck"], lim["precheckSeconds"])
+            report["programs"], skipped = _visitor_caps(report["programs"], samples, pre)
+            progress.state["precheck"] = pre.record()
         max_programs = int(os.environ.get("DIOCLE_MAX_PROGRAMS", "10"))  # rule 10: bound spend per delivery
         if len(report["programs"]) > max_programs:
             raise SystemExit(f"{len(report['programs'])} programs exceed DIOCLE_MAX_PROGRAMS={max_programs}; "

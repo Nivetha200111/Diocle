@@ -107,7 +107,7 @@ def test_garbage_or_crashes_count_as_no_answer(tmp_path, monkeypatch):
     keep, _, fake = run(tmp_path, monkeypatch, ["A", "B", "C"], answers)
     assert keep == ["A", "B", "C"]
     programs = make_samples(tmp_path, ["Z"])
-    monkeypatch.setattr(deliver.subprocess, "run", lambda *a, **k: SimpleNamespace(stdout="not json", returncode=1))
+    monkeypatch.setattr(deliver.subprocess, "run", lambda *a, **k: SimpleNamespace(stdout="not json", stderr="", returncode=1))
     assert deliver.CompilePrecheck(tmp_path, 3, 10).failure("Z") is None
 
 
@@ -126,3 +126,24 @@ def test_no_precheck_object_keeps_the_old_behaviour(tmp_path):
     programs = make_samples(tmp_path, list("ABCD"))
     keep, skipped = deliver._visitor_caps(programs, tmp_path)
     assert [p["name"] for p in keep] == ["A", "B", "C"] and len(skipped) == 1
+
+
+def test_an_unreadable_precheck_is_logged_with_the_stderr_tail_and_recorded(tmp_path, monkeypatch, capsys):
+    make_samples(tmp_path, ["Z"])
+    monkeypatch.setattr(deliver.subprocess, "run", lambda *a, **k: SimpleNamespace(
+        stdout="", stderr="Traceback ...\nModuleNotFoundError: No module named 'diocle_verifier'\n", returncode=1))
+    pre = deliver.CompilePrecheck(tmp_path, 3, 10)
+    assert pre.failure("Z") is None
+    assert "ModuleNotFoundError" in capsys.readouterr().out
+    assert "ModuleNotFoundError" in pre.record()["notes"][0] and pre.record()["checked"] == 1
+
+
+def test_stopping_after_two_unknowns_is_visible_with_its_reason(tmp_path, monkeypatch):
+    unknown = {"status": "unknown", "message": "the sandbox was busy"}
+    names = ["A", "B", "C"]
+    programs = make_samples(tmp_path, names)
+    monkeypatch.setattr(deliver.subprocess, "run", FakeVerifier({n: unknown for n in names}))
+    pre = deliver.CompilePrecheck(tmp_path, 12, 240)
+    deliver._visitor_caps(programs, tmp_path, pre)
+    rec = pre.record()
+    assert rec["checked"] == 2 and "did not answer twice" in rec["stopped"] and any("busy" in n for n in rec["notes"])
