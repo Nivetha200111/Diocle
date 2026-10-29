@@ -54,7 +54,7 @@ target/
 *.log
 
 # Diocle run outputs (generated Java, events, reports)
-runs/
+/runs/
 .next-hosted/
 .next-export/
 out/
