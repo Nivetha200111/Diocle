@@ -80,6 +80,7 @@ await page.screenshot({ path: path.join(OUT, "ci.png"), clip: { x: box.x - 70, y
 console.log("captured ci");
 await page.goto("https://github.com/Nivetha200111/Diocle/blob/main/docs/EVALUATION.md", { waitUntil: "load" });
 await shot(page.locator("article table").first(), "eval-table");
+await shot(page.locator("article table").nth(2), "eval-rerun");  // tables: first run, comparator check, re-run
 
 await browser.close();
 

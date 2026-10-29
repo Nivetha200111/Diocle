@@ -90,7 +90,7 @@ const Outro: React.FC<{ frame: number }> = ({ frame }) => {
       </div>
       <div style={{ fontFamily: mono, fontSize: 40, color: C.ink, opacity: p(18), marginTop: 10 }}>diocle.vercel.app · github.com/Nivetha200111/Diocle</div>
       <div style={{ fontFamily: pixel, fontSize: 36, color: C.muted, letterSpacing: 2, opacity: p(28) }}>
-        BUILT OCT 27 – NOV 4, 2026 AT THE META AI DEVELOPER HACKATHON · META MUSE SPARK
+        BUILT DURING THE META AI DEVELOPER HACKATHON, FROM OCT 27, 2026 · META MUSE SPARK
       </div>
     </AbsoluteFill>
   );

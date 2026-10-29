@@ -23,7 +23,7 @@ const PARTS: { C: React.FC; frames: number; enter?: "fade" | "slide" }[] = [
   { C: () => <ClickDemoWide outro={false} music={false} />, frames: wideFramesNoOutro, enter: "fade" },
   { C: PrivateMode, frames: s(8), enter: "slide" },
   { C: Honest, frames: s(10), enter: "slide" },
-  { C: Impact, frames: s(9), enter: "fade" },
+  { C: Impact, frames: s(22), enter: "fade" },
   { C: TryNow, frames: s(8), enter: "fade" },
 ];
 export const submissionFrames = PARTS.reduce((sum, p) => sum + p.frames, 0) - T * (PARTS.length - 1);

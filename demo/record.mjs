@@ -102,7 +102,7 @@ const SHOTS = {
   async title(page) {
     await card(page, "Diocle", [
       "AI writes the code. Diocle checks it against the original.",
-      "Built Oct 27 to Nov 4, 2026, during the Meta Global AI Developer Hackathon.",
+      "Built during the Meta Global AI Developer Hackathon, starting Oct 27, 2026.",
     ]);
   },
 
@@ -206,7 +206,7 @@ const SHOTS = {
 
   async closing(page) {
     await card(page, "Diocle", [
-      "Everything shown was built during the hackathon (Oct 27 to Nov 4, 2026).",
+      "Everything shown was built during the hackathon, starting Oct 27, 2026.",
       "Meta Muse Spark: translator, repair agent, breaker agent.",
       "diocle.vercel.app · github.com/Nivetha200111/Diocle",
     ]);

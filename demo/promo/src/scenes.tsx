@@ -34,7 +34,7 @@ export const Brand: React.FC = () => {
           <span style={{ color: C.blue }}>◆</span> diocle<span style={{ color: C.phosphor }}>.</span>
         </div>
         <Kinetic text="AI writes the code. Diocle checks it against the original." size={46} weight={600} delay={18} stagger={3} />
-        <Label delay={50} color={C.muted}>Built Oct 27 – Nov 4, 2026 · Meta Global AI Developer Hackathon</Label>
+        <Label delay={50} color={C.muted}>Built during the Meta Global AI Developer Hackathon · from Oct 27, 2026</Label>
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -320,14 +320,15 @@ export const Honest: React.FC = () => (
       <Kinetic text="Frozen evaluation on unseen programs. Failures published." size={56} />
     </div>
     <div style={{ position: "absolute", left: 120, top: 270 }}>
-      <Window title="docs/EVALUATION.md" width={1080} delay={15}>
+      <Window title="docs/EVALUATION.md · first run, then the re-run" width={1080} delay={15}>
         <Capture src="eval-table.png" />
+        <Capture src="eval-rerun.png" />
       </Window>
     </div>
     <div style={{ position: "absolute", left: 1260, top: 290, width: 560, display: "flex", flexDirection: "column", gap: 26 }}>
       <Kinetic text="An outside review found our comparator too lenient." size={34} weight={600} delay={70} stagger={2} />
-      <Kinetic text="The stricter check caught a sign-of-zero bug we had shipped." size={34} weight={600} color={C.amber} delay={120} stagger={2} />
-      <Kinetic text="Fixed, re-delivered, and published." size={34} weight={600} color={C.phosphor} delay={170} stagger={2} />
+      <Kinetic text="The stricter check caught a sign-of-zero bug we had shipped. Fixed and re-delivered." size={34} weight={600} color={C.amber} delay={120} stagger={2} />
+      <Kinetic text="Re-run on the same unseen programs: 4 of 4 certified." size={34} weight={600} color={C.phosphor} delay={180} stagger={2} />
     </div>
   </AbsoluteFill>
 );
@@ -342,7 +343,7 @@ export const Outro: React.FC = () => (
       <Kinetic text="AI writes the code. Diocle checks it." size={52} weight={600} delay={10} />
       <Label delay={40}>Meta Muse Spark · translator · repair agent · breaker</Label>
       <div style={{ fontFamily: mono, fontSize: 32, color: C.ink, opacity: useEnter(60) }}>diocle.vercel.app · github.com/Nivetha200111/Diocle</div>
-      <Label delay={80} color={C.muted}>Everything shown was built Oct 27 – Nov 4, 2026, during the hackathon</Label>
+      <Label delay={80} color={C.muted}>Everything shown was built during the hackathon, starting Oct 27, 2026</Label>
     </AbsoluteFill>
   </AbsoluteFill>
 );
@@ -425,27 +426,62 @@ export const PrivateMode: React.FC = () => (
   </AbsoluteFill>
 );
 
+// Impact in four beats: the bottleneck, the stake, the change, and honest limits with what comes next.
+const ImpactBeat: React.FC<{ from: number; to: number; children: React.ReactNode }> = ({ from, to, children }) => {
+  const frame = useCurrentFrame();
+  if (frame < from || frame >= to) return null;
+  const p = useEnter(from, 16);
+  const out = interpolate(frame, [to - 8, to], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return <AbsoluteFill style={{ ...pad, gap: 26, opacity: p * out, transform: `translateY(${(1 - p) * 30}px)` }}>{children}</AbsoluteFill>;
+};
+
 export const Impact: React.FC = () => (
   <AbsoluteFill>
     <Backdrop tint={C.blue} />
-    <div style={{ position: "absolute", left: 120, top: 100 }}><Label>Who it's for</Label></div>
-    <div style={{ position: "absolute", left: 120, right: 120, top: 200, display: "flex", gap: 50 }}>
-      <div style={{ flex: 1, opacity: useEnter(10), padding: 44, border: `2px solid ${C.muted}55`, borderRadius: 18, background: "#0b1626" }}>
-        <div style={{ fontFamily: pixel, fontSize: 34, color: C.muted }}>TODAY</div>
-        <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 52, color: C.ink, marginTop: 14, lineHeight: 1.15 }}>
-          Hundreds of people re-check converted code by hand, and still miss bugs.</div>
+    <ImpactBeat from={0} to={150}>
+      <Label color={C.amber}>The bottleneck</Label>
+      <Kinetic text="Few developers know COBOL." size={84} delay={6} />
+      <Kinetic text="So teams retrain Java developers in COBOL, and that takes months." size={54} weight={600} color={C.muted} delay={30} stagger={3} />
+      <Kinetic text="Diocle checks the Java against the COBOL instead." size={54} weight={700} color={C.phosphor} delay={80} stagger={3} />
+    </ImpactBeat>
+    <ImpactBeat from={150} to={270}>
+      <Label color={C.red}>The stake</Label>
+      <Kinetic text="A wrong cent in a fee or interest rule" size={76} />
+      <Kinetic text="repeats on every account it touches." size={76} color={C.red} delay={20} />
+    </ImpactBeat>
+    <ImpactBeat from={270} to={450}>
+      <div style={{ display: "flex", gap: 50 }}>
+        <div style={{ flex: 1, padding: 44, border: `2px solid ${C.muted}55`, borderRadius: 18, background: "#0b1626" }}>
+          <div style={{ fontFamily: pixel, fontSize: 34, color: C.muted }}>TODAY</div>
+          <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 50, color: C.ink, marginTop: 14, lineHeight: 1.15 }}>
+            People re-check converted code by hand, and still miss bugs.</div>
+        </div>
+        <div style={{ flex: 1, padding: 44, border: `2px solid ${C.phosphor}`, borderRadius: 18, background: "#0b1f17", boxShadow: `0 0 60px ${C.phosphor}33` }}>
+          <div style={{ fontFamily: pixel, fontSize: 34, color: C.phosphor }}>WITH DIOCLE</div>
+          <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 50, color: C.ink, marginTop: 14, lineHeight: 1.15 }}>
+            Every program arrives with proof anyone can re-run in seconds.</div>
+        </div>
       </div>
-      <div style={{ flex: 1, opacity: useEnter(40), padding: 44, border: `2px solid ${C.phosphor}`, borderRadius: 18, background: "#0b1f17",
-        boxShadow: `0 0 60px ${C.phosphor}33` }}>
-        <div style={{ fontFamily: pixel, fontSize: 34, color: C.phosphor }}>WITH DIOCLE</div>
-        <div style={{ fontFamily: sans, fontWeight: 700, fontSize: 52, color: C.ink, marginTop: 14, lineHeight: 1.15 }}>
-          Every program arrives with proof anyone can re-run in seconds.</div>
+      <div style={{ display: "flex", gap: 22 }}>
+        <Pill color={C.phosphor} delay={300} size={30}>${data.chqclr.costUsd.toFixed(2)} of model spend for CHQCLR</Pill>
+        <Pill color={C.blue} delay={315} size={30}>for modernisation teams at banks and insurers</Pill>
       </div>
-    </div>
-    <div style={{ position: "absolute", left: 120, top: 760, display: "flex", gap: 22 }}>
-      <Pill color={C.phosphor} delay={80} size={30}>${data.chqclr.costUsd.toFixed(2)} of model spend for CHQCLR</Pill>
-      <Pill color={C.blue} delay={95} size={30}>for modernisation teams at banks and insurers</Pill>
-    </div>
+    </ImpactBeat>
+    <ImpactBeat from={450} to={660}>
+      <Label color={C.teal}>Honest scope</Label>
+      <div style={{ display: "flex", gap: 50 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: pixel, fontSize: 34, color: C.phosphor }}>WORKS TODAY</div>
+          <div style={{ fontFamily: sans, fontSize: 38, color: C.ink, lineHeight: 1.35, marginTop: 12 }}>
+            Batch COBOL with files, checked against GnuCOBOL. Online (CICS), DB2 and VSAM programs are reported, not converted.</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: pixel, fontSize: 34, color: C.blue }}>NEXT</div>
+          <div style={{ fontFamily: sans, fontSize: 38, color: C.ink, lineHeight: 1.35, marginTop: 12 }}>
+            Real mainframe output as the judge. Adapters for CICS and DB2. A pilot with one modernisation team.</div>
+        </div>
+      </div>
+    </ImpactBeat>
   </AbsoluteFill>
 );
 
@@ -458,7 +494,7 @@ export const TryNow: React.FC = () => (
       </div>
       <Kinetic text="AI writes the code. Diocle checks it." size={60} weight={700} delay={8} />
       <div style={{ marginTop: 18 }}><Pill color={C.phosphor} delay={30} size={40}>Try it now: paste a COBOL repo at diocle.vercel.app</Pill></div>
-      <Label delay={50} color={C.muted}>Everything shown was built Oct 27 – Nov 4, 2026, during the hackathon · github.com/Nivetha200111/Diocle</Label>
+      <Label delay={50} color={C.muted}>Everything shown was built during the hackathon, starting Oct 27, 2026 · github.com/Nivetha200111/Diocle</Label>
     </AbsoluteFill>
     <Footnote delay={60}>Narration: synthetic voice (Kokoro, Apache 2.0).</Footnote>
   </AbsoluteFill>
