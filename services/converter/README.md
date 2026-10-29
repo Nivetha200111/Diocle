@@ -42,7 +42,7 @@ Result: run.json `crosscheck` (run contract v0.10), its calls appear in the run'
 
 ## Printout intake (`transcribe`): photo of a listing to COBOL
 
-`python -m diocle_converter transcribe IMAGE --out SAMPLE_DIR [--against ORIGINAL_SAMPLE]` (`vision.py`, record contract
+`python -m diocle_converter transcribe IMAGE --out SAMPLE_DIR [--against ORIGINAL_SAMPLE [--run-model-code]]` (`vision.py`, record contract
 `contracts/transcription.schema.json` v0.1). A vision model reads a PNG/JPEG (at most 2 MB, judged by its bytes) of a
 fixed-format COBOL listing and writes the source to `SAMPLE_DIR/src/<PROGRAM-ID>.cbl`; `transcription.json` records the model,
 tokens, cost, attempts and both gate results. **Off unless `VISION_MODEL_ID` is set** (we use Meta's `muse-wonder-1.0`, on the
@@ -50,7 +50,7 @@ same Meta Model API key: `VISION_MODEL_BASE_URL`/`VISION_MODEL_API_KEY` fall bac
 judge:
 1. **Compile gate:** `cobc -fsyntax-only -std=ibm` with the verifier's IBM flags, locally. A failure sends the compiler errors back once
    more (the same image, the previous answer and the errors); there is no other re-prompt.
-2. **Differential gate** (needs `--against`): the transcription and the original are both built with GnuCOBOL and run on the same
+2. **Differential gate** (needs `--against` and `--run-model-code`): the transcription and the original are both built with GnuCOBOL and run on the same
    1,013 generated inputs (the verifier's generator and comparator, seed 1026); output records, stdout and exit code must match.
    A mismatch is reported as status `differs`, never hidden or "repaired" by the model. The original's copybooks are copied
    into `SAMPLE_DIR` (they are not on the printout) and a `sample.json` without any Java is written.
@@ -61,18 +61,33 @@ logged with tokens and cost. Muse Wonder's reasoning tokens bill as output ($20/
 is `low` (`VISION_REASONING_EFFORT`). The compile check runs the local `cobc` on text a model wrote: this is the CLI path for our own
 synthetic printouts, not a designed engine/API path (compiling untrusted text would belong in the sandbox).
 
-**Safety and limits of the gates (reviewed).** `--against` **builds and runs model-written COBOL on the host** with plain
-subprocesses (no sandbox; each run limited to 120 s, the compile to 60 s): use it only for our own synthetic printouts on a dev
-machine, never for text from strangers. A small deny-list refuses (status `refused`, never compiled, run or written, no
-further calls) a transcription containing `CALL 'SYSTEM'`, any `CBL_*` or `C$*` routine, a `CALL` of an identifier, or a
-`CALL` of a program not listed in the original's `sample.json` `modules` (comment lines are skipped); it is a speed bump, not
-a sandbox. `--out` must be new or empty and must not overlap `--against` (refused, 0 calls, nothing written); the original is also
-snapshotted into a temp directory before anything is written and the differential uses the snapshot. `verified-identical` needs at
-least one compared output record (or non-empty stdout): an original that writes nothing gives `compiled-unchecked`. A timeout in
-the compile or a run is reported (`compile-failed`, or a differential with `ran: false` and status `compiled-unchecked`).
-Exit codes of `transcribe`: 0 only for `verified-identical`; 2 `compiled-unchecked`, 3 `differs`, 4 `compile-failed`, 5 `refused`, 6 `no-transcription`.
+**Safety and limits of the gates (reviewed twice).**
+- **Running model-written COBOL is opt-in.** `--against` alone does the compile check and the refusal scan, then stops at
+  `compiled-unchecked` ("running model-written COBOL on this machine needs --run-model-code"). Only `--run-model-code`
+  (`run_model_code=True`) builds and **executes the transcription on this machine** (a one-line warning is printed). Use it only for
+  our own synthetic printouts on a dev machine, never for text from strangers; each program run is limited to 120 s, the compile to 60 s.
+- **The refusal scan is a best-effort filter and NOT a security boundary.** Before anything is compiled the text must be plain
+  fixed format (no tabs, no compiler directives such as `>>SOURCE FORMAT IS FREE` or `$ SET`, columns 1-6 blank or digits, column 7
+  one of blank `*` `/` `-`, nothing after column 72); it must not contain `CALL 'SYSTEM'`, any `CBL_*` or `C$*` routine, a `CALL` of an
+  identifier or of a program not listed in the original's `modules`; with `--against`, `ASSIGN TO` may name only the original's DD names
+  (no paths or literals) and `COPY` only the original's own copybooks. A refusal is status `refused`: never compiled, run or
+  written, no further model calls. A determined model can still build names or behaviour at run time in ways no deny-list sees.
+- **macOS defense in depth:** where `sandbox-exec` exists, the transcription's executable (only that, not cobc and not the original)
+  runs under a profile that denies network, denies file writes outside its own work directory (plus `/dev/null` and the tty) and denies
+  executing anything but itself (`differential.sandbox` says `sandbox-exec`; elsewhere `none`). It does NOT limit reads (the GnuCOBOL
+  runtime and the input are read from all over the disk, so file contents can still be read), CPU or memory (only the 120 s timeout),
+  and `sandbox-exec` is deprecated by Apple. The compile step runs `cobc` unsandboxed on the scanned text.
+- `--out` must be new or empty, not a symbolic link, and must not overlap `--against` (refused, 0 calls, nothing written); the
+  original is also snapshotted into a temp directory before anything is written and the differential uses the snapshot. The original's
+  copybooks are copied to `SAMPLE_DIR/copybooks` (never a name that could collide) and `sample.json` points there; the original's
+  `modules`, if any, are not copied.
+- `verified-identical` needs something actually compared: at least one output record, or a non-empty stdout (a DISPLAY-only original, with
+  one input file and no output file, is compared on stdout and exit code). Otherwise `compiled-unchecked`. A timeout, a missing `cobc` or an
+  unusable `sample.json` is reported (`compile-failed`, a differential with `ran: false` and `compiled-unchecked`, or `refused`) and
+  `transcription.json` is still written.
+- Exit codes of `transcribe`: 0 only for `verified-identical`; 2 `compiled-unchecked`, 3 `differs`, 4 `compile-failed`, 5 `refused`, 6 `no-transcription`.
 
-Proven once, on one synthetic printout (`samples/loyalty-waiver-printout`, rendered from `samples/loyalty-waiver` by
+Proven once, on one synthetic printout, before the opt-in and sandbox layers existed (`samples/loyalty-waiver-printout`, rendered from `samples/loyalty-waiver` by
 `demo/render-listing.py`): Wonder accepted the image part, transcribed 44 lines in one call (1,586 in / 3,018 out tokens
 including 2,596 reasoning, $0.067), it compiled first time and matched the original on 1,013 of 1,013 inputs. **Not proven:** that this
 holds for other printouts, photos (this image is clean, rendered, not a camera shot), other fonts, long programs or handwriting. The
