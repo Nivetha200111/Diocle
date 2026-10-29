@@ -118,7 +118,12 @@ def remote_compile(sample_dir: Path, wait: float | None = None):
     if not isinstance(answer, dict) or answer.get("status") not in ("ok", "fail") or not isinstance(answer.get("message", ""), str):
         raise ValueError("the sandbox answered with something that is not a compile check")
     # Whatever came back is shown to people and to nobody else: paths reduced again, size bounded again.
-    return CompileCheck(answer["status"], clean_message(answer.get("message", "")) if answer["status"] == "fail" else "")
+    if answer["status"] == "ok":
+        return CompileCheck("ok")
+    message = clean_message(answer.get("message", ""))  # filtered again: only cobc diagnostics, whatever the sandbox sent
+    if not message:
+        raise ValueError("the sandbox reported a failure without a compiler diagnostic")
+    return CompileCheck("fail", message)
 
 
 # --- server side (the sandbox container) ---------------------------------------------------------------------

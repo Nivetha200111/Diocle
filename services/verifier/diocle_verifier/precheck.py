@@ -34,12 +34,29 @@ class CompileCheck:
         return {"version": VERSION, "status": self.status, "message": self.message}
 
 
+_DIAG = re.compile(r"^([^\s|>]+):(\d+): error: (.*)$")
+_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+_UNEXPECTED = re.compile(r"unexpected (\S+)")
+_WORD = re.compile(r"^[A-Z][A-Z0-9-]{1,30}$")
+
+
 def clean_message(text: str) -> str:
-    """Compiler output for people: absolute paths reduced to file names, bounded in size and lines."""
-    text = _PATH.sub(lambda m: m.group(0).rstrip("/").rsplit("/", 1)[-1], text.replace("\r", ""))
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    errors = [ln for ln in lines if "error" in ln.lower()] or lines
-    return " | ".join(errors[:4])[:MAX_MESSAGE]
+    """Only cobc's own diagnostics, `file:line: error: text`, and nothing else. cobc also echoes context lines of any
+    file the source COPYs (even an absolute path), so such lines, 'warning' lines and every unrecognised line are
+    dropped. Inside a kept line, quoted text is replaced by '...', an 'unexpected X' keeps X only when it looks
+    like a COBOL word, absolute paths are reduced to file names, and the whole is bounded. Idempotent: the output
+    (entries joined by ' | ') passes through again unchanged, which the client relies on."""
+    kept = []
+    for raw in re.split(r"\r?\n| \| ", text):
+        m = _DIAG.match(_PATH.sub(lambda g: g.group(0).rstrip("/").rsplit("/", 1)[-1], raw.strip()))
+        if not m:
+            continue
+        name, line, body = m.groups()
+        body = _QUOTED.sub("'...'", body)
+        body = _UNEXPECTED.sub(lambda u: u.group(0) if _WORD.match(u.group(1)) or u.group(1) == "'...'" else "unexpected ...", body)
+        body = "".join(c for c in body if " " <= c <= "~")[:160]
+        kept.append(f"{name.rsplit('/', 1)[-1][:60]}:{line}: error: {body}")
+    return " | ".join(kept[:4])[:MAX_MESSAGE]
 
 
 def compile_local(sample_dir: Path) -> CompileCheck:
@@ -52,10 +69,12 @@ def compile_local(sample_dir: Path) -> CompileCheck:
                                     [sample_dir / m for m in meta.get("modules", [])], meta.get("collation", "ascii"),
                                     timeout=COMPILE_TIMEOUT)
         except subprocess.TimeoutExpired:
-            return CompileCheck("fail", f"compiling took longer than {COMPILE_TIMEOUT} seconds")
+            return CompileCheck("unknown", f"compiling took longer than {COMPILE_TIMEOUT} seconds")
     if failed is None:
         return CompileCheck("ok")
-    return CompileCheck("fail", clean_message(failed.stderr + "\n" + failed.stdout) or "the compiler rejected the program")
+    # "fail" only when cobc itself says why. A killed gcc, a full tmpfs, the pids limit or silence prove nothing.
+    message = clean_message(failed.stderr + "\n" + failed.stdout) if (failed.exit_code or 0) > 0 else ""
+    return CompileCheck("fail", message) if message else CompileCheck("unknown", "the compiler failed without a diagnostic")
 
 
 def compile_original(sample_dir: Path, wait: float | None = None) -> CompileCheck:
