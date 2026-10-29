@@ -145,7 +145,7 @@ def test_differential_mismatch_is_reported_not_hidden(tmp_path):
     img, settings, client, sdk = setup(tmp_path, [COBOL])
     fake = lambda against, src, **k: {"against": str(against), "ran": True, "seed": 1, "inputs": 1013, "matched": 1010,
                                       "mismatched": 3, "stdoutMatch": True, "exitCodeMatch": True, "firstMismatches": []}
-    record = transcribe(img, tmp_path / "out", settings=settings, client=client, check=OK, against=LOYALTY, diff=fake,
+    record = transcribe(img, tmp_path / "out", settings=settings, client=client, check=OK, against=LOYALTY, run_model_code=True, diff=fake,
                         log=lambda m: None)
     assert record["status"] == "differs" and record["differential"]["mismatched"] == 3
     assert not (tmp_path / "out" / "sample.json").read_text().count("javaConversion")
@@ -155,7 +155,7 @@ def test_differential_mismatch_is_reported_not_hidden(tmp_path):
 def test_differential_that_cannot_run_is_not_verified(tmp_path):
     img, settings, client, sdk = setup(tmp_path, [COBOL])
     fake = lambda against, src, **k: {"against": str(against), "ran": False, "inputs": 0, "matched": 0, "mismatched": 0, "reason": "multi-file"}
-    record = transcribe(img, tmp_path / "out", settings=settings, client=client, check=OK, against=LOYALTY, diff=fake,
+    record = transcribe(img, tmp_path / "out", settings=settings, client=client, check=OK, against=LOYALTY, run_model_code=True, diff=fake,
                         log=lambda m: None)
     assert record["status"] == "compiled-unchecked" and "multi-file" in record["reason"]
     valid(record)
@@ -175,7 +175,7 @@ def test_real_gates_identical_and_mutated(tmp_path):
     original = (LOYALTY / "src" / "LOYWAIVE.cbl").read_text()
     out = tmp_path / "out"
     img, settings, client, _ = setup(tmp_path, [f"```cobol\n{original}```"])
-    record = transcribe(img, out, settings=settings, client=client, against=LOYALTY, log=lambda m: None)
+    record = transcribe(img, out, settings=settings, client=client, against=LOYALTY, run_model_code=True, log=lambda m: None)
     assert record["compile"]["ok"], record["compile"]
     assert record["status"] == "verified-identical" and record["differential"]["inputs"] >= 1000
     assert record["differential"]["matched"] == record["differential"]["inputs"]

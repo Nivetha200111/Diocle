@@ -10,7 +10,7 @@
     "status": {
       "type": "string",
       "enum": ["verified-identical", "differs", "compiled-unchecked", "compile-failed", "no-transcription", "refused"],
-      "description": "verified-identical: compiled and every differential input matched byte for byte. differs: compiled but the differential found a mismatch (reported, never hidden). compiled-unchecked: compiled but no original was supplied, so correctness is NOT established. compile-failed: still not valid COBOL after the last attempt. no-transcription: the model returned no usable text. refused: the feature is off, the image or --out was rejected before any call, or the transcription contained a CALL the deny-list forbids (it is then never compiled, run or written)."
+      "description": "verified-identical: compiled and every differential input matched byte for byte. differs: compiled but the differential found a mismatch (reported, never hidden). compiled-unchecked: compiled but not checked against the original (none supplied, running model code was not opted into, or the differential could not run), so correctness is NOT established. compile-failed: still not valid COBOL after the last attempt. no-transcription: the model returned no usable text. refused: the feature is off, the image or --out was rejected before any call, or the transcription failed the refusal scan (directives, tabs, free format, forbidden CALL, ASSIGN/COPY of anything but the original's names) (it is then never compiled, run or written)."
     },
     "reason": { "type": ["string", "null"], "description": "Why for refused / compile-failed / no-transcription / a differential that could not run" },
     "image": {
@@ -76,6 +76,8 @@
             "seed": { "type": "integer" },
             "inputs": { "type": "integer" },
             "outputRecords": { "type": "integer", "description": "Output records the original wrote; verified-identical needs at least one (or non-empty stdout), otherwise ran is false" },
+            "stdoutCompared": { "type": "boolean", "description": "The original's stdout was non-empty, so it counts as compared (a DISPLAY-only original has outputRecords 0)" },
+            "sandbox": { "type": "string", "enum": ["sandbox-exec", "none"], "description": "Whether the transcription's executable ran under a macOS sandbox-exec profile" },
             "matched": { "type": "integer" },
             "mismatched": { "type": "integer" },
             "stdoutMatch": { "type": "boolean" },

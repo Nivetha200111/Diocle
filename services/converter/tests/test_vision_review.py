@@ -52,7 +52,7 @@ def test_original_is_snapshotted_before_anything_is_written(tmp_path):
 
     text = (orig / "src" / "LOYWAIVE.cbl").read_text()
     img, settings, client, _ = setup(tmp_path, [f"```cobol\n{text}```"])
-    record = transcribe(img, tmp_path / "new", settings=settings, client=client, against=orig, diff=spy, log=lambda m: None)
+    record = transcribe(img, tmp_path / "new", settings=settings, client=client, against=orig, run_model_code=True, diff=spy, log=lambda m: None)
     assert seen["against"] != orig and record["differential"]["against"] == str(orig)
     assert record["status"] == "verified-identical"
 
@@ -88,7 +88,7 @@ def test_vacuous_pass_is_not_verified(tmp_path):
     assert "CONTINUE." in quiet
     (orig / "src" / "LOYWAIVE.cbl").write_text(quiet)
     img, settings, client, _ = setup(tmp_path, [f"```cobol\n{quiet}```"])
-    record = transcribe(img, tmp_path / "new", settings=settings, client=client, against=orig, log=lambda m: None)
+    record = transcribe(img, tmp_path / "new", settings=settings, client=client, against=orig, run_model_code=True, log=lambda m: None)
     assert record["status"] == "compiled-unchecked" and "nothing to compare" in record["reason"]
     assert record["differential"]["ran"] is False
     valid(record)
@@ -101,7 +101,7 @@ def test_infinite_loop_times_out_and_is_reported(tmp_path):
                            "           PERFORM UNTIL 1 = 2\n               CONTINUE\n           END-PERFORM\n           STOP RUN.")
     assert looping != orig
     img, settings, client, _ = setup(tmp_path, [f"```cobol\n{looping}```"])
-    record = transcribe(img, tmp_path / "new", settings=settings, client=client, against=LOYALTY, timeout=3,
+    record = transcribe(img, tmp_path / "new", settings=settings, client=client, against=LOYALTY, run_model_code=True, timeout=3,
                         log=lambda m: None)
     assert record["status"] == "compiled-unchecked" and record["differential"]["ran"] is False
     assert "timed out" in record["differential"]["reason"] and (tmp_path / "new" / "transcription.json").exists()

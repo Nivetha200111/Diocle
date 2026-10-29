@@ -100,6 +100,9 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("image", type=Path, help="PNG or JPEG, at most 2 MB")
     tr.add_argument("--out", type=Path, required=True, help="sample directory to write (src/*.cbl, transcription.json)")
     tr.add_argument("--against", type=Path, help="the original sample to prove the transcription identical to")
+    tr.add_argument("--run-model-code", action="store_true", help="allow the differential to BUILD AND RUN the model-written "
+                    "COBOL on this machine (macOS: under sandbox-exec). Off by default: without it the best status is "
+                    "compiled-unchecked. Only for our own synthetic printouts on a dev machine.")
     job_parser = sub.add_parser("run-job")
     job_parser.add_argument("sample_dir", type=Path)
     args = parser.parse_args(argv)
@@ -168,7 +171,7 @@ def _transcribe(args) -> int:
 
     settings = Settings.vision_from_env()
     print(f"vision model: {settings.model if settings else 'off (VISION_MODEL_ID is empty)'}")
-    record = transcribe(args.image, args.out, settings=settings, against=args.against)
+    record = transcribe(args.image, args.out, settings=settings, against=args.against, run_model_code=args.run_model_code)
     cost = record["usage"]["estimatedCostUsd"]
     print(f"status: {record['status']}" + (f" ({record['reason']})" if record.get("reason") else ""))
     print(f"calls: {record['usage']['calls']}, cost: " + ("n/a" if cost is None else f"${cost:.4f}"))
