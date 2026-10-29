@@ -123,6 +123,8 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 - Prizes: post the vertical cut on **X** right after submitting (Most Viral counts engagement until Nov 8).
 
 ## Open work (priority order)
+- **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (dependencies: display-only and I-O programs,
+  whole JCL jobs, copybook to SQL schema, then DB2 if time). Do it on the Mac; deploy the engine first.
 0. Deploy the engine (above), then re-shoot the video against the new front page. After submitting: freeze deploys
    until judging ends (Nov 5-9), add an uptime monitor, and watch that visitor imports don't drain the credits.
 1. Watch visitor imports (spend in `/api/config`, deliveries list); finish the two in-flight jobs above.

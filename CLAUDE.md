@@ -32,6 +32,37 @@ Diocle modernizes legacy COBOL for finance orgs: upload COBOL + copybooks, analy
 - **web**: dashboard renders real report data from the API; builds without errors; runs end to end for the demo.
 - **docs/samples**: synthetic only; docs match what is actually implemented.
 
+## Current priority (Oct 29 to Nov 1): dependencies, more versatile conversion
+The owner's goal for the last days before submission. Work on the Mac (GnuCOBOL 3.2 + JDK 21 are there; the Windows
+work laptop cannot compile or deploy). First: `deploy/update-engine.sh` (engine still lacks `GET /runs/{id}/source`).
+
+Where dependencies stand (from the code): copybooks (incl. COPY REPLACING) drive layouts and verification; static
+CALLs are followed transitively, translated together and linked into one GnuCOBOL executable; SELECT/FD/OPEN plus JCL
+(procs, symbolics, DD overrides) map files to datasets; match-merge and SORT USING/GIVING work; output formats stay
+byte-identical so downstream consumers are unaffected. Refused with a reason (`_not_convertible` in
+`services/analyzer/diocle_analyzer/analyze.py`): EXEC SQL/CICS/DLI, INDEXED/RELATIVE files, I-O files, dynamic CALL,
+CALLs to programs not in the repo, programs with no output file. Not done: converting the JCL job itself (step order,
+DFSORT/IDCAMS steps), copybook to SQL schema.
+
+Build in this order, each one proven by the same differential test (GnuCOBOL vs Java, byte for byte) before it counts,
+contract first (rule 2), with tests, README "Not supported yet" updated, and a reviewer-agent pass before pushing:
+1. **More programs convert (~0.5 day).** (a) Programs with no output file but DISPLAY output: compare stdout and exit
+   code (the verifier already records `stdoutMatch`). (b) Sequential files opened I-O (REWRITE): seed from generated
+   inputs, compare the final file contents. (c) `CALL identifier` where the identifier only ever holds literals
+   (VALUE clause, literal MOVEs): resolve statically in `cobol.py`, otherwise keep refusing. Measure on
+   github.com/openmainframeproject/cobol-programming-course (17 of 34 converted before).
+2. **Whole JCL job end to end (~1 day).** From `jcl.py` steps: convert every COBOL step, emulate SORT steps
+   (SORT FIELDS=), generate one Java pipeline that runs the steps in order through the same DD-to-file wiring, run the
+   whole job both ways and compare every final dataset. Show it as one certificate per job.
+3. **Copybook to SQL schema (~0.5 day, deterministic, no model).** DDL from the analyzer's layouts (packed and zoned
+   decimals to DECIMAL(p,s), REDEFINES and OCCURS stated explicitly), proven by a round trip: load generated records
+   into SQLite and write them back byte-identical. Fulfils the project goal above.
+4. **DB2 / EXEC SQL (~1.5-2 days, only if time remains).** COBOL through an SQL precompiler against PostgreSQL, Java
+   through JDBC, compare outputs and final table contents; needs a database inside the sandbox (security review).
+
+Do not break what works: re-run the six Quillmark programs and the eval programs after each step, keep the live
+demo (CHQCLR, Try the sample) green, and freeze deploys after submission (Nov 4, 9 PM ET = Nov 5, 7:30 AM IST).
+
 ## Session hand-off
 Work moves between machines, and local Claude memory does not travel. At the start of every session read
 `docs/HANDOFF.md`. As you build, keep it current: update "Current state", "Open work" and "Done recently"
