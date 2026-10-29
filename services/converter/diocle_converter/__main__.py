@@ -381,14 +381,20 @@ def _crosscheck(program, workspace, client, verify, agent, standing_cases, outco
         on_event({"type": "crosscheck", "message": f"Cross-check skipped: {reason}"})
         return outcome, {"skipped": reason}
 
-    cross_settings = settings.for_crosscheck()
+    try:
+        cross_settings = settings.for_crosscheck()
+    except ValueError:  # e.g. CROSSCHECK_MAX_CALLS=abc: a bonus check must not crash a certified run
+        return skip("invalid CROSSCHECK_* setting")
     if cross_settings is None:
         return skip("this run is already on the open model" if settings.mode == "private"
                     else "no CROSSCHECK_MODEL_* or OPEN_MODEL_* configured")
     meta = json.loads((program.sample_dir / "sample.json").read_text())
     if "layouts" not in meta:
         return skip("it designs single-file records, and this program has several files")
-    cross_client = ModelClient(cross_settings)
+    try:
+        cross_client = ModelClient(cross_settings)
+    except Exception as e:  # client construction (bad base URL etc.)
+        return skip(f"could not create the client ({type(e).__name__})")
     checker = make_crosschecker(program, workspace, cross_client, verify, meta["layouts"]["input"], on_event)
     on_event({"type": "stage", "stage": "attacking",
               "message": f"Independent cross-check by {cross_settings.model} ({cross_settings.mode} mode)"})

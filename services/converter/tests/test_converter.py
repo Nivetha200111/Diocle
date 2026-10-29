@@ -447,3 +447,12 @@ def test_crosscheck_is_skipped_when_unconfigured_and_never_breaks_a_certified_ru
     client = SimpleNamespace(calls=[])
     outcome, result = cli._crosscheck(program, None, client, None, None, [], certified, tmp_path, settings(), events.append)
     assert outcome["certified"] is True and result["skipped"] == "unavailable: RuntimeError"
+
+
+def test_a_bad_crosscheck_setting_skips_instead_of_crashing_a_certified_run(monkeypatch, tmp_path):
+    import diocle_converter.__main__ as cli
+    _env(monkeypatch, OPEN_MODEL_API_KEY="k", OPEN_MODEL_BASE_URL="u", OPEN_MODEL_ID="m", CROSSCHECK_MAX_CALLS="abc")
+    certified = {"certified": True, "lessons": []}
+    outcome, result = cli._crosscheck(SimpleNamespace(sample_dir=tmp_path), None, None, None, None, [], certified,
+                                      tmp_path, settings(), lambda e: None)
+    assert outcome is certified and result == {"skipped": "invalid CROSSCHECK_* setting"}
