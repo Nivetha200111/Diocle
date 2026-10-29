@@ -14,13 +14,19 @@ translation already passed differential testing against the original compiled wi
 you must not trust it. Read the COBOL and the Java side by side and find where they could disagree.
 
 Work in two steps.
-1. List risky edge cases as concrete input records: sign handling (negative values, zero, negative zero), COMPUTE ROUNDED
-   ties versus truncation, high-order overflow without ON SIZE ERROR, empty or all-space fields, boundary comparisons,
-   cumulative state across records, and malformed numeric content (spaces or letters in a numeric field).
+1. List risky edge cases as concrete input records: negative values and zero (only in fields marked signed), COMPUTE
+   ROUNDED ties versus truncation, values exactly at a field's maximum, boundary comparisons, empty or all-space text
+   fields, and cumulative state across records.
 2. For every field where you believe the Java diverges from the COBOL, name the field and say why in one sentence.
 
-Each field value is a plain string within the field's PIC size. Every case must name every field. Explain each case in
-one short sentence. If you cannot find a plausible divergence, say so with an empty "suspected" list; do not invent one.
+Hard rules for every case, or it is thrown away unrun:
+- Each numeric value must be a plain decimal number such as "-36.50" or "0.0500": no letters, no spaces, no empty string.
+- It must not exceed the field's stated integer digits or decimals; use the stated maximum itself rather than something
+  bigger. Never put a negative sign on a field marked unsigned. Overflow beyond the PIC cannot be expressed, so do not try.
+- Text values use printable ASCII only and stay within the field's length.
+- Every case names every field.
+Explain each case in one short sentence. If you cannot find a plausible divergence, say so with an empty "suspected"
+list; do not invent one.
 """
 
 SCHEMA = {
