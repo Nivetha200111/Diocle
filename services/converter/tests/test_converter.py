@@ -297,3 +297,63 @@ def test_translator_is_told_every_file_of_a_multi_file_program(tmp_path):
     translate(Program.load(SAMPLE.parent / "account-match"), ModelClient(settings(), _sdk=sdk), Workspace(tmp_path / "j"))
     system = sdk.requests[0]["messages"][0]["content"]
     assert "DD_MSTIN, DD_TXNIN" in system and "DD_NEWMST, DD_EXCOUT" in system
+
+
+# Real jobs[] entry for samples/account-match/jcl/QMKD010.jcl (services/analyzer's analyze() output,
+# copied verbatim -- see test_pipeline.py's JOB for how to reproduce it).
+JOB_FIXTURE = {
+    "name": "QMKD010", "member": "jcl/QMKD010.jcl",
+    "steps": [
+        {"step": "SORT005", "proc": None, "kind": "sort", "program": "SORT",
+         "dds": {"SORTIN": "QMK.PROD.TXN.DAILY", "SORTOUT": "QMK.PROD.TXN.SORTED",
+                 "SYSIN": "QMK.PROD.CNTLLIB(SORTTXN)"},
+         "sort": {"fields": [[1, 8, "CH", "A"]], "optionEquals": True, "unsupported": None},
+         "convertibleProgram": None, "notConvertibleReason": None},
+        {"step": "MTCH010", "proc": None, "kind": "cobol", "program": "ACCTMTCH",
+         "dds": {"MSTIN": "QMK.PROD.ACCT.MASTER(0)", "TXNIN": "QMK.PROD.TXN.SORTED",
+                 "NEWMST": "QMK.PROD.ACCT.MASTER(+1)", "EXCOUT": "QMK.PROD.TXN.EXCEPTIONS(+1)"},
+         "sort": None, "convertibleProgram": True, "notConvertibleReason": None},
+    ],
+    "wiring": [{"fromStep": "SORT005", "fromDd": "SORTOUT", "toStep": "MTCH010", "toDd": "TXNIN",
+                "dsn": "QMK.PROD.TXN.SORTED"}],
+    "convertible": True, "notConvertibleReason": None,
+}
+
+
+def test_run_job_translates_once_and_writes_a_job_pipelines_manifest(tmp_path, monkeypatch):
+    """run-job: one model call for the COBOL step (translate.py, unchanged), zero model calls for the SORT
+    step (sortgen.py), reusing the account-match sample as-is (jcl/SORTIN.txt, sample.json's fixtureFiles
+    seed MSTIN since no jcl/MSTIN.txt exists)."""
+    import diocle_converter.__main__ as cli
+
+    monkeypatch.setattr(cli, "_analyzer_jobs", lambda sample_dir: [JOB_FIXTURE])
+    monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
+
+    java_source = (SAMPLE.parent / "account-match" / "java-conversion" / "Acctmtch.java").read_text()
+    answer = json.dumps({"mainClass": "Acctmtch", "javaSource": java_source, "notes": "n"})
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=answer)])
+    client = ModelClient(settings(), _sdk=sdk)
+
+    rc = cli._run_job(SAMPLE.parent / "account-match", settings(), client)
+    assert rc == 0
+    assert len(sdk.requests) == 1  # exactly one model call: the COBOL step only
+
+    [run_dir] = tmp_path.glob("runs/account-match-job-*")
+    manifest = json.loads((run_dir / "job-pipeline.json").read_text())
+    [pipeline] = manifest["jobPipelines"]
+    assert pipeline["job"] == "QMKD010" and pipeline["driverClass"] == "Qmkd010Driver"
+    steps = {s["step"]: s for s in pipeline["steps"]}
+    assert steps["SORT005"]["origin"] == "deterministic"
+    assert steps["MTCH010"]["origin"] == "model" and steps["MTCH010"]["mainClass"] == "Acctmtch"
+    assert manifest["usage"]["calls"] == 1
+    assert (run_dir / "job" / "Qmkd010Driver.java").exists()
+    assert (run_dir / "job" / f"{steps['SORT005']['mainClass']}.java").exists()
+
+
+def test_run_job_rejects_a_sample_whose_program_does_not_match_the_jobs_cobol_step(tmp_path, monkeypatch):
+    import diocle_converter.__main__ as cli
+
+    monkeypatch.setattr(cli, "_analyzer_jobs", lambda sample_dir: [JOB_FIXTURE])
+    monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
+    with pytest.raises(SystemExit, match="ACCTMTCH"):
+        cli._run_job(SAMPLE, settings(), ModelClient(settings(), _sdk=ScriptedSDK([])))  # SAMPLE is interest-accrual

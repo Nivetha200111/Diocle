@@ -3,16 +3,24 @@
   python -m diocle_converter smoke                       one tiny model call to check the key and endpoint
   python -m diocle_converter repair SAMPLE [--java-dir]  verify an existing conversion and repair it (bring your own)
   python -m diocle_converter run SAMPLE                  translate with the Meta model, then verify and repair
+  python -m diocle_converter run-job SAMPLE_WITH_JCL     convert a whole SORT-then-COBOL JCL job end to end
 
 repair and run read fix memory (runs/memory.json) and add to it when held-out certification passes.
 Pass --no-memory for a baseline run that neither reads nor writes it, or --memory-read-only to use the lessons
 without adding any (visitor imports: code from strangers must not shape later runs).
+
+run-job translates the job's one kind:"cobol" step with the Meta model (one call, same as `run`), generates
+the SORT step and the job driver deterministically (diocle_converter.sortgen/pipeline, zero model calls),
+and writes one jobPipelines[] entry (contracts/conversion-output.schema.json). It calls the analyzer's CLI
+(read-only: services/analyzer/.venv/bin/python -m diocle_analyzer, the same hand-off services/api/deliver.py
+already uses) to get the job's jobs[] shape; it never imports analyzer code directly.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -21,6 +29,7 @@ from .breaker import Breaker
 from .client import ModelClient
 from .config import REPO_ROOT, Settings
 from .memory import Memory, lesson_key, render
+from .pipeline import generate_pipeline
 from .repair import CERT_CASES, CERT_SEED, TEST_CASES, TEST_SEED, RepairAgent, report_passes, summarize_report
 from .sources import Program
 from .translate import translate
@@ -71,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
+    job_parser = sub.add_parser("run-job")
+    job_parser.add_argument("sample_dir", type=Path)
     args = parser.parse_args(argv)
 
     settings = Settings.from_env()
@@ -83,6 +94,9 @@ def main(argv: list[str] | None = None) -> int:
         print(choice.message.content)
         print(json.dumps({k: v for k, v in client.usage_summary().items() if k != "modelCalls"}))
         return 0
+
+    if args.command == "run-job":
+        return _run_job(args.sample_dir, settings, client)
 
     program = Program.load(args.sample_dir)
     run_dir = REPO_ROOT / "runs" / f"{args.sample_dir.resolve().name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -194,6 +208,113 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         print(f"fix memory: used {len(known)} lessons, learned {learned} new")
     print(f"run saved to {run_dir.relative_to(REPO_ROOT)}")
     return 0 if outcome["certified"] else 1
+
+
+def _analyzer_jobs(sample_dir: Path) -> list[dict]:
+    """jobs[] from services/analyzer's own CLI (read-only hand-off, same as services/api/deliver.py's
+    `analyze()`: a subprocess call into the analyzer's venv, never an import of analyzer code)."""
+    analyzer_python = REPO_ROOT / "services" / "analyzer" / ".venv" / "bin" / "python"
+    if not analyzer_python.exists():
+        raise SystemExit(f"{analyzer_python} not found: set up services/analyzer's venv first "
+                         "(pip install -e services/analyzer)")
+    out = sample_dir / ".diocle-analysis-report.json"  # scratch file, not part of the sample's committed shape
+    subprocess.run([str(analyzer_python), "-m", "diocle_analyzer", str(sample_dir), "--out", str(out)],
+                   cwd=REPO_ROOT / "services" / "analyzer", check=True, capture_output=True, text=True)
+    report = json.loads(out.read_text())
+    out.unlink()
+    return report["jobs"]
+
+
+def _run_job(sample_dir: Path, settings: Settings, client: ModelClient) -> int:
+    """Convert one whole SORT-then-COBOL JCL job end to end: translate its one kind:"cobol" step with the
+    Meta model (one call), generate the SORT step and the job driver deterministically (zero model calls),
+    and write a jobPipelines[] manifest (see contracts/conversion-output.schema.json)."""
+    sample_dir = sample_dir.resolve()
+    meta = json.loads((sample_dir / "sample.json").read_text())
+    jobs = [j for j in _analyzer_jobs(sample_dir) if j["convertible"]]
+    if not jobs:
+        raise SystemExit(f"{sample_dir}: no convertible job found (see the analysis report's "
+                         "notConvertibleReason for each job)")
+    job = jobs[0]
+    cobol_step = next(s for s in job["steps"] if s["kind"] == "cobol")
+    if cobol_step["program"] != meta["program"]:
+        raise SystemExit(f"job {job['name']}'s COBOL step runs {cobol_step['program']!r}, but "
+                         f"{sample_dir} is the sample for {meta['program']!r}")
+
+    program = Program.load(sample_dir)
+    run_dir = REPO_ROOT / "runs" / f"{sample_dir.name}-job-{time.strftime('%Y%m%d-%H%M%S')}"
+    run_dir.mkdir(parents=True)
+    workspace = Workspace(run_dir / "java")
+    print(f"Translating {program.name} (job {job['name']}'s {cobol_step['step']} step) with {settings.model}")
+    translation = translate(program, client, workspace)
+    print(f"wrote {translation['file']}; translator notes: {translation['notes'][:400]}")
+
+    try:
+        from diocle_verifier.layout import load_fields, record_length
+    except ImportError:
+        sys.exit("diocle-verifier is not installed: pip install -e ../verifier (needed for record-length math)")
+    # meta["files"] (sample.json) only describes the COBOL program's own DDs (e.g. MSTIN/TXNIN/NEWMST/EXCOUT);
+    # a SORT step's DDs (e.g. SORTIN) are JCL-level, not in sample.json, so they inherit the record length
+    # of whichever COBOL-side DD they are wired to (SORT never reformats records in this v1 scope -- see
+    # pipeline.py's own OUTREC-reformatting guard, which would reject a mismatch if one existed).
+    record_lengths = {f["dd"]: record_length(load_fields(f["layout"])) for f in meta["files"]}
+    for edge in job["wiring"]:
+        if edge["fromDd"] not in record_lengths and edge["toDd"] in record_lengths:
+            record_lengths[edge["fromDd"]] = record_lengths[edge["toDd"]]
+    sort_step = next((s for s in job["steps"] if s["kind"] == "sort"), None)
+    if sort_step is not None:
+        sort_dds = [d for d in sort_step["dds"] if d not in ("SYSIN", "SYSOUT")]
+        sort_in_dd = sort_dds[0]
+        known = next((record_lengths[d] for d in sort_dds if d in record_lengths), None)
+        if known is not None:
+            for d in sort_dds:
+                record_lengths.setdefault(d, known)
+
+    collation = meta.get("collation", "ascii")
+    jcl_dir = sample_dir / "jcl"
+    wired_dds = {e["toDd"] for e in job["wiring"]}  # these DDs are produced in-job; generate_pipeline wires them
+    # Every other DD needs an external path: a fixture file under jcl/<dd>.txt if one exists (e.g.
+    # jcl/SORTIN.txt, the real JCL-level fixture the analyzer-agent shipped for the SORT step's own input),
+    # else the sample's own "fixtureFiles" (sample.json: the same per-DD seed records the verifier already
+    # uses for this program's single-program certification, see diocle_verifier.multi), else a fresh file
+    # this run writes nothing into (an unfed input then fails loudly, which is correct: run-job does not
+    # invent data the sample does not provide). Outputs always land fresh in run_dir.
+    all_dds = {f["dd"]: f["direction"] for f in meta["files"]}
+    if sort_step is not None:
+        for dd in sort_step["dds"]:
+            if dd not in ("SYSIN", "SYSOUT"):
+                all_dds.setdefault(dd, "input" if dd == sort_in_dd else "output")
+    dd_paths = {}
+    for dd, direction in all_dds.items():
+        if dd in wired_dds:
+            continue
+        if direction == "output":
+            dd_paths[dd] = str(run_dir / f"{dd}.out")
+            continue
+        fixture = jcl_dir / f"{dd}.txt"
+        if fixture.exists():
+            dd_paths[dd] = str(fixture)
+        elif dd in meta.get("fixtureFiles", {}):
+            seeded = run_dir / f"{dd}.in"
+            seeded.write_text("".join(r + "\n" for r in meta["fixtureFiles"][dd]))
+            dd_paths[dd] = str(seeded)
+        else:
+            dd_paths[dd] = str(run_dir / f"{dd}.in")
+
+    pipeline_dir = run_dir / "job"
+    manifest = generate_pipeline(job, cobol_main_class=translation["mainClass"], record_lengths=record_lengths,
+                                 collation=collation, out_dir=pipeline_dir, dd_paths=dd_paths)
+    deterministic_steps = [s["step"] for s in manifest["steps"] if s["origin"] == "deterministic"]
+    model_steps = [s["step"] for s in manifest["steps"] if s["origin"] == "model"]
+    usage = client.usage_summary()
+    print(f"\njob {job['name']}: {len(model_steps)} step(s) translated by the model ({', '.join(model_steps)}), "
+          f"{len(deterministic_steps)} step(s) generated deterministically with zero model calls "
+          f"({', '.join(deterministic_steps)})")
+    print(f"{usage['calls']} model calls, {usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / "
+          f"{usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")
+    _atomic_write(run_dir / "job-pipeline.json", {"jobPipelines": [manifest], "usage": usage})
+    print(f"job pipeline saved to {run_dir.relative_to(REPO_ROOT)}")
+    return 0
 
 
 def _atomic_write_text(path: Path, text: str) -> None:
