@@ -117,7 +117,7 @@
                       }
                     },
                     "optionEquals": { "type": "boolean", "description": "OPTION EQUALS: stable sort" },
-                    "unsupported": { "type": ["string", "null"], "description": "Specific SORT syntax this analysis does not support yet (INCLUDE/OMIT COND=, OUTREC/INREC, SUM FIELDS=, MERGE, a key format other than CH/ZD/PD/BI, or SYSIN not resolvable), or null when the control statement parsed cleanly" }
+                    "unsupported": { "type": ["string", "null"], "description": "Specific SORT syntax this analysis does not support yet (INCLUDE/OMIT COND=, OUTREC/INREC, SUM FIELDS=, MERGE, a key format other than CH (ZD/PD/BI are refused), or SYSIN not resolvable), or null when the control statement parsed cleanly" }
                   }
                 },
                 "convertibleProgram": { "type": ["boolean", "null"], "description": "The matching programs[] entry's own convertible value, for a cobol step; null for sort/other steps" },

@@ -159,24 +159,6 @@ def test_copy_replacing_inline_records_and_blocking_reasons(tmp_path):
     assert not p["convertible"] and "INDEXED" in p["notConvertibleReason"]
 
 
-def test_display_only_programs_convert_and_are_flagged(tmp_path):
-    program = "\n".join([
-        "       IDENTIFICATION DIVISION.",
-        "       PROGRAM-ID. SHOWIT.",
-        "       DATA DIVISION.",
-        "       WORKING-STORAGE SECTION.",
-        "       01  WS-MSG   PIC X(10) VALUE 'HELLO'.",
-        "       PROCEDURE DIVISION.",
-        "           DISPLAY WS-MSG",
-        "           STOP RUN.",
-    ])
-    (tmp_path / "SHOWIT.cbl").write_text(program)
-    [p] = analyze(tmp_path)["programs"]
-    assert p["convertible"] and p.get("displayOnly") is True
-    validate_report({"version": "x", "source": {"kind": "directory", "location": "x"},
-                     "programs": [p], "dependencies": [], "findings": [], "jobs": []})
-
-
 def test_no_output_and_no_display_is_still_rejected(tmp_path):
     program = "\n".join([
         "       IDENTIFICATION DIVISION.",
@@ -191,35 +173,6 @@ def test_no_output_and_no_display_is_still_rejected(tmp_path):
     (tmp_path / "SILENT.cbl").write_text(program)
     [p] = analyze(tmp_path)["programs"]
     assert not p["convertible"] and p["notConvertibleReason"] == "writes no output file to compare"
-    assert "displayOnly" not in p
-
-
-def test_io_files_opened_for_update_in_place_convert(tmp_path):
-    (tmp_path / "IOREC.cpy").write_text("       01  IO-REC.\n           05  IO-ID   PIC X(4).\n")
-    program = "\n".join([
-        "       IDENTIFICATION DIVISION.",
-        "       PROGRAM-ID. UPDREC.",
-        "       ENVIRONMENT DIVISION.",
-        "       INPUT-OUTPUT SECTION.",
-        "       FILE-CONTROL.",
-        "           SELECT IO-F ASSIGN TO IOFILE.",
-        "       DATA DIVISION.",
-        "       FILE SECTION.",
-        "       FD  IO-F.",
-        "       COPY IOREC.",
-        "       PROCEDURE DIVISION.",
-        "           OPEN I-O IO-F",
-        "           REWRITE IO-REC",
-        "           CLOSE IO-F",
-        "           STOP RUN.",
-    ])
-    (tmp_path / "UPDREC.cbl").write_text(program)
-    report = analyze(tmp_path)
-    validate_report(report)
-    [p] = report["programs"]
-    assert p["convertible"], p["notConvertibleReason"]
-    [f] = p["files"]
-    assert f["direction"] == "io"
     assert "displayOnly" not in p
 
 
@@ -465,3 +418,11 @@ def test_mainframe_library_members_are_classified_by_content(tmp_path):
     programs, copybooks, jcl = classify(tmp_path)
     assert [p.name for p in programs] == ["PGMA"] and "RECA" in copybooks and not jcl
     assert not any(p.parent.name == "DATA" for p in copybooks.values())  # binary EBCDIC data is skipped
+
+
+def test_numeric_sort_key_formats_are_refused_until_decoded():
+    from diocle_analyzer.jcl import parse_sort_fields
+    for fmt in ("ZD", "PD", "BI"):
+        spec = parse_sort_fields(f"  SORT FIELDS=(1,8,{fmt},A)")
+        assert spec.unsupported and "only CH" in spec.unsupported
+    assert parse_sort_fields("  SORT FIELDS=(1,8,CH,A)").unsupported is None

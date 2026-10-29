@@ -30,7 +30,7 @@ class Proc:
 
 @dataclass
 class SortSpec:
-    """A parsed SORT control statement (v1 scope: fixed-offset keys, CH/ZD/PD/BI, optional OPTION EQUALS)."""
+    """A parsed SORT control statement (v1 scope: fixed-offset keys, CH only, optional OPTION EQUALS)."""
     fields: list[tuple[int, int, str, str]] = field(default_factory=list)  # (start, length, format, "A"|"D")
     option_equals: bool = False
     unsupported: str | None = None
@@ -45,7 +45,7 @@ class Job:
 
 
 SORT_PROGRAMS = {"SORT", "SYNCSORT", "DFSORT"}
-_SORT_KEY_FORMATS = {"CH", "ZD", "PD", "BI"}
+_SORT_KEY_FORMATS = {"CH"}  # PD/BI/ZD need a real numeric decoder on both sides; refused until then
 
 
 def _statements(text: str) -> list[str]:
@@ -138,7 +138,7 @@ def is_sort_step(step: JobStep) -> bool:
 def parse_sort_fields(text: str) -> SortSpec:
     """Parse a SORT control statement: SORT FIELDS=(...) and optional OPTION EQUALS.
 
-    v1 scope: one or more fixed-offset keys (start,length,format,A|D), formats CH/ZD/PD/BI, ascending or
+    v1 scope: one or more fixed-offset keys (start,length,format,A|D), format CH (character, byte order), ascending or
     descending. Anything else (INCLUDE/OMIT COND=, OUTREC/INREC, SUM FIELDS=, MERGE, variable-length input,
     an unsupported key format) sets .unsupported to a specific reason instead of guessing.
     """
@@ -163,7 +163,7 @@ def parse_sort_fields(text: str) -> SortSpec:
         if not start_s.isdigit() or not length_s.isdigit():
             return SortSpec(unsupported=f"SORT FIELDS=({m.group(1)}): non-numeric start or length")
         if fmt not in _SORT_KEY_FORMATS:
-            return SortSpec(unsupported=f"SORT key format {fmt!r} is not supported yet (only CH/ZD/PD/BI)")
+            return SortSpec(unsupported=f"SORT key format {fmt!r} is not supported yet (only CH; numeric key formats ZD/PD/BI need a numeric decoder)")
         if order not in ("A", "D"):
             return SortSpec(unsupported=f"SORT key order {order!r} is not supported yet (only A/D)")
         fields.append((int(start_s), int(length_s), fmt, order))
