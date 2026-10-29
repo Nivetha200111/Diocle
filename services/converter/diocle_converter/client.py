@@ -82,16 +82,29 @@ class ModelClient:
             time.sleep(min(30, 2**attempt) + random.random())
 
     def usage_summary(self) -> dict:
-        input_tokens = sum(c.inputTokens for c in self.calls)
-        cached_tokens = sum(c.cachedInputTokens for c in self.calls)
-        output_tokens = sum(c.outputTokens for c in self.calls)
-        price = PRICES.get(self.settings.model)
-        cost = ((input_tokens - cached_tokens) * price[0] + cached_tokens * price[1] + output_tokens * price[2]) / 1e6 if price else None
-        return {
-            "calls": len(self.calls),
-            "inputTokens": input_tokens,
-            "cachedInputTokens": cached_tokens,
-            "outputTokens": output_tokens,
-            "estimatedCostUsd": round(cost, 6) if cost is not None else None,
-            "modelCalls": [asdict(c) for c in self.calls],
-        }
+        return usage_of(self.calls)
+
+
+def _call_cost(c: ModelCall) -> float | None:
+    price = PRICES.get(c.model)
+    if price is None:
+        return None
+    return ((c.inputTokens - c.cachedInputTokens) * price[0] + c.cachedInputTokens * price[1] + c.outputTokens * price[2]) / 1e6
+
+
+def usage_of(calls: list[ModelCall]) -> dict:
+    """Token use and estimated cost of a set of calls, priced per call: the guard's model can differ from the agents'.
+    The cost is None when any call's model has no known price."""
+    input_tokens = sum(c.inputTokens for c in calls)
+    cached_tokens = sum(c.cachedInputTokens for c in calls)
+    output_tokens = sum(c.outputTokens for c in calls)
+    costs = [_call_cost(c) for c in calls]
+    cost = None if any(x is None for x in costs) else sum(costs)
+    return {
+        "calls": len(calls),
+        "inputTokens": input_tokens,
+        "cachedInputTokens": cached_tokens,
+        "outputTokens": output_tokens,
+        "estimatedCostUsd": round(cost, 6) if cost is not None else None,
+        "modelCalls": [asdict(c) for c in calls],
+    }

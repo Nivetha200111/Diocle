@@ -8,12 +8,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-# USD per million tokens (input, cached input, output), from dev.meta.ai and fireworks.ai pricing, 2026-10-28.
+# USD per million tokens (input, cached input, output), from dev.meta.ai and fireworks.ai pricing, 2026-10-28, and
+# baseten.co/library/muse-spark-open, 2026-10-29.
 # Reasoning tokens bill as output.
 PRICES = {
     "muse-spark-1.3-contributor": (0.10, 0.002, 0.20),
     "muse-spark-1.3": (1.25, 0.15, 4.25),
     "accounts/fireworks/models/muse-spark-open": (1.25, 0.15, 4.25),  # Fireworks serverless
+    "meta-models/muse-spark-open-1026": (1.25, 0.15, 4.25),  # Baseten Model APIs
 }
 
 
@@ -65,4 +67,24 @@ class Settings:
             max_rounds=int(os.environ.get("MODEL_MAX_ROUNDS", "3")),
             max_attack_rounds=int(os.environ.get("MODEL_MAX_ATTACK_ROUNDS", "3")),
             max_breaker_cycles=int(os.environ.get("MODEL_MAX_BREAKER_CYCLES", "1")),
+        )
+
+    @classmethod
+    def guard_from_env(cls) -> "Settings | None":
+        """The guard agent's own model and key (GUARD_MODEL_*), separate from the agents it checks; None when not set."""
+        load_dotenv()
+        api_key = os.environ.get("GUARD_MODEL_API_KEY", "")
+        base_url = os.environ.get("GUARD_MODEL_BASE_URL", "")
+        model = os.environ.get("GUARD_MODEL_ID", "")
+        if not (api_key and base_url and model):
+            return None
+        return cls(
+            mode="private" if "muse-spark-open" in model else "hosted",
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            reasoning_effort=os.environ.get("GUARD_REASONING_EFFORT", "medium"),
+            max_calls_per_run=int(os.environ.get("GUARD_MAX_CALLS", "2")),
+            max_calls_per_round=1,
+            max_rounds=1,
         )
