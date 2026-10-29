@@ -48,7 +48,8 @@ class ModelClient:
                 or self.escalated_usd + self.escalated_max_call_usd > self.settings.escalation_max_usd
                 or self.escalated_usd >= self.settings.escalation_max_usd)
 
-    def chat(self, *, role: str, round: int, messages: list[dict], tools=None, response_format=None, model: str | None = None):
+    def chat(self, *, role: str, round: int, messages: list[dict], tools=None, response_format=None, model: str | None = None,
+             max_tokens: int | None = None):
         """model: a higher tier's ID for this one call (the same host and key); None is the run's default model."""
         if len(self.calls) >= self.settings.max_calls_per_run:
             raise BudgetExceeded(f"model call cap reached ({self.settings.max_calls_per_run} per run)")
@@ -62,6 +63,8 @@ class ModelClient:
             kwargs["tools"] = tools
         if response_format:
             kwargs["response_format"] = response_format
+        if max_tokens:
+            kwargs["max_tokens"] = max_tokens
         started = time.monotonic()
         response = self._with_retries(kwargs)
         usage = response.usage
