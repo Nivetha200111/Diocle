@@ -1,0 +1,332 @@
+{
+  "diocle": "eval-freeze-2",
+  "memory": false,
+  "converterFlags": [
+    "--breaker",
+    "--no-memory"
+  ],
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "results": [
+    {
+      "program": "BRNCHSUM",
+      "runId": "brnchsum-20261028-232644",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "rounds": 2,
+      "usage": {
+        "calls": 21,
+        "inputTokens": 184139,
+        "cachedInputTokens": 142736,
+        "outputTokens": 144399,
+        "estimatedCostUsd": 0.033306
+      },
+      "breaker": {
+        "rounds": 3,
+        "tried": 16,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": []
+      },
+      "minutes": 22.1,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "cases": 759,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "cases": 746,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "cases": 765,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "cases": 757,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "cases": 770,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ]
+    },
+    {
+      "program": "CHQCLR",
+      "runId": "chqclr-20261028-234854",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "rounds": 1,
+      "usage": {
+        "calls": 16,
+        "inputTokens": 112888,
+        "cachedInputTokens": 71357,
+        "outputTokens": 105970,
+        "estimatedCostUsd": 0.02549
+      },
+      "breaker": {
+        "rounds": 2,
+        "tried": 28,
+        "broke": 6,
+        "repairCycles": 1,
+        "fixed": true,
+        "counterexamples": [
+          {
+            "input": "CACCT00000600000006+ABCDEFGHI20240101XXX",
+            "why": "Letters in signed amount break Java BigDecimal parsing versus COBOL numeric handling.",
+            "diff": "output record 7: the converted program wrote 6 records, the other wrote more"
+          },
+          {
+            "input": "RACCT00000700000007XXABCDEXXXXXXXXXXXXXX",
+            "why": "Letters in unsigned fee break Java parsing versus COBOL handling.",
+            "diff": "output record 8: the converted program wrote 6 records, the other wrote more"
+          },
+          {
+            "input": "RACCT00000800000008NS12.34XXXXXXXXXXXXXX",
+            "why": "Dot in fee gives fractional cents crashing Java exact conversion.",
+            "diff": "output record 9: the converted program wrote 6 records, the other wrote more"
+          },
+          {
+            "input": "CACCT00000900000009+000123.4520240101XXX",
+            "why": "Dot in cheque amount gives fractional cents crashing Java exact conversion.",
+            "diff": "output record 10: the converted program wrote 6 records, the other wrote more"
+          },
+          {
+            "input": "CACCT00001000000010+00000    20240101XXX",
+            "why": "Spaces in amount break Java parsing versus COBOL zero handling.",
+            "diff": "output record 11: the converted program wrote 6 records, the other wrote more"
+          },
+          {
+            "input": "RACCT00001100000011NS-0123XXXXXXXXXXXXXX",
+            "why": "Minus sign in unsigned fee makes Java wrap to 997.54 versus COBOL.",
+            "diff": "output record 12: the converted program wrote 6 records, the other wrote more"
+          }
+        ]
+      },
+      "minutes": 15.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "cases": 1004,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ]
+    },
+    {
+      "program": "FXCONV",
+      "runId": "fxconv-20261029-000442",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "rounds": 1,
+      "usage": {
+        "calls": 19,
+        "inputTokens": 173116,
+        "cachedInputTokens": 129326,
+        "outputTokens": 149665,
+        "estimatedCostUsd": 0.034571
+      },
+      "breaker": {
+        "rounds": 3,
+        "tried": 34,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": []
+      },
+      "minutes": 25.7,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ]
+    },
+    {
+      "program": "LOANAMRT",
+      "runId": "loanamrt-20261029-003032",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "rounds": 0,
+      "usage": {
+        "calls": 4,
+        "inputTokens": 18856,
+        "cachedInputTokens": 4337,
+        "outputTokens": 86856,
+        "estimatedCostUsd": 0.018832
+      },
+      "breaker": {
+        "rounds": 2,
+        "tried": 24,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": []
+      },
+      "minutes": 14.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "cases": 1698,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "cases": 1718,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "cases": 1716,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "cases": 1605,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "cases": 1780,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ]
+    }
+  ]
+}

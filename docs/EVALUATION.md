@@ -55,9 +55,24 @@ The stricter byte comparison also found a real defect in earlier work: the INTAC
 [quillmark-modern#3](https://github.com/Nivetha200111/quillmark-modern/pull/3) writes `-000000000` where the COBOL
 writes `+000000000` on about 3% of inputs. See the README's correction.
 
+## Re-run with the corrected verifier (tag `eval-freeze-2`, memory off)
+The same four programs, the same protocol, run again after the comparator fix (`eval-freeze-2`, commit `3bcccfb`),
+with fix memory **off** (a cold start: the first run had taught memory a lesson from CHQCLR, an evaluation program).
+Raw results: [`eval/results-eval-freeze-2.json`](../eval/results-eval-freeze-2.json).
+
+| Program | Certified | Repair rounds | Model calls | Est. cost | Breaker | Fresh seeds |
+|---|---|---|---|---|---|---|
+| BRNCHSUM | **yes** | 2 | 21 | $0.033 | 0 broke | 5/5 pass |
+| CHQCLR | **yes** | 1 | 16 | $0.025 | **6 broke**, repaired | 5/5 pass |
+| FXCONV | **yes** | 1 | 19 | $0.035 | 0 broke | 5/5 pass |
+| LOANAMRT | **yes** | 0 | 4 | $0.019 | 0 broke | 5/5 pass |
+
+**4 of 4 certified, for about $0.11 in total, with no fix memory.** BRNCHSUM (aggregation) and LOANAMRT (fan-out)
+certify once the verifier compares what the programs actually write. The first run's results above stay as recorded.
+
 ## Limits
 - Four programs, all synthetic and written by the same author as the tool; batch, file-in/file-out only.
 - The oracle is GnuCOBOL 3.2 with IBM-like settings, not IBM Enterprise COBOL on z/OS. No real mainframe output
   has been compared (golden-file replay exists but has only synthetic golden files).
-- Fix memory was on, so results depend on lessons from earlier programs; a memory-off run is not reported.
+- The first run had fix memory on; the re-run has it off. Both are reported.
 - "Certified" means agreement on the inputs tried (boundary, random, fixture, designed), not on all inputs.
