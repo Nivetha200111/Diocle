@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note).",
+  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
   "type": "object",
   "required": [
     "version",
@@ -248,6 +248,106 @@
             "outputs": {
               "type": "object"
             }
+          }
+        }
+      }
+    },
+    "jobs": {
+      "type": "array",
+      "description": "Additive (v0.7). Whole-JCL-job differential tests: one entry per job (v1 scope: one SORT step feeding one COBOL step, see services/verifier/diocle_verifier/jobs.py). One certificate per job, independent of the top-level single-program results[] above.",
+      "items": {
+        "type": "object",
+        "required": ["job", "steps", "results", "summary", "runs", "certified"],
+        "properties": {
+          "job": {
+            "type": "string",
+            "description": "The job's //jobname JOB card."
+          },
+          "steps": {
+            "type": "array",
+            "description": "Per-step pass/fail, one entry per step in job order.",
+            "items": {
+              "type": "object",
+              "required": ["step", "kind", "program", "outputDds", "passed"],
+              "properties": {
+                "step": { "type": "string" },
+                "kind": { "type": "string", "enum": ["sort", "cobol"] },
+                "program": { "type": "string" },
+                "outputDds": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Output DD names compared for this step."
+                },
+                "passed": {
+                  "type": "boolean",
+                  "description": "True only if every one of this step's outputDds matched byte for byte."
+                }
+              }
+            }
+          },
+          "results": {
+            "type": "array",
+            "description": "Same item shape as the top-level results[] above, each additionally tagged with which step produced it.",
+            "items": {
+              "type": "object",
+              "required": ["program", "inputId", "match", "step"],
+              "properties": {
+                "step": {
+                  "type": "string",
+                  "description": "Which job step this output record came from."
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "required": ["total", "passed", "failed"],
+            "properties": {
+              "total": { "type": "integer", "minimum": 0 },
+              "passed": { "type": "integer", "minimum": 0 },
+              "failed": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "runs": {
+            "type": "object",
+            "description": "How the job's one kind:\"cobol\" step compiled and ran (original) vs the whole generated pipeline's driver (converted).",
+            "properties": {
+              "original": {
+                "type": "object",
+                "required": ["compiled", "exitCode"],
+                "properties": {
+                  "compiled": { "type": "boolean" },
+                  "exitCode": { "type": ["integer", "null"] },
+                  "stdout": { "type": "string" },
+                  "stderr": { "type": "string" }
+                }
+              },
+              "converted": {
+                "type": "object",
+                "required": ["compiled", "exitCode"],
+                "properties": {
+                  "compiled": { "type": "boolean" },
+                  "exitCode": { "type": ["integer", "null"] },
+                  "stdout": { "type": "string" },
+                  "stderr": { "type": "string" }
+                }
+              },
+              "exitCodeMatch": {
+                "type": "boolean",
+                "description": "Both sides' final step ended with the same exit code."
+              },
+              "clock": {
+                "type": ["string", "null"]
+              },
+              "collation": {
+                "type": "string",
+                "enum": ["ascii", "ebcdic"]
+              }
+            }
+          },
+          "certified": {
+            "type": "boolean",
+            "description": "True only if both sides ran, every step passed, and every output DD on every step matched byte for byte. One certificate per job: a single failing step or DD makes the whole job not certified."
           }
         }
       }

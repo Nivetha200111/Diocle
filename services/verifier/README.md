@@ -50,3 +50,42 @@ python3 -m venv .venv && .venv/bin/pip install jsonschema pytest
 Exit codes: `0` all cases match, `1` mismatches, `2` a build failed.
 
 Both Java conversions used today are **hand-written test fixtures, not model output**: `samples/interest-accrual/java-conversion/` is a deliberately naive port, and `tests/fixtures/reference/` is a faithful one used to prove the pass path.
+
+## Whole-JCL-job verification (v1: one SORT step feeding one COBOL step)
+
+`diocle_verifier.jobs.verify_job(sample_dir, job, pipeline, seed, random_count) -> dict` differentially tests
+a whole JCL job end to end, not just one program: it consumes the analyzer's `jobs[]` entry
+(`services/analyzer/diocle_analyzer/jcl.py`) and the converter's matching `jobPipelines[]` entry
+(`services/converter/diocle_converter/pipeline.py`) exactly as those two modules already produce them.
+
+- **Original side:** the job's one `kind:"cobol"` step compiles with the existing GnuCOBOL path
+  (`runners.build_cobol`, unchanged). The `kind:"sort"` step has no mainframe utility to compile, so its
+  reference behaviour reuses `multi.py`'s own `_sort_key()` byte-collation convention directly (imported,
+  not reimplemented), so the reference sort and the converter's generated SORT class are provably using
+  identical byte collation. Steps run in job order in a temp working directory; one step's output file
+  becomes the next step's input file on disk, per the job's `wiring[]`.
+- **Converted side:** the generated job pipeline directory (every `.java` file) compiles once with `javac`,
+  then the driver class's `main()` runs once end to end via `ProcessBuilder`/subprocess, the same pattern
+  `services/converter/tests/test_pipeline.py`'s own end-to-end test uses.
+- **Seeding:** only the job's true external inputs are seeded (a DD some step reads that no step in the
+  same job produces — for this v1 shape that is `SORTIN` alone), using the same `generate_cases`/boundary
+  generator every sample uses. Any other DD fed from the sample's own `fixtureFiles` (e.g. `MSTIN`, the
+  account master) seeds from there. `SORTOUT`/`TXNIN` are never seeded directly: they come from actually
+  running the SORT step, which is what proves the inter-step hand-off, not just each step in isolation.
+- **Comparison:** `diff.py`'s `compare()` runs once per `(step, output DD)` pair — unchanged, still
+  position-based and byte-for-byte — and every result is tagged with which step and DD produced it, so a
+  failure names a specific step (`contracts/verification-report.schema.json`'s `jobs[].steps[].passed`), not
+  just an aggregate pass/fail. `certified` requires every step's outputs to match, the job's final exit
+  code (`RETURN-CODE`) to agree between both sides, and both sides to have compiled.
+
+Run `services/verifier/tests/test_jobs.py` (needs GnuCOBOL, a JDK, and `services/converter`'s own venv set
+up, since the test generates a real job pipeline with `diocle_converter.pipeline.generate_pipeline` as a
+subprocess into that venv — read-only, the same cross-service hand-off convention used elsewhere in this
+project, never importing `diocle_converter` from this package).
+
+**Not supported yet** (v1 scope, matching the analyzer's and converter's own job-level limits): COND-gated
+or PROC-conditional steps, jobs with 3 or more steps, more than one SORT step in a job, GDG relative-
+generation arithmetic beyond an exact base-DSN match, and SORT `INCLUDE`/`OMIT COND=`, `OUTREC`/`INREC`,
+`SUM FIELDS=` or `MERGE` (the analyzer refuses all of these with a specific reason before a job reaches this
+verifier at all, so `verify_job` only ever sees the one-SORT-then-one-COBOL shape). `verify_job` is not yet
+wired into the `diocle_verifier` CLI or `verify_sample()`'s auto-dispatch; call it directly for now.

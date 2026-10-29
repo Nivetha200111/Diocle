@@ -135,16 +135,40 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
 0. Deploy the engine again for the SQL tab (above), then re-shoot the video against the new front page. After submitting: freeze deploys
    until judging ends (Nov 5-9), add an uptime monitor, and watch that visitor imports don't drain the credits.
 1. Watch visitor imports (spend in `/api/config`, deliveries list); finish the two in-flight jobs above.
-2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results-eval-freeze-1.json` (2/4 certified;
+2. **Done (v1 scope only, see below).** Roadmap item 2, "whole JCL job end to end," is built and tested for
+   exactly one shape: one SORT step feeding one COBOL step. Not yet done: wiring `verify_job` into the
+   `diocle_verifier` CLI or `verify_sample()`'s auto-dispatch (it is a standalone function today, called
+   directly — see services/verifier/README.md), `services/converter/README.md` documenting `run-job`/
+   `sortgen.py`/`pipeline.py` (that update was not part of the converter-agent's committed work and is still
+   owed), and every "not supported yet" item listed under "Done recently" below (3+ step jobs, multiple SORT
+   steps, COND-gated steps, GDG arithmetic beyond exact-DSN match, SORT INCLUDE/OMIT/OUTREC/INREC/SUM
+   FIELDS=/MERGE). Next roadmap item: copybook to SQL schema (CLAUDE.md item 3).
+3. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results-eval-freeze-1.json` (2/4 certified;
    BRNCHSUM and LOANAMRT failed because the old comparator rejected aggregation/fan-out; their final Java passes
    the corrected comparator on fresh seeds). Next: full re-run with the corrected verifier under a new tag
    (`eval-freeze-2`), reported next to the original. Costs about $0.3.
-3. Breaker test on `samples/loyalty-waiver` (narrow 5000.00 defect): `repair --breaker`. The breaker is
+4. Breaker test on `samples/loyalty-waiver` (narrow 5000.00 defect): `repair --breaker`. The breaker is
    reported as unproven until it finds a defect other inputs missed.
-4. Demo video (under 3 min): one visible failure and repair on the live site, then re-verify.
-5. A review from a COBOL maintainer (owner arranges). Module README consistency.
+5. Demo video (under 3 min): one visible failure and repair on the live site, then re-verify.
+6. A review from a COBOL maintainer (owner arranges). Module README consistency.
 
 ## Done recently
+- 2026-10-29: **Roadmap item 2, whole JCL job end to end (v1 scope: one SORT step feeding one COBOL step),
+  all three passes done and cross-checked together** (d28a04a analyzer, cc3f3ae converter, 9b1b3a0
+  verifier — see each commit for its own module's detail). The analyzer groups JCL steps into jobs and
+  reports convertibility (`jobs[]`, refuses anything beyond the v1 shape with a specific reason); the
+  converter generates a deterministic Java SORT-emulation class plus one driver per job that runs steps via
+  `ProcessBuilder` with the same DD-env-var convention the verifier already used; the verifier's new
+  `diocle_verifier.jobs.verify_job()` runs both sides end to end on the same seeded external input
+  (`SORTIN` only — internal hand-offs like `SORTOUT`/`TXNIN` are produced by actually running the SORT step,
+  never seeded directly) and compares every step's output dataset, tagging each result with the step that
+  produced it so a failure names a specific step, not just an aggregate. Proven on the real
+  `samples/account-match/jcl/QMKD010.jcl` fixture: positive end-to-end test certifies `SORTOUT`, `NEWMST`
+  and `EXCOUT` all match; a negative test deliberately corrupts the generated SORT class's comparator and
+  confirms the job reports `certified: false` with `SORT005` specifically named, not a vague failure.
+  `contracts/verification-report.schema.json` v0.7 adds additive `jobs[]` (one entry per job: per-step
+  pass/fail, results tagged with `step`, run metadata, one `certified` bool). Full three-service suite after
+  the change: analyzer 33, converter 40, verifier 38 passed (111 total), all green.
 - 2026-10-28: hosted on Vercel + Vultr; fixed `GET /runs` crash on a latin-1 byte (d5e0ecb) and macOS `._*`
   files breaking re-verify (9d8d149); visitor imports built then paused (above).
 - quillmark-modern PR #3 (refreshed 6-program delivery, CI green on 6,714 fresh inputs) merged.
