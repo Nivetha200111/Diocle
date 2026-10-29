@@ -31,12 +31,14 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 **Mistakes found and fixed (kept here on purpose)**
 - Code past column 72 is silently ignored by COBOL compilers; it cut `/ 365` to `/ 36` in a sample. Now an analyzer finding.
 - The oracle initially ran GnuCOBOL without IBM's TRUNC(STD) and DISPLAY defaults, so a "10-digit counter" behaviour that IBM COBOL does not have was treated as correct, and fix memory learned it. The oracle was corrected, the lesson pruned, and the delivery redone: six programs, CI green on 6,714 fresh inputs ([quillmark-modern#3](https://github.com/Nivetha200111/quillmark-modern/pull/3)).
-- The breaker has not yet found a defect that other inputs missed; it is reported as unproven until it does.
+- The breaker was reported as unproven until it found a defect other inputs missed. It has: in the frozen evaluation, CHQCLR's Java had passed 1,004 held-out inputs when the breaker designed two records that broke it (fee 20.00 vs 0.00, debit -121.23 vs 0.00); the repair agent fixed both and it re-certified on 1,006 fresh inputs. Both records carry malformed numeric data, so this shows agreement with GnuCOBOL on bad data, not proven IBM behaviour.
+- The byte-exact comparator (Oct 28) found that the INTACCR in quillmark-modern#3 wrote `-000000000` where COBOL wrote `+000000000`. Re-delivered in [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4), now the canonical delivery: six programs, CI green on 6,719 fresh inputs.
 
 **Demo estates**
 - `quillmark-legacy` (simple layout) and `quillmark-mainframe` (an export of z/OS libraries: extension-less members, cataloged PROCs, DFSORT and IDCAMS cards, DB2, CICS, IMS, EBCDIC extracts), with `quillmark-modern` and `quillmark-java` as targets.
 
 ## Still open
-- Frozen evaluation on four unseen programs (tag `eval-freeze-1`), reported with failures in `docs/EVALUATION.md`.
 - Breaker test on a narrow defect that ordinary testing misses (`samples/loyalty-waiver`).
-- Hosting, front page and visual polish; demo video; a review from a COBOL maintainer.
+- Demo video; a review from a COBOL maintainer.
+
+Done since: frozen evaluation (`eval-freeze-1` 2 of 4, then `eval-freeze-2` 4 of 4 with the corrected verifier, both in `docs/EVALUATION.md`); hosting; front page with COBOL next to certified Java and a public re-verify button; evidence page.

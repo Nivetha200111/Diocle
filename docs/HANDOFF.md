@@ -4,7 +4,23 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
-## Current state (updated 2026-10-28 late evening)
+## Current state (updated 2026-10-29)
+
+**Judge-facing pass (Oct 29, from an outside scoring review).** Web: front page shows CHQCLR's COBOL next to its
+certified Java with a verdict strip replaying the breaker story and **Try the sample** (public re-verify on a fresh
+seed; tested against the live engine: 1,004/1,004 in 1.8 s); "Powered by Meta Muse Spark" in the top bar; per-run
+model card (role, model ID, tokens, cost); private-mode badge; Evidence page (`/evidence`) citing
+**quillmark-modern#4 as the one canonical delivery** (6 programs, 6,719 fresh CI inputs, 0 differences, about $0.13);
+one URL per view (`/`, `/runs`, `/delivery`, `/evidence`); skeleton loaders, 5-column runs table, glossary
+tooltips, honest failure reasons (the three failed deliveries all certified every program; they stopped on engine
+errors, not verdicts), interrupted and superseded runs labelled. README: canonical #4, the `openai` package note,
+coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST).
+- **Needs an engine deploy:** the front page and Live runs load the Java from the new `GET /runs/{id}/source`
+  (run contract v0.9). Until the engine is updated it returns 404 and the Java pane says it could not be loaded;
+  everything else works. Deploy from a machine with the SSH key (or the Vultr web console), when no delivery is
+  running: `cd /opt/diocle && git pull && cd deploy && docker compose -f docker-compose.api.yml up -d --build`.
+- Windows note: building the web app in Git Bash rewrites `NEXT_PUBLIC_DIOCLE_API_URL=/api` into a Windows path;
+  set `MSYS_NO_PATHCONV=1` (Vercel builds are unaffected).
 
 **Pitch.** Diocle is a verification layer for AI-written COBOL→Java: "AI writes the code. Diocle checks it
 against the original before anyone has to trust it." Never claim proof for all inputs (README, "What certified
@@ -93,13 +109,18 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
   X/Reels), `promo.mp4`. Videos are gitignored; copies are in the owner's private `diocle-handoff` bundle.
 - Pipeline: `demo/capture.mjs` and `demo/capture-clicks.mjs` (real captures + numbers from the live API) →
   `demo/promo` (Remotion) → `demo/voiceover.py` → loudnorm. See docs/DEMO_PLAN.md.
-- To do: update the video's evaluation scene to the re-run (4/4); fresh private-mode run on Muse Spark Open under
-  the current verifier (about $0.05 of Fireworks credits; owner to approve) to replace the Oct 28 run in the video.
-- quillmark-modern PR #4 (INTACCR re-delivered, negative zero fixed by the repair agent): merge when CI is green.
+- Done: fresh private-mode run on Muse Spark Open (interest-accrual-20261029-084702) is in the video and evidence;
+  quillmark-modern PR #4 merged with CI green.
+- To do (review's suggested re-cut, 2:50): human opening in the owner's own voice (or keep the synthetic-voice
+  disclosure), Meta credit by 0:30, real capture of the new front page: COBOL next to Java, Try the sample, breaker
+  red → repair → certified, then #4's CI, private mode, evaluation 2/4 → 4/4, visitor import, end card with build
+  dates. Record after the engine deploy above so the Java pane is filled.
 - Evaluation re-run done: 4/4 certified, memory off (docs/EVALUATION.md).
 - Prizes: post the vertical cut on **X** right after submitting (Most Viral counts engagement until Nov 8).
 
 ## Open work (priority order)
+0. Deploy the engine (above), then re-shoot the video against the new front page. After submitting: freeze deploys
+   until judging ends (Nov 5-9), add an uptime monitor, and watch that visitor imports don't drain the credits.
 1. Watch visitor imports (spend in `/api/config`, deliveries list); finish the two in-flight jobs above.
 2. Evaluation: frozen run finished and published in `docs/EVALUATION.md` + `eval/results-eval-freeze-1.json` (2/4 certified;
    BRNCHSUM and LOANAMRT failed because the old comparator rejected aggregation/fan-out; their final Java passes

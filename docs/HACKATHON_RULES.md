@@ -15,10 +15,10 @@ Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to 
 - **New work only:** everything is built during the hackathon. No code from any employer or client.
 - **Clearly identify what was built during the hackathon** in the README and the video. Failing to do so can mean disqualification.
 - **Demo shows only what was built during the hackathon.**
-- **Must incorporate Meta models.** We use Muse Spark (Meta Model API) and Muse Spark Open (`meta-models/muse-spark-open-1026` via Baseten/Modal).
+- **Must incorporate Meta models.** We use Muse Spark (Meta Model API) and Muse Spark Open (open weights; we use `accounts/fireworks/models/muse-spark-open` on Fireworks, and Baseten's `meta-models/muse-spark-open-1026` or Modal also work).
 - **No code, data or assets we don't have rights to.** Avoid anti-project categories (basic RAG, chatbots, simple analyzers, medical advice, etc.).
 - **3-minute demo video.** It's a primary judging artifact, and finalists are ranked by judges watching it live.
-- **Submission:** https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit by **Nov 4, 9 PM ET** (= Nov 5, 6:30 AM IST). Plan to submit the morning of Nov 4.
+- **Submission:** https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit by **Nov 4, 9 PM ET** (US daylight time ends Nov 1, so this is 9 PM EST = 02:00 UTC = **Nov 5, 7:30 AM IST**). Plan to submit the morning of Nov 4.
 - **Sample data:** synthetic only; no client names or data anywhere in the repo.
 
 ## Credits and cost
