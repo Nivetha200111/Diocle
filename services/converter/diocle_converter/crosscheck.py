@@ -72,5 +72,5 @@ def summarize(breaker: Breaker, model: str, attack_summary: dict) -> dict:
     """The run.json `crosscheck` entry (contracts/run.schema.json)."""
     return {"model": model, "casesProposed": breaker.proposed_total, "casesValid": len(breaker.attempts),
             "mismatches": attack_summary["broke"], "repairCycles": attack_summary["repairCycles"],
-            "fixed": attack_summary["fixed"], "suspected": breaker.suspected,
+            "fixed": attack_summary["fixed"], "suspected": breaker.suspected, "rejectedBecause": breaker.rejected,
             "counterexamples": attack_summary["counterexamples"]}

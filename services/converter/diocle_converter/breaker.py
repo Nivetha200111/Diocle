@@ -63,30 +63,39 @@ SCHEMA = {
 VerifyWithCases = Callable[..., dict]
 
 
-def to_record(fields: list[Field], values: dict[str, str]) -> str | None:
-    """Format a model-proposed case with the input layout; None if any value is missing or does not fit."""
+def explain(fields: list[Field], values: dict[str, str]) -> tuple[str | None, str | None]:
+    """(record, None) for a case that fits the input layout, else (None, why it was rejected)."""
     parsed = {}
     for f in fields:
         raw = values.get(f.name)
         if not isinstance(raw, str):
-            return None
+            return None, f"{f.name}: missing or not a string"
         if f.kind == "alnum":
             # one byte per character and no line breaks, or the record framing shifts and fakes a mismatch
-            if len(raw) > f.length or not all(" " <= ch <= "~" for ch in raw):
-                return None
+            if len(raw) > f.length:
+                return None, f"{f.name}: text longer than {f.length}"
+            if not all(" " <= ch <= "~" for ch in raw):
+                return None, f"{f.name}: non-printable or non-ASCII character"
             parsed[f.name] = raw
             continue
         try:
             number = Decimal(raw.strip().replace("+", ""))
         except InvalidOperation:
-            return None
-        if not number.is_finite() or number.normalize().as_tuple().exponent < -f.scale:  # NaN/Inf, or too many decimals
-            return None
+            return None, f"{f.name}: not a number"
+        if not number.is_finite():
+            return None, f"{f.name}: not a finite number"
+        if number.normalize().as_tuple().exponent < -f.scale:  # too many decimals
+            return None, f"{f.name}: more than {f.scale} decimals"
         parsed[f.name] = number
     try:
-        return format_record(parsed, fields)
+        return format_record(parsed, fields), None
     except ValueError:
-        return None
+        return None, "value does not fit its field (too many digits, or a sign on an unsigned field)"
+
+
+def to_record(fields: list[Field], values: dict[str, str]) -> str | None:
+    """Format a model-proposed case with the input layout; None if any value is missing or does not fit."""
+    return explain(fields, values)[0]
 
 
 def _layout_text(fields: list[Field]) -> str:
@@ -114,6 +123,7 @@ class Breaker:
     event_type: str = "breaker"
     system: str = BREAKER
     schema: dict = field(default_factory=lambda: SCHEMA)
+    rejected: dict[str, int] = field(default_factory=dict)  # why proposed cases did not fit the layout, counted
     proposed_total: int = 0  # cases the model proposed, valid or not
     label_name: str = "Breaker"
     suspected: list[dict] = field(default_factory=list)  # fields the model says may diverge (opinion, never evidence)
@@ -148,7 +158,10 @@ class Breaker:
             cases, why = [], {}
             for i, item in enumerate(proposed):
                 pairs = item.get("fields") if isinstance(item.get("fields"), list) else []
-                record = to_record(fields, {f.get("name"): f.get("value") for f in pairs if isinstance(f, dict)})
+                record, reason = explain(fields, {f.get("name"): f.get("value") for f in pairs if isinstance(f, dict)})
+                if reason:
+                    key = reason.split(": ", 1)[-1] if ": " in reason else reason
+                    self.rejected[key] = self.rejected.get(key, 0) + 1
                 if record:
                     case_id = f"breaker-{label}-r{round_no}-{i + 1:02d}"
                     cases.append(Case(case_id, "model", record))
