@@ -24,12 +24,41 @@ by a cent, or by the sign of zero on 30 inputs in a thousand. Diocle's job is to
 - **Built during the hackathon:** everything in this repository, from Oct 27, 2026; the history is in
   [docs/BUILD_LOG.md](docs/BUILD_LOG.md) and the git log.
 - **Meta models:** Muse Spark (Meta Model API) as translator, repair agent and breaker agent; Muse Spark Open (open
-  weights, partner host: Fireworks for private mode; Baseten for a guard agent, in progress on the `guard-agent` branch
-  and not yet run against a live model, that reviews certified Java for leaks and test gaming). No other model is used in the product. The converter depends on the
-  `openai` Python package only as an OpenAI-compatible HTTP client: its base URL is the Meta Model API
-  (`https://api.meta.ai/v1`) or the Muse Spark Open host, set in `.env`; no OpenAI model is called.
+  weights, on a partner host: Fireworks for private mode, Baseten for the optional independent cross-check and guard
+  review). Diagram and per-role detail: [Which model does what](#which-model-does-what). No other model is used in the
+  product. The converter depends on the `openai` Python package only as an OpenAI-compatible HTTP client: its base URL
+  is the Meta Model API (`https://api.meta.ai/v1`) or the Muse Spark Open host, set in `.env`; no OpenAI model is called.
 - **Development tools:** the code was written with help from coding agents (Claude Code; see `.claude/` and the
   `Co-Authored-By` lines in the git log). They are development tooling only and are not part of the product.
+
+## Which model does what
+
+```mermaid
+flowchart LR
+    SRC["COBOL + copybooks"] --> AN["Analyzer<br/>(deterministic, no model)"]
+    AN --> TR["Muse Spark<br/>translates to Java"]
+    TR --> V{{"GnuCOBOL verifier<br/>runs the original and the Java on the same inputs.<br/>The only thing that can certify."}}
+    V -- "mismatch" --> RP["Muse Spark<br/>repair agent"]
+    RP --> V
+    V -- "certified on 1,000 held-out inputs" --> BR["Muse Spark<br/>breaker agent attacks the Java"]
+    BR -- "break found" --> RP
+    BR --> XC["Muse Spark Open (open weights)<br/>independent cross-check, opt-in"]
+    XC -- "a real mismatch only" --> RP
+    GP["Guard policy<br/>(deterministic: refuses Java that opens<br/>the network, runs processes, reads secrets)"] -. "gates every Java run" .-> V
+    XC --> OUT["Certificate + pull request"]
+```
+
+| Role | Model | Served by | What it may do |
+|---|---|---|---|
+| Translator, repair agent, breaker | Muse Spark (`muse-spark-1.3-contributor` by default) | Meta Model API | Write and patch Java, design attack inputs. Cannot certify. |
+| Independent cross-check (`--crosscheck`, opt-in) | Muse Spark Open | Partner host (Baseten or Fireworks) | Propose inputs where it thinks the Java differs. Every input runs through GnuCOBOL and the Java; its opinion certifies nothing. |
+| Guard review (optional, off on the live site) | Muse Spark Open | Baseten | One review of the final Java; can only revoke certification, never grant it. |
+| Private mode | Muse Spark Open replaces Muse Spark in all three agent roles | Partner host | Same loop on open weights, for code that must not leave your control. |
+| **Verifier** | none, it is GnuCOBOL and a byte-for-byte comparison | Sandbox (no network, no credentials) | **The only thing that certifies.** |
+
+The guard's deterministic policy runs on every run. Its model review is off on the live site (no key is configured
+there), so the live site runs the policy only. The narration of the demo video is a synthetic voice from a non-Meta
+service; Meta's speech model on the API (`muse-voice-transcribe-1.0`) transcribes speech and does not speak.
 
 ## What "certified" means, and does not
 
@@ -90,6 +119,20 @@ Sample estate repositories: [quillmark-mainframe](https://github.com/Nivetha2001
 ## Run
 
 Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+. Each service has its own README with setup and test commands. Model keys go in `.env` (see `.env.example`); nothing secret is committed.
+
+### Using your own Meta key
+
+Judges do not need a key: the live site, **Try the sample** and the public re-verify run on our engine. To run the
+converter yourself:
+
+1. Create an API key for the Meta Model API in your Meta developer account at [dev.meta.ai](https://dev.meta.ai).
+2. `cp .env.example .env`, then set `META_MODEL_API_KEY=` (the base URL `https://api.meta.ai/v1` and the model
+   `muse-spark-1.3-contributor` are already filled in; use `muse-spark-1.3` for anything private).
+3. Optional, for private mode or the independent cross-check: set `OPEN_MODEL_API_KEY`, `OPEN_MODEL_BASE_URL` and
+   `OPEN_MODEL_ID` (Fireworks and Baseten examples are in `.env.example`).
+4. Check the key and endpoint: `cd services/converter && .venv/bin/python -m diocle_converter smoke` (one tiny call,
+   about a hundredth of a cent). A first full run on a sample costs a few cents; every model loop has hard call caps
+   (`MODEL_MAX_CALLS_PER_RUN` and the others in `.env.example`).
 
 See [CLAUDE.md](CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design.
 
