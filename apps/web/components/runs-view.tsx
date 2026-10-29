@@ -111,9 +111,10 @@ function GuardPanel({ g }: { g: Guard }) {
             The policy checked the Java before every test{g.stopped ? ` and refused to run it ${g.stopped} time(s); the repair agent was told why` : " and found nothing it had to stop"}.{" "}
             {review
               ? review.verdict === "error"
-                ? `The model review (${review.model}) did not complete: ${review.summary}`
+                ? `The model review (${review.model}) did not complete (${review.summary}); certification stands on the tests and the policy.`
                 : `Model review by ${review.model} on ${hostOf(review.model)}: ${review.verdict.toUpperCase()}. ${review.summary}`
-              : "No model review in this run (policy only)."}
+              : "No model review in this run (policy only, or the run was not certified)."}
+            {" "}The policy is a speed bump; the sandbox is the boundary.
           </p>
         </div>
       </div>
@@ -408,6 +409,8 @@ function RunDetail({ run }: { run: Run }) {
           <div className="runs-badges">
             <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>
             {isPrivateModel(run.model) && <PrivateModeBadge host={hostOf(run.model ?? "")} />}
+            {run.guard?.blocked && <Badge tone="amber">Blocked by the guard</Badge>}
+            {run.guard?.review?.verdict === "error" && <Badge tone="amber">Guard review unavailable</Badge>}
           </div>
           <h2>{run.program} · {run.command === "repair"
             ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
