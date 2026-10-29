@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-28T18:32:34.416Z",
+  "capturedAt": "2026-10-29T03:26:13.314Z",
   "site": "https://diocle.vercel.app",
   "chqclr": {
     "id": "chqclr-20261028-214355",
@@ -61,7 +61,18 @@
     "calls": 9,
     "costUsd": 0.017605
   },
-  "reverify": "PASS · 1004/1004 cases match · stdout matches · exit code matches · seed 697999821 · 1.8s",
+  "reverify": "PASS · 1027/1027 cases match · stdout matches · exit code matches · seed 633561306 · 1.9s",
+  "private": {
+    "id": "interest-accrual-20261029-084702",
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "program": "INTACCR",
+    "certified": true,
+    "heldOut": "1027/1027",
+    "calls": 4,
+    "costUsd": 0.156627,
+    "breakerTried": 21,
+    "breakerBroke": 0
+  },
   "delivery": {
     "id": "delivery-20261028-201807",
     "target": "https://github.com/Nivetha200111/quillmark-java",

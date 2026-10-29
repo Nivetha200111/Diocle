@@ -13,6 +13,7 @@ const OUT = path.join(HERE, "promo", "public", "captures");
 const CHQCLR = "chqclr-20261028-214355";
 const REVERIFY_RUN = "chqclr-20261028-214355";
 const JAVA_DELIVERY = "delivery-20261028-201807";
+const PRIVATE_RUN = "interest-accrual-20261029-084702";
 const CI_JOB = "https://github.com/Nivetha200111/quillmark-java/actions/runs/40709567888/job/122890827709";
 const IMPORT_REPO = "https://github.com/openmainframeproject/cobol-programming-course";
 
@@ -44,6 +45,13 @@ await shot(page.locator(".breaker-panel"), "breaker");
 await shot(panel(page, "Agent trace"), "trace");
 await shot(page.locator(".stats-grid").first(), "stats");
 await shot(panel(page, "Agent efficiency"), "efficiency");
+
+// Private mode: the run made with Muse Spark Open (open weights, partner host), as the live site shows it.
+await page.goto(`${SITE}/#run=${PRIVATE_RUN}`, { waitUntil: "networkidle" });
+await page.locator(".runs-header").first().waitFor();
+await page.waitForTimeout(1200);
+await shot(page.locator(".runs-header").first(), "private-header");
+await shot(page.locator(".stats-grid").first(), "private-stats");
 
 await page.goto(`${SITE}/#run=${REVERIFY_RUN}`, { waitUntil: "networkidle" });
 const button = page.getByRole("button", { name: "Re-verify on a fresh seed" });
@@ -85,6 +93,7 @@ await shot(page.locator("article table").nth(2), "eval-rerun");  // tables: firs
 await browser.close();
 
 // The numbers
+const privateRun = await api(`/runs/${PRIVATE_RUN}`);
 const run = await api(`/runs/${CHQCLR}`);
 const delivery = await api(`/deliveries/${JAVA_DELIVERY}`);
 const events = run.events;
@@ -103,7 +112,13 @@ const data = {
     tools: events.filter((e) => e.type === "agent-step").map((e) => ({ tool: e.tool, why: e.rationale ?? "" })),
     calls: run.usage.calls, costUsd: run.usage.estimatedCostUsd,
   },
-  reverify: reverifyText,  // the real result of pressing the button during capture
+  reverify: reverifyText,
+  private: {
+    id: privateRun.id, model: privateRun.model, program: privateRun.program, certified: privateRun.certified,
+    heldOut: privateRun.after ? `${privateRun.after.passed}/${privateRun.after.total}` : null,
+    calls: privateRun.usage.calls, costUsd: privateRun.usage.estimatedCostUsd,
+    breakerTried: privateRun.breaker?.tried ?? 0, breakerBroke: privateRun.breaker?.broke ?? 0,
+  },  // the real result of pressing the button during capture
   delivery: {
     id: delivery.id, target: delivery.target, programs: delivery.programs.map((p) => ({ name: p.name, status: p.status })),
     pr: delivery.pullRequest?.url ?? null, checks: delivery.pullRequest?.checks ?? [],

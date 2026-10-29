@@ -18,7 +18,7 @@ import soundfile as sf
 from kokoro import KPipeline
 
 RATE = 24000
-TOTAL = 124.6  # seconds: the Submission composition
+TOTAL = 138.6  # seconds: the Submission composition
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "promo" / "public" / "voiceover.wav"
 CAPTIONS = HERE / "promo" / "src" / "captions.json"
@@ -35,10 +35,13 @@ LINES = [
     (68.8, "Don't trust us. Press re-verify, and both programs run again on a fresh seed."),
     (75.4, "Certified code ships as a pull request, and the target repository's own CI checks it again."),
     (85.6, "Or paste any public COBOL repository, and watch it convert."),
-    (91.6, "Banks keep their code private, so the same agents run on Muse Spark Open, Meta's open weights."),
+    (91.6, "Banks keep code private, so the agents also run on Muse Spark Open, Meta's open weights."),
     (99.0, "We test ourselves too. Our evaluation publishes its failures, including a bug our own stricter check caught."),
-    (108.5, "Today, people re-check converted code by hand. With Diocle, every program arrives with proof you can re-run."),
-    (117.0, "Diocle. Try it now, at diocle dot vercel dot app. Built during the hackathon, with Meta Muse Spark."),
+    (108.4, "Few developers know COBOL, so teams retrain Java developers for months. Diocle checks the Java."),
+    (115.4, "A wrong cent repeats on every account."),
+    (119.0, "With Diocle, every program arrives with proof you can re-run."),
+    (124.3, "Today: batch COBOL with files. Next: real mainframe output, and a pilot with a bank team."),
+    (131.0, "Diocle. Try it now, at diocle dot vercel dot app. Built during the hackathon, with Meta Muse Spark."),
 ]
 
 

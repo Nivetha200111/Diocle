@@ -54,4 +54,9 @@ A public import of quillmark-mainframe through the live site (no passcode) certi
 build and program run in the isolated sandbox. Security reviews and the live attack test: docs/HANDOFF.md.
 
 ## Private mode (Meta open weights)
-See the section below once the fresh run on Muse Spark Open is recorded.
+The same pipeline on **Muse Spark Open** (`accounts/fireworks/models/muse-spark-open`, open weights served by a
+partner host), under the current byte-exact verifier, on Oct 29: INTACCR translated from scratch and certified
+first time, **1027/1027 held-out inputs**, no repair needed; the breaker agent designed 21 inputs over 3 rounds and
+none broke it; 4 model calls, about $0.16. Trace and a re-verify button:
+[interest-accrual-20261029-084702](https://diocle.vercel.app/#run=interest-accrual-20261029-084702) (re-verified on
+the live site on a fresh seed: 1027/1027).

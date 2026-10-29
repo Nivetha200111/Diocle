@@ -1,7 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Audio, Easing, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import data from "./data.json";
-import privateRun from "./private.json";
 import { C, mono, pixel, sans } from "./theme";
 import { Backdrop, Capture, Counter, Footnote, Kinetic, Label, Pill, useEnter, Window } from "./ui";
 
@@ -410,27 +409,37 @@ export const Agents: React.FC = () => {
   );
 };
 
-export const PrivateMode: React.FC = () => (
-  <AbsoluteFill>
-    <Backdrop tint={C.teal} />
-    <AbsoluteFill style={{ ...pad, gap: 26 }}>
-      <Label color={C.teal}>Private mode · Meta open weights</Label>
-      <Kinetic text="Banks can't send their code to a hosted API." size={66} />
-      <Kinetic text="So the same agents run on Muse Spark Open." size={66} color={C.phosphor} delay={36} />
-      <div style={{ display: "flex", gap: 22, marginTop: 30 }}>
-        <Pill color={C.teal} delay={80} size={30}>{privateRun.model.split("/").pop()} · served by a partner host</Pill>
-        <Pill color={C.phosphor} delay={96} size={30}>{privateRun.program} certified in {privateRun.calls} model calls</Pill>
+// Private mode, shown not claimed: the live site's page for a run made with Muse Spark Open, and its numbers.
+export const PrivateMode: React.FC = () => {
+  const r = data.private;
+  return (
+    <AbsoluteFill>
+      <Backdrop tint={C.teal} />
+      <div style={{ position: "absolute", left: 120, top: 80 }}>
+        <Label color={C.teal}>Private mode · Meta open weights</Label>
+        <Kinetic text="Banks keep their code private." size={60} />
+        <Kinetic text="So the same agents run on Muse Spark Open." size={60} color={C.phosphor} delay={24} />
+      </div>
+      <div style={{ position: "absolute", left: 120, top: 380 }}>
+        <Window title={`diocle.vercel.app · Live runs · ${r.id}`} width={1680} delay={40}>
+          <Capture src="private-header.png" />
+          <Capture src="private-stats.png" />
+        </Window>
+      </div>
+      <div style={{ position: "absolute", left: 120, top: 290, display: "flex", gap: 22 }}>
+        <Pill color={C.teal} delay={90} size={28}>{r.model.split("/").pop()} on a partner host</Pill>
+        <Pill color={C.phosphor} delay={104} size={28}>{r.program} · {r.heldOut} held-out</Pill>
+        <Pill color={C.phosphor} delay={118} size={28}>breaker: {r.breakerTried} attacks, {r.breakerBroke} broke it</Pill>
       </div>
     </AbsoluteFill>
-    <Footnote delay={110}>Run {privateRun.id} ({privateRun.note}).</Footnote>
-  </AbsoluteFill>
-);
+  );
+};
 
 // Impact in four beats: the bottleneck, the stake, the change, and honest limits with what comes next.
 const ImpactBeat: React.FC<{ from: number; to: number; children: React.ReactNode }> = ({ from, to, children }) => {
   const frame = useCurrentFrame();
+  const p = useEnter(from, 16); // hooks before any early return
   if (frame < from || frame >= to) return null;
-  const p = useEnter(from, 16);
   const out = interpolate(frame, [to - 8, to], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return <AbsoluteFill style={{ ...pad, gap: 26, opacity: p * out, transform: `translateY(${(1 - p) * 30}px)` }}>{children}</AbsoluteFill>;
 };
@@ -438,18 +447,18 @@ const ImpactBeat: React.FC<{ from: number; to: number; children: React.ReactNode
 export const Impact: React.FC = () => (
   <AbsoluteFill>
     <Backdrop tint={C.blue} />
-    <ImpactBeat from={0} to={150}>
+    <ImpactBeat from={0} to={210}>
       <Label color={C.amber}>The bottleneck</Label>
       <Kinetic text="Few developers know COBOL." size={84} delay={6} />
       <Kinetic text="So teams retrain Java developers in COBOL, and that takes months." size={54} weight={600} color={C.muted} delay={30} stagger={3} />
       <Kinetic text="Diocle checks the Java against the COBOL instead." size={54} weight={700} color={C.phosphor} delay={80} stagger={3} />
     </ImpactBeat>
-    <ImpactBeat from={150} to={270}>
+    <ImpactBeat from={210} to={320}>
       <Label color={C.red}>The stake</Label>
       <Kinetic text="A wrong cent in a fee or interest rule" size={76} />
       <Kinetic text="repeats on every account it touches." size={76} color={C.red} delay={20} />
     </ImpactBeat>
-    <ImpactBeat from={270} to={450}>
+    <ImpactBeat from={320} to={480}>
       <div style={{ display: "flex", gap: 50 }}>
         <div style={{ flex: 1, padding: 44, border: `2px solid ${C.muted}55`, borderRadius: 18, background: "#0b1626" }}>
           <div style={{ fontFamily: pixel, fontSize: 34, color: C.muted }}>TODAY</div>
@@ -463,11 +472,11 @@ export const Impact: React.FC = () => (
         </div>
       </div>
       <div style={{ display: "flex", gap: 22 }}>
-        <Pill color={C.phosphor} delay={300} size={30}>${data.chqclr.costUsd.toFixed(2)} of model spend for CHQCLR</Pill>
-        <Pill color={C.blue} delay={315} size={30}>for modernisation teams at banks and insurers</Pill>
+        <Pill color={C.phosphor} delay={350} size={30}>${data.chqclr.costUsd.toFixed(2)} of model spend for CHQCLR</Pill>
+        <Pill color={C.blue} delay={365} size={30}>for modernisation teams at banks and insurers</Pill>
       </div>
     </ImpactBeat>
-    <ImpactBeat from={450} to={660}>
+    <ImpactBeat from={480} to={690}>
       <Label color={C.teal}>Honest scope</Label>
       <div style={{ display: "flex", gap: 50 }}>
         <div style={{ flex: 1 }}>
