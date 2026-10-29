@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diocle.dev/contracts/compile-check.schema.json",
+  "title": "Compile check of the original COBOL",
+  "description": "v0.1. Answer of the sandbox job POST /compile and of diocle_verifier.precheck.compile_original(). Asks one question before any model call: can GnuCOBOL build the ORIGINAL program with the flags verification uses (cobc -x -std=ibm + IBM_FLAGS, the sample's copybook dir, its CALLed modules, its collation)? Nothing is run, only compiled. Untrusted COBOL is compiled only inside the sandbox when DIOCLE_SANDBOX_URL is set. status 'unknown' means the check could not be made (sandbox busy past the wait, unreachable, error): callers proceed as if there were no check.",
+  "type": "object",
+  "required": ["version", "status", "message"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": "0.1"},
+    "status": {"enum": ["ok", "fail", "unknown"]},
+    "message": {
+      "type": "string",
+      "maxLength": 600,
+      "description": "Empty for ok. For fail: the first compiler errors, absolute paths reduced to file names (the sandbox's temporary directory never leaks), at most 600 characters. For unknown: why the check was not made."
+    }
+  }
+}
