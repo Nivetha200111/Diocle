@@ -133,7 +133,9 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                               for c in dict.fromkeys(info.copybooks + module_copybooks) if c in copybooks},
             "modules": modules,
             "job": step.member if step else None,
+            **({"resolvedCalls": info.resolved_calls} if info.resolved_calls else {}),
             "files": [{k: v for k, v in f.items() if k != "unsupported"} for f in files],
+            **({"displayOnly": True} if _display_only(reason, files) else {}),
             "convertible": reason is None,
             "notConvertibleReason": reason,
         })
@@ -220,6 +222,10 @@ def _job_report(job, programs_by_name: dict[str, dict], program_ids: set[str],
             reason = f"{sort_step.step}: {spec.unsupported}"
         elif cobol_reason:
             reason = f"{cobol_step.step} ({cobol_step.program}): {cobol_reason}"
+        elif (cobol := programs_by_name.get(cobol_step.program)) and (
+                cobol.get("displayOnly") or any(f["direction"] == "io" for f in cobol["files"])):
+            reason = (f"{cobol_step.step} ({cobol_step.program}): the job check compares output files only; a program "
+                      "updated in place or compared on stdout converts on its own, not as a JCL job yet")
         elif not any(e["fromStep"] == sort_step.step for e in wiring):
             reason = (f"{job.name}: {sort_step.step}'s output DD is not read by the following COBOL step "
                       "(no matching DSN)")
@@ -231,6 +237,11 @@ def _job_report(job, programs_by_name: dict[str, dict], program_ids: set[str],
         "convertible": reason is None,
         "notConvertibleReason": reason,
     }
+
+
+def _display_only(reason: str | None, files: list[dict]) -> bool:
+    """Convertible with no output or I-O file: the verifier compares stdout and exit code (see services/verifier)."""
+    return reason is None and not any(f["direction"] in ("output", "io") for f in files)
 
 
 def _not_convertible(files: list[dict], used: list[str], available: dict[str, Path], info, program_ids: set[str]) -> str | None:
@@ -249,12 +260,20 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
         return f"keyed file(s) {', '.join(keyed)} are not supported yet"
     inputs = [f for f in files if f["direction"] == "input"]
     outputs = [f for f in files if f["direction"] == "output"]
-    other = [f["dd"] for f in files if f["direction"] not in ("input", "output")]
+    updated = [f for f in files if f["direction"] == "io"]
+    other = [f["dd"] for f in files if f["direction"] not in ("input", "output", "io")]
     if other:
-        return f"file(s) {', '.join(other)} are opened I-O or never opened; update-in-place is not supported yet"
-    if not outputs:
-        return "writes no output file to compare"
-    for f in inputs + outputs:
+        return (f"file(s) {', '.join(other)} are opened I-O or never opened in a way that can be compared "
+                "(a file opened I-O must be opened I-O everywhere)")
+    lines = [f["dd"] for f in updated if f.get("organization") not in ("SEQUENTIAL", "RECORD SEQUENTIAL")]
+    if lines:
+        return f"file(s) {', '.join(lines)} opened I-O must be ORGANIZATION SEQUENTIAL (fixed records)"
+    if not outputs and not updated:
+        if not info.stdout_display:
+            return "writes no output file to compare"
+        if info.console_input:
+            return "ACCEPT reads the console: a DISPLAY-only program is compared on stdout, and its console input cannot be varied"
+    for f in inputs + outputs + updated:
         if f["layout"] is None:
             return f"{f['dd']}: {f.get('unsupported') or 'record layout not found'}"
     return None
@@ -312,7 +331,8 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
         shutil.copy2(copybooks[member], sample / "copybooks" / f"{member}.cpy")  # PDS members have no extension
     inputs = [f for f in program["files"] if f["direction"] == "input"]
     outputs = [f for f in program["files"] if f["direction"] == "output"]
-    single = len(inputs) == 1 and len(outputs) == 1
+    updated = [f for f in program["files"] if f["direction"] == "io"]
+    single = len(inputs) == 1 and len(outputs) == 1 and not updated and not program.get("displayOnly")
     by_direction = {f["direction"]: f for f in program["files"]}
     meta = {
         "name": program["name"].lower(),
@@ -328,8 +348,10 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                            "origin": "none yet: translate with the converter's run command"},
         "layoutsNote": "Derived from the copybooks by services/analyzer.",
         **({"layouts": {"input": by_direction["input"]["layout"], "output": by_direction["output"]["layout"]}} if single
-           else {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]} for f in inputs + outputs],
+           else {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]}
+                           for f in inputs + updated + outputs],
                  **shared_keys(inputs)}),
+        **({"displayOnly": True} if program.get("displayOnly") else {}),
         "import": {"repository": report["source"]["location"], "commit": report["source"].get("commit"),
                    "path": program["path"], "job": program.get("job")},
     }
