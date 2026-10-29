@@ -85,12 +85,19 @@ convertible; EXEC SQL ones correctly refused). Good test repo for visitor import
   started 22:12, before the change). Publish it as-is in `docs/EVALUATION.md`, then run a corrected follow-up
   with the new comparator and report both; LOANAMRT's round-3 failures are "extra output record" (fan-out).
 
-### In flight (started 2026-10-28 ~23:45 IST on the original Mac)
-- Evaluation re-run: tag `eval-freeze-2` (commit 3bcccfb), `eval/run_eval.py --no-memory` (cold start: the first
-  run taught fix memory a lesson from CHQCLR, an evaluation program). Writes `eval/results-eval-freeze-2.json`.
-  Do not change `services/` while it runs. Then add the results to `docs/EVALUATION.md` next to freeze-1.
-- INTACCR re-delivery to quillmark-modern: fresh conversion from quillmark-legacy (the clean run came from
-  quillmark-mainframe, a different source, so it was not reused), `--breaker`, opens a new PR.
+### Videos (Oct 29)
+- **Submission video:** `demo/promo/out/diocle-final.mp4` (2:05, 1080p): Remotion composition `Submission`, shaped
+  for judges (cold open on 20.00 ≠ 0.00, three Muse Spark agents, judge diagram, live click-through, private mode,
+  honest evaluation, impact, "Try it now"); synthetic narration (Kokoro, `demo/voiceover.py`) with captions; end
+  card discloses the synthetic voice. Other cuts: `click-demo-youtube.mp4` (16:9), `click-demo.mp4` (9:16 for
+  X/Reels), `promo.mp4`. Videos are gitignored; copies are in the owner's private `diocle-handoff` bundle.
+- Pipeline: `demo/capture.mjs` and `demo/capture-clicks.mjs` (real captures + numbers from the live API) →
+  `demo/promo` (Remotion) → `demo/voiceover.py` → loudnorm. See docs/DEMO_PLAN.md.
+- To do: update the video's evaluation scene to the re-run (4/4); fresh private-mode run on Muse Spark Open under
+  the current verifier (about $0.05 of Fireworks credits; owner to approve) to replace the Oct 28 run in the video.
+- quillmark-modern PR #4 (INTACCR re-delivered, negative zero fixed by the repair agent): merge when CI is green.
+- Evaluation re-run done: 4/4 certified, memory off (docs/EVALUATION.md).
+- Prizes: post the vertical cut on **X** right after submitting (Most Viral counts engagement until Nov 8).
 
 ## Open work (priority order)
 1. Watch visitor imports (spend in `/api/config`, deliveries list); finish the two in-flight jobs above.
