@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.11 (adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.12 (adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -226,6 +226,27 @@
             "type": "object"
           }
         }
+      }
+    },
+    "tiers": {
+      "type": ["object", "null"],
+      "description": "Model escalation (converter --tiers, hosted mode): the repair agent moves up one tier after each failed certification round and the breaker attacks with the highest tier. Tier 1 is the run's default model; higher tiers are other models on the same host and key, with their own hard caps (calls and dollars per run). Null when escalation was not used. Every call's model is in usage.modelCalls.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "configured": { "type": "array", "items": { "type": "string" }, "description": "Tier 1, 2, 3 model IDs, simplest first" },
+        "escalations": {
+          "type": "array",
+          "description": "Each time the repair agent moved up",
+          "items": {
+            "type": "object",
+            "properties": { "round": { "type": "integer" }, "tier": { "type": "integer" }, "model": { "type": "string" } }
+          }
+        },
+        "breakerModel": { "type": ["string", "null"] },
+        "escalatedCalls": { "type": "integer" },
+        "escalatedUsd": { "type": "number", "description": "Estimated cost of the calls made above tier 1" },
+        "capCalls": { "type": "integer" },
+        "capUsd": { "type": "number" }
       }
     },
     "crosscheck": {
