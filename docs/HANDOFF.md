@@ -12,8 +12,11 @@ seed; tested against the live engine: 1,004/1,004 in 1.8 s); "Powered by Meta Mu
 model card (role, model ID, tokens, cost); private-mode badge; Evidence page (`/evidence`) citing
 **quillmark-modern#4 as the one canonical delivery** (6 programs, 6,719 fresh CI inputs, 0 differences, about $0.13);
 one URL per view (`/`, `/runs`, `/delivery`, `/evidence`); skeleton loaders, 5-column runs table, glossary
-tooltips, honest failure reasons (the three failed deliveries all certified every program; they stopped on engine
-errors, not verdicts), interrupted and superseded runs labelled. README: canonical #4, the `openai` package note,
+tooltips, honest failure reasons (none of the three failed deliveries was a verifier refusal: two certified every
+program and then hit engine errors, the third was the visitor import stopped for the security fix), interrupted and
+superseded runs labelled. A reviewer pass found and we fixed: `/runs` was git-ignored (the `runs/` rule; now
+`/runs/`), visitor runs saved before the marker (now detected by their sample), timezone-sensitive "interrupted"
+(now decided by the engine), and wording that overstated the recorded CHQCLR result. README: canonical #4, the `openai` package note,
 coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST).
 - **Needs an engine deploy:** the front page and Live runs load the Java from the new `GET /runs/{id}/source`
   (run contract v0.9). Until the engine is updated it returns 404 and the Java pane says it could not be loaded;
@@ -40,7 +43,7 @@ means and does not"). Meta Global AI Developer Hackathon, Indie track, submit by
 - SSH key `~/.ssh/diocle` exists only on the original Mac. On a new machine: create a key
   (`ssh-keygen -t ed25519 -f ~/.ssh/diocle`), add the `.pub` in the Vultr console (server → Settings → SSH keys,
   or use the Vultr web console to append it to `/root/.ssh/authorized_keys`).
-- Seeded data: 14 runs (12 certified) and 4 deliveries via `deploy/seed-runs.sh root@65.20.92.159`. Public
+- Seeded data: 19 runs on the engine as of Oct 29 (16 certified, 1 interrupted) and 4 deliveries via `deploy/seed-runs.sh root@65.20.92.159`. Public
   re-verify checked on 11 runs, all pass in about 2 s each.
 - Admin passcode (`DIOCLE_ADMIN_TOKEN`) was generated on the server; the owner has it. It unlocks
   "Deliver as a pull request" on the Delivery page.

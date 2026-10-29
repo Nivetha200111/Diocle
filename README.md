@@ -7,8 +7,9 @@ Diocle is a verification layer for AI-written code where a wrong cent costs mone
 ## For judges: two minutes
 - **Live product:** [diocle.vercel.app](https://diocle.vercel.app). The front page shows CHQCLR's COBOL next to its
   certified Java; press **Try the sample**, and both programs run again on about 1,000 inputs from a seed chosen
-  right then. Or open [Delivery](https://diocle.vercel.app/delivery) and paste any public COBOL repository (it runs
-  in a sandbox with no network and no credentials; small daily budget).
+  right then. Or open [Delivery](https://diocle.vercel.app/delivery) and paste any public COBOL repository (small
+  daily budget; every compile and run of imported code happens in a sandbox with no network and no credentials,
+  while cloning, analysis and the model calls run in the engine).
 - **Evidence, with links to every run:** [diocle.vercel.app/evidence](https://diocle.vercel.app/evidence),
   [docs/EVIDENCE.md](docs/EVIDENCE.md) (the canonical delivery, [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4),
   with its CI) and [docs/EVALUATION.md](docs/EVALUATION.md) (unseen programs, failures included).
