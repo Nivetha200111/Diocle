@@ -5,8 +5,9 @@
   python -m diocle_converter run SAMPLE                  translate with the Meta model, then verify and repair
 
 repair and run read fix memory (runs/memory.json) and add to it when held-out certification passes.
-A guard agent watches every run: its policy keeps unsafe Java from ever running, and when GUARD_MODEL_* is set its
-model reviews the final Java against the COBOL and can revoke certification (see guard.py). smoke checks its key too.
+A guard agent watches every run: its policy refuses to run Java that openly reaches beyond its files, and when
+GUARD_MODEL_* is set its model reviews certified Java against the COBOL and can revoke certification (see guard.py).
+smoke sends the guard its real request.
 Pass --no-memory for a baseline run that neither reads nor writes it, or --memory-read-only to use the lessons
 without adding any (visitor imports: code from strangers must not shape later runs).
 """
@@ -21,8 +22,8 @@ from pathlib import Path
 
 from .breaker import Breaker
 from .client import ModelClient, usage_of
-from .config import REPO_ROOT, Settings
-from .guard import Guard, GuardBlocked
+from .config import PRICES, REPO_ROOT, Settings
+from .guard import Guard, GuardBlocked, describe_error, gated
 from .memory import Memory, lesson_key, render
 from .repair import CERT_CASES, CERT_SEED, TEST_CASES, TEST_SEED, RepairAgent, report_passes, summarize_report
 from .sources import Program
@@ -88,11 +89,7 @@ def main(argv: list[str] | None = None) -> int:
           if guard_settings else "guard: policy only (set GUARD_MODEL_* for the model review)")
 
     if args.command == "smoke":
-        for c in [client] + ([guard_client] if guard_client else []):
-            choice = c.chat(role="smoke", round=0, messages=[{"role": "user", "content": "Reply with exactly: DIOCLE OK"}])
-            print(f"{c.settings.model}: {choice.message.content}")
-            print(json.dumps({k: v for k, v in c.usage_summary().items() if k != "modelCalls"}))
-        return 0
+        return _smoke(client, guard_client)
 
     program = Program.load(args.sample_dir)
     run_dir = REPO_ROOT / "runs" / f"{args.sample_dir.resolve().name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -123,11 +120,41 @@ def main(argv: list[str] | None = None) -> int:
         return _convert(args, settings, client, program, run_dir, base, events, on_event, guard)
     except BaseException as e:  # never leave a run looking "running" forever
         guard.blocked = guard.blocked or isinstance(e, GuardBlocked)
-        on_event({"type": "stage", "stage": "done", "message": f"run failed: {type(e).__name__}: {str(e)[:300]}"})
+        on_event({"type": "stage", "stage": "done", "message": f"run failed: {_describe(e)}"})
         _atomic_write(run_dir / "run.json", {**base, "status": "not-certified", "certified": False, "rounds": [],
                                              "usage": usage_of(client.calls + (guard_client.calls if guard_client else [])),
-                                             "guard": guard.summary(), "error": f"{type(e).__name__}: {str(e)[:300]}"})
+                                             "guard": guard.summary(), "error": _describe(e)})
         raise
+
+
+def _smoke(client: ModelClient, guard_client: ModelClient | None) -> int:
+    """One tiny call per model; the guard gets its real request (structured output) on a tiny clean program, so a wrong
+    model ID or an unsupported response format shows up here, not as silent "error" reviews later."""
+    import tempfile
+
+    ok = True
+    for c in [client] + ([guard_client] if guard_client else []):
+        if c.settings.model not in PRICES:
+            ok = False
+            print(f"WARNING: {c.settings.model} has no price in config.PRICES: run costs become unknown and visitor "
+                  "imports stop (the budget fails closed)")
+    choice = client.chat(role="smoke", round=0, messages=[{"role": "user", "content": "Reply with exactly: DIOCLE OK"}])
+    print(f"{client.settings.model}: {choice.message.content}")
+    if guard_client:
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "Smoke.java").write_text('public class Smoke { public static void main(String[] a) { '
+                                               'System.out.println(System.getenv("DD_IN")); } }')
+            review = Guard(guard_client, ("IN",)).review("       PROGRAM-ID. SMOKE.", Path(tmp))
+        print(f"{guard_client.settings.model} (guard review): {review['verdict']} {review['summary'][:200]}")
+        ok = ok and review["verdict"] != "error"
+    print(json.dumps({k: v for k, v in usage_of(client.calls + (guard_client.calls if guard_client else [])).items()
+                      if k != "modelCalls"}))
+    return 0 if ok else 1
+
+
+def _describe(e: BaseException) -> str:
+    """Model-provider errors are published by type and HTTP status only: their messages can echo account details."""
+    return describe_error(e) if getattr(e, "status_code", None) else f"{type(e).__name__}: {str(e)[:300]}"
 
 
 def _atomic_write(path: Path, data: dict) -> None:
@@ -155,22 +182,23 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     if known:
         on_event({"type": "memory", "message": f"Loaded {len(known)} lessons from earlier certified repairs"})
     standing_cases: list = []
-    run_verify = _verifier()(program.sample_dir, standing_cases)
-
-    def verify(java_dir: Path, *a, **k) -> dict:  # the guard's policy runs before any Java is executed
-        guard.gate(java_dir)
-        return run_verify(java_dir, *a, **k)
-
+    verify = gated(_verifier()(program.sample_dir, standing_cases), guard)  # the policy is checked before Java runs
     agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known),
                         memory_feed=memory.load if (memory and args.swarm) else None,
                         known_lessons={lesson_key(l["pattern"]) for l in known})
     on_event({"type": "stage", "stage": "verifying", "message": "Running GnuCOBOL and the Java on the same inputs"})
-    first = verify(workspace.root, TEST_SEED, TEST_CASES)
-    (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
-    s0 = first["summary"]
-    on_event({"type": "stage", "stage": "repairing",
-              "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
-    held_out = verify(workspace.root, CERT_SEED, CERT_CASES) if report_passes(first) else None
+    try:
+        first = verify(workspace.root, TEST_SEED, TEST_CASES)
+    except GuardBlocked:  # the repair agent is told why and removes the code
+        first = None
+        on_event({"type": "stage", "stage": "repairing",
+                  "message": "Starting point: the guard refused to run the first Java; repair agent takes over"})
+    if first is not None:
+        (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
+        s0 = first["summary"]
+        on_event({"type": "stage", "stage": "repairing",
+                  "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
+    held_out = verify(workspace.root, CERT_SEED, CERT_CASES) if first is not None and report_passes(first) else None
     if held_out is not None and report_passes(held_out):
         print("conversion already passes, including held-out inputs: no repair needed")
         outcome = {"certified": True, "rounds": [], "certificationReport": held_out, "certificationSeed": CERT_SEED,

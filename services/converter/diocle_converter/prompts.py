@@ -27,6 +27,8 @@ Fidelity rules:
 - Use java.math.BigDecimal for all decimal arithmetic. Never use float or double.
 - One private method per COBOL paragraph, named after it in camelCase, called in the same order.
 - Readable, idiomatic Java; no special-casing of particular input values.
+- Name environment variables literally (System.getenv("DD_..."), DIOCLE_CLOCK, DIOCLE_COLLATION). No network,
+  processes, reflection, native code or other files: a guard refuses to run such Java.
 """
 
 REPAIR = """\
@@ -47,5 +49,7 @@ Rules:
 - Never special-case specific inputs, account IDs or expected outputs. Certification re-tests on inputs you have not seen.
 - Keep BigDecimal arithmetic and the one-method-per-paragraph structure.
 - The Java must exit with the COBOL RETURN-CODE and read "now" from DIOCLE_CLOCK when it is set.
+- A guard refuses to run Java that uses the network, processes, reflection, native code, other files or environment
+  variables not named literally. If a test result says the guard refused, remove that code.
 - You have a limited budget of steps and tokens: no exploratory calls, no cosmetic changes.
 """
