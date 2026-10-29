@@ -89,6 +89,8 @@ class RepairAgent:
     # Swarm mode: returns all lessons in shared memory; new ones (certified by other agents) are passed on mid-run.
     memory_feed: Callable[[], list[dict]] | None = None
     known_lessons: set[str] = field(default_factory=set)
+    escalate: bool = False  # --tiers: after each failed certification round, use the next tier's model
+    escalations: list[dict] = field(default_factory=list)  # [{round, tier, model}] for run.json
     rounds: list[dict] = field(default_factory=list)
     lessons: list[dict] = field(default_factory=list)  # from the latest finish call
     messages: list[dict] = field(default_factory=list)
@@ -173,11 +175,27 @@ class RepairAgent:
         self.on_event({"type": "memory", "round": round_no,
                        "message": f"Received {len(new)} new lesson(s) from {', '.join(sources)} mid-run"})
 
+    def _model_for(self, round_no: int) -> str | None:
+        """Tier 1 until a certification round fails, then one tier higher per failed round (hosted mode, --tiers).
+        Falls back to the default model when the escalation caps are spent, so a run can still finish."""
+        if not self.escalate or not self.client.settings.tiers:
+            return None
+        failed = sum(1 for r in self.rounds if not r.get("certified"))
+        model = self.client.settings.tier_model(1 + failed)
+        if model is None or self.client.escalation_exhausted():
+            return None
+        if not self.escalations or self.escalations[-1]["model"] != model:
+            self.escalations.append({"round": round_no, "tier": min(1 + failed, 1 + len(self.client.settings.tiers)), "model": model})
+            self.on_event({"type": "stage", "stage": "repairing", "round": round_no,
+                           "message": f"Escalating the repair agent to {model} after {failed} failed certification round(s)"})
+        return model
+
     def _round(self, round_no: int, messages: list[dict]) -> bool:
         for step in range(1, self.client.settings.max_calls_per_round + 1):
             self._share_new_lessons(round_no, messages)
             try:
-                choice = self.client.chat(role="repair", round=round_no, messages=messages, tools=TOOLS)
+                choice = self.client.chat(role="repair", round=round_no, messages=messages, tools=TOOLS,
+                                          model=self._model_for(round_no))
             except BudgetExceeded as e:
                 self.on_event({"type": "budget", "round": round_no, "message": str(e)})
                 return False

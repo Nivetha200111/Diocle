@@ -11,6 +11,20 @@ Tools: `run_differential_test`, `read_cobol_source`, `list_java_files`, `read_ja
 - Caps: calls per run, calls per round, rounds (from `.env`). Every call's tokens (including cached input), latency and estimated cost are logged.
 - Token efficiency: the COBOL, the Java and the first test result go in the opening message (no exploratory reads); `patch_java` returns the edited lines so the agent doesn't re-read files; a passing test tells the agent to finish immediately; history is append-only with stable content first so the provider's prompt cache applies (cached input is ~50x cheaper on `muse-spark-1.3-contributor`).
 
+## Model tiers (`--tiers`)
+
+Opt-in escalation by task difficulty, hosted mode only. `META_MODEL_ID` is tier 1 (default
+`muse-spark-1.3-contributor`, $0.10/$0.20 per 1M tokens); `MODEL_TIER_2_ID` (e.g. `muse-spark-1.3`, $1.25/$4.25) and
+`MODEL_TIER_3_ID` (e.g. `muse-wonder-1.0`, $4/$20, price per third-party coverage, unconfirmed on dev.meta.ai) are other
+models on the same host and key. With `--tiers` the repair agent stays on tier 1 until a certification round fails, then
+moves up one tier per failed round (each move is a trace event and a `tiers.escalations` entry in run.json), and the
+breaker attacks with the highest configured tier. Hard caps (rule 10) on everything above tier 1: `MODEL_ESCALATION_MAX_CALLS`
+(default 12) and `MODEL_ESCALATION_MAX_USD` (default 0.50) per run, counted as calls happen; when spent, the run falls back to
+tier 1 and still finishes. A model with no entry in `PRICES` counts as the whole cap (fail closed), and the cap is checked
+before each call, so one large call can overshoot it. The contributor tier lets Meta use requests to improve its products;
+escalating to a paid tier also sends those rounds to a model that does not. Whether higher tiers repair better has not been
+measured yet. Private mode (Muse Spark Open) has no tiers.
+
 ## Independent cross-check (`--crosscheck`)
 
 After a run certifies, `crosscheck.py` asks **Muse Spark Open** (open weights; `CROSSCHECK_MODEL_*`, falling back to

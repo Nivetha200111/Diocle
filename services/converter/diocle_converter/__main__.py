@@ -87,6 +87,9 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
         p.add_argument("--crosscheck", action="store_true", help="after certification, Muse Spark Open (CROSSCHECK_MODEL_* or "
                        "OPEN_MODEL_*) independently looks for inputs where the Java differs (about $0.05 per run)")
+        p.add_argument("--tiers", action="store_true", help="escalate by task difficulty: after each failed certification "
+                       "round the repair agent moves to the next tier (MODEL_TIER_2_ID, MODEL_TIER_3_ID, hosted mode), and "
+                       "the breaker attacks with the highest tier; hard caps MODEL_ESCALATION_MAX_CALLS / _MAX_USD")
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
@@ -203,7 +206,10 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     verify = gated(_verifier()(program.sample_dir, standing_cases), guard)  # the policy is checked before Java runs
     agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known),
                         memory_feed=memory.load if (memory and args.swarm) else None,
-                        known_lessons={lesson_key(l["pattern"]) for l in known})
+                        known_lessons={lesson_key(l["pattern"]) for l in known}, escalate=bool(args.tiers))
+    if args.tiers and not settings.tiers:
+        on_event({"type": "stage", "stage": "repairing", "message": "--tiers ignored: no MODEL_TIER_2_ID / "
+                  "MODEL_TIER_3_ID configured, or this run is not in hosted mode"})
     on_event({"type": "stage", "stage": "verifying", "message": "Running GnuCOBOL and the Java on the same inputs"})
     try:
         first = verify(workspace.root, TEST_SEED, TEST_CASES)
@@ -233,7 +239,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     breaker_summary = None
     if args.breaker and outcome["certified"]:
         outcome, breaker_summary = _attack(program, workspace, client, verify, agent, standing_cases, outcome,
-                                           run_dir, settings, on_event)
+                                           run_dir, settings, on_event, tiered=bool(args.tiers))
 
     crosscheck_result = None
     if args.crosscheck and outcome["certified"]:
@@ -266,6 +272,10 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
         "breaker": breaker_summary, "crosscheck": crosscheck_result, "swarm": bool(args.swarm and memory),
+        "tiers": ({"enabled": True, "configured": [settings.model, *settings.tiers], "escalations": agent.escalations,
+                   "breakerModel": settings.tier_model(3), "escalatedCalls": client.escalated_calls,
+                   "escalatedUsd": round(client.escalated_usd, 6), "capCalls": settings.escalation_max_calls,
+                   "capUsd": settings.escalation_max_usd} if args.tiers and settings.tiers else None),
         "guard": guard.summary(), "error": unverifiable,
     })
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
@@ -403,7 +413,7 @@ def _atomic_write_text(path: Path, text: str) -> None:
 
 
 def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event,
-            attacker=None, who="Breaker"):
+            attacker=None, who="Breaker", tiered=False):
     """Breaker cycles: attack; anything that breaks becomes a standing case and the agent repairs and re-certifies.
     The run stays certified only if the last attack found nothing. Bounded by MODEL_MAX_ATTACK_ROUNDS,
     MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
@@ -413,7 +423,8 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
                   "message": "Breaker skipped: it designs single-file records, and this program has several files"})
         return outcome, {"rounds": 0, "tried": 0, "broke": 0, "repairCycles": 0, "fixed": False, "counterexamples": [],
                          "skipped": "multi-file program"}
-    breaker = attacker or Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
+    breaker = attacker or Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event,
+                                  model=settings.tier_model(3) if tiered else None)  # the strongest tier attacks
     found: list[dict] = []
     cycles = 0
     on_event({"type": "stage", "stage": "attacking", "message": f"{who} is designing inputs to break the certified Java"})

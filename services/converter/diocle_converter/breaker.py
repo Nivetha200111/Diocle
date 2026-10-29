@@ -126,6 +126,7 @@ class Breaker:
     rejected: dict[str, int] = field(default_factory=dict)  # why proposed cases did not fit the layout, counted
     proposed_total: int = 0  # cases the model proposed, valid or not
     label_name: str = "Breaker"
+    model: str | None = None  # a higher tier's model ID for the attacker (--tiers); None is the run's default
     suspected: list[dict] = field(default_factory=list)  # fields the model says may diverge (opinion, never evidence)
 
     def attack(self, rounds: int = 3, label: str = "attack") -> list[dict]:
@@ -140,7 +141,8 @@ class Breaker:
         ]
         for round_no in range(1, rounds + 1):
             try:
-                choice = self.client.chat(role=self.role, round=round_no, messages=messages, response_format=self.schema)
+                choice = self.client.chat(role=self.role, round=round_no, messages=messages, response_format=self.schema,
+                                          model=self.model)
             except BudgetExceeded as e:
                 self.on_event({"type": self.event_type, "round": round_no, "message": f"budget: {e}", "tried": 0, "broke": 0})
                 return []

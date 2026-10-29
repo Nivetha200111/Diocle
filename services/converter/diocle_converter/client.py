@@ -30,6 +30,8 @@ class ModelCall:
 class ModelClient:
     settings: Settings
     calls: list[ModelCall] = field(default_factory=list)
+    escalated_calls: int = 0  # calls made with a higher tier's model, counted here (not inferred from the model ID)
+    escalated_usd: float = 0.0  # their cost; an unpriced model counts as the whole cap (fail closed)
     _sdk: object = None
 
     def __post_init__(self) -> None:
@@ -38,10 +40,21 @@ class ModelClient:
 
             self._sdk = OpenAI(base_url=self.settings.base_url, api_key=self.settings.api_key, max_retries=0)
 
-    def chat(self, *, role: str, round: int, messages: list[dict], tools=None, response_format=None):
+    def escalation_exhausted(self) -> bool:
+        """True once calls made on a higher tier (chat(model=...)) hit their own caps: a call count and a dollar amount."""
+        return (self.escalated_calls >= self.settings.escalation_max_calls
+                or self.escalated_usd >= self.settings.escalation_max_usd)
+
+    def chat(self, *, role: str, round: int, messages: list[dict], tools=None, response_format=None, model: str | None = None):
+        """model: a higher tier's ID for this one call (the same host and key); None is the run's default model."""
         if len(self.calls) >= self.settings.max_calls_per_run:
             raise BudgetExceeded(f"model call cap reached ({self.settings.max_calls_per_run} per run)")
-        kwargs = {"model": self.settings.model, "messages": messages, "reasoning_effort": self.settings.reasoning_effort}
+        escalated = bool(model and model != self.settings.model)
+        if escalated and self.escalation_exhausted():
+            raise BudgetExceeded(f"escalation cap reached ({self.settings.escalation_max_calls} calls or "
+                                 f"${self.settings.escalation_max_usd:.2f} per run on tiers above the default)")
+        model = model or self.settings.model
+        kwargs = {"model": model, "messages": messages, "reasoning_effort": self.settings.reasoning_effort}
         if tools:
             kwargs["tools"] = tools
         if response_format:
@@ -56,7 +69,7 @@ class ModelClient:
                 role=role,
                 round=round,
                 mode=self.settings.mode,
-                model=self.settings.model,
+                model=model,
                 inputTokens=usage.prompt_tokens if usage else 0,
                 cachedInputTokens=(getattr(prompt_details, "cached_tokens", None) or 0) if prompt_details else 0,
                 outputTokens=usage.completion_tokens if usage else 0,
@@ -64,6 +77,10 @@ class ModelClient:
                 latencyMs=int((time.monotonic() - started) * 1000),
             )
         )
+        if escalated:
+            cost = _call_cost(self.calls[-1])
+            self.escalated_calls += 1
+            self.escalated_usd += self.settings.escalation_max_usd if cost is None else cost
         return response.choices[0]
 
     def _with_retries(self, kwargs: dict, attempts: int = 4):

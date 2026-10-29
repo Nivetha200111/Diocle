@@ -16,6 +16,9 @@ PRICES = {
     "muse-spark-1.3": (1.25, 0.15, 4.25),
     "accounts/fireworks/models/muse-spark-open": (1.25, 0.15, 4.25),  # Fireworks serverless
     "meta-models/muse-spark-open-1026": (1.25, 0.15, 4.25),  # Baseten (same list price as Fireworks)
+    # Muse Wonder: $4 / $0.20 / $20 per third-party coverage (Oct 2026); not yet confirmed on dev.meta.ai. Used only for
+    # the escalation tiers and the cost cap; an unpriced model makes the run's cost n/a rather than guessed.
+    "muse-wonder-1.0": (4.00, 0.20, 20.00),
 }
 
 
@@ -42,6 +45,12 @@ class Settings:
     max_rounds: int
     max_attack_rounds: int = 3  # breaker agent: attack rounds before the first repair
     max_breaker_cycles: int = 1  # breaker agent: repair-and-re-attack cycles after a break
+    # Escalation tiers (hosted mode only, opt-in with --tiers): model IDs on the same host and key as `model`, simplest
+    # first. tiers[0] is tier 2, tiers[1] is tier 3; `model` itself is tier 1. Calls on a tier above 1 have their own
+    # hard caps (rule 10): a call count and a dollar amount per run.
+    tiers: tuple[str, ...] = ()
+    escalation_max_calls: int = 12
+    escalation_max_usd: float = 0.50
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -56,11 +65,16 @@ class Settings:
         missing = [n for n, v in ((f"{prefix}_API_KEY", api_key), (f"{prefix}_BASE_URL", base_url), (f"{prefix}_ID", model)) if not v]
         if missing:
             raise SystemExit(f"Missing in .env for {mode} mode: {', '.join(missing)}")
+        tiers = tuple(t for t in (os.environ.get("MODEL_TIER_2_ID", ""), os.environ.get("MODEL_TIER_3_ID", "")) if t) \
+            if mode == "hosted" else ()
         return cls(
             mode=mode,
             base_url=base_url,
             api_key=api_key,
             model=model,
+            tiers=tiers,
+            escalation_max_calls=int(os.environ.get("MODEL_ESCALATION_MAX_CALLS", "12")),
+            escalation_max_usd=float(os.environ.get("MODEL_ESCALATION_MAX_USD", "0.50")),
             reasoning_effort=os.environ.get("MODEL_REASONING_EFFORT", "medium"),
             max_calls_per_run=int(os.environ.get("MODEL_MAX_CALLS_PER_RUN", "60")),
             max_calls_per_round=int(os.environ.get("MODEL_MAX_CALLS_PER_ROUND", "20")),
@@ -109,3 +123,9 @@ class Settings:
             max_calls_per_round=1,
             max_rounds=1,
         )
+
+    def tier_model(self, tier: int) -> str | None:
+        """The model for tier 1 (the default: None), 2 or 3; the highest configured tier if `tier` is above it."""
+        if tier <= 1 or not self.tiers:
+            return None
+        return self.tiers[min(tier - 2, len(self.tiers) - 1)]

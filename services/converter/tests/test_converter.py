@@ -468,3 +468,103 @@ def test_an_original_that_does_not_compile_stops_the_run_before_any_repair_round
     assert "/tmp/job" not in why and "CBL0001.cobol:10: error" in why  # the sandbox temp path is not echoed
     assert original_failure({"runs": {"original": {"compiled": True}, "converted": {"compiled": False}}}) is None  # Java errors are repairable
     assert original_failure(None) is None and original_failure({}) is None
+
+
+TIERS = ("muse-spark-1.3", "muse-wonder-1.0")
+
+
+def test_tier_settings_come_from_the_environment_in_hosted_mode_only(monkeypatch):
+    import diocle_converter.config as config
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **k: None)
+    for name, value in (("MODEL_MODE", "hosted"), ("META_MODEL_API_KEY", "k"), ("META_MODEL_BASE_URL", "u"),
+                        ("META_MODEL_ID", "muse-spark-1.3-contributor"), ("OPEN_MODEL_API_KEY", "k"),
+                        ("OPEN_MODEL_BASE_URL", "u"), ("OPEN_MODEL_ID", "o"),
+                        ("MODEL_TIER_2_ID", "muse-spark-1.3"), ("MODEL_TIER_3_ID", "muse-wonder-1.0")):
+        monkeypatch.setenv(name, value)
+    hosted = Settings.from_env()
+    assert hosted.tiers == TIERS and (hosted.escalation_max_calls, hosted.escalation_max_usd) == (12, 0.50)
+    assert [hosted.tier_model(n) for n in (1, 2, 3, 9)] == [None, "muse-spark-1.3", "muse-wonder-1.0", "muse-wonder-1.0"]
+    monkeypatch.setenv("MODEL_MODE", "private")
+    assert Settings.from_env().tiers == () and Settings.from_env().tier_model(3) is None  # open weights: one model
+    monkeypatch.setenv("MODEL_MODE", "hosted")
+    monkeypatch.delenv("MODEL_TIER_3_ID")
+    assert Settings.from_env().tier_model(3) == "muse-spark-1.3"  # the highest configured tier
+
+
+def test_escalated_calls_are_priced_by_their_model_and_have_their_own_hard_caps():
+    ok = ChatCompletionMessage(role="assistant", content="ok")
+    sdk = ScriptedSDK([ok] * 6)
+    client = ModelClient(settings(tiers=TIERS, escalation_max_calls=2, max_calls_per_run=10), _sdk=sdk)
+    client.chat(role="repair", round=1, messages=[])  # default model: not counted against the escalation caps
+    client.chat(role="repair", round=2, messages=[], model="muse-spark-1.3")
+    client.chat(role="repair", round=3, messages=[], model="muse-wonder-1.0")
+    assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-spark-1.3", "muse-wonder-1.0"]
+    assert [c.model for c in client.calls] == ["muse-spark-1.3-contributor", "muse-spark-1.3", "muse-wonder-1.0"]
+    assert client.escalated_calls == 2 and client.escalation_exhausted()
+    with pytest.raises(BudgetExceeded, match="escalation cap"):
+        client.chat(role="repair", round=4, messages=[], model="muse-wonder-1.0")
+    client.chat(role="repair", round=4, messages=[])  # the default tier is still available
+    expected_wonder = (200 * 4.00 + 800 * 0.20 + 200 * 20.00) / 1e6  # 200 fresh in, 800 cached in, 200 out
+    assert client._call_cost(client.calls[2]) == pytest.approx(expected_wonder, abs=1e-9)
+
+
+def test_the_dollar_cap_stops_escalation_and_an_unpriced_model_counts_as_the_whole_cap():
+    ok = ChatCompletionMessage(role="assistant", content="ok")
+    client = ModelClient(settings(tiers=TIERS, escalation_max_usd=0.004), _sdk=ScriptedSDK([ok] * 3))
+    client.chat(role="repair", round=1, messages=[], model="muse-wonder-1.0")  # about $0.0048 at list price
+    assert client.escalation_exhausted()
+    unpriced = ModelClient(settings(tiers=("some-new-model",)), _sdk=ScriptedSDK([ok]))
+    unpriced.chat(role="repair", round=1, messages=[], model="some-new-model")
+    assert unpriced.escalation_exhausted()  # fail closed: a model with no known price cannot be spent on without limit
+
+
+def test_repair_agent_moves_up_a_tier_after_each_failed_certification_round(tmp_path):
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    finish = lambda: tool_call("finish", summary="try")
+    sdk = ScriptedSDK([tool_call("run_differential_test"), finish(), finish(), finish()])
+    events = []
+    client = ModelClient(settings(tiers=TIERS, max_rounds=3, max_calls_per_run=20), _sdk=sdk)
+    agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), events.append, escalate=True)
+    outcome = agent.run()
+    assert not outcome["certified"]
+    # round 1 default, round 2 after one failed certification, round 3 after two
+    assert [r["model"] for r in sdk.requests] == ["muse-spark-1.3-contributor", "muse-spark-1.3-contributor",
+                                                  "muse-spark-1.3", "muse-wonder-1.0"]
+    assert [(e["round"], e["model"]) for e in agent.escalations] == [(2, "muse-spark-1.3"), (3, "muse-wonder-1.0")]
+    assert [e["message"] for e in events if "Escalating" in e.get("message", "")] == [
+        "Escalating the repair agent to muse-spark-1.3 after 1 failed certification round(s)",
+        "Escalating the repair agent to muse-wonder-1.0 after 2 failed certification round(s)"]
+
+
+def test_without_the_flag_or_tiers_the_repair_agent_never_changes_model(tmp_path):
+    for escalate, tiers in ((False, TIERS), (True, ())):
+        ws = Workspace(tmp_path / f"java{escalate}")
+        ws.write("IntAccr.java", "class IntAccr {}")
+        sdk = ScriptedSDK([tool_call("finish", summary="x")] * 2)
+        agent = RepairAgent(Program.load(SAMPLE), ws, ModelClient(settings(tiers=tiers, max_rounds=2), _sdk=sdk),
+                            lambda *_: report(False), escalate=escalate)
+        agent.run()
+        assert {r["model"] for r in sdk.requests} == {"muse-spark-1.3-contributor"} and agent.escalations == []
+
+
+def test_escalation_falls_back_to_the_default_model_when_its_caps_are_spent(tmp_path):
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    sdk = ScriptedSDK([tool_call("finish", summary="x")] * 3)
+    client = ModelClient(settings(tiers=TIERS, max_rounds=3, escalation_max_calls=0, max_calls_per_run=20), _sdk=sdk)
+    agent = RepairAgent(Program.load(SAMPLE), ws, client, lambda *_: report(False), escalate=True)
+    agent.run()
+    assert {r["model"] for r in sdk.requests} == {"muse-spark-1.3-contributor"}  # no escalation, but the run finished
+    assert len(agent.rounds) == 3
+
+
+def test_the_breaker_attacks_with_the_model_it_is_given(tmp_path):
+    from diocle_converter.breaker import Breaker
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": []}))])
+    Breaker(Program.load(SAMPLE), ws, ModelClient(settings(tiers=TIERS), _sdk=sdk), lambda *a, **k: {"results": []},
+            layout, lambda e: None, model="muse-wonder-1.0").attack(rounds=1)
+    assert sdk.requests[0]["model"] == "muse-wonder-1.0"
