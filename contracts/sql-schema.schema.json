@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/sql-schema.schema.json",
+  "title": "SqlSchemaReport",
+  "description": "v0.1. Output of services/verifier sqlschema: one SQL table per record layout (copybook), derived deterministically with no model calls, and the proof that it holds the data: records are loaded into SQLite through the generated table, read back and re-encoded, and must equal the original bytes.",
+  "type": "object",
+  "required": ["version", "tables", "summary"],
+  "properties": {
+    "version": { "type": "string" },
+    "program": { "type": ["string", "null"], "description": "PROGRAM-ID of the sample the layouts came from, when known" },
+    "ddl": { "type": "string", "description": "All CREATE TABLE statements, as written to schema.sql" },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["table", "record", "recordLength", "columns", "ddl", "roundTrip"],
+        "properties": {
+          "dd": { "type": ["string", "null"], "description": "DD name of the file this layout describes" },
+          "direction": { "type": ["string", "null"], "enum": ["input", "output", "unknown", null] },
+          "table": { "type": "string" },
+          "record": { "type": "string", "description": "01-level record name" },
+          "recordLength": { "type": "integer", "minimum": 1 },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["column", "field", "sqlType", "offset", "length"],
+              "properties": {
+                "column": { "type": "string" },
+                "field": { "type": "string", "description": "COBOL name; OCCURS entries carry their subscripts, e.g. AMT(3)" },
+                "sqlType": { "type": "string", "description": "CHAR(n), DECIMAL(p,s), REAL or DOUBLE PRECISION" },
+                "offset": { "type": "integer", "minimum": 1, "description": "First byte in the record (1-based)" },
+                "length": { "type": "integer", "minimum": 1, "description": "Bytes in the record" },
+                "cobol": { "type": "string", "description": "PIC, usage and sign as COBOL states them" },
+                "redefinedBy": { "type": "array", "items": { "type": "string" }, "description": "Fields that REDEFINE these bytes; their bytes are stored once, in this column" }
+              }
+            }
+          },
+          "notes": { "type": "array", "items": { "type": "string" }, "description": "REDEFINES and OCCURS stated explicitly, and anything else a reader of the DDL must know" },
+          "ddl": { "type": "string" },
+          "roundTrip": {
+            "type": "object",
+            "required": ["records", "identical", "sources"],
+            "properties": {
+              "records": { "type": "integer", "minimum": 0 },
+              "identical": { "type": "integer", "minimum": 0, "description": "Records that came back from SQLite byte for byte equal" },
+              "sources": { "type": "array", "items": { "type": "string" }, "description": "generated (PIC boundaries + seeded random values, with the seed) and/or data files" },
+              "failures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["record", "detail"],
+                  "properties": {
+                    "record": { "type": "integer", "minimum": 1 },
+                    "source": { "type": "string" },
+                    "field": { "type": ["string", "null"] },
+                    "detail": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["tables", "records", "identical", "passed"],
+      "properties": {
+        "tables": { "type": "integer" },
+        "records": { "type": "integer" },
+        "identical": { "type": "integer" },
+        "passed": { "type": "boolean", "description": "Every record of every table came back byte for byte" }
+      }
+    }
+  }
+}
