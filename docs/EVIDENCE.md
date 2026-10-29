@@ -40,7 +40,9 @@ After the comparator was made byte-exact, INTACCR was converted again from quill
 the negative-zero case itself) and the other five programs' existing Java was **re-certified under the new
 verifier with zero model calls** (it already passed). All six certificates are on
 [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4), whose CI re-verifies them with one
-pinned verifier.
+pinned verifier. **CI passed on fresh inputs:** ACCTMTCH 1601/1601, DAYCTRL 1017/1017, FEESCHD 1021/1021,
+INTACCR 1019/1019, PKDPOST 1037/1037, TXNPOST 1024/1024, stdout matching for each
+([run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870)).
 
 ## Unseen programs (frozen evaluation)
 [docs/EVALUATION.md](EVALUATION.md): first run 2 of 4 certified (the old comparator rejected aggregation and
