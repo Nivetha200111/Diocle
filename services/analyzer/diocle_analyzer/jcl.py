@@ -28,6 +28,26 @@ class Proc:
     steps: list[tuple[str, str, dict[str, str]]] = field(default_factory=list)  # (step, program, dd -> dsn)
 
 
+@dataclass
+class SortSpec:
+    """A parsed SORT control statement (v1 scope: fixed-offset keys, CH/ZD/PD/BI, optional OPTION EQUALS)."""
+    fields: list[tuple[int, int, str, str]] = field(default_factory=list)  # (start, length, format, "A"|"D")
+    option_equals: bool = False
+    unsupported: str | None = None
+
+
+@dataclass
+class Job:
+    name: str  # the //jobname JOB card
+    member: str
+    steps: list[JobStep] = field(default_factory=list)  # source/EXEC order
+    sorts: dict[str, SortSpec] = field(default_factory=dict)  # step name -> parsed spec, SORT-utility steps only
+
+
+SORT_PROGRAMS = {"SORT", "SYNCSORT", "DFSORT"}
+_SORT_KEY_FORMATS = {"CH", "ZD", "PD", "BI"}
+
+
 def _statements(text: str) -> list[str]:
     """JCL statements with continuations joined (a line ending in ',' continues on the next // line)."""
     out, current = [], ""
@@ -109,3 +129,82 @@ def parse_jcl(text: str, member: str, procs: dict[str, Proc] | None = None) -> l
             elif current:
                 current.dsns[dd] = dsn
     return steps
+
+
+def is_sort_step(step: JobStep) -> bool:
+    return step.program in SORT_PROGRAMS
+
+
+def parse_sort_fields(text: str) -> SortSpec:
+    """Parse a SORT control statement: SORT FIELDS=(...) and optional OPTION EQUALS.
+
+    v1 scope: one or more fixed-offset keys (start,length,format,A|D), formats CH/ZD/PD/BI, ascending or
+    descending. Anything else (INCLUDE/OMIT COND=, OUTREC/INREC, SUM FIELDS=, MERGE, variable-length input,
+    an unsupported key format) sets .unsupported to a specific reason instead of guessing.
+    """
+    upper = text.upper()
+    if re.search(r"\bMERGE\s+FIELDS=", upper):
+        return SortSpec(unsupported="MERGE is not supported yet, only SORT")
+    if re.search(r"\b(INCLUDE|OMIT)\s+COND=", upper):
+        return SortSpec(unsupported="INCLUDE/OMIT COND= is not supported yet")
+    if re.search(r"\bOUTREC\s+FIELDS=", upper) or re.search(r"\bINREC\s+FIELDS=", upper):
+        return SortSpec(unsupported="OUTREC/INREC reformatting is not supported yet")
+    if re.search(r"\bSUM\s+FIELDS=", upper):
+        return SortSpec(unsupported="SUM FIELDS= is not supported yet")
+    m = re.search(r"\bSORT\s+FIELDS=\(([^)]*)\)", upper)
+    if not m:
+        return SortSpec(unsupported="no SORT FIELDS= control statement found")
+    fields: list[tuple[int, int, str, str]] = []
+    tokens = [t.strip() for t in m.group(1).split(",")]
+    if len(tokens) % 4 != 0:
+        return SortSpec(unsupported=f"SORT FIELDS=({m.group(1)}): expected (start,length,format,A|D) tuples")
+    for i in range(0, len(tokens), 4):
+        start_s, length_s, fmt, order = tokens[i:i + 4]
+        if not start_s.isdigit() or not length_s.isdigit():
+            return SortSpec(unsupported=f"SORT FIELDS=({m.group(1)}): non-numeric start or length")
+        if fmt not in _SORT_KEY_FORMATS:
+            return SortSpec(unsupported=f"SORT key format {fmt!r} is not supported yet (only CH/ZD/PD/BI)")
+        if order not in ("A", "D"):
+            return SortSpec(unsupported=f"SORT key order {order!r} is not supported yet (only A/D)")
+        fields.append((int(start_s), int(length_s), fmt, order))
+    option_equals = bool(re.search(r"\bOPTION\s+EQUALS\b", upper))
+    return SortSpec(fields=fields, option_equals=option_equals)
+
+
+def group_jobs(steps: list[JobStep]) -> list[Job]:
+    """Group parse_jcl()'s flat step list by (job, member), preserving source/EXEC order.
+
+    Stable grouping by first occurrence, not a sort: step order is execution order and is semantically
+    meaningful. parse_jcl() itself is unchanged; this is a pure post-processing pass over its output.
+    """
+    jobs: dict[tuple[str, str], Job] = {}
+    order: list[tuple[str, str]] = []
+    for step in steps:
+        key = (step.job, step.member)
+        if key not in jobs:
+            jobs[key] = Job(name=step.job, member=step.member)
+            order.append(key)
+        jobs[key].steps.append(step)
+    return [jobs[key] for key in order]
+
+
+def _base_dsn(dsn: str) -> str:
+    """Strip a trailing GDG relative-generation qualifier, e.g. FOO(0) / FOO(+1) / FOO(-1) -> FOO."""
+    return re.sub(r"\([+-]?\d+\)$", "", dsn)
+
+
+def wire_steps(job: Job) -> list[tuple[JobStep, str, JobStep, str]]:
+    """(producer_step, producer_dd, consumer_step, consumer_dd) for every DSN one step writes and a later
+    step in the same job reads. GDG relative generations are normalized by stripping the (0)/(+1)/(-1)
+    qualifier before comparing; full GDG generation arithmetic beyond an exact base-DSN match is out of
+    scope for v1 and never raises, it just does not match.
+    """
+    edges: list[tuple[JobStep, str, JobStep, str]] = []
+    for i, producer in enumerate(job.steps):
+        for p_dd, p_dsn in producer.dsns.items():
+            p_base = _base_dsn(p_dsn)
+            for consumer in job.steps[i + 1:]:
+                for c_dd, c_dsn in consumer.dsns.items():
+                    if _base_dsn(c_dsn) == p_base:
+                        edges.append((producer, p_dd, consumer, c_dd))
+    return edges

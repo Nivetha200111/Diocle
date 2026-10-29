@@ -159,6 +159,92 @@ def test_copy_replacing_inline_records_and_blocking_reasons(tmp_path):
     assert not p["convertible"] and "INDEXED" in p["notConvertibleReason"]
 
 
+def test_display_only_programs_convert_and_are_flagged(tmp_path):
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. SHOWIT.",
+        "       DATA DIVISION.",
+        "       WORKING-STORAGE SECTION.",
+        "       01  WS-MSG   PIC X(10) VALUE 'HELLO'.",
+        "       PROCEDURE DIVISION.",
+        "           DISPLAY WS-MSG",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "SHOWIT.cbl").write_text(program)
+    [p] = analyze(tmp_path)["programs"]
+    assert p["convertible"] and p.get("displayOnly") is True
+    validate_report({"version": "x", "source": {"kind": "directory", "location": "x"},
+                     "programs": [p], "dependencies": [], "findings": [], "jobs": []})
+
+
+def test_no_output_and_no_display_is_still_rejected(tmp_path):
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. SILENT.",
+        "       DATA DIVISION.",
+        "       WORKING-STORAGE SECTION.",
+        "       01  WS-X   PIC X(10).",
+        "       PROCEDURE DIVISION.",
+        "           MOVE 'A' TO WS-X",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "SILENT.cbl").write_text(program)
+    [p] = analyze(tmp_path)["programs"]
+    assert not p["convertible"] and p["notConvertibleReason"] == "writes no output file to compare"
+    assert "displayOnly" not in p
+
+
+def test_io_files_opened_for_update_in_place_convert(tmp_path):
+    (tmp_path / "IOREC.cpy").write_text("       01  IO-REC.\n           05  IO-ID   PIC X(4).\n")
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. UPDREC.",
+        "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.",
+        "       FILE-CONTROL.",
+        "           SELECT IO-F ASSIGN TO IOFILE.",
+        "       DATA DIVISION.",
+        "       FILE SECTION.",
+        "       FD  IO-F.",
+        "       COPY IOREC.",
+        "       PROCEDURE DIVISION.",
+        "           OPEN I-O IO-F",
+        "           REWRITE IO-REC",
+        "           CLOSE IO-F",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "UPDREC.cbl").write_text(program)
+    report = analyze(tmp_path)
+    validate_report(report)
+    [p] = report["programs"]
+    assert p["convertible"], p["notConvertibleReason"]
+    [f] = p["files"]
+    assert f["direction"] == "io"
+    assert "displayOnly" not in p
+
+
+def test_file_never_opened_is_still_rejected(tmp_path):
+    (tmp_path / "IOREC.cpy").write_text("       01  IO-REC.\n           05  IO-ID   PIC X(4).\n")
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. NEVEROPN.",
+        "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.",
+        "       FILE-CONTROL.",
+        "           SELECT IO-F ASSIGN TO IOFILE.",
+        "       DATA DIVISION.",
+        "       FILE SECTION.",
+        "       FD  IO-F.",
+        "       COPY IOREC.",
+        "       PROCEDURE DIVISION.",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "NEVEROPN.cbl").write_text(program)
+    [p] = analyze(tmp_path)["programs"]
+    assert not p["convertible"]
+    assert "opened I-O or never opened" in p["notConvertibleReason"]
+
+
 def test_several_record_types_are_reported():
     two = parse_copybook("       01  R1.\n           05  A  PIC X(3).\n       01  R2.\n           05  B  PIC 9(5).\n")
     assert two.as_dict() is None and "2 record types" in two.unsupported
@@ -223,6 +309,147 @@ def test_jcl_procedures_symbolics_and_overrides():
     [step] = parse_jcl(job, "JCLLIB/QMKD010", procs)
     assert step.program == "INTACCR" and step.job == "QMKD010"
     assert step.dsns == {"ACCTIN": "QMK.OVERRIDE", "INTOUT": "QMK.TEST.INT.RESULT(+1)"}
+
+
+def test_group_jobs_preserves_source_exec_order():
+    from diocle_analyzer.jcl import JobStep, group_jobs
+    steps = [
+        JobStep("QMKD010", "jcl/QMKD010.jcl", "SORT", {}, step="SORT005"),
+        JobStep("QMKD010", "jcl/QMKD010.jcl", "ACCTMTCH", {}, step="MTCH010"),
+        JobStep("OTHERJOB", "jcl/OTHERJOB.jcl", "PGMX", {}, step="S1"),
+    ]
+    [job1, job2] = group_jobs(steps)
+    assert job1.name == "QMKD010" and [s.step for s in job1.steps] == ["SORT005", "MTCH010"]
+    assert job2.name == "OTHERJOB" and [s.step for s in job2.steps] == ["S1"]
+
+
+def test_parse_sort_fields_matches_the_real_sorttxn_control_statement():
+    from diocle_analyzer.jcl import SortSpec, parse_sort_fields
+    text = (Path(__file__).resolve().parents[3] / "samples" / "account-match" / "jcl" / "SORTTXN").read_text()
+    assert parse_sort_fields(text) == SortSpec(fields=[(1, 8, "CH", "A")], option_equals=True, unsupported=None)
+
+
+def test_parse_sort_fields_rejects_unsupported_syntax():
+    from diocle_analyzer.jcl import parse_sort_fields
+    assert "MERGE" in parse_sort_fields("  MERGE FIELDS=(1,8,CH,A)\n").unsupported
+    assert "INCLUDE" in parse_sort_fields("  SORT FIELDS=(1,8,CH,A)\n  INCLUDE COND=(9,2,CH,EQ,C'XX')\n").unsupported
+    assert "OUTREC" in parse_sort_fields("  SORT FIELDS=(1,8,CH,A)\n  OUTREC FIELDS=(1,8)\n").unsupported
+    assert "SUM" in parse_sort_fields("  SORT FIELDS=(1,8,CH,A)\n  SUM FIELDS=NONE\n").unsupported
+    assert "format" in parse_sort_fields("  SORT FIELDS=(1,8,XX,A)\n").unsupported
+
+
+def test_wire_steps_finds_the_sortout_to_txnin_edge():
+    from diocle_analyzer.jcl import JobStep, group_jobs, wire_steps
+    steps = [
+        JobStep("QMKD010", "jcl/QMKD010.jcl", "SORT",
+               {"SORTIN": "QMK.PROD.TXN.DAILY", "SORTOUT": "QMK.PROD.TXN.SORTED"}, step="SORT005"),
+        JobStep("QMKD010", "jcl/QMKD010.jcl", "ACCTMTCH",
+               {"MSTIN": "QMK.PROD.ACCT.MASTER(0)", "TXNIN": "QMK.PROD.TXN.SORTED"}, step="MTCH010"),
+    ]
+    [job] = group_jobs(steps)
+    edges = wire_steps(job)
+    assert ("SORT005", "SORTOUT", "MTCH010", "TXNIN", "QMK.PROD.TXN.SORTED") in [
+        (p.step, p_dd, c.step, c_dd, dsn) for p, p_dd, c, c_dd, dsn in
+        [(p, p_dd, c, c_dd, p.dsns[p_dd]) for p, p_dd, c, c_dd in edges]]
+
+
+def test_sort_then_cobol_job_converts_end_to_end():
+    report = analyze(SAMPLES / "account-match")
+    validate_report(report)
+    [job] = report["jobs"]
+    assert job["name"] == "QMKD010" and job["convertible"], job["notConvertibleReason"]
+    [sort_step, cobol_step] = job["steps"]
+    assert sort_step["kind"] == "sort" and sort_step["sort"]["fields"] == [[1, 8, "CH", "A"]]
+    assert sort_step["sort"]["optionEquals"] is True and sort_step["sort"]["unsupported"] is None
+    assert cobol_step["kind"] == "cobol" and cobol_step["program"] == "ACCTMTCH"
+    assert cobol_step["convertibleProgram"] is True
+    assert job["wiring"] == [{"fromStep": "SORT005", "fromDd": "SORTOUT", "toStep": "MTCH010",
+                              "toDd": "TXNIN", "dsn": "QMK.PROD.TXN.SORTED"}]
+
+
+def test_job_with_cond_gated_steps_is_refused(tmp_path):
+    (tmp_path / "RECX.cpy").write_text("       01  X-REC.\n           05  X-ID   PIC X(4).\n")
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. PGMX.",
+        "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.",
+        "       FILE-CONTROL.",
+        "           SELECT IN-F ASSIGN TO XIN.",
+        "           SELECT OUT-F ASSIGN TO XOUT.",
+        "       DATA DIVISION.",
+        "       FILE SECTION.",
+        "       FD  IN-F.",
+        "       COPY RECX.",
+        "       FD  OUT-F.",
+        "       COPY RECX.",
+        "       PROCEDURE DIVISION.",
+        "           OPEN INPUT IN-F OUTPUT OUT-F",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "PGMX.cbl").write_text(program)
+    job = "\n".join([
+        "//* SYNTHETIC",
+        "//QMKX010  JOB (1),'X'",
+        "//SORT005  EXEC PGM=SORT",
+        "//SORTIN   DD DSN=QMK.TEST.IN,DISP=SHR",
+        "//SORTOUT  DD DSN=QMK.TEST.SORTED,DISP=(NEW,CATLG)",
+        "//SYSIN    DD *",
+        "  SORT FIELDS=(1,4,CH,A)",
+        "//STEP1    EXEC PGM=PGMX,COND=(0,NE,SORT005)",
+        "//XIN      DD DSN=QMK.TEST.SORTED,DISP=SHR",
+        "//XOUT     DD DSN=QMK.TEST.OUT1,DISP=(NEW,CATLG)",
+        "//STEP2    EXEC PGM=PGMX,COND=(4,LT,STEP1)",
+        "//XIN      DD DSN=QMK.TEST.OUT1,DISP=SHR",
+        "//XOUT     DD DSN=QMK.TEST.OUT2,DISP=(NEW,CATLG)",
+    ])
+    (tmp_path / "QMKX010.jcl").write_text(job)
+    report = analyze(tmp_path)
+    validate_report(report)
+    [j] = report["jobs"]
+    assert not j["convertible"]
+    assert j["notConvertibleReason"] == "QMKX010: only one SORT step followed by one COBOL step is supported yet"
+
+
+def test_sort_include_cond_is_refused_with_a_specific_reason(tmp_path):
+    (tmp_path / "RECX.cpy").write_text("       01  X-REC.\n           05  X-ID   PIC X(4).\n")
+    program = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. PGMY.",
+        "       ENVIRONMENT DIVISION.",
+        "       INPUT-OUTPUT SECTION.",
+        "       FILE-CONTROL.",
+        "           SELECT IN-F ASSIGN TO YIN.",
+        "           SELECT OUT-F ASSIGN TO YOUT.",
+        "       DATA DIVISION.",
+        "       FILE SECTION.",
+        "       FD  IN-F.",
+        "       COPY RECX.",
+        "       FD  OUT-F.",
+        "       COPY RECX.",
+        "       PROCEDURE DIVISION.",
+        "           OPEN INPUT IN-F OUTPUT OUT-F",
+        "           STOP RUN.",
+    ])
+    (tmp_path / "PGMY.cbl").write_text(program)
+    (tmp_path / "SRTCTL").write_text(
+        "* SYNTHETIC\n  SORT FIELDS=(1,4,CH,A)\n  INCLUDE COND=(5,2,CH,EQ,C'XX')\n")
+    job = "\n".join([
+        "//* SYNTHETIC",
+        "//QMKY010  JOB (1),'Y'",
+        "//SORT005  EXEC PGM=SORT",
+        "//SORTIN   DD DSN=QMK.TEST.IN,DISP=SHR",
+        "//SORTOUT  DD DSN=QMK.TEST.SORTED,DISP=(NEW,CATLG)",
+        "//SYSIN    DD DSN=QMK.TEST.CNTL(SRTCTL),DISP=SHR",
+        "//STEP1    EXEC PGM=PGMY",
+        "//YIN      DD DSN=QMK.TEST.SORTED,DISP=SHR",
+        "//YOUT     DD DSN=QMK.TEST.OUT1,DISP=(NEW,CATLG)",
+    ])
+    (tmp_path / "QMKY010.jcl").write_text(job)
+    report = analyze(tmp_path)
+    validate_report(report)
+    [j] = report["jobs"]
+    assert not j["convertible"] and "INCLUDE/OMIT COND=" in j["notConvertibleReason"]
 
 
 def test_mainframe_library_members_are_classified_by_content(tmp_path):

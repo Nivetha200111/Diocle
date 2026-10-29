@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/analysis-report.schema.json",
   "title": "AnalysisReport",
-  "description": "v0.3 (v0.2 added organization and clock, collation, float and source findings; v0.3 adds field usage, all sign modes, P scaling, OCCURS, REDEFINES and record formats). Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
+  "description": "v0.4 (v0.2 added organization and clock, collation, float and source findings; v0.3 adds field usage, all sign modes, P scaling, OCCURS, REDEFINES and record formats; v0.4 adds job-level conversion: `jobs[]` groups JCL steps by job, classifies each step, parses SORT FIELDS=, wires step-to-step DD/DSN flow and says whether the whole job converts -- v1 scope only: one SORT step then one COBOL step). Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
   "type": "object",
-  "required": ["version", "source", "programs", "dependencies", "findings"],
+  "required": ["version", "source", "programs", "dependencies", "findings", "jobs"],
   "properties": {
     "version": { "type": "string" },
     "source": {
@@ -75,6 +75,73 @@
           "category": { "type": "string", "enum": ["rounding", "truncation", "overflow", "display", "clock", "collation", "float", "source", "fraud", "payment", "other"] },
           "severity": { "type": "string", "enum": ["low", "medium", "high"] },
           "message": { "type": "string" }
+        }
+      }
+    },
+    "jobs": {
+      "type": "array",
+      "description": "JCL jobs, grouped from the flat step list by (job, member) in source/EXEC order. v1 scope: a job is convertible only if it is exactly one SORT step followed by one COBOL step, with the SORT step's output DD's DSN matching one of the COBOL step's input DD DSNs; anything else (3+ steps, COND-gated/PROC-conditional steps, multiple SORT steps, unsupported SORT control syntax, GDG generation arithmetic beyond an exact-DSN match) is refused with a specific reason.",
+      "items": {
+        "type": "object",
+        "required": ["name", "member", "steps", "wiring", "convertible", "notConvertibleReason"],
+        "properties": {
+          "name": { "type": "string", "description": "The //jobname JOB card" },
+          "member": { "type": "string", "description": "JCL member the job came from, repository-relative" },
+          "steps": {
+            "type": "array",
+            "description": "In source/EXEC order.",
+            "items": {
+              "type": "object",
+              "required": ["step", "kind", "program", "dds", "sort", "convertibleProgram", "notConvertibleReason"],
+              "properties": {
+                "step": { "type": "string" },
+                "proc": { "type": ["string", "null"], "description": "Cataloged procedure this step came from, if any" },
+                "kind": { "type": "string", "enum": ["cobol", "sort", "other"], "description": "cobol: program matches a parsed entry in programs[]; sort: a SORT/SYNCSORT/DFSORT utility step; other: anything else (COBOL step whose source was not found, IDCAMS, IEBGENER, ...)" },
+                "program": { "type": "string", "description": "PGM= value" },
+                "dds": { "type": "object", "additionalProperties": { "type": "string" }, "description": "DD name -> DSN" },
+                "sort": {
+                  "type": ["object", "null"],
+                  "description": "Parsed SORT control statement; null for non-SORT steps.",
+                  "required": ["fields", "optionEquals", "unsupported"],
+                  "properties": {
+                    "fields": {
+                      "type": "array",
+                      "description": "Fixed-offset sort keys: [start, length, format, order], 1-based start as written in FIELDS=.",
+                      "items": {
+                        "type": "array", "prefixItems": [
+                          { "type": "integer", "minimum": 1 },
+                          { "type": "integer", "minimum": 1 },
+                          { "type": "string", "enum": ["CH", "ZD", "PD", "BI"] },
+                          { "type": "string", "enum": ["A", "D"] }
+                        ], "minItems": 4, "maxItems": 4
+                      }
+                    },
+                    "optionEquals": { "type": "boolean", "description": "OPTION EQUALS: stable sort" },
+                    "unsupported": { "type": ["string", "null"], "description": "Specific SORT syntax this analysis does not support yet (INCLUDE/OMIT COND=, OUTREC/INREC, SUM FIELDS=, MERGE, a key format other than CH/ZD/PD/BI, or SYSIN not resolvable), or null when the control statement parsed cleanly" }
+                  }
+                },
+                "convertibleProgram": { "type": ["boolean", "null"], "description": "The matching programs[] entry's own convertible value, for a cobol step; null for sort/other steps" },
+                "notConvertibleReason": { "type": ["string", "null"], "description": "Why this step on its own is not convertible (program's notConvertibleReason, a SORT unsupported reason, or that the program was not found); null when the step is fine on its own" }
+              }
+            }
+          },
+          "wiring": {
+            "type": "array",
+            "description": "Every DSN written by one step and read by a later step in the same job (GDG relative-generation qualifiers normalized away before comparing).",
+            "items": {
+              "type": "object",
+              "required": ["fromStep", "fromDd", "toStep", "toDd", "dsn"],
+              "properties": {
+                "fromStep": { "type": "string" },
+                "fromDd": { "type": "string" },
+                "toStep": { "type": "string" },
+                "toDd": { "type": "string" },
+                "dsn": { "type": "string", "description": "Producer's DSN as written (before GDG normalization)" }
+              }
+            }
+          },
+          "convertible": { "type": "boolean" },
+          "notConvertibleReason": { "type": ["string", "null"] }
         }
       }
     }

@@ -10,7 +10,7 @@ from . import REPORT_VERSION
 from .cobol import apply_replacing, parse_copybook, parse_program
 import re
 
-from .jcl import parse_jcl, parse_procs
+from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
 from .risks import find_risks
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "analysis-report.schema.json"
@@ -143,12 +143,93 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
         if step:
             dependencies.append({"from": step.job, "to": info.name, "kind": "job"})
         findings += find_risks(info.name, text)
+    programs_by_name = {p["name"]: p for p in programs}
+    # Resolving a SYSIN DD DSN=...(MEMBER) control-statement member: library members with no recognized
+    # extension land in `copybooks` by stem (classify()'s content-based bucket, same as any other mainframe
+    # library member outside a JCL/COBOL suffix); JCL-suffixed members are included too, for completeness.
+    member_by_stem = {**{p.name.upper(): p for p in jcl_members}, **copybooks}
+    jobs = [_job_report(job, programs_by_name, program_ids, member_by_stem)
+            for job in group_jobs(steps)]
     return {
         "version": REPORT_VERSION,
         "source": {"kind": kind, "location": location or str(root), "commit": commit},
         "programs": programs,
         "dependencies": dependencies,
         "findings": findings,
+        "jobs": jobs,
+    }
+
+
+def _resolve_sysin_text(dsn: str, member_by_stem: dict[str, Path]) -> str | None:
+    """Text behind a SYSIN DD's DSN: an inline literal is not resolvable from JobStep.dsns (parse_jcl only
+    captures DSN= forms), so this handles the DSN=dataset(MEMBER) form, looking the member up by stem the
+    same way copybooks are resolved. None if the member cannot be found (an external reference this
+    analysis cannot resolve, same convention as a missing copybook: refused with a reason, not guessed)."""
+    m = re.search(r"\(([A-Z0-9#@$]+)\)$", dsn.upper())
+    member = m.group(1) if m else dsn.upper()
+    path = member_by_stem.get(member)
+    return path.read_text(errors="replace") if path else None
+
+
+def _job_report(job, programs_by_name: dict[str, dict], program_ids: set[str],
+                member_by_stem: dict[str, Path]) -> dict:
+    step_reports = []
+    for s in job.steps:
+        sort_json = None
+        convertible_program = None
+        step_reason = None
+        if is_sort_step(s):
+            kind_ = "sort"
+            sysin = s.dsns.get("SYSIN")
+            text = _resolve_sysin_text(sysin, member_by_stem) if sysin else None
+            spec = (parse_sort_fields(text) if text is not None
+                    else SortSpec(unsupported="SYSIN control statement not found or not resolvable"))
+            job.sorts[s.step] = spec
+            sort_json = {"fields": [list(f) for f in spec.fields], "optionEquals": spec.option_equals,
+                        "unsupported": spec.unsupported}
+            step_reason = spec.unsupported
+        elif s.program in program_ids:
+            kind_ = "cobol"
+            program = programs_by_name.get(s.program)
+            convertible_program = program["convertible"] if program else False
+            step_reason = program["notConvertibleReason"] if program else "program not found in the repository"
+        else:
+            kind_ = "other"
+        step_reports.append({
+            "step": s.step,
+            "proc": s.proc,
+            "kind": kind_,
+            "program": s.program,
+            "dds": dict(s.dsns),
+            "sort": sort_json,
+            "convertibleProgram": convertible_program,
+            "notConvertibleReason": step_reason,
+        })
+    wiring = [{"fromStep": p.step, "fromDd": p_dd, "toStep": c.step, "toDd": c_dd, "dsn": p.dsns[p_dd]}
+              for p, p_dd, c, c_dd in wire_steps(job)]
+
+    kinds = [s["kind"] for s in step_reports]
+    reason: str | None = None
+    if kinds != ["sort", "cobol"]:
+        reason = f"{job.name}: only one SORT step followed by one COBOL step is supported yet"
+    else:
+        sort_step, cobol_step = job.steps[0], job.steps[1]
+        spec = job.sorts.get(sort_step.step)
+        cobol_reason = step_reports[1]["notConvertibleReason"]
+        if spec and spec.unsupported:
+            reason = f"{sort_step.step}: {spec.unsupported}"
+        elif cobol_reason:
+            reason = f"{cobol_step.step} ({cobol_step.program}): {cobol_reason}"
+        elif not any(e["fromStep"] == sort_step.step for e in wiring):
+            reason = (f"{job.name}: {sort_step.step}'s output DD is not read by the following COBOL step "
+                      "(no matching DSN)")
+    return {
+        "name": job.name,
+        "member": job.member,
+        "steps": step_reports,
+        "wiring": wiring,
+        "convertible": reason is None,
+        "notConvertibleReason": reason,
     }
 
 
