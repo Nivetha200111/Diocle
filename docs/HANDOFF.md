@@ -14,6 +14,8 @@ This repository is public: never write secrets, passcodes, personal details or e
   CBL0013, CBL0014, CBL0015, CBLC2, DEPTPAY, EMPPAY, HELLO, PAYROL00; 15 fail on `PROGRAM-ID.` without a period
   ("unexpected ENVIRONMENT"), PAYROL0X on a numeric-edited name). Repo LICENSE is CC-BY-4.0; 24 of 32 program files carry an
   SPDX CC-BY-4.0 header (6 of the 8 compilable ones do not, the repo LICENSE covers them).
+- **Reviewer fixes (Oct 30):** the message keeps only `file:line: error:` cobc lines (a COPY of any readable file made cobc echo its contents); `fail` only on such a diagnostic, everything else (killed gcc, ENOSPC, timeout, silence) is `unknown`; `delivery.json` has `precheck` (checked, why it stopped); unreadable pre-check output is logged.
+- **Deploy checklist, NOT exercised in a real container: every sandbox test (compile and verify) uses the sandbox's HTTP handler in-process on a developer machine. The compile path's setuid/kill/cleanup as root, the tmpfs, memory and pids limits and the hung-gcc path (a stuck cobc killed at 30 s / the 60 s job limit) have NOT been run in the container. After a deploy someone must rebuild and recreate the sandbox (`docker compose ps` and image ids show it is the new image), run `docker compose exec api python -I -m diocle_verifier.precheck <sample dir>` once, and confirm it answers `ok` or `fail` (not `unknown`).
 - Not done: making near-miss originals compile (e.g. inserting the missing period) would change the original, so it is not claimed.
 
 ## Where things stand at the end of Oct 29 (night, Mac)

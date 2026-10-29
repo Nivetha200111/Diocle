@@ -49,7 +49,9 @@ which IBM accepts) is found before the translator is paid for. CLI: `python -m d
   message is at most 600 characters, the first four error lines, absolute paths reduced to file names (the client
   strips them again, whatever the sandbox sent). The sandbox still runs one job at a time and answers 503 when busy; the
   client retries for `wait` seconds (default `DIOCLE_SANDBOX_WAIT`) and then answers `unknown`.
-- `unknown` (busy, unreachable, bad answer, unreadable sample) means "not checked": callers proceed as before.
+- `fail` only when cobc's own diagnostics, lines of the form `file:line: error: ...`, say why. Everything else is `unknown`: a killed gcc or negative return code, `Killed`, `No space left`, `Cannot allocate`, the 30 s timeout, empty or unparseable output, a busy or unreachable sandbox, a bad answer, an unreadable sample. Callers proceed as before on `unknown`.
+- The message holds only those diagnostic lines (server and client both filter): cobc echoes context lines of any file the source COPYs, even by absolute path, so every other line is dropped, quoted text becomes `'...'`, and an `unexpected X` keeps X only when it looks like a COBOL word.
+- Not exercised in a real container: every sandbox test (compile and verify) uses the sandbox's HTTP handler in-process on a developer machine. The compile path's setuid/kill/cleanup as root, the tmpfs, memory and pids limits and the hung-gcc path (a stuck cobc killed at 30 s / the 60 s job limit) have NOT been run in the container. After a deploy someone must rebuild and recreate the sandbox (`docker compose ps` and image ids show it is the new image), run `docker compose exec api python -I -m diocle_verifier.precheck <sample dir>` once, and confirm it answers `ok` or `fail` (not `unknown`).
 
 ## Run
 Requires GnuCOBOL 3.x (`brew install gnucobol`), a JDK, and Python 3.11+.
