@@ -81,12 +81,18 @@ class ModelClient:
                     raise
             time.sleep(min(30, 2**attempt) + random.random())
 
+    @staticmethod
+    def _call_cost(c: ModelCall) -> float | None:
+        """USD for one call at its own model's list price (a run can mix Muse Spark and Muse Spark Open)."""
+        price = PRICES.get(c.model)
+        return ((c.inputTokens - c.cachedInputTokens) * price[0] + c.cachedInputTokens * price[1] + c.outputTokens * price[2]) / 1e6 if price else None
+
     def usage_summary(self) -> dict:
         input_tokens = sum(c.inputTokens for c in self.calls)
         cached_tokens = sum(c.cachedInputTokens for c in self.calls)
         output_tokens = sum(c.outputTokens for c in self.calls)
-        price = PRICES.get(self.settings.model)
-        cost = ((input_tokens - cached_tokens) * price[0] + cached_tokens * price[1] + output_tokens * price[2]) / 1e6 if price else None
+        costs = [self._call_cost(c) for c in self.calls]
+        cost = None if any(c is None for c in costs) else sum(costs)
         return {
             "calls": len(self.calls),
             "inputTokens": input_tokens,

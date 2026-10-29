@@ -27,6 +27,7 @@ from pathlib import Path
 
 from .breaker import Breaker
 from .client import ModelClient
+from .crosscheck import make_crosschecker, summarize as crosscheck_summary
 from .config import REPO_ROOT, Settings
 from .memory import Memory, lesson_key, render
 from .pipeline import generate_pipeline
@@ -77,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--no-memory", action="store_true", help="baseline: do not read or write fix memory")
         p.add_argument("--memory-read-only", action="store_true", help="use fix memory but never add lessons to it")
         p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
+        p.add_argument("--crosscheck", action="store_true", help="after certification, Muse Spark Open (CROSSCHECK_MODEL_* or "
+                       "OPEN_MODEL_*) independently looks for inputs where the Java differs (about $0.05 per run)")
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
@@ -180,6 +183,11 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         outcome, breaker_summary = _attack(program, workspace, client, verify, agent, standing_cases, outcome,
                                            run_dir, settings, on_event)
 
+    crosscheck_result = None
+    if args.crosscheck and outcome["certified"]:
+        outcome, crosscheck_result = _crosscheck(program, workspace, client, verify, agent, standing_cases, outcome,
+                                                 run_dir, settings, on_event)
+
     learned = (memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name)
                if memory and outcome["certified"] and not args.memory_read_only else 0)
     usage = client.usage_summary()
@@ -200,7 +208,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"],
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
-        "breaker": breaker_summary, "swarm": bool(args.swarm and memory),
+        "breaker": breaker_summary, "crosscheck": crosscheck_result, "swarm": bool(args.swarm and memory),
     })
     print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
           f"{usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / {usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")
@@ -323,44 +331,84 @@ def _atomic_write_text(path: Path, text: str) -> None:
     tmp.replace(path)
 
 
-def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event):
+def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event,
+            attacker=None, who="Breaker"):
     """Breaker cycles: attack; anything that breaks becomes a standing case and the agent repairs and re-certifies.
     The run stays certified only if the last attack found nothing. Bounded by MODEL_MAX_ATTACK_ROUNDS,
     MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
     meta = json.loads((program.sample_dir / "sample.json").read_text())
-    if "layouts" not in meta:
+    if "layouts" not in meta and attacker is None:
         on_event({"type": "stage", "stage": "attacking",
                   "message": "Breaker skipped: it designs single-file records, and this program has several files"})
         return outcome, {"rounds": 0, "tried": 0, "broke": 0, "repairCycles": 0, "fixed": False, "counterexamples": [],
                          "skipped": "multi-file program"}
-    breaker = Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
+    breaker = attacker or Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event)
     found: list[dict] = []
     cycles = 0
-    on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent is designing inputs to break the certified Java"})
-    broken = breaker.attack(rounds=settings.max_attack_rounds)
+    on_event({"type": "stage", "stage": "attacking", "message": f"{who} is designing inputs to break the certified Java"})
+    broken = breaker.attack(rounds=1 if attacker else settings.max_attack_rounds, label="crosscheck" if attacker else "attack")
     while broken:
         found += broken
         standing_cases += [b["case"] for b in broken]
         if cycles >= settings.max_breaker_cycles:
             outcome = {**outcome, "certified": False, "lessons": [], "certificationReport": None}
             on_event({"type": "stage", "stage": "done",
-                      "message": f"Not certified: {len(broken)} breaker input(s) still break the Java and the repair budget is spent"})
+                      "message": f"Not certified: {len(broken)} {who.lower()} input(s) still break the Java and the repair budget is spent"})
             break
         cycles += 1
-        note = ("A breaker agent found inputs where the Java differs from the COBOL. They are now part of every test "
+        note = (f"A {who.lower()} found inputs where the Java differs from the COBOL. They are now part of every test "
                 "and certification:\n" + "\n".join(f"- input={b['case'].record!r} ({b['why']}): {b['diff']}" for b in broken)
                 + "\nFix the root cause, then finish.")
         on_event({"type": "stage", "stage": "repairing", "message": f"Repair agent resumes with {len(broken)} counterexample(s)"})
         outcome = agent.resume(note, extra_rounds=1)
         if not outcome["certified"]:
             break
-        on_event({"type": "stage", "stage": "attacking", "message": "Breaker agent attacks the repaired Java again"})
+        on_event({"type": "stage", "stage": "attacking", "message": f"{who} attacks the repaired Java again"})
         broken = breaker.attack(rounds=1, label=f"recheck{cycles}")
     summary = {"rounds": len({a["id"].rsplit("-", 1)[0] for a in breaker.attempts}), "tried": len(breaker.attempts),
                "broke": len(found), "repairCycles": cycles, "fixed": bool(found) and outcome["certified"],
                "counterexamples": [{"input": b["case"].record, "why": b["why"], "diff": b["diff"]} for b in found]}
-    _atomic_write(run_dir / "breaker.json", {**summary, "attempts": breaker.attempts})
+    if attacker is None:
+        _atomic_write(run_dir / "breaker.json", {**summary, "attempts": breaker.attempts})
     return outcome, summary
+
+
+def _crosscheck(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event):
+    """Muse Spark Open independently looks for a divergence. Skipped (and said so) if it is not configured, if the
+    run is already on the open model, or if the program has several files. Its model calls are merged into the run's
+    usage. Whatever it finds is only a candidate: a case counts only if GnuCOBOL and the Java really differ on it."""
+    def skip(reason: str):
+        on_event({"type": "crosscheck", "message": f"Cross-check skipped: {reason}"})
+        return outcome, {"skipped": reason}
+
+    cross_settings = settings.for_crosscheck()
+    if cross_settings is None:
+        return skip("this run is already on the open model" if settings.mode == "private"
+                    else "no CROSSCHECK_MODEL_* or OPEN_MODEL_* configured")
+    meta = json.loads((program.sample_dir / "sample.json").read_text())
+    if "layouts" not in meta:
+        return skip("it designs single-file records, and this program has several files")
+    cross_client = ModelClient(cross_settings)
+    checker = make_crosschecker(program, workspace, cross_client, verify, meta["layouts"]["input"], on_event)
+    on_event({"type": "stage", "stage": "attacking",
+              "message": f"Independent cross-check by {cross_settings.model} ({cross_settings.mode} mode)"})
+    standing_before, certified_before = len(standing_cases), outcome
+    try:
+        outcome, summary = _attack(program, workspace, cross_client, verify, agent, standing_cases, outcome, run_dir,
+                                   settings, on_event, attacker=checker, who="Cross-checker")
+    except Exception as e:  # a bonus check must not fail a certified run (host down, rate limit, bad answer)...
+        on_event({"type": "crosscheck", "message": f"Cross-check unavailable: {type(e).__name__}"})
+        if len(standing_cases) > standing_before:  # ...unless it already changed the Java: then it is not certified
+            return {**certified_before, "certified": False, "lessons": [], "certificationReport": None}, \
+                {"skipped": f"unavailable: {type(e).__name__}"}
+        return certified_before, {"skipped": f"unavailable: {type(e).__name__}"}
+    finally:
+        client.calls.extend(cross_client.calls)  # one usage record per run, priced per call by its own model
+    result = crosscheck_summary(checker, cross_settings.model, summary)
+    on_event({"type": "crosscheck", "tried": result["casesValid"], "broke": result["mismatches"],
+              "message": f"Cross-check: {result['casesValid']} valid cases of {result['casesProposed']} proposed, "
+                         f"{result['mismatches']} real mismatch(es)"})
+    return outcome, result
 
 if __name__ == "__main__":
     sys.exit(main())

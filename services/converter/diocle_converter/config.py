@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -14,6 +14,7 @@ PRICES = {
     "muse-spark-1.3-contributor": (0.10, 0.002, 0.20),
     "muse-spark-1.3": (1.25, 0.15, 4.25),
     "accounts/fireworks/models/muse-spark-open": (1.25, 0.15, 4.25),  # Fireworks serverless
+    "meta-models/muse-spark-open-1026": (1.25, 0.15, 4.25),  # Baseten (same list price as Fireworks)
 }
 
 
@@ -65,4 +66,21 @@ class Settings:
             max_rounds=int(os.environ.get("MODEL_MAX_ROUNDS", "3")),
             max_attack_rounds=int(os.environ.get("MODEL_MAX_ATTACK_ROUNDS", "3")),
             max_breaker_cycles=int(os.environ.get("MODEL_MAX_BREAKER_CYCLES", "1")),
+        )
+
+    def for_crosscheck(self) -> "Settings | None":
+        """Settings for the independent cross-check: Muse Spark Open on its own host with its own hard call cap.
+        CROSSCHECK_MODEL_* wins; OPEN_MODEL_* is the fallback. None when nothing is configured, or when this run is
+        already on the open model (a model cannot independently check itself)."""
+        if self.mode == "private":
+            return None
+        load_dotenv()
+        pick = lambda name: os.environ.get(f"CROSSCHECK_MODEL_{name}") or os.environ.get(f"OPEN_MODEL_{name}", "")
+        api_key, base_url, model = pick("API_KEY"), pick("BASE_URL"), pick("ID")
+        if not (api_key and base_url and model):
+            return None
+        return replace(
+            self, mode="private", base_url=base_url, api_key=api_key, model=model,
+            reasoning_effort=os.environ.get("CROSSCHECK_REASONING_EFFORT", self.reasoning_effort),
+            max_calls_per_run=int(os.environ.get("CROSSCHECK_MAX_CALLS", "2")),
         )

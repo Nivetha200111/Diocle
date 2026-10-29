@@ -357,3 +357,93 @@ def test_run_job_rejects_a_sample_whose_program_does_not_match_the_jobs_cobol_st
     monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
     with pytest.raises(SystemExit, match="ACCTMTCH"):
         cli._run_job(SAMPLE, settings(), ModelClient(settings(), _sdk=ScriptedSDK([])))  # SAMPLE is interest-accrual
+
+
+def _env(monkeypatch, **values):
+    import diocle_converter.config as config
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **k: None)
+    for name in ("CROSSCHECK_MODEL_API_KEY", "CROSSCHECK_MODEL_BASE_URL", "CROSSCHECK_MODEL_ID",
+                 "OPEN_MODEL_API_KEY", "OPEN_MODEL_BASE_URL", "OPEN_MODEL_ID", "CROSSCHECK_MAX_CALLS"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in values.items():
+        monkeypatch.setenv(name, value)
+
+
+def test_crosscheck_settings_use_the_open_model_with_their_own_cap(monkeypatch):
+    _env(monkeypatch)
+    assert settings().for_crosscheck() is None  # nothing configured
+    _env(monkeypatch, OPEN_MODEL_API_KEY="k", OPEN_MODEL_BASE_URL="https://host/v1", OPEN_MODEL_ID="meta-models/muse-spark-open-1026")
+    cross = settings().for_crosscheck()
+    assert (cross.mode, cross.model, cross.base_url, cross.max_calls_per_run) == ("private", "meta-models/muse-spark-open-1026", "https://host/v1", 2)
+    assert cross.api_key == "k" and settings().api_key != "k"  # the main run's key is untouched
+    _env(monkeypatch, OPEN_MODEL_API_KEY="k", OPEN_MODEL_BASE_URL="u", OPEN_MODEL_ID="m", CROSSCHECK_MODEL_ID="other", CROSSCHECK_MAX_CALLS="1")
+    assert settings().for_crosscheck().model == "other" and settings().for_crosscheck().max_calls_per_run == 1
+    private = Settings(**{**settings().__dict__, "mode": "private"})
+    assert private.for_crosscheck() is None  # an open-model run cannot independently check itself
+
+
+def test_usage_prices_each_call_by_its_own_model():
+    spark = ModelClient(settings(), _sdk=ScriptedSDK([ChatCompletionMessage(role="assistant", content="ok")]))
+    spark.chat(role="translator", round=0, messages=[])
+    open_settings = Settings(**{**settings().__dict__, "mode": "private", "model": "accounts/fireworks/models/muse-spark-open"})
+    opened = ModelClient(open_settings, _sdk=ScriptedSDK([ChatCompletionMessage(role="assistant", content="ok")]))
+    opened.chat(role="crosscheck", round=1, messages=[])
+    spark.calls.extend(opened.calls)
+    expected = (200 * 0.10 + 800 * 0.002 + 200 * 0.20 + 200 * 1.25 + 800 * 0.15 + 200 * 4.25) / 1e6
+    assert spark.usage_summary()["estimatedCostUsd"] == pytest.approx(expected, abs=1e-6)
+    assert [c["role"] for c in spark.usage_summary()["modelCalls"]] == ["translator", "crosscheck"]
+
+
+def test_crosscheck_runs_its_cases_and_the_models_opinion_never_certifies(tmp_path):
+    from diocle_converter.crosscheck import make_crosschecker, summarize
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    case = lambda bal, why: {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": bal},
+                                        {"name": "ACCT-RATE", "value": "0.0500"}, {"name": "ACCT-DAYS", "value": "1"},
+                                        {"name": "ACCT-TIER", "value": "S"}], "why": why}
+    answer = {"cases": [case("-36.50", "negative tie"), case("1.234", "too many decimals"), case("0.00", "zero")],
+              "suspected": [{"field": "ACCT-BALANCE", "concern": "Java may round negative ties toward zero"}, "junk"]}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps(answer))])
+    seen = []
+
+    def verify(java_dir, seed, random_count, extra_cases):
+        seen.extend(extra_cases)
+        return {"results": [{"inputId": c.id, "inputSource": c.source, "input": c.record, "match": "-" not in c.record[10:11],
+                             "diff": "OUT-INTEREST differs"} for c in extra_cases]}
+
+    events = []
+    checker = make_crosschecker(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), verify, layout, events.append)
+    broken = checker.attack(rounds=1, label="crosscheck")
+    # only the case that really differs on GnuCOBOL vs Java counts; "suspected" is recorded but is only an opinion
+    assert [b["case"].record for b in broken] == ["X         -0000000365000500001S"]
+    assert len(seen) == 2 and all(c.source == "model" for c in seen)  # the invalid case never reached the verifier
+    assert checker.client.calls[0].role == "crosscheck" and sdk.requests[0]["response_format"]["json_schema"]["name"] == "crosscheck"
+    assert events[0]["type"] == "crosscheck" and events[0]["message"].startswith("Cross-check round 1")
+    summary = summarize(checker, "m", {"broke": 1, "repairCycles": 0, "fixed": False,
+                                       "counterexamples": [{"input": "X", "why": "w", "diff": "d"}]})
+    assert (summary["casesProposed"], summary["casesValid"], summary["mismatches"]) == (3, 2, 1)
+    assert summary["suspected"] == [{"field": "ACCT-BALANCE", "concern": "Java may round negative ties toward zero"}]
+
+
+def test_crosscheck_is_skipped_when_unconfigured_and_never_breaks_a_certified_run(monkeypatch, tmp_path):
+    import diocle_converter.__main__ as cli
+    _env(monkeypatch)
+    (tmp_path / "sample.json").write_text(json.dumps({"layouts": {"input": {}}}))
+    program = SimpleNamespace(sample_dir=tmp_path)
+    certified = {"certified": True, "lessons": [LESSON]}
+    events = []
+    outcome, result = cli._crosscheck(program, None, None, None, None, [], certified, tmp_path, settings(), events.append)
+    assert outcome is certified and result["skipped"].startswith("no CROSSCHECK_MODEL_*")
+    assert events[0]["message"].startswith("Cross-check skipped")
+
+    _env(monkeypatch, OPEN_MODEL_API_KEY="k", OPEN_MODEL_BASE_URL="u", OPEN_MODEL_ID="m")
+
+    def host_down(*a, **k):
+        raise RuntimeError("503")
+
+    monkeypatch.setattr(cli, "_attack", host_down)
+    monkeypatch.setattr(cli, "ModelClient", lambda s: SimpleNamespace(calls=[]))
+    client = SimpleNamespace(calls=[])
+    outcome, result = cli._crosscheck(program, None, client, None, None, [], certified, tmp_path, settings(), events.append)
+    assert outcome["certified"] is True and result["skipped"] == "unavailable: RuntimeError"

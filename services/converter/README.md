@@ -11,6 +11,18 @@ Tools: `run_differential_test`, `read_cobol_source`, `list_java_files`, `read_ja
 - Caps: calls per run, calls per round, rounds (from `.env`). Every call's tokens (including cached input), latency and estimated cost are logged.
 - Token efficiency: the COBOL, the Java and the first test result go in the opening message (no exploratory reads); `patch_java` returns the edited lines so the agent doesn't re-read files; a passing test tells the agent to finish immediately; history is append-only with stable content first so the provider's prompt cache applies (cached input is ~50x cheaper on `muse-spark-1.3-contributor`).
 
+## Independent cross-check (`--crosscheck`)
+
+After a run certifies, `crosscheck.py` asks **Muse Spark Open** (open weights; `CROSSCHECK_MODEL_*`, falling back to
+`OPEN_MODEL_*`, on its own host and key) to read the COBOL and the certified Java and propose inputs where it thinks they
+differ, plus the fields it suspects. It reuses the breaker's loop: each proposed input is validated against the record
+layout, then run through GnuCOBOL and the Java. **The model's opinion certifies nothing**; only a case that really differs
+counts, and it goes to the repair agent like a breaker case (certification is revoked if the repair does not fix it).
+Hard cap: `CROSSCHECK_MAX_CALLS` (default 2) model calls. Skipped, and said so in the run, when no open model is
+configured, when the run itself is already on the open model, for multi-file programs, or if the host is down (a certified
+run is never failed by it). It is opt-in because it spends on a second host (about $0.05 per run at list price).
+Result: run.json `crosscheck` (run contract v0.10), its calls appear in the run's model card as "Independent check".
+
 ## Run
 ```sh
 cd services/converter
