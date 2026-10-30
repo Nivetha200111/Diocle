@@ -70,6 +70,10 @@ class Settings:
     max_rounds: int
     max_attack_rounds: int = 3  # breaker agent: attack rounds before the first repair
     max_breaker_cycles: int = 1  # breaker agent: repair-and-re-attack cycles after a break
+    # `run --minimize` (no model calls; local build-and-run time only): caps per reduction and reductions per run.
+    minimize_max_runs: int = 150
+    minimize_max_seconds: float = 120.0
+    minimize_max_cases: int = 3
     # Escalation tiers (hosted mode only, opt-in with --tiers): model IDs on the same host and key as `model`, simplest
     # first. tiers[0] is tier 2, tiers[1] is tier 3; `model` itself is tier 1. Calls on a tier above 1 have their own
     # hard caps (rule 10): a call count and a dollar amount per run.
@@ -115,6 +119,9 @@ class Settings:
             max_rounds=int(os.environ.get("MODEL_MAX_ROUNDS", "3")),
             max_attack_rounds=int(os.environ.get("MODEL_MAX_ATTACK_ROUNDS", "3")),
             max_breaker_cycles=int(os.environ.get("MODEL_MAX_BREAKER_CYCLES", "1")),
+            minimize_max_runs=int(os.environ.get("MINIMIZE_MAX_RUNS", "150")),
+            minimize_max_seconds=float(os.environ.get("MINIMIZE_MAX_SECONDS", "120")),
+            minimize_max_cases=int(os.environ.get("MINIMIZE_MAX_CASES", "3")),
         )
 
     def for_crosscheck(self) -> "Settings | None":

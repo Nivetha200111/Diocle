@@ -41,6 +41,7 @@ from .crosscheck import make_crosschecker, summarize as crosscheck_summary
 from .guard import Guard, GuardBlocked, describe_error, gated
 from .memory import Memory, lesson_key, render
 from .pipeline import generate_pipeline
+from .reproducer import Minimizing
 from .repair import CERT_CASES, CERT_SEED, TEST_CASES, TEST_SEED, RepairAgent, report_passes, summarize_report
 from .sources import Program
 from .translate import translate
@@ -93,6 +94,9 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--no-memory", action="store_true", help="baseline: do not read or write fix memory")
         p.add_argument("--memory-read-only", action="store_true", help="use fix memory but never add lessons to it")
         p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
+        p.add_argument("--minimize", action="store_true", help="when the breaker or a held-out certification shows the Java "
+                       "differing, reduce the failing input deterministically (no model call) and give the repair agent the "
+                       "smallest reproducer; saves reproducers/ and regression/ cases in the run (MINIMIZE_* caps)")
         p.add_argument("--crosscheck", action="store_true", help="after certification, Muse Spark Open (CROSSCHECK_MODEL_* or "
                        "OPEN_MODEL_*) independently looks for inputs where the Java differs (about $0.05 per run)")
         p.add_argument("--document", action="store_true", help="also write verified documentation: a Muse Spark model "
@@ -350,6 +354,15 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known),
                         memory_feed=memory.load if (memory and args.swarm) else None,
                         known_lessons={lesson_key(l["pattern"]) for l in known}, escalate=bool(args.tiers))
+    minimizing = None
+    if getattr(args, "minimize", False):
+        why_not = Minimizing.available()
+        if why_not:
+            on_event({"type": "stage", "stage": "repairing", "message": f"--minimize ignored: {why_not}"})
+        else:
+            minimizing = Minimizing(program.sample_dir, workspace.root, run_dir, settings.minimize_max_runs,
+                                    settings.minimize_max_seconds, settings.minimize_max_cases, on_event, gate=guard.gate)
+            agent.evidence = minimizing.certification_evidence
     if args.tiers and not settings.tiers:
         on_event({"type": "stage", "stage": "repairing", "message": "--tiers ignored: no MODEL_TIER_2_ID / "
                   "MODEL_TIER_3_ID configured, or this run is not in hosted mode"})
@@ -390,7 +403,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     breaker_summary = None
     if args.breaker and outcome["certified"]:
         outcome, breaker_summary = _attack(program, workspace, client, verify, agent, standing_cases, outcome,
-                                           run_dir, settings, on_event, tiered=bool(args.tiers))
+                                           run_dir, settings, on_event, tiered=bool(args.tiers), minimizing=minimizing)
 
     crosscheck_result = None
     if args.crosscheck and outcome["certified"]:
@@ -429,7 +442,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         **(_assurance_fields(outcome, repaired, cobol_repair, last_report(outcome)) if anyway_on else {}),
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
-        "breaker": breaker_summary, "crosscheck": crosscheck_result, "behavior": behavior_result, "swarm": bool(args.swarm and memory),
+        "breaker": breaker_summary, "reproducers": minimizing.summaries() if minimizing and minimizing.records else None,
+        "crosscheck": crosscheck_result, "behavior": behavior_result, "swarm": bool(args.swarm and memory),
         "tiers": ({"enabled": True, "configured": [settings.model, *settings.tiers], "escalations": agent.escalations,
                    "breakerModel": settings.tier_model(settings.breaker_tier), "escalatedCalls": client.escalated_calls,
                    "escalatedUsd": round(client.escalated_usd, 6), "capCalls": settings.escalation_max_calls,
@@ -655,7 +669,7 @@ def _atomic_write_text(path: Path, text: str) -> None:
 
 
 def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event,
-            attacker=None, who="Breaker", tiered=False):
+            attacker=None, who="Breaker", tiered=False, minimizing=None):
     """Breaker cycles: attack; anything that breaks becomes a standing case and the agent repairs and re-certifies.
     The run stays certified only if the last attack found nothing. Bounded by MODEL_MAX_ATTACK_ROUNDS,
     MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
@@ -680,21 +694,41 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
                       "message": f"Not certified: {len(broken)} {who.lower()} input(s) still break the Java and the repair budget is spent"})
             break
         cycles += 1
+        evidence = minimizing.reproduce(broken, _standard_inputs(program)) if minimizing else {}
         note = (f"A {who.lower()} found inputs where the Java differs from the COBOL. They are now part of every test "
-                "and certification:\n" + "\n".join(f"- input={b['case'].record!r} ({b['why']}): {b['diff']}" for b in broken)
+                "and certification:\n" + "\n".join(evidence.get(b["case"].id) or f"- input={b['case'].record!r} ({b['why']}): {b['diff']}"
+                                                   for b in broken)
                 + "\nFix the root cause, then finish.")
         on_event({"type": "stage", "stage": "repairing", "message": f"Repair agent resumes with {len(broken)} counterexample(s)"})
         outcome = agent.resume(note, extra_rounds=1)
         if not outcome["certified"]:
             break
+        if minimizing:  # the repaired Java must also pass every saved regression case, replayed against GnuCOBOL's bytes
+            failing = minimizing.recheck()
+            if failing:
+                on_event({"type": "stage", "stage": "done", "message": "Not certified: the repaired Java still fails "
+                          f"{len(failing)} saved regression case(s): " + "; ".join(f"{f['id']}: {f['detail']}" for f in failing)[:300]})
+                outcome = {**outcome, "certified": False, "lessons": [], "certificationReport": None}
+                break
         on_event({"type": "stage", "stage": "attacking", "message": f"{who} attacks the repaired Java again"})
         broken = breaker.attack(rounds=1, label=f"recheck{cycles}")
     summary = {"rounds": len({a["id"].rsplit("-", 1)[0] for a in breaker.attempts}), "tried": len(breaker.attempts),
                "broke": len(found), "repairCycles": cycles, "fixed": bool(found) and outcome["certified"],
                "counterexamples": [{"input": b["case"].record, "why": b["why"], "diff": b["diff"]} for b in found]}
+    if minimizing and minimizing.records:
+        summary["reproducers"] = minimizing.summaries()
     if attacker is None:
         _atomic_write(run_dir / "breaker.json", {**summary, "attempts": breaker.attempts})
     return outcome, summary
+
+
+def _standard_inputs(program):
+    """A larger starting input for a breaker record that does not reproduce alone (programs that carry state)."""
+    def build(record: str) -> list[str]:
+        from diocle_verifier.minimize import reconstruct_cases
+        meta = json.loads((program.sample_dir / "sample.json").read_text())
+        return reconstruct_cases(program.sample_dir, meta) + [record]
+    return build
 
 
 def _crosscheck(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event):

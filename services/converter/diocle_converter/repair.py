@@ -93,6 +93,9 @@ class RepairAgent:
     # Swarm mode: returns all lessons in shared memory; new ones (certified by other agents) are passed on mid-run.
     memory_feed: Callable[[], list[dict]] | None = None
     known_lessons: set[str] = field(default_factory=set)
+    # run --minimize: called with a failed certification report and a label, returns extra evidence text (the smallest
+    # reproducer, deterministic, no model call) or ""; additive, any failure leaves the usual summary alone
+    evidence: Callable[[dict, str], str] | None = None
     escalate: bool = False  # --tiers: after each failed certification round, use the next tier's model
     escalations: list[dict] = field(default_factory=list)  # [{round, tier, model}] for run.json
     _after_break: bool = False  # resume() was called: a certified Java was shown wrong, so repair starts at settings.after_break_tier
@@ -161,8 +164,14 @@ class RepairAgent:
                            "result": summarize_report(certification, limit=3, for_agent=False)})
             if passed:
                 break
+            extra = ""
+            if self.evidence is not None:
+                try:
+                    extra = self.evidence(certification, f"r{round_no}")
+                except Exception:
+                    extra = ""
             self.messages.append({"role": "user", "content": "Certification on held-out inputs failed:\n"
-                                  f"{summarize_report(certification)}\nContinue fixing."})
+                                  f"{summarize_report(certification)}{extra}\nContinue fixing."})
         certified = bool(certification and report_passes(certification))
         return {"certified": certified, "rounds": self.rounds, "certificationReport": certification,
                 "certificationSeed": CERT_SEED + self.rounds[-1]["round"] if self.rounds else None,
