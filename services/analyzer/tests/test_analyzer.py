@@ -156,7 +156,7 @@ def test_copy_replacing_inline_records_and_blocking_reasons(tmp_path):
         assert not p["convertible"] and reason in p["notConvertibleReason"]
     (tmp_path / "RPL.cbl").write_text(program.replace("ASSIGN TO RPLIN.", "ASSIGN TO RPLIN\n               ORGANIZATION IS INDEXED\n               RECORD KEY IS CUST-ID."))
     [p] = analyze(tmp_path)["programs"]
-    assert not p["convertible"] and "INDEXED" in p["notConvertibleReason"]
+    assert not p["convertible"] and "keyed file IN-F" in p["notConvertibleReason"]  # INDEXED is classified now (ksds-subset-1); this one has no FILE STATUS
 
 
 def test_no_output_and_no_display_is_still_rejected(tmp_path):
