@@ -4,6 +4,8 @@ Demo video: link goes here (filled Nov 1)
 
 # Diocle
 
+[![test](https://github.com/Nivetha200111/Diocle/actions/workflows/test.yml/badge.svg)](https://github.com/Nivetha200111/Diocle/actions/workflows/test.yml)
+
 **AI writes the code. Diocle checks it against the original before anyone has to trust it.**
 
 ## Limits (read these first)
@@ -231,6 +233,9 @@ When the Java differs from the COBOL, `python -m diocle_verifier minimize RUN_DI
 - The Muse Code plugin (`editors/muse-code`) works on paths inside a Diocle checkout and converts the bundled samples only; the build session never ran Muse Code against a model (no login available), so how the agent behaves with the skill, and whether Muse Code runs the MCP tools unattended, is untested.
 
 ## Run
+
+**Tests.** `make test` (or `sh scripts/test.sh`) installs each service and runs all four suites; `--fast` skips the tests that need GnuCOBOL and a JDK. The GitHub Actions run (badge above) executes everything on every push: analyzer, verifier, converter and api suites with GnuCOBOL 3.2, Berkeley DB and JDK 21. On its latest green run two tests were skipped, and neither hides a failure: one converter test needs macOS's `sandbox-exec` (so it is skipped on Linux), and one API test needs a certified INTACCR run record that exists only on the owner's machine.
+
 
 ### Quickstart (one command)
 
