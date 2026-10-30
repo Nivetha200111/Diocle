@@ -45,6 +45,18 @@ def _verification(path: Path, limit: int = 8) -> dict | None:
     }
 
 
+def sample_run(path: Path) -> dict | None:
+    """run schema v0.16 `sampleRun`: the marker the live-sample job leaves in a run it started. Only the one fixed sample
+    name and a well-formed job id are believed; anything else is ignored."""
+    try:
+        marker = json.loads((path / "sample-run.json").read_text())
+        if marker.get("sample") == "addfee" and re.fullmatch(r"live-[0-9]{8}-[0-9]{6}-[a-z]+", str(marker.get("job"))):
+            return {"sample": "addfee", "live": True, "job": marker["job"]}
+    except (OSError, ValueError, AttributeError):
+        pass
+    return None
+
+
 STALE_SECONDS = 30 * 60  # no model call takes this long; a "running" run silent for longer was cut off
 
 
@@ -178,6 +190,7 @@ def list_runs() -> list[dict]:
             "model": _agents_model(calls), "efficiency": _efficiency(run, _events(path)),
             "memory": run.get("memory"),
             **({"assurance": run["assurance"]} if run.get("assurance") else {}),
+            **({"sampleRun": sample_run(path)} if sample_run(path) else {}),
         })
     return items
 
@@ -295,6 +308,7 @@ def get_run(run_id: str) -> dict | None:
         "tiers": run.get("tiers"),
         "guard": run.get("guard"),
         "swarm": run.get("swarm", False),
+        **({"sampleRun": sample_run(path)} if sample_run(path) else {}),
         # convert-anyway only (run contract v0.13): absent on every other run
         **{k: run[k] for k in ("assurance", "assuranceReason", "cobolRepair") if run.get(k) is not None},
     }

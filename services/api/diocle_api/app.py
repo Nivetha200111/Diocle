@@ -5,14 +5,16 @@ from __future__ import annotations
 import os
 
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 from fastapi.middleware.cors import CORSMiddleware
 
 import hmac
 
 from fastapi import Header
 
-from . import public
+from . import livesamples, public
 from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
 from .deliver import GITHUB_URL
 from .reverify import Busy, reverify_run
@@ -140,19 +142,20 @@ def _admin_ok(token: str | None) -> bool:
     return bool(token) and hmac.compare_digest(token.encode(), expected.encode())
 
 
-@app.get("/config")
-def config() -> dict:
-    return {"hosted": os.environ.get("DIOCLE_HOSTED") == "1",
-            "startNeedsPasscode": bool(os.environ.get("DIOCLE_ADMIN_TOKEN")) or os.environ.get("DIOCLE_HOSTED") == "1",
-            "publicImports": public.status()}
-
-
 def _visitor(request: Request) -> str:
     """Best-effort visitor address: Vercel's forwarded header, else the connecting address."""
     for header in ("x-vercel-forwarded-for", "x-real-ip"):
         if request.headers.get(header):
             return request.headers[header].split(",")[0].strip()
     return request.client.host if request.client else "unknown"
+
+
+@app.get("/config")
+def config(http: Request) -> dict:
+    return {"hosted": os.environ.get("DIOCLE_HOSTED") == "1",
+            "startNeedsPasscode": bool(os.environ.get("DIOCLE_ADMIN_TOKEN")) or os.environ.get("DIOCLE_HOSTED") == "1",
+            # `samples` (contracts/live-sample.schema.json $defs.status): the two live buttons, additive
+            "publicImports": {**public.status(), "samples": livesamples.status(_visitor(http))}}
 
 
 @app.post("/deliveries", status_code=202)
@@ -179,7 +182,7 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
                                                convert_anyway=request.convertAnyway)}
             if not GITHUB_URL.match(request.legacy.strip()):
                 raise ValueError(f"not a GitHub repository URL: {request.legacy!r}")
-            busy = running_delivery()
+            busy = running_delivery() or livesamples.running_job()
             if busy:
                 raise RuntimeError(f"{busy} is still running; try again when it finishes")
             public.admit(_visitor(http))
@@ -207,3 +210,38 @@ def reverify(run_id: str) -> dict:
     if result is None:
         raise HTTPException(status_code=404, detail="run not found")
     return result
+
+
+class LiveSampleRequest(BaseModel):
+    """contracts/live-sample.schema.json $defs.request: a name from a fixed list and nothing else (any other field is refused)."""
+    model_config = ConfigDict(extra="forbid")
+    sample: Literal["addfee", "loyalty-waiver-printout"]
+
+
+@app.post("/samples/live", status_code=202)
+def start_live_sample(request: LiveSampleRequest, http: Request) -> dict:
+    """The public "try it live" buttons. No passcode: the request cannot carry anything but a sample name, the job runs one
+    bundled synthetic sample under hard caps (livesamples.py), and anything model-written runs in the sandbox only."""
+    try:
+        with start_lock:  # the busy check, the caps and the new job record together, shared with deliveries and imports
+            return {"id": livesamples.start(request.sample, _visitor(http))}
+    except livesamples.Refused as e:
+        raise HTTPException(status_code=e.status, detail=e.message)
+
+
+@app.get("/samples/live/{job_id}")
+def live_sample(job_id: str) -> dict:
+    job = livesamples.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="job not found")
+    return job
+
+
+@app.get("/samples/printout-image")
+def printout_image():
+    """The one bundled printout the printout button reads (a fixed file; there is no path parameter)."""
+    from fastapi.responses import FileResponse
+
+    from .samplejob import PRINTOUT_IMAGE
+
+    return FileResponse(PRINTOUT_IMAGE, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
