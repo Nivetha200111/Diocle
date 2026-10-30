@@ -177,7 +177,7 @@ finish, or fail for reasons other than compile errors, are not patched either.
 What is still never certified, and why: anything the verifier could not run against GnuCOBOL (database and transaction calls,
 keyed files, calls to programs outside the repository, unknown copybook layouts, repaired or uncompilable originals). Only the
 verifier certifies; the model's Java is compiled, never trusted. This mode is not reachable from the public site: a visitor
-request that sets it is refused (403), and the visitor job strips `DIOCLE_CONVERT_ANYWAY` from its environment.
+request that sets it is refused (403), and the visitor job strips `DIOCLE_CONVERT_ANYWAY` from its environment. **A hosted engine must set `DIOCLE_HOSTED=1` and a long random `DIOCLE_ADMIN_TOKEN`** (see `deploy/diocle.env.example`): with both unset the admin check is open, and the API then only accepts `convertAnyway` from the machine itself (loopback, no proxy headers). `python -m diocle_converter run --convert-anyway` without `--max-usd` is capped at `REPO_MAX_USD` or $0.25.
 
 See [CLAUDE.md](CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design.
 

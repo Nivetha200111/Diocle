@@ -120,6 +120,17 @@ class DeliveryRequest(BaseModel):
     convertAnyway: bool = False  # admin only (a visitor who sets it is refused): see deliver.py --convert-anyway
 
 
+def _admin_configured() -> bool:
+    return bool(os.environ.get("DIOCLE_ADMIN_TOKEN")) or os.environ.get("DIOCLE_HOSTED") == "1"
+
+
+def _loopback(request: Request) -> bool:
+    """The request came from this machine itself, not through a proxy (a forwarded header means someone else is behind it)."""
+    if any(request.headers.get(h) for h in ("x-forwarded-for", "x-vercel-forwarded-for", "x-real-ip", "forwarded")):
+        return False
+    return bool(request.client) and request.client.host in ("127.0.0.1", "::1", "localhost")
+
+
 def _admin_ok(token: str | None) -> bool:
     """Starting a delivery spends model credits. With DIOCLE_ADMIN_TOKEN set it needs that token; a hosted
     deployment (DIOCLE_HOSTED=1) without a token refuses to start anything."""
@@ -151,6 +162,9 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
     admin = _admin_ok(x_diocle_admin)
     if request.convertAnyway and not admin:
         raise HTTPException(status_code=403, detail="convert anyway needs the admin passcode or the local command line")
+    if request.convertAnyway and not _admin_configured() and not _loopback(http):
+        # with neither DIOCLE_HOSTED nor DIOCLE_ADMIN_TOKEN set the admin check is open: only this machine may use the mode
+        raise HTTPException(status_code=403, detail="convert anyway over the network needs DIOCLE_ADMIN_TOKEN (or DIOCLE_HOSTED=1) on the engine")
     if not admin:
         if x_diocle_admin:
             raise HTTPException(status_code=403, detail="wrong passcode")

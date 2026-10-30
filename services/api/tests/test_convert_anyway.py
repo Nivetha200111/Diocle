@@ -184,7 +184,7 @@ def test_pr_body_lists_every_program_with_its_label_and_a_clear_sentence():
     assert "not the original" in rest and "A person must confirm" in rest and "## Failed (not delivered)" in rest
     assert "`CCC`" in rest and "`EEE`" in rest
     section = body.split("## Compiled, NOT verified")[1].split("## Failed")[0].lower()
-    assert "certified" not in section.replace("not certified", "")  # nothing implies unverified code is proven
+    assert "certified" not in section.replace("not certified", "").replace("not-certified", "")  # nothing implies unverified code is proven
 
 
 def test_pr_body_with_nothing_certified_does_not_claim_it():
@@ -244,3 +244,32 @@ def test_get_run_exposes_the_labels_only_when_present(tmp_path, monkeypatch):
     assert runs.list_runs()[0]["assurance"] == "compiled-unverified"
     (d / "run.json").write_text(json.dumps({"program": "P", "command": "run", "certified": True, "usage": {}}))
     assert "assurance" not in runs.get_run(d.name) and "assurance" not in runs.list_runs()[0]
+
+
+def test_open_admin_engine_only_takes_convert_anyway_from_loopback(monkeypatch):
+    for k in ("DIOCLE_ADMIN_TOKEN", "DIOCLE_HOSTED"):
+        monkeypatch.delenv(k, raising=False)
+    started = []
+    monkeypatch.setattr("diocle_api.app.start_delivery", lambda *a, **k: started.append(k) or "delivery-x")
+    body = {"legacy": "https://github.com/o/r", "target": "https://github.com/Nivetha200111/t", "convertAnyway": True}
+    remote = TestClient(app, client=("203.0.113.9", 5000))
+    assert remote.post("/deliveries", json=body).status_code == 403 and started == []
+    local = TestClient(app, client=("127.0.0.1", 5000))
+    assert local.post("/deliveries", json=body, headers={"x-forwarded-for": "203.0.113.9"}).status_code == 403  # behind a proxy
+    assert local.post("/deliveries", json=body).status_code == 202 and started[-1]["convert_anyway"] is True
+
+
+def test_a_converter_that_died_without_a_run_record_is_charged_what_it_was_granted(delivery_env, monkeypatch):
+    tmp_path, calls = delivery_env
+    monkeypatch.setenv("REPO_MAX_USD", "1.00")
+
+    def dies(sample_dir, on_start=lambda r: None, flags=None, convert_anyway=False):
+        calls["convert"].append((sample_dir.name.upper(), list(flags or []), convert_anyway))
+        return None  # no run record
+
+    monkeypatch.setattr(deliver, "convert", dies)
+    deliver.main(["https://github.com/o/r", "--convert-anyway"])
+    d = record(tmp_path)
+    assert d["spentUsd"] is not None and d["spentUsd"] >= 1.0 - 1e-9  # the first death used the whole grant: the rest are skipped
+    assert [p["status"] for p in d["programs"] if p["name"] != "AAA"].count("skipped") == 2
+    assert next(p for p in d["programs"] if p["name"] == "AAA")["assurance"] == "failed"

@@ -179,11 +179,11 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
     if repaired:
         lines += ["", "## Verified against repaired COBOL (not certified against the original)", ""]
         lines += [f"- `{o['name']}`: {o['reason']}" for o in repaired]
-        lines += ["", "The patch and the diagnostics it fixed are in `unverified/<PROGRAM>/assurance.json`."]
+        lines += ["", "The patch and the diagnostics it fixed are in `not-certified/<PROGRAM>/assurance.json`."]
     if unverified:
         lines += ["", "## Compiled, NOT verified", ""]
         lines += [f"- `{o['name']}`: {o['reason']}" for o in unverified]
-        lines += ["", "These are under `unverified/<PROGRAM>/`, with no certificate. They were compiled with javac and never run by Diocle."]
+        lines += ["", "These are under `not-certified/<PROGRAM>/`, with no certificate. They were compiled with javac and never run by Diocle."]
     if failed:
         lines += ["", "## Failed (not delivered)", ""] + [f"- `{o['name']}`: {o['reason']}" for o in failed]
     if skipped:
@@ -236,7 +236,7 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         for o in others:
             if o["assurance"] == "failed":
                 continue
-            dest = repo / "unverified" / o["name"]
+            dest = repo / "not-certified" / o["name"]
             if dest.exists():
                 shutil.rmtree(dest)
             shutil.copytree(REPO_ROOT / "runs" / o["run"]["id"] / "java", dest / "java")
@@ -278,9 +278,11 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         git = ["git", "-C", str(repo), "-c", "user.name=Diocle", "-c", "user.email=diocle@users.noreply.github.com"]
         _sh(git + ["add", "-A"])
         models = sorted({c["agent"]["model"] or "unknown model" for _, c in delivered})
-        extra = f" and {len([o for o in others if o['assurance'] != 'failed'])} NOT-certified program(s) under unverified/" if others else ""
+        extra = f" and {len([o for o in others if o['assurance'] != 'failed'])} NOT-certified program(s) under not-certified/" if others else ""
         _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s){extra} from {report['source']['commit'][:12]}",
-                   "-m", f"Converted by {', '.join(models) or 'Meta Muse models'} and checked against GnuCOBOL by Diocle."])
+                   "-m", f"Converted by {', '.join(models) or 'Meta Muse models'}. "
+                   + (f"{len(delivered)} program(s) certified against GnuCOBOL by Diocle. " if delivered else "Nothing is certified. ")
+                   + ("Programs under not-certified/ are NOT certified (compiled only, or verified against repaired COBOL)." if others else "")])
         _sh(git + ["push", "-q", "-u", "origin", branch])
         if onto:  # an existing branch: its pull request (if any) picks up the new commit
             return f"pushed to {branch}"
@@ -512,14 +514,16 @@ def main(argv: list[str] | None = None) -> int:
                     entry["runId"] = run_id
                     progress.save()
 
+            granted = spend.remaining() if spend else None
             run_id = convert(samples / program["name"].lower(), started,
-                             flags + (["--max-usd", f"{spend.remaining():.6f}"] if spend else []), convert_anyway)
+                             flags + (["--max-usd", f"{granted:.6f}"] if spend else []), convert_anyway)
             run = get_run(run_id) if run_id else None
             with lock:
                 entry.update(runId=run_id, status="certified" if run and run["certified"] else "not-certified")
                 if spend:
                     cost = (run or {}).get("efficiency", {}).get("estimatedCostUsd")
-                    spend.add(cost if run else 0.0)
+                    # No run record at all (the converter died): its cost is unknown, so charge what it was allowed to spend
+                    spend.add(cost if run else granted)
                     entry.update(assurance=(run or {}).get("assurance") or ("failed" if not run else None),
                                  costUsd=cost,
                                  reason=((run or {}).get("assuranceReason") or (run or {}).get("error")
