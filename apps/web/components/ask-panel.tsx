@@ -50,9 +50,11 @@ export default function AskPanel() {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
+    let inflight = false;
     const tick = async () => {
       const id = watch;
-      if (!id || stop) return;
+      if (!id || stop || inflight) return;
+      inflight = true;
       let again = true;
       let delay = 1000;
       try {
@@ -66,12 +68,13 @@ export default function AskPanel() {
         if (failures >= 8) { again = false; setError("The engine could not be reached; stopped checking. Reload the page to try again."); }
         else if (!stop) { setError("The engine could not be reached just now; trying again."); delay = Math.min(15000, 1000 * 2 ** failures); }
       }
+      inflight = false;
       if (again && !stop) timer = setTimeout(tick, delay);
     };
     timer = setTimeout(tick, 100);
     // A hidden or covered tab has its timers throttled; when it comes back, check the job now instead of waiting.
     const onVisible = () => {
-      if (document.visibilityState !== "visible" || stop || !watch) return;
+      if (document.visibilityState !== "visible" || stop || !watch || inflight) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(tick, 0);
     };
