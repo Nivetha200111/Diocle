@@ -4,7 +4,10 @@
 // It is not live and calls no model.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Brand } from "./ui";
-import { fetchRun, fetchRuns, hostOf, type Run, type RunListItem } from "@/lib/runs";
+import { ASSURANCE_BADGE, fetchRun, fetchRuns, hostOf, type Run, type RunListItem } from "@/lib/runs";
+
+// "certified" only for a plain certified run; a convert-anyway label is shown as itself, never as certified.
+const statusWord = (run: Run) => run.certified ? "certified" : run.assurance ? ASSURANCE_BADGE[run.assurance].label.toLowerCase() : "not certified";
 import { AGENTS, tierLabel, buildSteps, castStats, hasTeamData, priceOf, totalsAt, type AgentKey } from "@/lib/mission";
 
 const DEFAULT_RUN = "interest-accrual-20261029-230750";
@@ -129,14 +132,14 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
       <section className="mc-banner" aria-label="About this replay">
         <strong>Replay of a recorded run</strong>
         <span>
-          Run <code>{run.id}</code>, recorded {when(run.createdAt)} · {run.program} · {run.certified ? "certified" : "not certified"}.
+          Run <code>{run.id}</code>, recorded {when(run.createdAt)} · {run.program} · {statusWord(run)}.
           Nothing here is live: it steps through the events and model calls stored with the run, in their recorded order
           (run events carry no timestamps, so pauses are not real durations).
         </span>
         <label className="mc-pick">
           <span>Run</span>
           <select value={run.id} onChange={(e) => pick(e.target.value)}>
-            {options.map((o) => <option key={o.id} value={o.id}>{o.id}{o.certified ? "" : " (not certified)"}</option>)}
+            {options.map((o) => <option key={o.id} value={o.id}>{o.id}{o.certified ? "" : o.assurance ? ` (${ASSURANCE_BADGE[o.assurance].label.toLowerCase()})` : " (not certified)"}</option>)}
           </select>
         </label>
       </section>
@@ -243,7 +246,7 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
             <p className="mc-cert-line" role="status">
               <span className={`mc-light ${lastCert.cert!.passed ? "ok" : "bad"}`} aria-hidden="true" />
               {lastCert.cert!.result}
-              {done && final ? <strong> Final: {num(final.passed)} of {num(final.total)} inputs match, stdout {final.stdoutMatch ? "matches" : "differs"}; {run.certified ? "certified" : "not certified"}. Certified on the inputs tried; not a proof of equivalence.</strong> : null}
+              {done && final ? <strong> Final: {num(final.passed)} of {num(final.total)} inputs match, stdout {final.stdoutMatch ? "matches" : "differs"}; {statusWord(run)}. {run.assurance === "certified-against-repaired-cobol" ? "Compared against the PATCHED COBOL, not the original; a person must confirm the patch." : "Certified on the inputs tried; not a proof of equivalence."}</strong> : null}
             </p>
           ) : <p className="mc-note">Not yet reached in the replay.</p>}
           {certs.length > 1 && <p className="mc-note">{certs.length} certification rounds so far; the last one counts.</p>}
