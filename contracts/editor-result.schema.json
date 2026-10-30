@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diocle.dev/contracts/editor-result.schema.json",
+  "title": "Editor result",
+  "description": "v0.1. What `python -m diocle_converter editor check|convert` prints on stdout for the VS Code extension (editors/vscode). LOCAL use only: the developer runs it on their own machine with their own Meta key, so diagnostics carry the compiler's full message and real line numbers (unlike compile-check.schema.json, which is the sanitized form for visitor imports and never echoes source). Progress goes to stderr as `PROGRESS <text>` lines; stdout holds exactly one JSON document of this shape. For `convert` this record only POINTS at the run: the run record (run.schema.json, v0.14) stays the source of truth for the assurance, reason, cost and model, and is copied, not re-derived. `assurance` is `certified` only when the Java matched the original COBOL byte for byte on the inputs tried (not a proof); the other labels are never to be shown as certified. `skipped` means no conversion was attempted (not convertible without convert-anyway, or an unreadable input).",
+  "type": "object",
+  "required": ["version", "command", "ok"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": "0.1"},
+    "command": {"enum": ["check", "convert"]},
+    "ok": {"type": "boolean", "description": "check: the file compiles under cobc -std=ibm. convert: the command ran to a record (false only when it could not start, e.g. no cobc or no key); the outcome is `assurance`."},
+    "file": {"type": "string", "description": "The file as given on the command line."},
+    "error": {"type": "string", "maxLength": 500, "description": "Why the command could not produce its normal result (cobc missing, no model key, bad input). Never contains a key."},
+    "diagnostics": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "severity", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {"type": "string", "description": "Path as cobc printed it (may be a copybook)."},
+          "line": {"type": "integer", "minimum": 1},
+          "severity": {"enum": ["error", "warning", "note"]},
+          "message": {"type": "string", "maxLength": 500}
+        }
+      }
+    },
+    "assurance": {"enum": ["certified", "certified-against-repaired-cobol", "compiled-unverified", "failed", "skipped"]},
+    "assuranceReason": {"type": "string", "maxLength": 1000, "description": "Copied from run.json assuranceReason, or the reason for `skipped`."},
+    "runDir": {"type": "string", "description": "Absolute path of the folder holding the copied run (run.json, java/, ...)."},
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Absolute paths of what exists; a key is absent when that artefact was not produced.",
+      "properties": {
+        "java": {"type": "array", "items": {"type": "string"}},
+        "sqlSchema": {"type": "string"},
+        "repairedCobol": {"type": "string"},
+        "diff": {"type": "string", "description": "Unified diff, original COBOL to patched COBOL, as written by the repair step."},
+        "behaviorMd": {"type": "string"}
+      }
+    },
+    "repairedLines": {"type": "integer", "minimum": 0, "description": "Lines the COBOL repair changed (cobolRepair.changedLines)."},
+    "costUsd": {"type": ["number", "null"], "description": "run.json usage.estimatedCostUsd; null when unknown."},
+    "maxUsd": {"type": "number", "description": "The hard dollar cap this run was given."},
+    "model": {"type": ["string", "null"]},
+    "notes": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 500}}
+  },
+  "allOf": [
+    {"if": {"properties": {"command": {"const": "check"}}}, "then": {"required": ["diagnostics"]}},
+    {"if": {"properties": {"command": {"const": "convert"}, "ok": {"const": true}}, "required": ["command", "ok"]},
+     "then": {"required": ["assurance", "maxUsd"]}}
+  ]
+}
