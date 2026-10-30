@@ -52,7 +52,7 @@
         <mxCell id="e6" value="prompts / answers" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;startArrow=block;html=1;" edge="1" parent="1" source="cv" target="m"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e7" value="Java to check" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="cv" target="vf"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e8" value="runs inside" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="vf" target="sb"><mxGeometry relative="1" as="geometry"/></mxCell>
-        <mxCell id="e9" value="certificate, diffs, cost" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="vf" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="equivalence report, diffs, cost" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="vf" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
         <mxCell id="e10" value="import / pull request" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;startArrow=block;html=1;" edge="1" parent="1" source="api" target="g"><mxGeometry relative="1" as="geometry"/></mxCell>
       </root>
     </mxGraphModel>

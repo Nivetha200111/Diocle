@@ -476,6 +476,7 @@ function RunDetail({ run }: { run: Run }) {
             {run.guard?.blocked && <Badge tone="amber">Blocked by the guard</Badge>}
             {run.guard?.review?.verdict === "error" && <Badge tone="amber">Guard review unavailable</Badge>}
           </div>
+          <p><small>&ldquo;Certified&rdquo; means matched on the tested inputs, not proven equivalent.</small></p>
           <h2>{run.program} · {run.command === "repair"
             ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
             : (steps.length ? "Translated, verified and repaired" : "Translated and verified (no repair needed)")}</h2>

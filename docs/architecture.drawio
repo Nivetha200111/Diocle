@@ -37,7 +37,7 @@
         <mxCell id="ab-src" value="&lt;b&gt;Source repositories&lt;/b&gt;&lt;br&gt;Any public repo (visitor import)&lt;br&gt;quillmark-legacy, quillmark-mainframe (owner's sample estate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
           <mxGeometry x="1245" y="90" width="185" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="ab-target" value="&lt;b&gt;Target repository&lt;/b&gt;&lt;br&gt;Pull request + certificate per program&lt;br&gt;&lt;b&gt;Target CI&lt;/b&gt; (GitHub Actions): builds GnuCOBOL 3.2 + JDK 21 and re-verifies on fresh inputs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+        <mxCell id="ab-target" value="&lt;b&gt;Target repository&lt;/b&gt;&lt;br&gt;Pull request + equivalence report per program&lt;br&gt;&lt;b&gt;Target CI&lt;/b&gt; (GitHub Actions): builds GnuCOBOL 3.2 + JDK 21 and re-verifies on fresh inputs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
           <mxGeometry x="1440" y="90" width="190" height="100" as="geometry" />
         </mxCell>
         <mxCell id="ab-engine" value="&lt;b&gt;Engine&lt;/b&gt; · Vultr VM (1 vCPU, 2 GB) · Docker compose: caddy, api, sandbox" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#f8f8f8;strokeColor=#333333;verticalAlign=bottom;align=right;spacingRight=12;spacingBottom=6;" vertex="1" parent="1">
@@ -103,7 +103,7 @@
         <mxCell id="ab-mcp" value="&lt;b&gt;services/mcp&lt;/b&gt;: the same checks as MCP tools for any agent (runs locally)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#f5f5f5;" vertex="1" parent="1">
           <mxGeometry x="815" y="735" width="390" height="35" as="geometry" />
         </mxCell>
-        <mxCell id="ab-deliver" value="&lt;b&gt;4 · deliver&lt;/b&gt; → GitHub target repository&lt;br&gt;Owner: certified Java + certificate as a pull request&lt;br&gt;Visitor import: any public repo, up to 3 programs, daily budget, read-only fix memory, results on the site only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+        <mxCell id="ab-deliver" value="&lt;b&gt;4 · deliver&lt;/b&gt; → GitHub target repository&lt;br&gt;Owner: certified Java + equivalence report as a pull request&lt;br&gt;Visitor import: any public repo, up to 3 programs, daily budget, read-only fix memory, results on the site only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
           <mxGeometry x="800" y="810" width="420" height="95" as="geometry" />
         </mxCell>
         <mxCell id="ab-sandbox" value="&lt;b&gt;sandbox container&lt;/b&gt;&lt;br&gt;No secrets · internal network only · read-only root filesystem&lt;br&gt;&lt;br&gt;Imported COBOL and model-written Java compile and run here, as &lt;i&gt;nobody&lt;/i&gt; in a private tmpfs; every leftover process is killed and the job's files deleted afterwards; busy → 503, job timeout 300 s&lt;br&gt;&lt;br&gt;The api refuses requests from the sandbox's address" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;fillColor=#ffebee;strokeColor=#b85450;" vertex="1" parent="1">
@@ -202,7 +202,7 @@
         <mxCell id="p5" value="&lt;b&gt;Model call log&lt;/b&gt;&lt;br&gt;role · mode · round · tokens · latency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="portal">
           <mxGeometry x="855" y="45" width="195" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="p6" value="&lt;b&gt;Equivalence scorecard&lt;/b&gt;&lt;br&gt;pass rate · var coverage · judge · certificate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="portal">
+        <mxCell id="p6" value="&lt;b&gt;Equivalence scorecard&lt;/b&gt;&lt;br&gt;pass rate · var coverage · judge · equivalence report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="portal">
           <mxGeometry x="1065" y="45" width="195" height="65" as="geometry" />
         </mxCell>
 
@@ -276,7 +276,7 @@
         <mxCell id="v5" value="&lt;b&gt;Checkers + SonarQube CE quality gate&lt;/b&gt;&lt;br&gt;var coverage · paragraph ↔ method · hallucinations · Sonar issues" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="verifier">
           <mxGeometry x="15" y="255" width="390" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="v6" value="&lt;b&gt;Equivalence certificate&lt;/b&gt;&lt;br&gt;pass/fail on execution · inputs · rounds · quality gate · residual risks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="verifier">
+        <mxCell id="v6" value="&lt;b&gt;Equivalence report&lt;/b&gt;&lt;br&gt;pass/fail on execution · inputs · rounds · quality gate · residual risks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="verifier">
           <mxGeometry x="15" y="320" width="390" height="60" as="geometry" />
         </mxCell>
         <mxCell id="v7" value="&lt;b&gt;Agent tool endpoints&lt;/b&gt;&lt;br&gt;compile_java · run_differential_test · get_quality_issues (sandboxed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;dashed=1;fontSize=11;" vertex="1" parent="verifier">

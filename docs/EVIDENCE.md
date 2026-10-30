@@ -35,10 +35,10 @@ Delivery `delivery-20261028-194045` · pull request https://github.com/Nivetha20
 
 **6 programs certified · 25 model calls · $0.110 estimated.**
 
-### INTACCR re-delivery, and every certificate under one verifier
+### INTACCR re-delivery, and every equivalence report under one verifier
 After the comparator was made byte-exact, INTACCR was converted again from quillmark-legacy (the repair agent fixed
 the negative-zero case itself) and the other five programs' existing Java was **re-certified under the new
-verifier with zero model calls** (it already passed). All six certificates are on
+verifier with zero model calls** (it already passed). All six equivalence reports are on
 [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4), whose CI re-verifies them with one
 pinned verifier. **CI passed on fresh inputs:** ACCTMTCH 1601/1601, DAYCTRL 1017/1017, FEESCHD 1021/1021,
 INTACCR 1019/1019, PKDPOST 1037/1037, TXNPOST 1024/1024, stdout matching for each
