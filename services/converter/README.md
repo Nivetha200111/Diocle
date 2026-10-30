@@ -42,7 +42,7 @@ Result: run.json `crosscheck` (run contract v0.10), its calls appear in the run'
 
 ## Verified documentation (`--document`, or `document SAMPLE`)
 
-`documenter.py` asks a Muse Spark model (the run's default contributor model unless `DOC_MODEL_ID` is set; same host and key
+`documenter.py` asks a Muse Spark model (the run's own model, which is the cheap contributor model in hosted mode by default, unless `DOC_MODEL_ID` is set; same host and key
 unless `DOC_MODEL_BASE_URL`/`DOC_MODEL_API_KEY`) to write a plain-English behaviour spec of the COBOL as claims: one sentence
 about observable output each, plus 1 to 3 concrete examples (input records as field values, expected output field values). Every
 example is validated against the input layout with the breaker's `explain` (same rules) and run on the **original COBOL** through
@@ -51,7 +51,7 @@ a claim is *confirmed* (every example matched), *refuted* (the COBOL produced so
 or *unchecked* (an example was invalid for the layout, or the program did not run). Wording: "confirmed on the examples tried",
 never "proven". Single-file record programs only. Hard caps: `DOC_MAX_CALLS` (2; the second call only retries an unusable
 answer), `DOC_MAX_USD` (0.10; a call whose worst case could pass it is refused before it is made), `DOC_MAX_OUTPUT_TOKENS`
-(9000, because reasoning tokens bill as output); an unpriced model is refused (fail closed). It never fails a run: any problem
+(9000, never reached so far in a real run; because reasoning tokens bill as output); an unpriced model is refused (fail closed). It never fails a run: any problem
 becomes `skipped`/`unchecked` with a reason. Output: run.json `behavior` (run contract v0.13, `contracts/behavior-claims.schema.json`),
 `behavior.json`, `behavior.md`; token use is logged in the run's usage.
 
