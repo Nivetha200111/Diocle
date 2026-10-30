@@ -4,6 +4,34 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
+## Convert anyway (Oct 30, branch `convert-anyway` on origin/main 59c9ff9, local, NOT pushed or deployed)
+- **What:** opt-in mode (`--convert-anyway` or `DIOCLE_CONVERT_ANYWAY=1`; admin or local CLI only) so no program is refused. Contracts first:
+  run v0.13 (`assurance`, `assuranceReason`, `cobolRepair`), delivery v0.4 (`convertAnyway`, `repoMaxUsd`, `spentUsd`, per-program `assurance`/`costUsd`).
+  Labels: `certified` | `certified-against-repaired-cobol` | `compiled-unverified` | `failed`; only the first sets `certified: true`, so every
+  existing "N certified" count is unchanged and the web shows the others as their own badges/counts.
+- **How:** analyzer `--convert-anyway` writes a non-certifiable sample (`convertAnyway.reason`, missing copybooks). Converter: refused programs are
+  translated with `TRANSLATOR_ANYWAY` (labelled `// ADAPTER REQUIRED` interfaces, no invented DB behaviour), `javac`-compiled with <= 3 model fix
+  rounds, never run (`anyway.py`, `_finish_unverified`). An original that does not compile under `-std=ibm` is repaired first
+  (`cobolrepair.py`): deterministic missing-period fix, else a bounded Muse loop (`compile_cobol`/`patch_cobol`), rule enforced in code (<= 20 lines and <= 10% of the
+  file; PROCEDURE DIVISION edits only within 2 lines of a diagnostic); patched copy `<name>.repaired.cbl`, the user's file untouched; Java is then verified
+  against the patched COBOL and labelled `certified-against-repaired-cobol`. If the patch fails: translate the broken COBOL, compile-check only.
+  Spend: per-run `--max-usd` (client refuses the next call over it; unknown price fails closed) and `REPO_MAX_USD` (default 1.00) across the delivery
+  (sequential in this mode), skipped programs say "repo spend cap reached". Local command: `python -m diocle_converter repo PATH_OR_URL --convert-anyway` (README).
+- **Visitors cannot enable it:** `--public --convert-anyway` is an error, the visitor job and `start_delivery` strip `DIOCLE_CONVERT_ANYWAY`, `POST /deliveries`
+  with `convertAnyway` and no passcode is 403 (tests in `services/api/tests/test_convert_anyway.py`).
+- **Tests:** analyzer 84, converter 177, verifier 96, api 62 (+1 skipped), web `tsc --noEmit` and `next build` clean. Screenshots of the badges rendered via Playwright against a labelled stub engine.
+- **Not done / not claimed:** not deployed (engine needs `deploy/update-engine.sh`); programs that compile but never terminate are not COBOL-patched and are not
+  labelled with a special reason beyond what the verifier reports; EXEC SQL programs are not COBOL-patched; only one deterministic COBOL fix exists; the ADAPTER Java is
+  never executed, so whether the model's adapters are sensible is a reviewer's call; the PR delivery path (`deliver()` writing `unverified/<PROGRAM>/`) is unit-tested for
+  wording only, not run against a real target repository.
+- **One real run (Oct 30, Meta key, `muse-spark-1.3-contributor`), `python -m diocle_converter repo samples/convert-anyway-repo --convert-anyway --repo-max-usd 0.12`: total $0.0110 (cap 0.12; budget 0.15), first try, prompt not changed.**
+  ADDFEE: `certified` (1005/1005 held-out, 1 call, $0.0028). NOPERIOD (missing period): COBOL fixed deterministically for $0 (1 line), Java then
+  passed 1005/1005 against the patched COBOL: `certified-against-repaired-cobol` ($0.0032). BADNAME (undefined name `WS-FEES`): the Muse COBOL repair loop (5 calls, $0.0008) changed
+  1 line (`WS-FEES` -> `WS-FEE`), compiled, Java 1005/1005 against the patched COBOL: `certified-against-repaired-cobol` ($0.0039). SQLRPT (EXEC SQL): `compiled-unverified`
+  ($0.0011): the Java has an `AccountsAdapter` interface labelled `// ADAPTER REQUIRED`, a default implementation that throws, the SELECT kept as a comment, and compiled with javac on the first try; never run.
+  Not exercised for real: the compile-fix rounds (the Java compiled first time), the `failed` label, the REPO_MAX_USD skip (unit tests only), the PR path, a model repair rejected by the size rule (unit tests only).
+
+
 ## Compile pre-check for visitor imports (Oct 30, branch `worktree-agent-aeaa1ad23cf3a94b1`, local, NOT pushed or deployed)
 - `diocle_verifier.precheck.compile_original` + sandbox `POST /compile` (contract `contracts/compile-check.schema.json` v0.1):
   compiles the ORIGINAL with the verification flags inside the sandbox (60 s job limit, 8 MB in, 16 KB out, paths stripped),

@@ -109,6 +109,7 @@ Sample estate repositories: [quillmark-mainframe](https://github.com/Nivetha2001
 - Costs are estimates from list prices.
 
 ## Not supported yet
+- **Convert anyway (local or admin only, see "Running on your own repo") never certifies what the verifier could not run.** Programs the analyzer refuses (EXEC SQL/CICS/DLI, keyed files, dynamic or external CALLs, missing copybooks, no output) are translated with labelled `// ADAPTER REQUIRED` interfaces (no invented database behaviour), compile-checked with `javac`, never executed, and labelled `COMPILED, NOT VERIFIED`; nothing here is a working DB2, CICS or keyed-file conversion. An original that does not compile under GnuCOBOL gets a bounded patch first (see the rule below) and its Java is labelled `VERIFIED AGAINST REPAIRED COBOL`, which is not `CERTIFIED`. Visitor imports on the public site cannot enable the mode and keep refusing as before.
 - Programs with EXEC SQL, CICS or DLI, INDEXED or RELATIVE files, LINE SEQUENTIAL files opened I-O (only fixed-record SEQUENTIAL files are updated in place), a file opened I-O in one place and another way elsewhere, CALL identifiers that anything other than literals can assign (STRING, UNSTRING, ACCEPT, READ INTO, a LINKAGE parameter, a MOVE from a field, a second literal), DISPLAY-only programs that ACCEPT from the console or that DISPLAY only UPON SYSERR, programs with no output file and no DISPLAY, a JCL job whose COBOL step is DISPLAY-only or updates a file in place (the job check compares output files only), several record types in one file, OCCURS DEPENDING ON, SYNCHRONIZED, PIC N or leading P scaling are reported as not convertible. Each new shape we found unhandled was added to this list with a test; there may be others.
 - A program whose original COBOL does not compile under GnuCOBOL `-std=ibm` (for example a missing period after `PROGRAM-ID`, which IBM's compiler accepts) cannot be verified. Visitor imports find this before any model call with a compile-only check in the sandbox, skip the program with the compiler's reason and give its slot to the next compilable program (at most 12 programs checked per import; if the sandbox is unavailable the check is skipped). Other paths (CLI runs, owner deliveries) still find it only after the first translator call, where the run stops with that reason. Diocle does not repair or rewrite the original so that it compiles.
 - DISPLAY-only and OPEN I-O programs are accepted from what the source says, not from a run: a program whose DISPLAY (or REWRITE) never fires on the generated inputs, or that prints something nondeterministic such as `FUNCTION RANDOM`, cannot certify, and this is found only at verification time, after the translator call has been paid for. Neither shape has been through a real model conversion yet; the three synthetic samples (`display-report`, `ledger-rewrite`, `call-identifier`) are proven with hand-written Java only.
@@ -134,6 +135,49 @@ converter yourself:
 4. Check the key and endpoint: `cd services/converter && .venv/bin/python -m diocle_converter smoke` (one tiny call,
    about a hundredth of a cent). A first full run on a sample costs a few cents; every model loop has hard call caps
    (`MODEL_MAX_CALLS_PER_RUN` and the others in `.env.example`).
+
+### Running on your own repo (local, your own key)
+
+Any COBOL repository, local directory or GitHub URL, with your own Meta key and no visitor caps:
+
+```sh
+# prerequisites: GnuCOBOL 3.2 (cobc), JDK 21, Python 3.11+, the services' venvs (see each README), META_MODEL_* in .env
+cd services/converter
+.venv/bin/python -m diocle_converter repo /path/to/legacy-repo --convert-anyway        # or https://github.com/<owner>/<repo>
+#   --repo-max-usd 2.50   raise REPO_MAX_USD for this run (default 1.00, enforced across every program of the run)
+#   --programs PAYROLL,LEDGER   only these PROGRAM-IDs
+# equivalent: cd services/api && .venv/bin/python -m diocle_api.deliver /path/to/legacy-repo --convert-anyway
+# one program: python -m diocle_converter run SAMPLE_DIR --convert-anyway --max-usd 0.20
+```
+
+Without `--convert-anyway` (and without `DIOCLE_CONVERT_ANYWAY=1`) nothing changes: refused programs stay refused. The
+results stay under `runs/` and show on the dashboard; pass a target repository to `diocle_api.deliver` to open a pull request
+(it lists every program under its label). Every program ends with exactly one label:
+
+| Label | Meaning | Counted as certified? |
+|---|---|---|
+| `CERTIFIED` | The differential test passed against the original COBOL, as always. | yes |
+| `VERIFIED AGAINST REPAIRED COBOL` | The original did not compile under GnuCOBOL `-std=ibm`; the COBOL was patched (diff in the run record, the patched file is written beside your file as `<name>.repaired.cbl`, your file is never touched) and the Java passed against the patched COBOL. A person must confirm the patch preserves what the IBM compiler accepted. | no |
+| `COMPILED, NOT VERIFIED` | The Java compiles with `javac`; no differential test could run (the reason is stated); the Java was never executed. A developer must review it. | no |
+| `FAILED` | No compiling Java within the caps, or the differential test ran and the Java still differs. | no |
+
+A program that compiles and verifies normally is certified normally even in this mode. Programs skipped when `REPO_MAX_USD`
+is reached are recorded as `skipped: repo spend cap reached`, never dropped. Model use stays within the per-run call caps and a
+dollar cap (`--max-usd`, the rest of `REPO_MAX_USD`) and logs tokens and cost per program.
+
+**The COBOL patch rule** (enforced in `diocle_converter/cobolrepair.py`, not just asked of the model): first mechanical fixes that
+cannot change behaviour (today: the missing period after `PROGRAM-ID`); only if the original still does not compile, a bounded
+Muse loop with `compile_cobol` and `patch_cobol` tools (at most `COBOL_REPAIR_MAX_CALLS`, default 8, inside the run caps; tier
+escalation with `--tiers`). The patched file may differ from the original by at most `COBOL_REPAIR_MAX_LINES` (20) and
+`COBOL_REPAIR_MAX_SHARE` (10%) of its lines, whichever is smaller, and in the PROCEDURE DIVISION a patch may only touch lines
+within two lines of one the compiler reported. A rejected patch is not applied; the compiler, not the model, decides whether it
+now compiles. Programs the analyzer refuses (EXEC SQL, keyed files, ...) are not COBOL-patched; programs that compile but never
+finish, or fail for reasons other than compile errors, are not patched either.
+
+What is still never certified, and why: anything the verifier could not run against GnuCOBOL (database and transaction calls,
+keyed files, calls to programs outside the repository, unknown copybook layouts, repaired or uncompilable originals). Only the
+verifier certifies; the model's Java is compiled, never trusted. This mode is not reachable from the public site: a visitor
+request that sets it is refused (403), and the visitor job strips `DIOCLE_CONVERT_ANYWAY` from its environment.
 
 See [CLAUDE.md](CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design.
 
