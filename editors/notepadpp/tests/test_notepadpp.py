@@ -53,9 +53,9 @@ def test_only_certified_says_certified_without_qualifier():
 
 # ---- command-line builder ----
 def test_build_args_check_and_convert():
-    assert L.build_args("check", "C:\\My Code\\A B.cbl") == ["-m", "diocle_converter", "editor", "check", "C:\\My Code\\A B.cbl"]
+    assert L.build_args("check", "C:\\My Code\\A B.cbl") == ["-P", "-m", "diocle_converter", "editor", "check", "C:\\My Code\\A B.cbl"]
     a = L.build_args("convert", "x.cbl", max_usd=0.25, copybooks=["C:\\cp books"])
-    assert a == ["-m", "diocle_converter", "editor", "convert", "x.cbl", "--copybooks", "C:\\cp books", "--max-usd", "0.25"]
+    assert a == ["-P", "-m", "diocle_converter", "editor", "convert", "x.cbl", "--copybooks", "C:\\cp books", "--max-usd", "0.25"]
     assert "--convert-anyway" not in a
     assert L.build_args("convert", "x.cbl", convert_anyway=True)[-1] == "--convert-anyway"
 
@@ -230,3 +230,23 @@ def test_real_check_on_noperiod():
     p = subprocess.run(L.build_command(_cli_python(), "check", str(f)), capture_output=True, text=True, env=env, cwd=str(ROOT))
     ok, v = L.parse_result(p.stdout, "check")
     assert ok and not v["ok"] and 5 in {d["line"] for d in v["diagnostics"]}
+
+
+
+# ---- a package planted in the opened folder must not be imported ----
+def test_planted_package_in_the_open_folder_is_not_imported(tmp_path):
+    """The converter is started with the user's open folder as its working directory. `python -P` keeps that folder off sys.path."""
+    import subprocess
+    import sys
+    if sys.version_info < (3, 11):
+        pytest.skip("-P needs Python 3.11+")
+    pkg = tmp_path / "diocle_converter"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "__main__.py").write_text("open('PLANTED_RAN', 'w').write('x')\n")
+    args = L.build_args("check", "a.cbl")
+    assert args[0] == "-P"
+    subprocess.run([sys.executable] + args, cwd=str(tmp_path), capture_output=True, timeout=60)
+    assert not (tmp_path / "PLANTED_RAN").exists(), "the planted package ran: -P is not protecting"
+    subprocess.run([sys.executable] + args[1:], cwd=str(tmp_path), capture_output=True, timeout=60)  # control, without -P
+    assert (tmp_path / "PLANTED_RAN").exists(), "control failed: the test cannot detect the problem"

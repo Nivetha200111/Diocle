@@ -64,7 +64,7 @@ function runConverter(python: string, args: string[], cwd: string, timeoutMs: nu
                       token?: vscode.CancellationToken): Promise<Spawned> {
   return new Promise((resolve) => {
     // Argument array, no shell: file names are never interpolated into a command string.
-    const child = spawn(python, args, { cwd, shell: false, detached: process.platform !== "win32", env: process.env, windowsHide: true });
+    const child = spawn(python, args, { cwd, shell: false, detached: process.platform !== "win32", env: { ...process.env, PYTHONSAFEPATH: "1" }, windowsHide: true });
     let stdout = "", errBuf = "", tail = "", timedOut = false, cancelled = false;
     const timer = setTimeout(() => { timedOut = true; killTree(child); }, timeoutMs);
     token?.onCancellationRequested(() => { cancelled = true; killTree(child); });

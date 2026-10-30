@@ -64,4 +64,4 @@ result pages, cancelling a live run, the cost-confirmation dialog, Windows, Curs
 The converter must run from a Diocle checkout for now.
 
 ## Untrusted folders
-The converter is started as `python -m diocle_converter` from the workspace folder, which is why the workspace must be trusted: a hostile folder could contain its own `diocle_converter` package that Python would import first.
+The converter is started with the opened folder as its working directory, and `python -m` normally puts the current folder first on `sys.path`, so a hostile folder containing its own `diocle_converter/` package would have its code run instead of the installed converter. The extension therefore starts Python with `-P` (Python 3.11+: do not prepend the current folder to `sys.path`) and `PYTHONSAFEPATH=1`; a test plants such a package and checks it is not imported. This needs Python 3.11 or newer. Separately, the workspace must still be trusted (`untrustedWorkspaces: false`) because verification compiles and runs the workspace's COBOL and the generated Java.

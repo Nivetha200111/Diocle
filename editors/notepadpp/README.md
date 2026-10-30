@@ -53,4 +53,4 @@ The converter is started with an argument list, never a shell string (the NppExe
 `pytest editors/notepadpp/tests` (standard library only; the real-CLI test runs when a converter Python is found at `services/converter/.venv` or `DIOCLE_TEST_CONVERTER_PYTHON`, and `cobc` is installed).
 
 ## Untrusted folders
-The converter runs as `python -m diocle_converter` from the workspace folder, so do not use it on a folder you do not trust (a hostile folder could contain its own `diocle_converter` package that Python would import first).
+The converter is started with the open folder as its working directory, and `python -m` normally puts the current folder first on `sys.path`, so a hostile folder containing its own `diocle_converter/` package would have its code run instead of the installed converter. The scripts therefore start Python with `-P` (Python 3.11+: do not prepend the current folder to `sys.path`) and `PYTHONSAFEPATH=1`; a test plants such a package and checks it is not imported. This needs Python 3.11 or newer. Separately, only run conversions on code you trust: verification compiles and runs the COBOL and the generated Java on your machine.

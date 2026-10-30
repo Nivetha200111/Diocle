@@ -57,7 +57,7 @@ def _run(command, path, on_progress):
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=L.find_workspace(path),
-                                universal_newlines=True, errors="replace", creationflags=flags)
+                                universal_newlines=True, errors="replace", creationflags=flags, env=L.safe_env())
     except (OSError, ValueError) as e:
         _say("Diocle: could not start %r: %s. Set CONVERTER_PYTHON in diocle_npp.py." % (_python(), e))
         return "", None

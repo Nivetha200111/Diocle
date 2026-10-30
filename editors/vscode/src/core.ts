@@ -43,7 +43,9 @@ export function clampMaxUsd(v: unknown, fallback = 0.25): number {
   return Math.min(HARD_MAX_USD, Math.max(0.01, n));
 }
 export function buildArgs(command: "check" | "convert", file: string, o: RunOptions): string[] {
-  const args = ["-m", "diocle_converter", "editor", command, file];
+  // -P (Python 3.11+): keep the workspace folder (the child's cwd) off sys.path, so a diocle_converter/ package planted in an
+  // opened folder is never imported in place of the installed converter.
+  const args = ["-P", "-m", "diocle_converter", "editor", command, file];
   for (const c of o.copybooks) args.push("--copybooks", c);
   if (command === "convert") {
     args.push("--max-usd", clampMaxUsd(o.maxUsd).toFixed(2));

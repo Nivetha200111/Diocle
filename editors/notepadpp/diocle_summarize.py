@@ -36,7 +36,7 @@ def main(argv):
         a = p.parse_args(argv[1:])
         cmd = L.build_command(a.python, a.command, a.file, max_usd=a.max_usd, convert_anyway=a.convert_anyway)
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True,
-                              errors="replace", cwd=L.find_workspace(a.file))
+                              errors="replace", cwd=L.find_workspace(a.file), env=L.safe_env())
         for line in proc.stderr.splitlines():  # PROGRESS lines
             print(L.clean_line(line, 300))
         stdout, command = proc.stdout, a.command
