@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": "diocle",
+  "displayName": "Diocle (local)",
+  "version": "0.1.0",
+  "description": "Local Diocle tools for COBOL modernization: analyze, re-verify against GnuCOBOL, read runs, and a gated, capped convert. Not an official Meta integration.",
+  "compat": {
+    "source": "native",
+    "manifestDir": ".muse-plugin"
+  },
+  "capabilities": {
+    "skills": [
+      {"id": "diocle", "path": "skills/diocle/SKILL.md", "enabledDefault": true}
+    ],
+    "commands": [
+      {"id": "diocle-analyze", "path": "commands/diocle-analyze.md", "enabledDefault": true},
+      {"id": "diocle-verify", "path": "commands/diocle-verify.md", "enabledDefault": true},
+      {"id": "diocle-convert", "path": "commands/diocle-convert.md", "enabledDefault": true},
+      {"id": "diocle-explain", "path": "commands/diocle-explain.md", "enabledDefault": true}
+    ],
+    "hooks": [],
+    "mcpServers": [
+      {"id": "diocle", "transport": "stdio", "command": ["python3", "-B", "mcp/server.py"]}
+    ],
+    "reminders": []
+  }
+}

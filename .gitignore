@@ -69,3 +69,4 @@ demo/promo/public/voiceover.wav
 
 # SQLite JDBC driver for local runs (see README)
 services/verifier/lib/
+editors/muse-code/plugin/mcp/repo.txt
