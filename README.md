@@ -10,7 +10,7 @@ Diocle is a verification layer for AI-written code where a wrong cent costs mone
 
 Muse Spark's first translation passed 1,000 held-out inputs for 37 of 45 attempts (82%). But when the breaker agent attacked the
 translations that passed, 4 of 10 attackable ones were still wrong (CHQCLR, DAYCTRL, INTACCR, TXNPOST). A full Diocle run certified 14 of
-15 programs; CHQCLR was not certified. Small sample, one model, synthetic programs, about $0.62 of spend; the method, per-program
+15 programs; CHQCLR was not certified. Small sample, one model, synthetic programs, about $0.69 of spend; the method, per-program
 table, caveats and deviations are in [docs/MEASUREMENT.md](docs/MEASUREMENT.md).
 
 ## Why it matters

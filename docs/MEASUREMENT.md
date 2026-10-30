@@ -86,7 +86,7 @@ running spend.
 ## Results
 
 Raw data: `eval/results-headline.json` (main arm, merged from three shards) and `eval/results-headline-attack.json`
-(attack arm). Total real spend about **$0.62** (main arm $0.47, attack arm $0.15), under the $1.00 cap. Estimated from
+(attack arm). Total real spend about **$0.69** (main arm $0.47, attack arm $0.15, plus $0.07 for the excluded ACCTRPT units, see Deviations), under the $1.00 cap. Estimated from
 list prices. n is small (15 programs, one model, one day, synthetic programs): read these as a measurement of this set,
 not as a general rate.
 
@@ -116,12 +116,14 @@ not as a general rate.
   was not harder for the model on this test; do not read the seen/unseen difference as evidence of overfitting either way.
 - **Full Diocle run: 14 of 15 certified.** It certified all four programs the model got wrong on some first tries.
   **CHQCLR was not certified**: the breaker broke it on 12 of 24 inputs, one repair cycle did not fix it within the caps.
+- **"1,000 held-out inputs" is the number requested.** The cases actually compared per translation ranged from 766 to 2,031 for most programs
+  (several records per input file), and TXNLIST, a display-only program, compared 1.
   We report it as it came out.
 - Model spend: first translations about $0.18 in total, full runs about $0.29 in total.
 
 ### Attack arm: do translations that pass the held-out test survive an attacker?
 
-15 programs; 12 can be attacked (the breaker designs single-file records, so ACCTMTCH, ACCTRPT and TXNLIST are not
+15 programs; 12 can be attacked, and 10 of those 12 passed the held-out test (the breaker designs single-file records, so ACCTMTCH, ACCTRPT and TXNLIST are not
 applicable). One fresh first translation per program, 1,000 held-out inputs (seed 8801), then the breaker.
 
 | Outcome | Programs | Count |
@@ -141,9 +143,6 @@ What this does and does not show:
 - The 4 programs the breaker broke are on the 82% side of the first-try number: three of them passed all 3 first-try
   trials. The two numbers (82% of first translations passing the test; 6 of 10 attackable test-passers surviving the attack)
   are different measures on overlapping program sets; do not multiply or merge them.
-- Mutation testing (see README) points the same way for some programs: the held-out inputs left many seeded faults
-  undetected on the certified CHQCLR run (9 of 40 detected in the first mutation run). That analysis is separate and is not part of
-  this measurement.
 
 ## Deviations from the plan (appended after the run, labelled)
 
@@ -154,8 +153,9 @@ What this does and does not show:
    (about $0.07 of spend, one run that spent 3 repair rounds on a 0-case result) were excluded and logged in
    `infrastructureLog` in `eval/results-headline.json`, with the excluded record kept. The driver was installed (sha256
    in the log) and ACCTRPT was re-run once; the table uses the re-run. Spend for the excluded units counts toward the total.
-   ACCTRPT first try after the re-run: 1 of 3 passed. In the second trial the harness recorded 0 test cases (not a model
-   result we can interpret), so for this SQL program the "1/3" may partly reflect the harness, not only the model.
+   ACCTRPT first try after the re-run: 1 of 3 passed. Trial 1 passed (1,358 cases); trial 2 did not compile (counted as a
+   failure, per the plan); trial 3 failed 670 of 1,358 cases. The ACCTRPT full run's initial check ran 0 cases (as did PKDPOST's) and it
+   certified after one repair round and 21 model calls.
 3. **Sharding.** To save time the work ran in three parallel shards and was merged (`--shard I/N`, `--merge`); this does
    not change what each unit did.
 4. **Base commit.** The plan named base commit `1b17381`; the units ran in a worktree at that commit plus the eval scripts in this branch. Later changes to `main` (keyed files, mutation testing, minimization, voice question) are not in the measured code.
