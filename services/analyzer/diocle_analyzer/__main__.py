@@ -24,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("source", help="local directory or https://github.com/<owner>/<repo>")
     parser.add_argument("--out", type=Path, help="write the report here (default: print a summary only)")
     parser.add_argument("--samples-dir", type=Path, help="write a sample directory per convertible program here")
+    parser.add_argument("--convert-anyway", action="store_true",
+                        help="also write a (non-certifiable) sample for programs that are refused, with the reason")
     args = parser.parse_args(argv)
 
     if args.source.startswith("https://"):
@@ -45,9 +47,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.samples_dir:
         written: set[str] = set()
         for p in report["programs"]:
-            if p["convertible"] and p["name"] in written:  # samples are keyed by PROGRAM-ID: the first file wins
+            if (p["convertible"] or args.convert_anyway) and p["name"] in written:  # samples are keyed by PROGRAM-ID: the first file wins
                 print(f"sample: skipped {p['path']} (PROGRAM-ID {p['name']} already written)")
-            elif p["convertible"]:
+            elif p["convertible"] or args.convert_anyway:
                 written.add(p["name"])
                 print(f"sample: {write_sample(root, report, p, args.samples_dir)}")
     return 0

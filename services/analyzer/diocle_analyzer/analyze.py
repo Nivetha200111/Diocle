@@ -315,6 +315,27 @@ def shared_keys(inputs: list[dict]) -> dict:
     return {"sharedKeys": groups, "sortedBy": sorted_by}
 
 
+def _write_anyway_meta(sample: Path, report: dict, program: dict, source_name: str, missing: list[str]) -> Path:
+    """Convert-anyway sample for a program the analyzer refuses: no layouts, so the verifier cannot certify it. The
+    converter reads `convertAnyway.reason` and labels the result compiled-unverified (or failed), never certified."""
+    meta = {
+        "name": program["name"].lower(),
+        "description": f"Imported from {report['source']['location']} (convert anyway: not certifiable)",
+        "program": program["name"],
+        "source": f"src/{source_name}",
+        "modules": [f"src/{cobol_name(m)}" for m in program.get("modules", [])],
+        "collation": "ebcdic",
+        "copybookDir": "copybooks",
+        "javaConversion": {"dir": "java-conversion", "mainClass": main_class(program["name"]),
+                           "origin": "none yet: translate with the converter's run command"},
+        "convertAnyway": {"reason": program["notConvertibleReason"], "missingCopybooks": missing},
+        "import": {"repository": report["source"]["location"], "commit": report["source"].get("commit"),
+                   "path": program["path"], "job": program.get("job")},
+    }
+    (sample / "sample.json").write_text(json.dumps(meta, indent=2) + "\n")
+    return sample
+
+
 def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path:
     """Materialize one convertible program as a Diocle sample directory (the converter's input format)."""
     root = root.resolve()
@@ -327,8 +348,12 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
     shutil.copy2(source, sample / "src" / source_name)
     for module in program.get("modules", []):
         shutil.copy2(root / module, sample / "src" / cobol_name(module))
+    missing = [m for m in program["copybooks"] if m not in copybooks]
     for member in program["copybooks"]:
-        shutil.copy2(copybooks[member], sample / "copybooks" / f"{member}.cpy")  # PDS members have no extension
+        if member in copybooks:  # convert-anyway samples may name copybooks the repository does not have
+            shutil.copy2(copybooks[member], sample / "copybooks" / f"{member}.cpy")  # PDS members have no extension
+    if not program["convertible"]:
+        return _write_anyway_meta(sample, report, program, source_name, missing)
     inputs = [f for f in program["files"] if f["direction"] == "input"]
     outputs = [f for f in program["files"] if f["direction"] == "output"]
     updated = [f for f in program["files"] if f["direction"] == "io"]
