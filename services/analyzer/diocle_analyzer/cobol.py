@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .keyed import keyed_files
+
 _PIC = re.compile(r"\bPIC(?:TURE)?\s+(?:IS\s+)?(\S+)")
 _SIGN_LEADING_SEPARATE = re.compile(r"\bSIGN\s+(?:IS\s+)?LEADING\s+SEPARATE\b")
 _VALUES = re.compile(r"'([^']*)'")
@@ -224,6 +226,7 @@ class ProgramInfo:
     dynamic_calls: list[str] = field(default_factory=list)  # CALL identifier: the target is only known at run time
     resolved_calls: dict[str, str] = field(default_factory=dict)  # CALL identifier -> the one literal it can only hold
     stdout_display: bool = False  # the PROCEDURE DIVISION DISPLAYs something to stdout (not only UPON SYSERR)
+    keyed: dict[str, dict] = field(default_factory=dict)  # INDEXED/RELATIVE file name -> SELECT facts and refusal (keyed.py)
     console_input: bool = False  # ACCEPT from the console/stdin: its input is not something the verifier can vary
 
 
@@ -289,7 +292,7 @@ def parse_program(text: str) -> ProgramInfo:
     stdout_display, console_input = _console_use(procedure)
     return ProgramInfo(name, copybooks, selects, fd_copybooks, directions, calls, organizations, replacing,
                        inline_records, exec_blocks, fd_inline, sort_files, still_dynamic, resolved,
-                       stdout_display, console_input)
+                       stdout_display, console_input=console_input, keyed=keyed_files(code, organizations))
 
 
 # --- CALL identifier: resolved statically only when nothing but literals can ever be in it -------------------

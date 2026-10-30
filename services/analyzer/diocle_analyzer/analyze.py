@@ -12,6 +12,7 @@ import re
 
 from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
 from .risks import find_risks
+from .keyed import SUBSET_VERSION as KEYED_SUBSET, key_problem
 from .sqlsubset import SUBSET_VERSION, SqlFacts, analyze_sql, parse_ddl
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "analysis-report.schema.json"
@@ -119,12 +120,18 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                 if organization == "LINE SEQUENTIAL" and binary:
                     layout.unsupported = (f"{', '.join(binary[:3])}: packed or binary data in a LINE SEQUENTIAL file "
                                           "(bytes can look like line breaks); use ORGANIZATION SEQUENTIAL")
+            keyed = None
+            if file_name in info.keyed:
+                keyed = dict(info.keyed[file_name])
+                if layout and not layout.unsupported and not keyed["refusal"] and keyed["recordKey"]:
+                    keyed["refusal"] = key_problem(dd, keyed, layout.fields)
             files.append({
                 "dd": dd,
                 "direction": info.directions.get(file_name, "unknown"),
                 "dsn": step.dsns.get(dd) if step else None,
                 "organization": info.organizations.get(file_name, "SEQUENTIAL"),
                 "copybook": member,
+                **({"keyed": _keyed_fact(keyed)} if keyed else {}),
                 "layout": ({**layout.as_dict(), "format": "line" if organization == "LINE SEQUENTIAL" else "fixed"}
                            if layout and layout.as_dict() else None),
                 **({"unsupported": layout.unsupported} if layout and layout.unsupported else {}),
@@ -252,6 +259,20 @@ def _display_only(reason: str | None, files: list[dict]) -> bool:
     return reason is None and not any(f["direction"] in ("output", "io") for f in files)
 
 
+def _keyed_fact(keyed: dict) -> dict:
+    """The contract's `keyed` block (analysis-report v0.7). The refusal is carried to the program's reason."""
+    fact = {"subset": KEYED_SUBSET, "accessMode": keyed["accessMode"], "fileStatus": keyed["fileStatus"]}
+    if isinstance(keyed["recordKey"], dict):
+        fact["recordKey"] = keyed["recordKey"]
+    elif keyed["recordKey"]:
+        fact["recordKey"] = {"field": keyed["recordKey"]}
+    if keyed.get("openMode"):
+        fact["openMode"] = keyed["openMode"]
+    if keyed["refusal"]:
+        fact["refusal"] = keyed["refusal"]
+    return fact
+
+
 def _writes_tables(sql: SqlFacts | None) -> bool:
     return bool(sql and any(s.kind in ("insert", "update", "delete") for s in sql.statements))
 
@@ -273,9 +294,14 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
     unknown = [c for c in info.calls if c not in program_ids]
     if unknown:
         return f"CALLs program(s) not in the repository: {', '.join(unknown)}"
-    keyed = [f"{f['dd']} ({f['organization']})" for f in files if f.get("organization") in ("INDEXED", "RELATIVE")]
-    if keyed:
-        return f"keyed file(s) {', '.join(keyed)} are not supported yet"
+    keyed = [f for f in files if f.get("keyed")]
+    for f in keyed:
+        if f["keyed"].get("refusal"):
+            return f"keyed file {f['keyed']['refusal']}"
+        if "recordKey" not in f["keyed"] or "offset" not in f["keyed"]["recordKey"]:
+            return f"keyed file {f['dd']}: the record layout needed to place the RECORD KEY was not found"
+    if keyed and sql is not None:
+        return "keyed files together with EXEC SQL are not supported yet"
     inputs = [f for f in files if f["direction"] == "input"]
     outputs = [f for f in files if f["direction"] == "output"]
     updated = [f for f in files if f["direction"] == "io"]
@@ -283,7 +309,7 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
     if other:
         return (f"file(s) {', '.join(other)} are opened I-O or never opened in a way that can be compared "
                 "(a file opened I-O must be opened I-O everywhere)")
-    lines = [f["dd"] for f in updated if f.get("organization") not in ("SEQUENTIAL", "RECORD SEQUENTIAL")]
+    lines = [f["dd"] for f in updated if f.get("organization") not in ("SEQUENTIAL", "RECORD SEQUENTIAL") and not f.get("keyed")]
     if lines:
         return f"file(s) {', '.join(lines)} opened I-O must be ORGANIZATION SEQUENTIAL (fixed records)"
     if not outputs and not updated:
