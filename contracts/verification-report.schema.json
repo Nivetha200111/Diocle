@@ -239,7 +239,8 @@
                   "match": {
                     "type": "boolean"
                   },
-                  "firstMismatch": {
+                  "changedFromSeed": {"type": "object", "description": "Additive. Whether each side left the table different from its seed; a program with write statements where no table changed on either side is not certified.", "properties": {"original": {"type": "boolean"}, "converted": {"type": "boolean"}}},
+                    "firstMismatch": {
                     "type": [
                       "object",
                       "null"
