@@ -367,6 +367,19 @@
           }
         }
       }
+    },
+    "signatureMode": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "fields"
+      ],
+      "description": "What 'the same discrepancy' meant during the reduction. strict: the differing output fields AND their values on both sides stayed identical to the original failure. fields: the same output field(s) differ, but the values may differ from the original failure (a smaller input can expose another manifestation of the same fault)."
+    },
+    "origin": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Where the Java that showed the discrepancy came from, when it is not simply the run's own Java: e.g. a defect re-created by hand because the run's pre-fix Java was not stored. Absent for a reproducer reduced from the Java the run actually had."
     }
   },
   "$defs": {

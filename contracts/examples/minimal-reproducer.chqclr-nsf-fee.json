@@ -173,5 +173,7 @@
     ],
     "replay": "python -m diocle_verifier replay regression/breaker-attack-r1-08 --java-dir <java directory>",
     "afterRepair": null
-  }
+  },
+  "signatureMode": "strict",
+  "origin": "REBUILT DEFECT, not the run's original pre-fix Java (it was not stored): the repaired Java with a one-line change in each number parser, so that any non-digit makes the whole field 0."
 }
