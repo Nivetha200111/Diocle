@@ -35,8 +35,8 @@ export function DatabasePanel({ d }: { d: DatabaseComparison }) {
             The engine is SQLite standing in for DB2: equivalent on this engine, for these statements, on the inputs tried. Not DB2-verified.
           </p>
           <p>
-            <strong>Engine:</strong> {d.engine ?? "unknown"} {d.engineVersion ?? ""} · <strong>SQL subset:</strong> {d.subset ?? "unknown"} ·{" "}
-            <strong>Seeded from:</strong> {d.seededFrom ?? "unknown"}
+            <strong>Engine:</strong> {d.engine == null ? "unknown" : cap(d.engine)} {d.engineVersion == null ? "" : cap(d.engineVersion)} · <strong>SQL subset:</strong> {d.subset == null ? "unknown" : cap(d.subset)} ·{" "}
+            <strong>Seeded from:</strong> {d.seededFrom == null ? "unknown" : cap(d.seededFrom)}
           </p>
         </div>
       </div>

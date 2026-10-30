@@ -62,3 +62,6 @@ Not published. Needs a publisher account: create a publisher at the Visual Studi
 Verified in a real VS Code window: check, and convert to a CERTIFIED result. Not exercised in a window: the repaired, unverified and failed
 result pages, cancelling a live run, the cost-confirmation dialog, Windows, Cursor/VSCodium/Windsurf, installing the `.vsix` into a clean editor.
 The converter must run from a Diocle checkout for now.
+
+## Untrusted folders
+The converter is started as `python -m diocle_converter` from the workspace folder, which is why the workspace must be trusted: a hostile folder could contain its own `diocle_converter` package that Python would import first.
