@@ -1,0 +1,24 @@
+{
+  "version": "0.1",
+  "runId": "example-20261030-100000",
+  "program": "EXAMPLE",
+  "status": "ok",
+  "reason": null,
+  "seed": 1026,
+  "inputs": { "initial": 1010 },
+  "counts": { "generated": 31, "run": 6, "killed": 3, "survived": 1, "notCompiled": 1, "equivalentSuspected": 1,
+              "timeout": 0, "error": 0, "notRun": 0, "score": 0.75 },
+  "mutants": [
+    { "id": "m001", "operator": "relational-swap", "location": { "file": "Example.java", "line": 42 },
+      "original": ">=", "mutated": ">", "description": "comparison >= changed to >", "outcome": "killed", "killedBy": "case-0007" },
+    { "id": "m002", "operator": "rounding-mode", "location": { "file": "Example.java", "line": 51 },
+      "original": "RoundingMode.HALF_UP", "mutated": "RoundingMode.DOWN", "description": "rounding mode HALF_UP changed to DOWN",
+      "outcome": "survived", "killedBy": null, "augmentedOutcome": "killed", "augmentedKilledBy": "extra-0003" },
+    { "id": "m003", "operator": "arithmetic-swap", "location": { "file": "Example.java", "line": 60 },
+      "original": "+", "mutated": "-", "description": "+ changed to -", "outcome": "not-compiled", "killedBy": null, "note": "incompatible types" }
+  ],
+  "augmented": { "extraInputs": 40, "survivorsRerun": 1, "extraKills": 1, "stillSurviving": 0, "modelCalls": 0 },
+  "caps": { "maxMutants": 40, "maxExtraInputs": 40, "wallClockSeconds": 420, "mutantTimeoutSeconds": 20, "budgetExhausted": false },
+  "seconds": 31.2,
+  "notes": ["A surviving mutant is a coverage question, not automatically a defect."]
+}

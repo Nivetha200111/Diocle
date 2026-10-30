@@ -1,0 +1,12 @@
+{
+  "version": "0.1",
+  "status": "ok",
+  "seed": 1026,
+  "inputs": { "initial": 10 },
+  "counts": { "generated": 1, "run": 1, "killed": 1, "survived": 0, "notCompiled": 0, "equivalentSuspected": 0,
+              "timeout": 0, "error": 0, "notRun": 0, "score": 1.5 },
+  "mutants": [ { "id": "m001", "operator": "relational-swap", "location": { "file": "A.java", "line": 0 },
+                 "description": "x", "outcome": "maybe" } ],
+  "caps": { "maxMutants": 40, "maxExtraInputs": 40, "wallClockSeconds": 420 },
+  "notes": []
+}
