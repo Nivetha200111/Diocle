@@ -348,3 +348,53 @@ def test_cli_marks_a_bundled_clip_as_such(monkeypatch, tmp_path):
     assert seen["source"] == "bundled-clip" and seen["clip"] == "fee-overdrawn"
     main(["ask", str(SAMPLE), "--audio", str(clip)])
     assert seen["source"] == "uploaded-clip" and seen["clip"] is None
+
+
+# ---- the WebSocket client's own hardening ----------------------------------------------------------------------------
+
+def _server(reply):
+    """TEST DOUBLE: a loopback WebSocket peer that answers the handshake with whatever `reply(key)` returns."""
+    import socket, threading
+    srv = socket.socket(); srv.bind(("127.0.0.1", 0)); srv.listen(1)
+
+    def run():
+        c, _ = srv.accept()
+        req = b""
+        while b"\r\n\r\n" not in req:
+            req += c.recv(4096)
+        key = [l.split(b":", 1)[1].strip() for l in req.split(b"\r\n") if l.lower().startswith(b"sec-websocket-key")][0].decode()
+        c.sendall(reply(key))
+        import time; time.sleep(0.3); c.close(); srv.close()
+    threading.Thread(target=run, daemon=True).start()
+    return f"ws://127.0.0.1:{srv.getsockname()[1]}/x"
+
+
+def _accept(key):
+    import base64, hashlib
+    return base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+
+
+def test_plain_ws_is_refused_unless_it_is_this_machine():
+    for url in ("ws://speech.example.com/asr", "http://x/y", "wss:///nohost"):
+        with pytest.raises(voice.VoiceError):
+            voice._connect(url)
+
+
+def test_handshake_accept_is_verified_and_early_bytes_are_kept():
+    bad = _server(lambda k: b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nSec-WebSocket-Accept: wrong\r\n\r\n")
+    with pytest.raises(voice.VoiceError, match="refused"):
+        voice._connect(bad)
+    frame = FakeSocket._frame(1, b'{"sessionId":"s"}')
+    good = _server(lambda k: ("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                              f"Sec-WebSocket-Accept: {_accept(k)}\r\n\r\n").encode() + frame)
+    sock = voice._connect(good)
+    assert voice._read_frame(sock) == (1, b'{"sessionId":"s"}')  # the frame that arrived with the handshake was not lost
+
+
+def test_an_absolute_deadline_stops_a_slow_service_and_garbage_json_is_a_fixed_phrase():
+    import socket
+    a, b = socket.socketpair()
+    with pytest.raises(voice.VoiceError, match="timed out"):
+        voice._recv(a, 5, deadline=__import__("time").monotonic() + 0.2)  # nothing ever arrives
+    with pytest.raises(voice.VoiceError, match="unreadable"):
+        voice.transcribe_pcm(voice.validate_wav(wav(1.0)), settings(), connect=lambda url: FakeSocket([(1, b"{not json")]))

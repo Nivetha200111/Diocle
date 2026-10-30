@@ -17,6 +17,7 @@ in fenced data. Errors are fixed phrases; what the service says is never passed 
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import socket
@@ -133,10 +134,18 @@ class VoiceSettings:
 
 # --- a small WebSocket client (RFC 6455), client side only -----------------------------------------------------------
 
-def _recv(sock, n: int) -> bytes:
+def _recv(sock, n: int, deadline: float | None = None) -> bytes:
     out = b""
     while len(out) < n:
-        chunk = sock.recv(n - len(out))
+        if deadline is not None:  # an absolute deadline: a slow trickle cannot stretch the call past TOTAL_TIMEOUT
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise VoiceError("the speech service timed out")
+            sock.settimeout(left)
+        try:
+            chunk = sock.recv(n - len(out))
+        except (TimeoutError, socket.timeout):
+            raise VoiceError("the speech service timed out") from None
         if not chunk:
             raise VoiceError("the speech service closed the connection")
         out += chunk
@@ -151,17 +160,34 @@ def _send(sock, opcode: int, payload: bytes) -> None:
     sock.sendall(head + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(payload)))
 
 
-def _read_frame(sock) -> tuple[int, bytes]:
-    b0, b1 = _recv(sock, 2)
+def _read_frame(sock, deadline: float | None = None) -> tuple[int, bytes]:
+    b0, b1 = _recv(sock, 2, deadline)
     n = b1 & 0x7F
     if n == 126:
-        n = struct.unpack(">H", _recv(sock, 2))[0]
+        n = struct.unpack(">H", _recv(sock, 2, deadline))[0]
     elif n == 127:
-        n = struct.unpack(">Q", _recv(sock, 8))[0]
+        n = struct.unpack(">Q", _recv(sock, 8, deadline))[0]
     if n > MAX_REPLY_FRAME:
         raise VoiceError("the speech service sent an oversize reply")
-    body = _recv(sock, n) if n else b""
+    body = _recv(sock, n, deadline) if n else b""
     return b0 & 0x0F, body
+
+
+class _Buffered:
+    """The socket plus bytes that arrived together with the handshake reply."""
+
+    def __init__(self, sock, first: bytes):
+        self.sock, self.buf = sock, first
+
+    def recv(self, n: int) -> bytes:
+        if self.buf:
+            out, self.buf = self.buf[:n], self.buf[n:]
+            return out
+        return self.sock.recv(n)
+
+    def sendall(self, data): self.sock.sendall(data)
+    def settimeout(self, t): self.sock.settimeout(t)
+    def close(self): self.sock.close()
 
 
 def _connect(url: str):
@@ -169,6 +195,8 @@ def _connect(url: str):
     if parts.scheme not in ("wss", "ws") or not parts.hostname:
         raise VoiceError("the speech service address is not valid")
     secure = parts.scheme == "wss"
+    if not secure and parts.hostname not in ("127.0.0.1", "::1", "localhost"):
+        raise VoiceError("the speech service address must be wss:// (plain ws:// is only allowed for this machine)")
     port = parts.port or (443 if secure else 80)
     try:
         sock = socket.create_connection((parts.hostname, port), timeout=CONNECT_TIMEOUT)
@@ -186,10 +214,14 @@ def _connect(url: str):
             head += chunk
     except (OSError, ssl.SSLError):
         raise VoiceError("cannot reach the speech service") from None
-    if not head.startswith(b"HTTP/1.1 101"):
+    head, _, rest = head.partition(b"\r\n\r\n")  # `rest` may already hold the first frames: keep them
+    accept = base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+    lines = head.decode("latin-1").split("\r\n")
+    headers = {l.split(":", 1)[0].strip().lower(): l.split(":", 1)[1].strip() for l in lines[1:] if ":" in l}
+    if not lines[0].startswith("HTTP/1.1 101") or headers.get("sec-websocket-accept") != accept:
         sock.close()
         raise VoiceError("the speech service refused the connection")
-    return sock
+    return _Buffered(sock, rest)
 
 
 def _extract(msg: dict) -> tuple[str | None, bool]:
@@ -204,6 +236,7 @@ def _extract(msg: dict) -> tuple[str | None, bool]:
 def transcribe_pcm(clip: Clip, settings: VoiceSettings, *, connect=_connect, deadline_seconds: float = TOTAL_TIMEOUT) -> str:
     """Stream the PCM to the speech service and return the raw final text. `connect` is a seam for tests."""
     start = time.monotonic()
+    deadline = start + deadline_seconds
     sock = connect(settings.url)
     sock.settimeout(CONNECT_TIMEOUT)
     finals: list[str] = []
@@ -213,11 +246,12 @@ def transcribe_pcm(clip: Clip, settings: VoiceSettings, *, connect=_connect, dea
                                    "audioEncoding": "PCM_16KHZ", "model": settings.wire_model}).encode())
         opened = False
         while not opened:
-            op, body = _read_frame(sock)
-            if time.monotonic() - start > deadline_seconds:
-                raise VoiceError("the speech service timed out")
+            op, body = _read_frame(sock, deadline)
             if op == 1:
-                msg = json.loads(body or b"{}")
+                try:
+                    msg = json.loads(body or b"{}")
+                except ValueError:
+                    raise VoiceError("the speech service sent an unreadable reply") from None
                 if isinstance(msg, dict) and msg.get("error"):
                     raise VoiceError("the speech service failed")
                 opened = isinstance(msg, dict) and "sessionId" in msg
@@ -228,11 +262,11 @@ def transcribe_pcm(clip: Clip, settings: VoiceSettings, *, connect=_connect, dea
         _send(sock, 1, b'{"endStream": {}}')
         while time.monotonic() - start <= deadline_seconds:
             try:
-                op, body = _read_frame(sock)
-            except VoiceError:
+                op, body = _read_frame(sock, deadline)
+            except VoiceError as e:
+                if "timed out" in str(e):
+                    raise
                 break
-            except (TimeoutError, socket.timeout):
-                raise VoiceError("the speech service timed out") from None
             if op == 9:
                 _send(sock, 10, body)
             elif op == 8:
