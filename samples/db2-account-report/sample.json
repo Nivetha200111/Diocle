@@ -1,0 +1,182 @@
+{
+  "name": "db2-account-report",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): posts adjustments to a DB2-style ACCOUNTS table with EXEC SQL (SELECT INTO with a null indicator, UPDATE, INSERT into AUDIT, a cursor loop until SQLCODE 100, COMMIT). Verified on a stand-in SQLite database, not DB2: files, stdout, exit code and the final contents of both tables are compared.",
+  "program": "ACCTRPT",
+  "source": "src/ACCTRPT.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Acctrpt",
+    "origin": "hand-written fixture, not model output"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "files": [
+    {
+      "dd": "ACCTIN",
+      "direction": "input",
+      "layout": {
+        "record": "ACCT-IN-REC",
+        "fields": [
+          {
+            "name": "AI-ACCT-ID",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "AI-AMOUNT",
+            "kind": "numeric",
+            "digits": 5,
+            "scale": 2,
+            "signed": true,
+            "sign": "trailing"
+          }
+        ],
+        "format": "line"
+      }
+    },
+    {
+      "dd": "RPTOUT",
+      "direction": "output",
+      "layout": {
+        "record": "RPT-REC",
+        "fields": [
+          {
+            "name": "RPT-TAG",
+            "kind": "alnum",
+            "length": 6
+          },
+          {
+            "name": "RPT-ACCT",
+            "kind": "alnum",
+            "length": 8
+          },
+          {
+            "name": "RPT-OLD",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "trailing"
+          },
+          {
+            "name": "RPT-NEW",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "trailing"
+          },
+          {
+            "name": "RPT-CODE",
+            "kind": "numeric",
+            "digits": 9,
+            "scale": 0,
+            "signed": true,
+            "sign": "leading-separate"
+          }
+        ],
+        "format": "line"
+      }
+    }
+  ],
+  "sql": {
+    "subset": "db2-subset-1",
+    "tables": [
+      {
+        "name": "ACCOUNTS",
+        "source": "dclgen",
+        "path": "copybooks/ACCTDCL.cpy",
+        "primaryKey": [],
+        "columns": [
+          {
+            "name": "ACCT_ID",
+            "type": "CHAR",
+            "nullable": false,
+            "length": 8
+          },
+          {
+            "name": "STATUS",
+            "type": "CHAR",
+            "nullable": false,
+            "length": 1
+          },
+          {
+            "name": "BALANCE",
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 9,
+            "scale": 2
+          },
+          {
+            "name": "LIMIT_AMT",
+            "type": "DECIMAL",
+            "nullable": true,
+            "precision": 9,
+            "scale": 2
+          }
+        ]
+      },
+      {
+        "name": "AUDIT",
+        "source": "ddl",
+        "path": "schema.sql",
+        "primaryKey": [
+          "AUDIT_SEQ"
+        ],
+        "columns": [
+          {
+            "name": "AUDIT_SEQ",
+            "type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "ACCT_ID",
+            "type": "CHAR",
+            "nullable": false,
+            "length": 8
+          },
+          {
+            "name": "OLD_BAL",
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 9,
+            "scale": 2
+          },
+          {
+            "name": "NEW_BAL",
+            "type": "DECIMAL",
+            "nullable": false,
+            "precision": 9,
+            "scale": 2
+          }
+        ]
+      }
+    ],
+    "keyLinks": [
+      {
+        "dd": "ACCTIN",
+        "field": "AI-ACCT-ID",
+        "table": "ACCOUNTS",
+        "column": "ACCT_ID"
+      },
+      {
+        "dd": "ACCTIN",
+        "field": "AI-ACCT-ID",
+        "table": "AUDIT",
+        "column": "ACCT_ID"
+      }
+    ],
+    "seedRows": {
+      "AUDIT": 0
+    },
+    "columnValues": {
+      "ACCOUNTS.STATUS": [
+        "A",
+        "C",
+        "F"
+      ]
+    }
+  }
+}
