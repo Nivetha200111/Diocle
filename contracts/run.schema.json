@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.15 (verification.database: the final verification report's runs.database passed through unchanged, EXEC SQL programs only; absent otherwise) (v0.14 adds assurance, assuranceReason and cobolRepair: convert-anyway mode; a run without them is a plain certified or not-certified run, as before) (v0.13 adds behavior: verified documentation, claims about the original COBOL checked by GnuCOBOL, and its event type) (v0.12 adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.16 (sampleRun: a live sample run started by the public \"Convert a sample now\" button, see live-sample.schema.json; absent on every other run) (v0.15 verification.database: the final verification report's runs.database passed through unchanged, EXEC SQL programs only; absent otherwise) (v0.14 adds assurance, assuranceReason and cobolRepair: convert-anyway mode; a run without them is a plain certified or not-certified run, as before) (v0.13 adds behavior: verified documentation, claims about the original COBOL checked by GnuCOBOL, and its event type) (v0.12 adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -340,6 +340,17 @@
             }
           }
         }
+      }
+    },
+    "sampleRun": {
+      "type": "object",
+      "description": "v0.16. This run was started by a visitor pressing the public \"Convert a sample now\" button on one fixed bundled synthetic sample (never visitor input). It is a real certified-or-not run like any other; the dashboard labels it and leaves it out of the cost and speed statistics, so a button that anyone can press up to 20 times a day cannot move the numbers. Absent on every other run.",
+      "required": ["sample", "live"],
+      "additionalProperties": false,
+      "properties": {
+        "sample": { "type": "string", "enum": ["addfee"] },
+        "live": { "const": true },
+        "job": { "type": "string", "pattern": "^live-[0-9]{8}-[0-9]{6}-[a-z]+$", "description": "The live-sample job that started it (GET /samples/live/{id})" }
       }
     },
     "visitor": {
