@@ -1165,3 +1165,14 @@ a.nav-item {
   margin-top: 4px;
   overflow-wrap: anywhere;
 }
+
+/* Cost and speed scoreboard (components/scoreboard-panel.tsx) */
+.sb-grid .sb-n { font-size: 10px; color: #303030; font-weight: 400; }
+.sb-human { display: grid; gap: 8px; margin-top: 12px; padding: 12px; background: #ffffc0; box-shadow: var(--w-in); color: #000; }
+.sb-human h3 { font-size: 14px; }
+.sb-assume, .sb-result, .sb-not { margin: 0; font-size: 12.5px; line-height: 1.55; color: #000; }
+.sb-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+.sb-field { display: grid; gap: 4px; font-size: 12px; color: #000; }
+.sb-field input { padding: 6px 8px; border: 0; box-shadow: var(--w-field); background: #fff; color: #000; font: inherit; font-size: 14px; min-width: 0; }
+.sb-field input:focus-visible { outline: 2px solid var(--w-navy); outline-offset: 1px; }
+.sb-result { font-weight: 600; }

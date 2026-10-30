@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, MODELS, SAMPLE_RUN } from "@/lib/config";
 import { fetchRuns, isInterrupted, type RunListItem } from "@/lib/runs";
 import { Skeleton, Term } from "./ui";
+import ScoreboardPanel from "./scoreboard-panel";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
@@ -13,8 +14,9 @@ const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
 // counts are read live from the API.
 export default function EvidenceView({ openRun }: { openRun: (id: string) => void }) {
   const [runs, setRuns] = useState<RunListItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    fetchRuns().then(setRuns).catch(() => setRuns([]));
+    fetchRuns().then(setRuns).catch(() => { setRuns([]); setFailed(true); });
   }, []);
   const kept = runs ?? [];
   const certified = kept.filter((r) => r.certified).length;
@@ -57,6 +59,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           {" · "}CI re-runs both programs from a seed Diocle never used. Costs are estimates from list prices.
         </p>
       </section>
+
+      <ScoreboardPanel runs={failed ? null : runs} failed={failed} />
 
       <section className="panel">
         <div className="panel-heading">

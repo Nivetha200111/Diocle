@@ -122,6 +122,8 @@ function SampleHero({ go }: { go: Go }) {
           go("Live runs");
         }}>Open the full run</button>
         <a className="button secondary" href="/mission">Watch the agents work (replay)</a>
+        <a className="button secondary" href="/bugs">Bug of the day</a>
+        <a className="button secondary" href="/evidence">Cost and speed scoreboard</a>
         <span className="sample-note">
           Re-runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java on about
           1,000 inputs from a seed chosen now, and compares every byte. Takes a few seconds.
