@@ -162,3 +162,9 @@ def test_not_convertible_without_anyway_is_skipped_with_the_reason(tmp_path, mon
     r = editor.convert(str(REPO / "cobol" / "SQLRPT.cbl"), [], 0.1, False, tmp_path)
     jsonschema.validate(r, CONTRACT)
     assert r["assurance"] == "skipped" and "EXEC SQL" in r["assuranceReason"] and not called
+
+
+def test_model_falls_back_to_the_usage_records(tmp_path):
+    run, d = fake_run(tmp_path, model=None)
+    run["usage"]["modelCalls"] = [{"role": "translator", "model": "stub-from-usage"}]
+    assert editor.build_result("a.cbl", run, d, tmp_path, 0.25)["model"] == "stub-from-usage"

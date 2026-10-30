@@ -157,6 +157,13 @@ def _reason_from(run: dict) -> str:
     return stages[-1] if stages else ""
 
 
+def _model_of(run: dict) -> str | None:
+    """run.json `model` when set, else the first model id in the per-call usage records."""
+    if run.get("model"):
+        return run["model"]
+    return next((c["model"] for c in (run.get("usage") or {}).get("modelCalls", []) if c.get("model")), None)
+
+
 def build_result(path: str, run: dict, run_copy: Path, sample: Path, max_usd: float) -> dict:
     """Point at the copied run. Everything that matters is copied from run.json, never recomputed."""
     label = run.get("assurance") or ("certified" if run.get("certified") else "failed")
@@ -176,7 +183,7 @@ def build_result(path: str, run: dict, run_copy: Path, sample: Path, max_usd: fl
     cost = (run.get("usage") or {}).get("estimatedCostUsd")
     result = {"version": VERSION, "command": "convert", "ok": True, "file": path, "assurance": label,
               "assuranceReason": _reason_from(run)[:1000], "runDir": str(run_copy), "files": files,
-              "costUsd": cost, "maxUsd": max_usd, "model": run.get("model"), "notes": []}
+              "costUsd": cost, "maxUsd": max_usd, "model": _model_of(run), "notes": []}
     if repair.get("changedLines") is not None:
         result["repairedLines"] = int(repair["changedLines"])
     return result
