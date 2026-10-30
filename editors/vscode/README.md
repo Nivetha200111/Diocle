@@ -44,7 +44,7 @@ The key is **not** an editor setting and the extension never reads it. The conve
 
 ## Privacy
 
-The extension itself makes no network calls and has no telemetry. A conversion sends your COBOL and copybooks to the Meta Model API with your own key (through the converter). Nothing goes to Diocle servers. Results are written under `.diocle/runs/` in the workspace; add `.diocle/` to `.gitignore`. A conversion spends your own money, capped by `diocle.maxUsd`; cancelling stops the process but calls already made are billed.
+The extension itself makes no network calls and has no telemetry. A conversion sends your COBOL and the copybooks it COPYs to the Meta model endpoint set in your `.env` (the Meta Model API, or Muse Spark Open on a partner host in private mode) with your own key (through the converter). Nothing goes to Diocle servers. Results are written under `.diocle/runs/` in the workspace; add `.diocle/` to `.gitignore`. A conversion spends your own money, capped by `diocle.maxUsd`; cancelling stops the process but calls already made are billed.
 
 ## Safety
 
@@ -57,3 +57,8 @@ The workspace must be trusted (`untrustedWorkspaces: false`): verification compi
 ## Publishing (owner only)
 
 Not published. Needs a publisher account: create a publisher at the Visual Studio Marketplace, a personal access token with Marketplace manage scope, set `"publisher"` in `package.json`, then `npx vsce publish`. For Open VSX (VSCodium, Cursor): `npx ovsx publish diocle-*.vsix -p <token>`.
+
+## Not exercised yet (read before relying on it)
+Verified in a real VS Code window: check, and convert to a CERTIFIED result. Not exercised in a window: the repaired, unverified and failed
+result pages, cancelling a live run, the cost-confirmation dialog, Windows, Cursor/VSCodium/Windsurf, installing the `.vsix` into a clean editor.
+The converter must run from a Diocle checkout for now.

@@ -98,18 +98,43 @@ def check(path: str, copybooks: list[str]) -> dict:
 
 # ---- convert -------------------------------------------------------------------------------------------------------
 
+_COPY = re.compile(r"\bCOPY\s+([A-Za-z0-9][A-Za-z0-9_-]*)", re.IGNORECASE)
+
+
+def _copied_names(text: str) -> set[str]:
+    return {m.upper() for m in _COPY.findall(text)}
+
+
 def stage_repo(source: Path, copybooks: list[str], dest: Path) -> int:
-    """repo-shaped copy: cobol/<file> plus every copybook-looking file of the search folders in copybooks/. Returns the count."""
+    """repo-shaped copy: cobol/<file> plus ONLY the copybooks the program (or a copybook it copies) names in a COPY statement,
+    found in the search folders, into copybooks/. Dotfiles, symlinks and symlinked search folders are never copied, so a search
+    folder such as the workspace root cannot pull .env, keys or Makefiles into the staging copy. Returns the count."""
     (dest / "cobol").mkdir(parents=True)
     (dest / "copybooks").mkdir()
     shutil.copy(source, dest / "cobol" / source.name)
-    n = 0
+    wanted = _copied_names(source.read_text(errors="replace"))
+    candidates: dict[str, Path] = {}  # upper-case member name (with or without extension) -> first file found
     for d in _search_dirs(source, copybooks):
+        if d.is_symlink():
+            continue
         suffixes = {".cpy", ".copy", ".inc"} if d == source.parent else COPYBOOK_SUFFIXES  # beside the program: copybooks only
         for f in sorted(d.iterdir()):
-            if (f.is_file() and not f.is_symlink() and f.suffix.lower() in suffixes and f.resolve() != source
-                    and f.stat().st_size <= 1_000_000 and not (dest / "copybooks" / f.name).exists() and n < MAX_COPYBOOK_FILES):
-                shutil.copy(f, dest / "copybooks" / f.name)
+            if (f.is_file() and not f.is_symlink() and not f.name.startswith(".") and f.suffix.lower() in suffixes
+                    and f.resolve() != source and f.stat().st_size <= 1_000_000):
+                candidates.setdefault(f.name.upper(), f)
+                candidates.setdefault(f.stem.upper(), f)
+    n, done = 0, set()
+    while n < MAX_COPYBOOK_FILES:  # a copybook may COPY another: follow until nothing new is named
+        todo = [w for w in wanted if w not in done and w in candidates]
+        if not todo:
+            break
+        for w in todo:
+            done.add(w)
+            f = candidates[w]
+            target = dest / "copybooks" / f.name
+            if not target.exists() and n < MAX_COPYBOOK_FILES:
+                shutil.copy(f, target)
+                wanted |= _copied_names(f.read_text(errors="replace"))
                 n += 1
     return n
 

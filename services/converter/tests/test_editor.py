@@ -168,3 +168,20 @@ def test_model_falls_back_to_the_usage_records(tmp_path):
     run, d = fake_run(tmp_path, model=None)
     run["usage"]["modelCalls"] = [{"role": "translator", "model": "stub-from-usage"}]
     assert editor.build_result("a.cbl", run, d, tmp_path, 0.25)["model"] == "stub-from-usage"
+
+
+def test_staging_copies_only_copied_members_never_dotfiles(tmp_path):
+    """A search folder such as the workspace root must not pull .env, keys or Makefiles into the staging copy."""
+    src = tmp_path / "prog.cbl"
+    src.write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. P.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY REC1.\n")
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    (lib / "REC1").write_text("       01  A  PIC X.\n       COPY REC2.\n")   # extensionless member, copies another
+    (lib / "REC2.cpy").write_text("       01  B  PIC X.\n")
+    (lib / "UNUSED.cpy").write_text("       01  C  PIC X.\n")
+    (lib / ".env").write_text("SECRET=1\n")
+    (lib / "id_rsa").write_text("-----BEGIN-----\n")
+    dest = tmp_path / "stage"
+    n = editor.stage_repo(src, [str(lib)], dest)
+    names = sorted(p.name for p in (dest / "copybooks").iterdir())
+    assert names == ["REC1", "REC2.cpy"] and n == 2

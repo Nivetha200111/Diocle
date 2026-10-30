@@ -166,6 +166,8 @@ async function showResult(context: vscode.ExtensionContext, r: core.EditorResult
     if (typeof key !== "string" || !(core.OPEN_KEYS as readonly string[]).includes(key)) return;
     const p = openables(r)[key];
     if (!p) return;
+    // the paths come from the converter's JSON: open only what lies inside the run folder (the repaired-COBOL diff's original is the user's own file)
+    if (r.runDir && !path.resolve(p).startsWith(path.resolve(r.runDir) + path.sep) && path.resolve(p) !== path.resolve(r.runDir)) return;
     if (key === "folder") return void vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(p));
     if (key === "diff") {
       const original = r.file ? vscode.Uri.file(r.file) : undefined;

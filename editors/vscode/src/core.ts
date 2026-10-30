@@ -103,7 +103,7 @@ export function badgeFor(r: Pick<EditorResult, "assurance" | "assuranceReason" |
     case "skipped":
       return { label: "SKIPPED", tone: "neutral", text: `Nothing was converted.${reason}` };
     default:
-      return { label: "FAILED", tone: "bad", text: `No Java was proven to match.${reason}` };
+      return { label: "FAILED", tone: "bad", text: `No Java was shown to match.${reason}` };
   }
 }
 
@@ -145,13 +145,13 @@ ${diff}
 <p>${buttons}</p>
 <dl><dt>Cost</dt><dd>${escapeHtml(cost)} (cap $${escapeHtml((r.maxUsd ?? 0).toFixed(2))}), your own Meta key</dd>
 <dt>Model</dt><dd>${escapeHtml(r.model ?? "unknown")}</dd><dt>File</dt><dd>${escapeHtml(r.file ?? "")}</dd></dl>
-<p><small>The code was sent to the Meta Model API with your key. Nothing went to Diocle servers.</small></p>
+<p><small>The code was sent to the Meta model endpoint configured in your .env, with your key. Nothing went to Diocle servers.</small></p>
 <script nonce="${nonce}">const vscode=acquireVsCodeApi();document.querySelectorAll("button[data-open]").forEach(b=>b.addEventListener("click",()=>vscode.postMessage({open:b.dataset.open})));</script>
 </body></html>`;
 }
 
 export function costConfirmText(maxUsd: number, convertAnyway: boolean): string {
-  return `Convert and verify this file? It can spend up to $${maxUsd.toFixed(2)} of your own Meta key. The code is sent to the Meta model API; nothing goes to Diocle servers.` +
+  return `Convert and verify this file? It can spend up to $${maxUsd.toFixed(2)} of your own Meta key. The code is sent to the Meta model endpoint set in your .env; nothing goes to Diocle servers.` +
     (convertAnyway ? " Convert-anyway is on: a file that does not compile may be repaired by the model; that result is labelled and is never plain certified." : "");
 }
 
