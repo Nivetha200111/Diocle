@@ -6,4 +6,4 @@ Change contracts first, then implementations.
 
 compile-check v0.1 (answer of the sandbox's compile-only job, run before any model call).
 
-Recent additive changes: analysis-report v0.5 (file direction `io`, program `displayOnly` and `resolvedCalls`), verification-report v0.8 (stdout result, `runs.stdoutCompared`, `runs.files.updated`), sql-schema direction `io`.
+Recent additive changes: run v0.13 and delivery v0.4 (convert-anyway: `assurance` certified | certified-against-repaired-cobol | compiled-unverified | failed, `assuranceReason`, `cobolRepair`), analysis-report v0.5 (file direction `io`, program `displayOnly` and `resolvedCalls`), verification-report v0.8 (stdout result, `runs.stdoutCompared`, `runs.files.updated`), sql-schema direction `io`.
