@@ -7,12 +7,20 @@ fixture -- same compile-and-run-in-test pattern test_schema.py already establish
 """
 
 import shutil
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
 
 from diocle_converter.sortgen import generate_sort_class
+
+
+def _tool_env(**extra):
+    """A small environment for running the compiled programs, but with the toolchain's own PATH, library path and JAVA_HOME
+    (a bare PATH=/usr/bin picks the runner's old system Java and cannot find libcob outside the system library path)."""
+    keep = {k: os.environ[k] for k in ("PATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "JAVA_HOME") if k in os.environ}
+    return {**keep, **extra}
 
 SAMPLES = Path(__file__).resolve().parents[3] / "samples"
 ACCOUNT_MATCH_JCL = SAMPLES / "account-match" / "jcl"
@@ -88,7 +96,7 @@ def test_sort_class_compiles_and_sorts_the_real_fixture_into_ebcdic_order(tmp_pa
     run_proc = subprocess.run(
         ["java", "-cp", str(classes), "Sort005Test", "SORTIN", "SORTOUT"],
         env={"DD_SORTIN": str(ACCOUNT_MATCH_JCL / "SORTIN.txt"), "DD_SORTOUT": str(sorted_output_path),
-             "PATH": "/usr/bin:/bin"},
+             **_tool_env()},
         capture_output=True, text=True,
     )
     assert run_proc.returncode == 0, run_proc.stderr
@@ -117,7 +125,7 @@ def test_sort_class_uses_ascii_order_when_collation_is_ascii(tmp_path):
     sorted_output_path = tmp_path / "SORTOUT.txt"
     subprocess.run(["java", "-cp", str(classes), "Sort005Ascii", "SORTIN", "SORTOUT"],
                    env={"DD_SORTIN": str(ACCOUNT_MATCH_JCL / "SORTIN.txt"), "DD_SORTOUT": str(sorted_output_path),
-                        "PATH": "/usr/bin:/bin"},
+                        **_tool_env()},
                    check=True, capture_output=True, text=True)
     sorted_output = sorted_output_path.read_text().splitlines()
     assert sorted_output == ["10000001+000000100D", "A0000001+000000500C", "A0000002+000001000C"]
@@ -136,7 +144,7 @@ def test_sort_class_rejects_a_record_of_the_wrong_length(tmp_path):
     bad_input.write_text("TOO-SHORT\n")
     run_proc = subprocess.run(["java", "-cp", str(classes), "Sort005Bad", "SORTIN", "SORTOUT"],
                               env={"DD_SORTIN": str(bad_input), "DD_SORTOUT": str(tmp_path / "out.txt"),
-                                   "PATH": "/usr/bin:/bin"},
+                                   **_tool_env()},
                               capture_output=True, text=True)
     assert run_proc.returncode != 0
     assert "LRECL mismatch" in run_proc.stderr
