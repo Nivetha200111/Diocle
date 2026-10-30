@@ -153,6 +153,37 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **Not done / not claimed:** Glimmer and Voice (no such models on the key), DB2/EXEC SQL, whether higher tiers repair better
   (measured once: the cheap tier was enough), a real model conversion of DISPLAY-only/I-O programs.
 
+## Pending work snapshot (Oct 30 afternoon, IST): read this first
+
+**Live now** (engine `93f72b6` after the Oct 30 deploys; site on Vercel): CHQCLR and the DB2 sample re-verify on fresh seeds in the browser; mission control replay (`/mission`, no key needed); Wonder-breaker run; verified documentation (INTACCR 9 of 9 claims); Database comparison panel; course-repo import with the CC BY 4.0 credit; `/bugs`; the cost scoreboard on `/evidence`; the guard's model review (Muse Spark Open on Fireworks, keys set with `deploy/set-guard-keys.sh`, prompt fixed after one real false block). **Pushed but not "a product feature on the site":** convert-anyway with COBOL self-repair (local CLI or admin), VS Code extension (`editors/vscode`), Notepad++ script (`editors/notepadpp`), `scripts/quickstart.sh`, DB2 verifier (live on the engine), architecture doc + drawio.
+
+**In progress (agents, nothing pushed from them yet)**
+- **Draft 8 video** (local branch `video-draft-6`, pipeline in `demo/draft8`/`d8` when it lands; files are git-ignored): text zoomed to 125-150%, 1-2 s pauses at the big switches (about 1:41 GitHub import, 2:21 VS Code, architecture to site), smoother cursor. Draft 7 is `~/Downloads/diocle-draft-7.mp4` (2:54, real screen recordings, clicks, bottom captions, logo). Remaining credit estimate: ~2,500 ElevenLabs characters (the key cannot read usage); the per-draft counts are in `demo/draft*/out/billed*.json`.
+- **Two live "try it" buttons** (branch `live-sample-buttons`): "Convert a sample now" (ADDFEE, real Muse Spark call, live progress) and "Read a printout" (Muse Wonder on the bundled printout, transcribed COBOL run only inside the sandbox). Owner delegated the caps; chosen: A = $0.02 per run, 3 per visitor per day, 20 per day; B = $0.10 per run, 1 per visitor per day, 5 per day; both share one pool of at most $1.00 of the $2/day public budget (`DIOCLE_PUBLIC_SAMPLES_BUDGET`), one job at a time, kill switch `DIOCLE_PUBLIC_SAMPLES=0`, no visitor input (fixed enum of sample names). Needs: reviewer pass with a security check, engine redeploy, Vercel build.
+
+**Waiting on the owner**
+- Go on a **$1.00 cap** for the headline measurement below.
+- The **VS Code F5 test** (checklist in `editors/vscode/README.md`; the repaired, unverified, failed, cancel and cost-dialog paths have never been clicked in a window). Publishing to the Marketplace needs a publisher account and removing `"private": true` from `editors/vscode/package.json`.
+- **Video notes** with timestamps; decide whether the video pipeline (scripts, compositions, `SCRIPT-*.md`) is pushed to the repo (currently local only).
+- The hackathon **form and video upload**, and the X clip after submitting. Account creation, payments and repo visibility are the owner's.
+- Cleanup of temporary worktrees and branches (see the end of this section).
+
+**To build next (priority order)**
+1. **Headline before-and-after number** (the biggest gap versus rival entries): a fixed program set, fix memory off; "Muse Spark alone" = the first translation checked on the same 1,000 held-out inputs plus the breaker's attacks, versus the full Diocle loop certified; report n and which programs were seen during development; model spend cap $1.00 (owner OK pending). Put the number first in the README, on the site and in the video.
+2. **Mission control default run -> the CHQCLR run** (`chqclr-20261028-214355`: 204/204 pass, the breaker breaks 2 of 10, 7 repair steps, re-certified 1,006/1,006). One-line change in `apps/web/components/mission-control.tsx` (`DEFAULT_RUN`); do it after the live-buttons branch is merged (same file).
+3. **Say why an import had no convertible programs:** the delivery record only says "no convertible programs". Store and show the reason breakdown (needs an engine redeploy).
+4. **A real public program, honestly:** CardDemo (`aws-samples/aws-mainframe-modernization-carddemo`) analysed locally: 0 of 44 programs convertible (missing IBM copybooks DFHAID/DFHBMSCA, calls to CEE3ABD/CEEDAYS, dynamic CALLs, CICS/DLI/SQL), so it is not a certification example. Screen other public batch-COBOL repos with the analyzer (free), import only the best one (cents).
+5. **Final video re-cut** once the headline number and the buttons exist; keep under 3:00; then freeze.
+
+**Decisions already made**
+- **Glimmer (local open-weights model) was tried and dropped** at the owner's request: the model was removed from Ollama, the four commits stay unpushed on a local branch `glimmer-local` (delete it freely). Wonder is the vision model. There is no model fallback: if the hosted API is down a conversion fails with a stated error.
+- Muse Glimmer facts, for the record: open-weights 30B, image input and text output only; the image generator is Muse Image (`muse-image-1.0`, on the key); Glimmer is not on the key's model list.
+- Guard model review is **on**; it can only revoke certification. If it blocks correct programs, remove `GUARD_MODEL_API_KEY` from `deploy/diocle.env` and restart the API.
+
+**Limits to state honestly in the submission**: DB2 verification is a SQLite stand-in for a named statement subset ("equivalent on this engine, for these statements, on the inputs tried"), never run on real DB2; CICS and IMS are unsupported; quickstart key mode took about 2.5 minutes (one measurement); the scoreboard's human-review comparison is an editable assumption, not a measurement; certified means "on the inputs tried", not proven; Wonder's price is third-party and unconfirmed.
+
+**How to resume**: deploy only from a clean worktree of `origin/main` with `deploy/update-engine.sh` (check no delivery is running first); seed runs with the tar-over-ssh pattern in `deploy/seed-runs.sh` for a single run folder; before every push check `git log origin/main..HEAD` and push only your own commits; every feature gets one reviewer pass before pushing; freeze deploys after the Nov 4 submission (Nov 4, 7:30 PM IST is the owner's cutoff, the official deadline is Nov 5, 7:30 AM IST). Leftover scratch worktrees/branches to remove: `tiers`, `precheck`, `readme-models`, `precheck-merge`, `vision-merge`, `item1-merge`, `merge-final`, `mission-control`, `verified-docs`, `convert-anyway`, `vscode-extension`, `db2-verifier`, `panel-notepad`, `quickstart-bugs-scoreboard`, `editor-safe-path`, `guard-keys-script`, `guard-prompt`, `logo-assets`, `docs-architecture`, `glimmer-local`, plus `/tmp/diocle-demo` and `/tmp/dvsc7` (video recording leftovers).
+
 ## Current state (updated 2026-10-29)
 
 - **Printout intake built and run once (Oct 30, Mac, branch `worktree-agent-a13889e328de92c45`, local, NOT pushed or deployed; contract
