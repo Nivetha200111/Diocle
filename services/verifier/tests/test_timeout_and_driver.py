@@ -70,3 +70,65 @@ def test_reverify_records_a_timeout_as_not_ok(monkeypatch, tmp_path):
     (prog / "certificate.json").write_text('{"program": "P1", "legacy": {"repository": "r", "commit": "c"}}')
     [r] = reverify.reverify(tmp_path / "progs", 1, 1)
     assert r["ok"] is False and r["total"] == 0 and "did not terminate within 7 seconds" in r["buildError"]
+
+
+def _http_error(code, body):
+    import io
+    import urllib.error
+    return urllib.error.HTTPError("http://sandbox/verify", code, "x", {}, io.BytesIO(body.encode()))
+
+
+def test_hosted_mode_passes_the_sandbox_sentence_through_verbatim(monkeypatch, tmp_path):
+    """Fake sandbox response: a plain 400 body becomes an exception carrying plain_message (no 'sandbox:' wrapper)."""
+    import json as _json
+    import urllib.request
+
+    from diocle_verifier import sandbox
+    sentence = "the original program did not terminate within 120 seconds, so there is nothing to compare against"
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://sandbox")
+    monkeypatch.setattr(sandbox, "pack", lambda *a, **k: b"x")
+
+    def fake(req, timeout=None):
+        raise _http_error(400, _json.dumps({"error": sentence, "plain": True}))
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    with pytest.raises(VerifierUnavailable) as e:
+        sandbox.remote_verify(tmp_path, None, 1, 1, None)
+    assert str(e.value) == sentence and e.value.plain_message
+
+
+def test_hosted_mode_still_wraps_unexpected_errors(monkeypatch, tmp_path):
+    import urllib.request
+
+    from diocle_verifier import sandbox
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://sandbox")
+    monkeypatch.setattr(sandbox, "pack", lambda *a, **k: b"x")
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(_http_error(400, '{"error": "boom"}')))
+    with pytest.raises(RuntimeError, match="sandbox:") as e:
+        sandbox.remote_verify(tmp_path, None, 1, 1, None)
+    assert not getattr(e.value, "plain_message", False)
+
+
+@pytest.mark.toolchain
+@pytest.mark.skipif(shutil.which("cobc") is None, reason="needs GnuCOBOL")
+def test_child_process_timeout_reaches_the_parent_as_a_plain_sentence(monkeypatch, tmp_path):
+    """The real sandbox child path: run_job's child prints the marked sentence, run_job raises it verbatim."""
+    from diocle_verifier import sandbox
+
+    class P:  # a child that failed with the marked sentence
+        returncode = 1
+        stdin = type("S", (), {"write": lambda s, b: None, "close": lambda s: None})()
+        stdout = type("S", (), {"read": lambda s, n: b""})()
+        stderr = type("S", (), {"read": lambda s, n: (sandbox.PLAIN_PREFIX + "the original program did not terminate within 5 seconds, so there is nothing to compare against").encode()})()
+
+        def wait(self):
+            pass
+
+        def kill(self):
+            pass
+
+    monkeypatch.setattr(sandbox.subprocess, "Popen", lambda *a, **k: P())
+    monkeypatch.setattr(sandbox, "_job_user", lambda: {})
+    monkeypatch.setattr(sandbox, "_job_env", lambda: {})
+    with pytest.raises(VerifierUnavailable, match="did not terminate within 5 seconds"):
+        sandbox.run_job({"bundle": "", "seed": 1, "randomCount": 1, "java": False, "extraCases": []}, "verify")
