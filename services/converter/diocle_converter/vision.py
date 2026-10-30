@@ -190,6 +190,17 @@ def _caps() -> tuple[float, int]:
     return num("VISION_MAX_USD", "0.20", float), max(500, num("VISION_MAX_OUTPUT_TOKENS", "5000", int))
 
 
+def input_estimate() -> int:
+    """Input tokens assumed for the pre-flight worst case of a call (VISION_INPUT_TOKENS_ESTIMATE, default 12000, at least 1000).
+    The cap itself is unchanged: a bundled image of known size (the public printout button) can state a tighter bound, so a
+    $0.10 cap does not refuse a call that costs $0.07; the hard output cap (max_tokens) still bounds the bill."""
+    import os
+    try:
+        return max(1000, int(os.environ.get("VISION_INPUT_TOKENS_ESTIMATE", "") or "12000"))
+    except ValueError:
+        return 12000
+
+
 def _refused(image_info: dict, reason: str, settings: Settings | None, caps: dict) -> dict:
     return {"version": VERSION, "status": "refused", "reason": reason, "image": image_info,
             "model": settings.model if settings else None, "program": None, "source": None, "attempts": [],
@@ -284,7 +295,7 @@ def _transcribe(image_path, out_dir, settings, client, against, against_label, c
         spent = usage_of(client.calls)["estimatedCostUsd"] or 0.0
         # worst case for the next call: a generous flat input estimate (a 1000x1100 page is about 1.5k image tokens; the
         # bytes of the file say nothing about tokens) plus the whole output-token cap
-        worst = 12000 * price[0] / 1e6 + tok_cap * price[2] / 1e6
+        worst = input_estimate() * price[0] / 1e6 + tok_cap * price[2] / 1e6
         if n > settings.max_calls_per_run:
             reason = f"call cap reached ({settings.max_calls_per_run})"
             break

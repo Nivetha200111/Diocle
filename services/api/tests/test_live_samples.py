@@ -297,7 +297,7 @@ PRINTOUT_DOUBLE = textwrap.dedent('''
     import json, os, sys
     from pathlib import Path
     argv = sys.argv[1:]
-    Path(os.environ["DOUBLE_ARGV"]).write_text(json.dumps({"argv": argv, "vision_max_usd": os.environ.get("VISION_MAX_USD")}))
+    Path(os.environ["DOUBLE_ARGV"]).write_text(json.dumps({"argv": argv, "vision_max_usd": os.environ.get("VISION_MAX_USD"), "out_tokens": os.environ.get("VISION_MAX_OUTPUT_TOKENS"), "in_est": os.environ.get("VISION_INPUT_TOKENS_ESTIMATE")}))
     out = Path(argv[argv.index("--out") + 1])
     if os.environ["DOUBLE_MODE"] == "nothing":
         sys.exit(6)
@@ -374,7 +374,7 @@ def test_printout_flow_with_a_test_double(client, double, tmp_path, mode):
     job_id = new_job(tmp_path, "loyalty-waiver-printout")
     assert samplejob.main([job_id, "printout"]) == 0
     seen = json.loads((tmp_path / "argv.json").read_text())
-    assert seen["argv"][0] == "transcribe" and "--sandbox" in seen["argv"] and seen["vision_max_usd"] == "0.100000"
+    assert seen["argv"][0] == "transcribe" and "--sandbox" in seen["argv"] and seen["vision_max_usd"] == "0.100000" and seen["out_tokens"] == "4000" and seen["in_est"] == "4000"
     assert seen["argv"][1] == str(samplejob.PRINTOUT_IMAGE) and seen["argv"][seen["argv"].index("--against") + 1] == str(samplejob.PRINTOUT_ORIGINAL)
     job = client.get(f"/samples/live/{job_id}").json()
     check(job, "job")

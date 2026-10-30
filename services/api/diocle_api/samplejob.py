@@ -151,7 +151,10 @@ def run_printout(job: Job) -> None:
     cap = SAMPLES["loyalty-waiver-printout"]["maxUsd"]
     out = job.path.parent / "out"
     cmd = converter_cmd(["transcribe", str(PRINTOUT_IMAGE), "--out", str(out), "--against", str(PRINTOUT_ORIGINAL), "--sandbox"])
-    env = {**os.environ, "PYTHONUNBUFFERED": "1", "VISION_MAX_USD": f"{cap:.6f}"}
+    # The bundled image is about 1.5k input tokens (measured). The pre-flight worst case is 4000 input + 4000 output tokens
+    # at Muse Wonder's list prices = $0.096 <= the $0.10 cap; max_tokens stays a hard bound on what a call can bill.
+    env = {**os.environ, "PYTHONUNBUFFERED": "1", "VISION_MAX_USD": f"{cap:.6f}", "VISION_MAX_OUTPUT_TOKENS": "4000",
+           "VISION_INPUT_TOKENS_ESTIMATE": "4000"}
     job.event(f"Sending the bundled printout image to the vision model (hard cap ${cap:.2f})", "reading")
     proc = subprocess.Popen(cmd, cwd=SERVICES / "converter", text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             env=env, errors="replace")

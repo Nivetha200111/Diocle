@@ -235,3 +235,29 @@ def test_flow_through_the_sandbox_gates(tmp_path, monkeypatch):
     assert record["status"] == "verified-identical" and record["differential"]["ranIn"] == "sandbox"
     assert record["differential"]["matched"] == record["differential"]["inputs"] >= 1000
     valid(record)
+
+
+def test_input_estimate_is_tunable_and_defaults_to_the_generous_bound(monkeypatch):
+    from diocle_converter.vision import input_estimate
+    monkeypatch.delenv("VISION_INPUT_TOKENS_ESTIMATE", raising=False)
+    assert input_estimate() == 12000
+    monkeypatch.setenv("VISION_INPUT_TOKENS_ESTIMATE", "4000")
+    assert input_estimate() == 4000
+    for bad in ("oops", "5", "-3"):
+        monkeypatch.setenv("VISION_INPUT_TOKENS_ESTIMATE", bad)
+        assert input_estimate() in (12000, 1000)
+
+
+def test_a_tighter_input_estimate_lets_a_call_under_the_cap_through(tmp_path, monkeypatch):
+    """With the default 12000-token bound a $0.10 cap refuses the first Muse Wonder call (worst case $0.148); the public
+    printout button states 4000 + a 4000-token output cap (worst case $0.096), so the call is made."""
+    img, settings, client, _ = setup(tmp_path, [COBOL])
+    settings = Settings(**{**settings.__dict__, "model": "muse-wonder-1.0"})
+    monkeypatch.delenv("VISION_INPUT_TOKENS_ESTIMATE", raising=False)
+    refused = transcribe(img, tmp_path / "o1", settings=settings, client=ModelClient(settings, _sdk=ScriptedSDK([COBOL])), check=OK,
+                         max_usd=0.10, max_output_tokens=5000, log=lambda m: None)
+    assert refused["usage"]["calls"] == 0 and "cost cap would be exceeded" in refused["reason"]
+    monkeypatch.setenv("VISION_INPUT_TOKENS_ESTIMATE", "4000")
+    ok = transcribe(img, tmp_path / "o2", settings=settings, client=ModelClient(settings, _sdk=ScriptedSDK([COBOL])), check=OK,
+                    max_usd=0.10, max_output_tokens=4000, log=lambda m: None)
+    assert ok["usage"]["calls"] == 1 and ok["status"] == "compiled-unchecked"
