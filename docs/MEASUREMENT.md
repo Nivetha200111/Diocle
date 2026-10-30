@@ -3,6 +3,14 @@
 > **Status: COMPLETE. The plan below was written and committed before any model call; results and deviations are appended at the end ("Results", "Deviations").**
 > All programs are **synthetic**. Nothing here is a benchmark of general COBOL.
 
+## Summary (read this first; details and caveats below)
+
+- **Lead finding: 4 of 10 attackable translations that passed 1,000 held-out inputs were still wrong when attacked** (n = 10 programs, one fresh translation each; the breaker agent's designed inputs, each checked against GnuCOBOL). Programs: CHQCLR, DAYCTRL, INTACCR, TXNPOST.
+- **Context, with its denominators.** First translations passed 1,000 held-out inputs in **37 of 45 attempts** (82%; this counts attempts: 3 per program x 15 programs). **All 15 programs passed at least once in three tries** (this counts programs). Full Diocle runs certified **14 of 15 programs** (this counts programs, one run each). 37/45 counts attempts and 14/15 counts programs, so they are not an apples-to-apples "model alone vs Diocle" comparison; by program, at least one first try passed for every program. The attack arm is a separate sample of fresh translations: do not merge it with the others.
+- **CHQCLR was not certified in the controlled run** (breaker broke 12 of 24; one repair cycle did not fix it within the caps).
+- **CHQCLR, certified or not?** Both statements are true and come from different runs with different settings. The live site shows CHQCLR as certified from its Oct 28 frozen-evaluation run (fix memory on, 8 earlier lessons used): the breaker broke 2 of 24 designed inputs, the repair agent fixed them, and it re-certified on 1,006 fresh inputs (run `chqclr-20261028-214355`). In the Oct 30 controlled measurement (fix memory off, policy-only guard, default caps; run `chqclr-20261030-163002`) the breaker broke 12 of 24 and one repair cycle did not fix it within the caps, so that run is not certified. In the memory-off re-run of the frozen evaluation (`eval-freeze-2`, run `chqclr-20261028-234854`) CHQCLR was certified after the breaker broke 6 inputs and the repair agent fixed them. We did not isolate which setting mattered; three runs of one program do not make a rate.
+- Spend: about $0.62 in the two arms' records plus about $0.07 for excluded infrastructure-failure units (ACCTRPT, see Deviations), about $0.69 in total, raw model spend at list prices.
+
 ## Question
 How many programs does the model get right on its **first translation**, compared with how many Diocle **certifies**
 (repair loop + held-out verification + breaker), on the same fixed program set, with fix memory off?

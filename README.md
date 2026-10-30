@@ -17,14 +17,18 @@ Demo video: link goes here (filled Nov 1)
 
 ## Measured finding (15 synthetic programs, one model, [docs/MEASUREMENT.md](docs/MEASUREMENT.md))
 
-- Muse Spark's **first translation passed 1,000 held-out inputs in 37 of 45 attempts** (82%; 3 attempts x 15 programs).
-- When the breaker agent attacked translations that had passed, **4 of 10 attackable ones were still wrong** (CHQCLR, DAYCTRL, INTACCR, TXNPOST): passing the test is not the same as being right.
-- **Full Diocle runs certified 14 of 15 programs**; CHQCLR was not certified.
+- **4 of 10 attackable translations that passed 1,000 held-out inputs were still wrong when attacked** (CHQCLR, DAYCTRL, INTACCR, TXNPOST; n = 10 programs, one fresh translation each, the breaker agent's inputs checked against GnuCOBOL): passing the test is not the same as being right.
+- Context, with its denominators: Muse Spark's first translation passed 1,000 held-out inputs in **37 of 45 attempts** (82%; counts attempts, 3 per program x 15 programs), and **all 15 programs passed at least once in three tries** (counts programs). Full Diocle runs certified **14 of 15 programs** (counts programs, one run each). 37/45 and 14/15 count different things, so read them as context, not as "model alone vs Diocle".
+- **CHQCLR was not certified in the controlled run** (fix memory off, policy-only guard, default caps). It is shown as certified on the live site because of an earlier run with fix memory on; see [the CHQCLR note](#chqclr-certified-or-not).
 - **About $0.69 of raw model spend** for the whole 15-program measurement at list prices. That figure excludes compute, hosting and human review. No cost comparison with human engineering is made, because nobody timed an engineer on these programs.
 
 Small sample, one model, synthetic programs; the method, per-program table, caveats and deviations are in the measurement document.
 
 Diocle is a verification layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark converts COBOL to Java and repairs it. Nothing is accepted on the model's word: the original program runs next to the Java on the same inputs, and every output field, byte, exit code and display line must match, including on 1,000 held-out inputs the agent never saw. The result ships as a pull request with an equivalence report, and the target repository's CI repeats the test on fresh inputs.
+
+### CHQCLR: certified or not?
+
+**CHQCLR, certified or not?** Both statements are true and come from different runs with different settings. The live site shows CHQCLR as certified from its Oct 28 frozen-evaluation run (fix memory on, 8 earlier lessons used): the breaker broke 2 of 24 designed inputs, the repair agent fixed them, and it re-certified on 1,006 fresh inputs (run `chqclr-20261028-214355`). In the Oct 30 controlled measurement (fix memory off, policy-only guard, default caps; run `chqclr-20261030-163002`) the breaker broke 12 of 24 and one repair cycle did not fix it within the caps, so that run is not certified. In the memory-off re-run of the frozen evaluation (`eval-freeze-2`, run `chqclr-20261028-234854`) CHQCLR was certified after the breaker broke 6 inputs and the repair agent fixed them. We did not isolate which setting mattered; three runs of one program do not make a rate.
 
 ## Why it matters
 

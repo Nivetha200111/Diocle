@@ -49,6 +49,8 @@ INTACCR 1019/1019, PKDPOST 1037/1037, TXNPOST 1024/1024, stdout matching for eac
 fan-out); re-run with the corrected verifier and fix memory off: **4 of 4 certified, about $0.11**, each passing
 five fresh seeds. CHQCLR is where the breaker agent broke code that had passed 1,000 held-out inputs.
 
+**CHQCLR, certified or not?** Both statements are true and come from different runs with different settings. The live site shows CHQCLR as certified from its Oct 28 frozen-evaluation run (fix memory on, 8 earlier lessons used): the breaker broke 2 of 24 designed inputs, the repair agent fixed them, and it re-certified on 1,006 fresh inputs (run `chqclr-20261028-214355`). In the Oct 30 controlled measurement (fix memory off, policy-only guard, default caps; run `chqclr-20261030-163002`) the breaker broke 12 of 24 and one repair cycle did not fix it within the caps, so that run is not certified. In the memory-off re-run of the frozen evaluation (`eval-freeze-2`, run `chqclr-20261028-234854`) CHQCLR was certified after the breaker broke 6 inputs and the repair agent fixed them. We did not isolate which setting mattered; three runs of one program do not make a rate.
+
 ## Visitor import through the sandbox
 A public import of quillmark-mainframe through the live site (no passcode) certified ACCTMTCH 1585/1585 with every
 build and program run in the isolated sandbox. Security reviews and the live attack test: docs/HANDOFF.md.

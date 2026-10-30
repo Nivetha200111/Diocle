@@ -14,7 +14,7 @@ No delivery, no repository creation, no admin endpoint and no upload was used.
 | 1 | API is up | `GET /api/health` | 22:25 | pass | `{"status":"ok"}` |
 | 2 | Public budget and live-button limits | `GET /api/config` | 22:25 | pass | $2.00 daily budget, samples pool $1.00, asks enabled, 2 bundled clips, uploads not allowed |
 | 3 | Runs list with real runs | `GET /api/runs` | 22:25 | pass | 35 runs when the check started; my convert press adds a labelled live sample run |
-| 4 | Stored run with breaker trace (CHQCLR) | `GET /api/runs/chqclr-20261028-214355` | 22:26 | pass | 2 of 24 designed inputs broke it, repaired, certified |
+| 4 | Stored run with breaker trace (CHQCLR) | `GET /api/runs/chqclr-20261028-214355` | 22:26 | pass | 2 of 24 designed inputs broke it, repaired, certified. This is the Oct 28 run with fix memory on; the Oct 30 controlled measurement run of the same program (memory off) was not certified: see the CHQCLR note in [EVIDENCE.md](EVIDENCE.md) |
 | 5 | COBOL and Java source of a run | `GET /api/runs/{id}/source` for CHQCLR, INTACCR, ACCTRPT, ADDFEE | 22:26 | pass | 200 for all four |
 | 6 | Copybooks as SQL schema | `GET /api/runs/{id}/schema` for the same four | 22:26 | pass | DDL returned, "no model involved" |
 | 7 | Stored behaviour claims (verified documentation) | `GET /api/runs/interest-accrual-20261030-091344` | 22:30 | pass | run record has a `behavior` object; CHQCLR has none (not generated for it) |

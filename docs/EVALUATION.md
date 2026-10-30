@@ -28,6 +28,8 @@ broke it (fee 20.00 vs 0.00; debit -121.23 vs 0.00). The repair agent fixed both
 Both records carry malformed numeric content (a leading space; letters in a numeric field), so this shows the
 Java now agrees with **GnuCOBOL's** handling of bad data, not that it matches IBM Enterprise COBOL.
 
+**Later runs of CHQCLR.** Both statements are true and come from different runs with different settings. The live site shows CHQCLR as certified from its Oct 28 frozen-evaluation run (fix memory on, 8 earlier lessons used): the breaker broke 2 of 24 designed inputs, the repair agent fixed them, and it re-certified on 1,006 fresh inputs (run `chqclr-20261028-214355`). In the Oct 30 controlled measurement (fix memory off, policy-only guard, default caps; run `chqclr-20261030-163002`) the breaker broke 12 of 24 and one repair cycle did not fix it within the caps, so that run is not certified. In the memory-off re-run of the frozen evaluation (`eval-freeze-2`, run `chqclr-20261028-234854`) CHQCLR was certified after the breaker broke 6 inputs and the repair agent fixed them. We did not isolate which setting mattered; three runs of one program do not make a rate.
+
 ## Why BRNCHSUM and LOANAMRT failed: the verifier, not the model
 
 An independent review found that the comparator at `eval-freeze-1` paired output records with *inputs*. A program
