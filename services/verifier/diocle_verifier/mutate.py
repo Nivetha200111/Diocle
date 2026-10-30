@@ -327,7 +327,7 @@ def _detect(cases: list[Case], original: Run, mutant: Run, out_fields: list[Fiel
 
 
 def _short(text: str) -> str:
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    lines = [re.sub(r"^.*?([\w$]+\.java:\d+)", r"\1", l.strip()) for l in text.splitlines() if l.strip()]  # no temp paths
     return (lines[0] if lines else "")[:160]
 
 

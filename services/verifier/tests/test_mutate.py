@@ -156,7 +156,7 @@ def test_weak_translation_has_survivors_that_extra_inputs_kill(weak):
 def test_not_compiled_equivalent_and_timeout_are_reported(weak):
     report, _ = weak
     assert by(report, "`equals` changed to `equalsIgnoreCase`")["outcome"] == "not-compiled"
-    assert by(report, "`equals` changed to `equalsIgnoreCase`")["note"]
+    assert by(report, "`equals` changed to `equalsIgnoreCase`")["note"].startswith("Weak.java:")  # no temp-dir path
     folded = next(m for m in report["mutants"] if m["original"] == "int pad = 4 + 0;" and "`+` changed to `-`" in m["description"])
     assert folded["outcome"] == "equivalent-suspected" and "bytecode" in folded["note"]
     assert any(m["outcome"] == "timeout" for m in report["mutants"])  # tries += 1 -> tries -= 1 never ends
