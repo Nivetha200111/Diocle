@@ -364,3 +364,52 @@ def test_the_generated_workflow_builds_gnucobol_3_2_not_the_distribution_package
     assert "gnucobol-3.2.tar.xz" in wf and "ubuntu-24.04" in wf and "actions/cache@v4" in wf
     assert "apt-get install -y gnucobol" not in wf and "setup-python@v5" in wf
     assert "$HOME/gnucobol/bin" in wf and "LD_LIBRARY_PATH" in wf
+
+
+# ---- whole-repository build gate in the delivery ---------------------------------------------------------------------------
+
+FAILING_BUILD = {"version": "0.1", "verdict": "fail", "reasons": ["class Shared is declared with different source in A, B", "x [click](http://evil)"],
+                 "programs": [{"name": "A"}], "calls": {"checked": 2}, "copybooks": {"drift": []}, "classCollisions": [{"class": "Shared"}]}
+
+
+def test_a_failing_build_check_does_not_block_the_delivery_but_the_pr_body_says_so(flow, monkeypatch, capsys):
+    report, samples, runs, gh = flow
+    monkeypatch.setattr(deliver, "_pr_body", lambda report, delivered, skipped, others=None, build=None:
+                        "\n".join(deliver.build_section(build, len(delivered))))  # the wiring: what _deliver hands to the body
+    monkeypatch.setattr(deliver, "run_build_check", lambda *a, **k: FAILING_BUILD)
+    seen = {}
+
+    class P:
+        def update(self, **f): seen.update(f)
+        def program(self, n): return {}
+        def save(self): pass
+    deliver.deliver(report, samples, runs, "https://github.com/me/x-java", True, P(), create=plan())
+    body = capsys.readouterr().out
+    assert "the whole-repository build did not pass" in body and "delivered anyway" in body
+    assert "class Shared is declared" in body and "](http" not in body  # reasons are reduced to a safe character set
+    assert seen["buildCheck"]["verdict"] == "fail" and seen["buildCheck"]["classCollisions"] == 1
+    import jsonschema
+    jsonschema.validate({**BASE, "buildCheck": seen["buildCheck"]}, DELIVERY)
+
+
+def test_the_build_check_never_runs_without_certified_programs_and_its_absence_is_stated():
+    assert deliver.build_section(None, 0) == []
+    text = "\n".join(deliver.build_section(None, 2))
+    assert "Not run" in text and "pass" not in text.lower()
+    assert deliver.build_summary(None) is None
+
+
+def test_pass_and_warn_wording_does_not_overclaim():
+    ok = {"verdict": "pass", "reasons": [], "programs": [1, 2]}
+    text = "\n".join(deliver.build_section(ok, 2))
+    assert "not a behavioural one" in text and "JCL step order" in text
+    warn = {"verdict": "warn", "reasons": ["a", "b"], "programs": [1]}
+    assert "Warn" in "\n".join(deliver.build_section(warn, 1))
+
+
+def test_the_generated_workflow_compiles_every_program_together_and_fails_the_job_on_error():
+    wf = deliver.reverify_workflow("https://github.com/me/legacy", "a" * 40)
+    assert """javac -proc:none -d "$RUNNER_TEMP/out" $(find programs -name '*.java') $extra""" in wf
+    assert "set -eu" in wf and "permissions:\n  contents: read" in wf and "secrets." not in wf
+    assert wf.index("Install the pinned verifier") < wf.index("Compile every program together") < wf.index("Re-verify on fresh inputs")
+    assert "dbsupport/DioSql.java" in wf  # SQL programs need the verifier's support class, taken from the pinned commit
