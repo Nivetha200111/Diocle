@@ -10,6 +10,8 @@ export type ReproducerView = {
   reason: string;
   program: string;
   source: string;
+  mode: string;
+  origin: string;
   headline: string;
   stats: string;
   stopped: string;
@@ -60,6 +62,8 @@ export function reproducerView(raw: unknown): ReproducerView | null {
     reason: cap(r.reason, 300),
     program: cap(r.program, 40),
     source: SOURCES[cap(r.source, 20)] ?? "",
+    mode: r.signatureMode === "strict" ? "strict: the same output fields and the same differing values as the original failure" : r.signatureMode === "fields" ? "fields only: the same output field(s) differ, but the values may differ from the original failure" : "",
+    origin: cap(r.origin, 300),
     headline: minimized
       ? `${n(before)} record${before === 1 ? "" : "s"} → ${n(after)} record${after === 1 ? "" : "s"} (${n(num(red.bytesBefore))} → ${n(num(red.bytesAfter))} bytes)`
       : "",

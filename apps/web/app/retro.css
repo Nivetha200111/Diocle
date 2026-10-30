@@ -1214,3 +1214,4 @@ a.nav-item {
 .repro-explain { padding: 6px 8px; border: 1px dashed #808080; }
 .repro-regress { display: grid; gap: 6px; }
 .repro-card .data-table td, .repro-card .data-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.repro-origin { padding: 6px 8px; border: 1px dashed #a00000; }

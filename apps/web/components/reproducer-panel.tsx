@@ -40,6 +40,8 @@ function Card({ runId, v }: { runId: string; v: ReproducerView }) {
             {v.source ? <> · starting from {v.source}</> : null}
           </p>
           <p className="repro-small">{v.stopped}</p>
+          {v.mode && <p className="repro-small">Same discrepancy meant {v.mode}.</p>}
+          {v.origin && <p className="repro-origin"><Badge tone="amber">origin</Badge> {v.origin}</p>}
           <p><strong>What differs:</strong> {v.discrepancy}{v.firstDifference ? <> · first difference at {v.firstDifference}</> : null}</p>
 
           <h4>Minimized input</h4>

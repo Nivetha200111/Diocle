@@ -13,6 +13,8 @@ if (v.neutral.some((f) => f.name === "RT-FEE")) throw new Error("needed field li
 if (v.explanation?.label !== "explanation, not proof") throw new Error("label");
 if (!v.firstDifference.includes("field CL-FEE")) throw new Error("first difference: " + v.firstDifference);
 
+if (!v.mode.startsWith("strict") || !v.origin.startsWith("REBUILT DEFECT")) throw new Error("mode/origin");
+
 const long = "x".repeat(5000);
 const cyc: Record<string, unknown> = {}; cyc.self = cyc;
 const odd = [null, undefined, 7, true, long, { a: 1 }, ["z"], cyc, () => 1, "", NaN];
@@ -32,7 +34,7 @@ const check = (s: string, max = 201) => {
 for (const i of inputs) {
   const x = reproducerView(i);
   if (!x) continue;
-  [x.id, x.status, x.reason, x.program, x.source, x.headline, x.stats, x.stopped, x.discrepancy, x.firstDifference, ...x.inputText, ...x.original, ...x.translated].forEach((s) => check(s, 320));
+  [x.id, x.status, x.reason, x.program, x.source, x.mode, x.origin, x.headline, x.stats, x.stopped, x.discrepancy, x.firstDifference, ...x.inputText, ...x.original, ...x.translated].forEach((s) => check(s, 320));
   [...x.needed, ...x.neutral].forEach((f) => [f.name, f.view, f.where, f.value].forEach((s) => check(s)));
   if (x.explanation) { check(x.explanation.text, 601); if (x.explanation.label !== "explanation, not proof") throw new Error("label"); }
   if (x.regression) [x.regression.dir, x.regression.replay, x.regression.afterRepair, ...x.regression.files].forEach((s) => check(s, 250));
