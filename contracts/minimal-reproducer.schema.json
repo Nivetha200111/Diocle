@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/minimal-reproducer.schema.json",
+  "title": "MinimalReproducer",
+  "description": "v0.1. The smallest input found, deterministically and with no model call, on which the converted Java still disagrees with the original COBOL compiled with GnuCOBOL. Produced by services/verifier minimize (record-level delta debugging, then field-level simplification where the record layout is known); the oracle is the differential harness itself (run both, compare byte for byte). `reduction` states how much was removed and at what cost; `explanation` is an opinion and is never evidence. `regression` names a self-contained test case (inputs plus the bytes GnuCOBOL produced) that the verifier can replay against any Java.",
+  "type": "object",
+  "required": ["version", "id", "program", "status", "reduction"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "0.1" },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$", "description": "The case id the discrepancy was found under (breaker input id, or a verification-report inputId)" },
+    "program": { "type": "string" },
+    "source": { "type": "string", "enum": ["breaker", "held-out", "initial-test", "manual"], "description": "Where the failing input came from" },
+    "status": {
+      "type": "string",
+      "enum": ["minimized", "not-reproduced", "unsupported"],
+      "description": "minimized: a smaller failing input was kept (possibly the original, if nothing could be removed). not-reproduced: the Java passed on the starting input, so there is nothing to reduce. unsupported: the program shape is not handled (several input files); `reason` says why."
+    },
+    "reason": { "type": "string" },
+    "discrepancy": {
+      "type": "object",
+      "required": ["kind", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["output-record", "output-count", "stdout", "exit-code"] },
+        "fields": { "type": "array", "items": { "type": "string" }, "description": "Output fields that differ in the first differing record (the signature the reduction preserves)" },
+        "summary": { "type": "string" }
+      }
+    },
+    "reduction": {
+      "type": "object",
+      "required": ["recordsBefore", "recordsAfter", "oracleRuns", "maxOracleRuns", "stoppedBy"],
+      "additionalProperties": false,
+      "properties": {
+        "recordsBefore": { "type": "integer", "minimum": 0 },
+        "recordsAfter": { "type": "integer", "minimum": 0 },
+        "bytesBefore": { "type": "integer", "minimum": 0 },
+        "bytesAfter": { "type": "integer", "minimum": 0 },
+        "oracleRuns": { "type": "integer", "minimum": 0, "description": "Times both programs were run on a candidate input (the starting check included)" },
+        "maxOracleRuns": { "type": "integer", "minimum": 1 },
+        "wallClockSeconds": { "type": "number", "minimum": 0 },
+        "maxWallClockSeconds": { "type": "number", "minimum": 0 },
+        "stoppedBy": { "type": "string", "enum": ["complete", "run-cap", "time-cap"], "description": "complete: every step was tried within the caps. Otherwise the result is smaller than the original but not known to be minimal." },
+        "recordMinimal": { "type": "boolean", "description": "True when no single record can be removed without losing the discrepancy (1-minimal), checked within the caps" },
+        "fieldsSimplified": { "type": "integer", "minimum": 0 },
+        "fieldsKept": { "type": "integer", "minimum": 0, "description": "Fields that could not be simplified: the discrepancy needs them as they are" }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "description": "The minimized input per input DD",
+      "items": {
+        "type": "object",
+        "required": ["dd", "format", "recordLength", "records"],
+        "additionalProperties": false,
+        "properties": {
+          "dd": { "type": "string" },
+          "format": { "type": "string", "enum": ["line", "fixed"] },
+          "recordLength": { "type": "integer", "minimum": 1 },
+          "records": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["hex", "text", "fields"],
+              "additionalProperties": false,
+              "properties": {
+                "hex": { "type": "string", "pattern": "^([0-9a-f]{2})*$" },
+                "text": { "type": "string", "description": "Latin-1 text, non-printable bytes shown as '.'" },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["name", "offset", "length", "value", "role"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": { "type": "string" },
+                      "offset": { "type": "integer", "minimum": 0 },
+                      "length": { "type": "integer", "minimum": 1 },
+                      "view": { "type": "string", "description": "Name of the field this one redefines, when it is an alternative view of the same bytes" },
+                      "value": { "type": "string", "description": "The field as text: a number for numerics that parse, otherwise the raw text or hex" },
+                      "role": { "type": "string", "enum": ["needed", "neutral", "unchanged"], "description": "needed: simplifying it removes the discrepancy. neutral: it was replaced by 0 or spaces (or was already) and the discrepancy remains. unchanged: not tried (caps reached, or no safe replacement)" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "What each side wrote for the minimized input",
+      "required": ["original", "translated"],
+      "additionalProperties": false,
+      "properties": {
+        "original": { "$ref": "#/$defs/side" },
+        "translated": { "$ref": "#/$defs/side" },
+        "firstDifference": {
+          "type": "object",
+          "required": ["record", "offset"],
+          "additionalProperties": false,
+          "properties": {
+            "record": { "type": "integer", "minimum": 1, "description": "1-based output record" },
+            "offset": { "type": "integer", "minimum": 0, "description": "First differing byte within the record" },
+            "field": { "type": "string", "description": "Output field containing that byte, when the layout names one" },
+            "fieldOffset": { "type": "integer", "minimum": 0, "description": "Byte offset within that field" },
+            "original": { "type": "string" },
+            "translated": { "type": "string" }
+          }
+        }
+      }
+    },
+    "explanation": {
+      "type": ["object", "null"],
+      "description": "A suspected cause. Opinion from a model's diagnosis that already existed; never produced by the minimizer and never evidence.",
+      "required": ["text", "label", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "maxLength": 600 },
+        "label": { "const": "explanation, not proof" },
+        "source": { "type": "string", "enum": ["breaker", "repair-agent"] }
+      }
+    },
+    "regression": {
+      "type": ["object", "null"],
+      "description": "A self-contained regression case saved next to the run (regression/<id>/): the minimized inputs, the bytes GnuCOBOL's output was, and the DD wiring. The verifier replays it against any Java; it must fail on the Java that showed the discrepancy and pass on a correct repair.",
+      "required": ["dir", "files", "replay"],
+      "additionalProperties": false,
+      "properties": {
+        "dir": { "type": "string", "description": "Relative to the run directory" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "replay": { "type": "string", "description": "Command that replays the case, with the Java directory left for the reader to choose" },
+        "afterRepair": {
+          "type": ["object", "null"],
+          "description": "Replay on the repaired Java, filled in by the repair loop; null until then",
+          "required": ["passed"],
+          "additionalProperties": false,
+          "properties": { "passed": { "type": "boolean" }, "detail": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "side": {
+      "type": "object",
+      "required": ["records", "exitCode"],
+      "additionalProperties": false,
+      "properties": {
+        "records": { "type": "array", "items": { "type": "string" }, "description": "Output records as latin-1 text" },
+        "stdout": { "type": "string" },
+        "exitCode": { "type": ["integer", "null"] }
+      }
+    }
+  }
+}
