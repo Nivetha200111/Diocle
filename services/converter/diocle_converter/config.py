@@ -21,6 +21,14 @@ PRICES = {
     "muse-wonder-1.0": (4.00, 0.20, 20.00),
 }
 
+# Muse Voice Transcribe is billed by audio duration, not tokens. USD per SECOND of audio. UNCONFIRMED: Meta publishes no
+# price we could find and the service returns no usage field, so this is a conservative placeholder (about twice a typical
+# speech-to-text list price, $0.72 per hour). The second field says whether the price is confirmed; while it is False
+# every result shows `priceConfirmed: false`. A model missing from this table is unpriced and fails closed (no call).
+VOICE_PRICES = {
+    "muse-voice-transcribe-1.0": (0.0002, False),
+}
+
 
 @dataclass(frozen=True)
 class DocCaps:
