@@ -19,6 +19,7 @@ from fastapi import Header
 from . import asks, livesamples, public
 from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
 from .deliver import GITHUB_URL, validate_create_target
+from .reproducers import regression_case, run_reproducers
 from .reverify import Busy, reverify_run
 from .runs import get_run, get_source, list_runs
 from .schema import run_schema
@@ -96,6 +97,23 @@ def run_sql_schema(run_id: str) -> dict:
     result = run_schema(run_id)
     if result is None:
         raise HTTPException(status_code=404, detail="no schema for this run")
+    return result
+
+
+@app.get("/runs/{run_id}/reproducers")
+def run_smallest_reproducers(run_id: str) -> dict:
+    """contracts/minimal-reproducer.schema.json records saved by `run --minimize` or `diocle_verifier minimize`; read-only."""
+    result = run_reproducers(run_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    return result
+
+
+@app.get("/runs/{run_id}/reproducers/{case_id}/regression")
+def run_regression_case(run_id: str, case_id: str) -> dict:
+    result = regression_case(run_id, case_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no regression case")
     return result
 
 

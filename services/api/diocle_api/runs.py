@@ -310,6 +310,7 @@ def get_run(run_id: str) -> dict | None:
         "tiers": run.get("tiers"),
         "guard": run.get("guard"),
         "swarm": run.get("swarm", False),
+        **({"reproducers": run["reproducers"]} if isinstance(run.get("reproducers"), list) else {}),  # run v0.18, `--minimize` runs only
         **({"sampleRun": sample_run(path)} if sample_run(path) else {}),
         # convert-anyway only (run contract v0.13): absent on every other run
         **{k: run[k] for k in ("assurance", "assuranceReason", "cobolRepair") if run.get(k) is not None},
