@@ -267,7 +267,7 @@ def test_a_blank_only_expectation_is_weak_not_matched():
     for blank in (" ", "   ", " ", "\t "):
         got = claims.judge({"records": [{"OUT-ACCT-ID": blank}]}, blank_out, OUT)
         assert got["status"] == "unchecked" and "weak expectation" in got["reason"], repr(blank)
-        assert claims.judge({"stdoutContains": blank}, fake_run(stdout="a \u00a0\t\u2003 b"), OUT)["status"] == "unchecked"
+        assert claims.judge({"stdoutContains": blank}, fake_run(stdout=f"a{blank}b"), OUT)["status"] == "unchecked"
     assert claims.judge({"records": [{"OUT-ACCT-ID": " ", "OUT-STATUS": "FE"}]}, blank_out, OUT)["status"] == "matched"
 
 
