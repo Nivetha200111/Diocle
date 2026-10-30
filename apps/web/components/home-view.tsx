@@ -294,7 +294,7 @@ code --install-extension diocle-0.1.0.vsix`}</pre>
           </div>
           <div className="editor-col">
             <h3>Muse Code (Meta&apos;s coding agent)</h3>
-            <p className="home-pr">A local plugin: Muse Code can analyze COBOL, re-verify a conversion against the original, and read run records through Diocle tools. A real conversion is off unless you turn it on. Tested with Muse Code 1.4.14 on macOS; a model-driven session has not been recorded yet.</p>
+            <p className="home-pr">A local plugin: Muse Code can analyze COBOL, re-verify a conversion against the original, and read run records through Diocle tools. A real conversion is off unless you turn it on. Tested with Muse Code 1.4.14 on macOS: in five recorded runs it called the tools by itself, including a capped conversion that certified a sample (1027 of 1027 inputs, about two cents) and a refusal outside the repository.</p>
             <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
 cd Diocle
 sh editors/muse-code/install.sh

@@ -80,8 +80,11 @@ default, cap and key-argument rejection, secret scrubbing, type-confused and ove
   server: Muse Code logged a successful stdio handshake and discovery of 7 tools, 45 resources and 2 prompts
   (`transcripts/connect-check.jsonl`, rendered to a short real capture). The tools were also run directly over JSON-RPC
   (`transcripts/direct-tool-calls.txt`, not through Muse Code).
-- **Not verified:** a model-driven Muse Code run that calls the tools. The build session had no Muse login or key and was not allowed to
-  take the owner's from `.env`, so no headless prompt was run and no transcript of Muse choosing and calling the tools exists. The
-  owner can record it with `demo/run-demo.sh` (five prompts: analyze+verify, live run, convert+certify, two guardrail refusals), then
-  `demo/render_capture.py` turns the recorded transcripts into a terminal-style mp4 (needs Pillow and ffmpeg; real text and
-  timings, idle waits shortened and marked). Whether Muse Code runs MCP tools unattended under `--disable-approval` is untested.
+- **Verified with real model-driven runs (Oct 31, owner's own Muse login, `muse exec --disable-approval --disable-shell --disable-write`, five headless runs; transcripts in `transcripts/run-1.jsonl` to `run-5.jsonl`, with the local username path replaced by `~`):**
+  1. *analyze + re-verify* (62 s): Muse Code called `diocle_analyze` and `diocle_verify_stored` on `samples/interest-accrual` and reported INTACCR convertible, 9 risk flags, and the checked-in Java matched on 1027 of 1027 inputs, with the caveat.
+  2. *live run lookup*: `diocle_live_run` read the stored CHQCLR run (certified, 1006/1006, the attacker tried 24 inputs and broke 2, both fixed).
+  3. *convert and certify* (310 s): `diocle_convert` (enabled by the owner, capped at USD 0.10): CERTIFIED, 1027 of 1027, 2 model calls, 6,930 in / 21,735 out tokens, est. USD 0.016957 (Muse Code's own agent tokens are billed separately).
+  4. *guardrail*: `diocle_analyze` on `/etc` and `../../../etc` were both refused ("path is outside the Diocle repository").
+  5. *guardrail*: `diocle_convert` refused because it was not enabled ("Nothing was run. Ask the owner").
+  A first attempt of run 1 failed honestly (`No module named 'jsonschema'`): the checkout had no Python environment yet, and the agent reported that nothing was verified instead of guessing. That is why the README asks for `sh scripts/quickstart.sh --no-key` first. Muse Code's Contributor mode (a Muse Code setting) may use prompts and content for product improvement; these runs used only synthetic samples.
+  Still untested: slash-command argument passing, the project-scope install path (Muse blocks it for untrusted workspaces), and other Muse Code versions.
