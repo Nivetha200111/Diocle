@@ -131,6 +131,22 @@ A stated subset of DB2-style embedded SQL (`db2-subset-1`: INCLUDE SQLCA, DECLAR
 
 ## Run
 
+### Quickstart (one command)
+
+```sh
+sh scripts/quickstart.sh --no-key     # no key, no model: re-verify a checked-in certified conversion, seconds
+cp .env.example .env                  # then set META_MODEL_API_KEY= (your own Meta key); never pass it as an argument
+sh scripts/quickstart.sh              # one real, capped conversion of a small sample (default cap $0.10)
+```
+
+It checks GnuCOBOL 3.2+, JDK 21+ and Python 3.11+ (with an install hint per OS), builds one venv, and prints the
+CERTIFIED line, the inputs behind it, model, tokens, estimated cost and where the Java and run record were written.
+Without a key it falls through to the no-key mode and says that no model was called. `QUICKSTART_MAX_USD` raises the
+cap (hard maximum $1.00); `--sample NAME` picks another sample (no-key mode needs a `certified-java/` folder, only
+`interest-accrual` has one). Measured on a Mac from a clean clone: no-key mode 12 s including the one-time venv (2 s to verify), key mode about 2.5
+minutes (model time dominates) and about $0.003 for one INTACCR conversion; times vary with the model host. Linux is
+untested. No Docker image is provided for the quickstart.
+
 Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+. Each service has its own README with setup and test commands. Model keys go in `.env` (see `.env.example`); nothing secret is committed.
 
 ### Using your own Meta key

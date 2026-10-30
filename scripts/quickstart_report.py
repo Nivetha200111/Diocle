@@ -6,11 +6,25 @@ from pathlib import Path
 
 def run_summary(run_dir: Path, sample: str) -> None:
     r = json.loads((run_dir / "run.json").read_text())
-    last = (r.get("rounds") or [{}])[-1].get("summary") or {}
     u = r.get("usage") or {}
+    cert = None
+    events = run_dir / "events.jsonl"
+    if events.exists():
+        for line in events.read_text().splitlines():
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if e.get("type") == "certification":
+                cert = e
+    calls = u.get("modelCalls") or []
+    model = r.get("model") or (calls[0].get("model") if calls else None) or "unknown"
     cost = u.get("estimatedCostUsd")
-    print(f"held-out certification: {last.get('passed', '?')}/{last.get('total', '?')} inputs matched" if last else "no certification round recorded")
-    print(f"model: {r.get('model')} ({u.get('calls', '?')} calls)")
+    if cert:
+        print(f"held-out certification (round {cert.get('round')}): {cert.get('result', '').splitlines()[0]}  [{'PASS' if cert.get('passed') else 'FAIL'}]")
+    else:
+        print("no certification event recorded")
+    print(f"model: {model} ({u.get('calls', '?')} calls)")
     print(f"tokens: {u.get('inputTokens', '?')} in ({u.get('cachedInputTokens', 0)} cached) / {u.get('outputTokens', '?')} out")
     print("estimated cost: " + ("unknown" if cost is None else f"${cost:.4f}") + " (list prices, not a bill)")
     print(f"Java written to: {run_dir / 'java'}")
