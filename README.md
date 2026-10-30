@@ -170,6 +170,10 @@ By kind of mainframe artifact, as of Oct 30, 2026 (also on the [Evidence page](h
 | Hierarchical database (IMS DL/I) | Not supported | There is no free IMS runtime to compare against | Roadmap |
 | CICS online transactions | Not supported | Programs with EXEC CICS are refused with a reason | |
 
+## Smallest reproducer and regression tests
+
+When the Java differs from the COBOL, `python -m diocle_verifier minimize RUN_DIR --case ID --java-dir <Java that fails>` cuts the failing input down without any model call: ddmin over the records, then field-by-field simplification where the layout is known, keeping only changes that leave the same difference (`--strict` pins the differing values too). Each step is a real GnuCOBOL-vs-Java run, capped at 150 runs / 120 s. Output: `reproducers/<id>.json` (contract `minimal-reproducer`), shown as the "Smallest reproducer" card, and a regression case in `regression/<id>/` that `python -m diocle_verifier replay` runs against any Java (it fails on a Java with the defect, passes on a correct one). `run --minimize` feeds the reduced input to the repair agent and replays the saved cases after the repair. Real example: a 227-record batch reduced to 1 record in 18 runs (1.6 s). One input and one output file only; any suspected cause is labelled "explanation, not proof".
+
 ## Not supported yet
 - The voice question covers the two bundled single-file programs on the public site and any single-file record program locally; the speech model sometimes mishears (one real run heard "the fee the fee"), a weak transcript yields weak claims, and the answer is only as good as the examples GnuCOBOL confirmed. The speech route is Meta's client protocol, not a documented API. The microphone path was verified only up to the engine (encoder output and upload), not with a real microphone.
 - The whole-repository build check is a compile and interface check of the certified programs: it does not run them together, does not follow JCL step order or dataset wiring, and compares CALL argument lengths only for plain 01/77 items. Domain classes (`--domain-classes`) are compile-time only and experimental.
