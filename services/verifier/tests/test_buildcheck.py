@@ -79,10 +79,11 @@ def test_two_programs_defining_the_same_class_are_a_collision(tmp_path):
     assert [p["compile"]["status"] for p in r["programs"]] == ["ok", "ok"]  # each alone compiles: only together it breaks
 
 
-def test_byte_identical_copies_of_a_class_are_not_a_collision(tmp_path):
+def test_byte_identical_copies_are_collisions_too_because_the_generated_ci_compiles_every_file(tmp_path):
     same = "public class Shared { int a() { return 1; } }\n"
     r = check([program(tmp_path, "AAA", cobol("AAA"), java=same, jname="Shared.java"), program(tmp_path, "BBB", cobol("BBB"), java=same, jname="Shared.java")])
-    assert r["classCollisions"] == [] and r["whole"]["compile"]["status"] == "ok" and r["verdict"] == "pass"
+    assert r["classCollisions"] == [{"class": "Shared", "between": ["AAA", "BBB"]}] and r["verdict"] == "fail"
+    assert r["whole"]["compile"]["status"] == "fail" and r["whole"]["sources"] == 2
 
 
 def test_a_missing_symbol_is_flagged_with_file_and_line(tmp_path):
@@ -258,4 +259,35 @@ def test_markdown_keeps_only_a_conservative_character_set(tmp_path):
     r = check([program(tmp_path, "AAA", cobol("AAA"))])
     r["reasons"] = ["[click](http://evil) <script>|`x`"]
     md = bc.render_markdown({**r, "verdict": "warn"})
-    assert "<script>" not in md and "](http" not in md and "`x`" not in md and "# Build report: WARN" in md
+    assert "<script>" not in md and "](http" not in md and "@" not in bc._md("@team #12") and "`x`" not in md and "# Build report: WARN" in md
+
+
+def test_domain_source_files_named_like_javac_options_are_files_not_options(tmp_path):
+    d = tmp_path / "customer"
+    d.mkdir()
+    for n in ("-J-Xmx1k", "-Xfoo"):
+        (d / f"{n}.java").write_text("class " + ("A" if "J" in n else "B") + " {}\n")
+    r = check([program(tmp_path, "AAA", cobol("AAA"))], domain_classes=d)
+    assert r["whole"]["domainClasses"]["entries"] == 2 and r["whole"]["domainClasses"]["ownCompile"]["diagnostics"] == []
+
+
+def test_program_java_files_with_spaces_and_dashes_are_safe(tmp_path):
+    p = program(tmp_path, "AAA", cobol("AAA"))
+    (Path(p["javaDir"]) / "-Xfoo.java").write_text("class Foo {}\n")
+    (Path(p["javaDir"]) / "sub dir").mkdir()
+    (Path(p["javaDir"]) / "sub dir" / "My File.java").write_text("class Mine {}\n")
+    r = check([p])
+    assert r["whole"]["sources"] == 3 and r["verdict"] == "pass"
+
+
+def test_three_thousand_files_do_not_hit_the_command_line_limit(tmp_path):
+    p = program(tmp_path, "AAA", cobol("AAA"))
+    for i in range(3000):
+        (Path(p["javaDir"]) / f"C{i}.java").write_text(f"class C{i} {{}}\n")
+    bc_max = bc.MAX_JAVA_FILES
+    bc.MAX_JAVA_FILES = 4000
+    try:
+        r = check([p])
+    finally:
+        bc.MAX_JAVA_FILES = bc_max
+    assert r["whole"]["sources"] == 3001 and r["whole"]["compile"]["status"] == "ok"

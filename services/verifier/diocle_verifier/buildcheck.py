@@ -102,17 +102,28 @@ def _diagnostics(stderr: str) -> list[str]:
             if sym:
                 msg += f" [symbol: {sym.group(1)}]"
                 break
-        out.append(_clean(f"{m.group(1)}:{m.group(2)}: error: {msg}"))
+        out.append(_clean(f"{m.group(1).removeprefix('./')}:{m.group(2)}: error: {msg}"))
         if len(out) == 20:
             break
     return out
+
+
+def _argfile(path: Path, files: list[str]) -> str:
+    """javac @argfile: one double-quoted path per line (backslash and quote escaped), so spaces are safe, the command line
+    never grows with the number of files (no ARG_MAX), and a name starting with '-' is a file because of the './' prefix."""
+    lines = []
+    for f in files:
+        f = f if f.startswith(("/", "./")) else "./" + f
+        lines.append('"' + f.replace("\\", "\\\\").replace('"', '\\"') + '"')
+    path.write_text("\n".join(lines) + "\n")
+    return "@" + str(path)
 
 
 def _javac(files: list[str], cwd: Path, classpath: str | None = None) -> dict:
     """One javac -proc:none run: {status, javacExit, diagnostics}. No source path, so only the listed files are compiled."""
     with tempfile.TemporaryDirectory(prefix="diocle-bc-out-") as out, tempfile.TemporaryDirectory(prefix="diocle-bc-sp-") as empty:
         cmd = ["javac", "-proc:none", "-encoding", "UTF-8", "-sourcepath", empty, "-d", out,
-               *(["-cp", classpath] if classpath else []), *files]
+               *(["-cp", classpath] if classpath else []), _argfile(Path(out).parent / (Path(out).name + ".args"), files)]
         try:
             proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, errors="replace", timeout=JAVAC_SECONDS,
                                   env=safe_env(), stdin=subprocess.DEVNULL)
@@ -167,7 +178,7 @@ def _prepare_domain(path: Path, work: Path) -> dict:
             rel = f.relative_to(path)
             (stage / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(f, stage / rel)
-            rels.append(str(rel))
+            rels.append("./" + str(rel))  # a file named -J-Xmx1k.java is a file, never a javac option
             text = f.read_text(errors="replace")
             pkg, names = top_level_types(text)
             for t in names:
@@ -178,7 +189,8 @@ def _prepare_domain(path: Path, work: Path) -> dict:
         if rels:
             with tempfile.TemporaryDirectory(prefix="diocle-bc-sp-") as empty:
                 try:
-                    proc = subprocess.run(["javac", "-proc:none", "-encoding", "UTF-8", "-sourcepath", empty, "-d", str(classes), *rels],
+                    proc = subprocess.run(["javac", "-proc:none", "-encoding", "UTF-8", "-sourcepath", empty, "-d", str(classes),
+                                           _argfile(work / "domain.args", rels)],
                                           cwd=stage, capture_output=True, text=True, errors="replace", timeout=JAVAC_SECONDS,
                                           env=safe_env(), stdin=subprocess.DEVNULL)
                     own = {"status": "ok" if proc.returncode == 0 else "fail", "javacExit": proc.returncode,
@@ -193,7 +205,11 @@ def _prepare_domain(path: Path, work: Path) -> dict:
     if len(names) > MAX_JAR_ENTRIES or any(n.startswith("/") or ".." in n.split("/") for n in names):
         raise ValueError("the jar has too many entries or entry names that leave the archive")
     staged = work / "domain.jar"
-    shutil.copyfile(path, staged)  # a copy inside the work dir: a manifest Class-Path cannot reach beside the original
+    # javac reads a STAGED COPY. A relative Class-Path entry in its manifest therefore resolves beside the copy (an empty temp
+    # directory), not beside the original. Absolute or file: Class-Path entries are not confined: javac may read those paths as
+    # class bytes (read-only, nothing is run). So: the jar is never executed, extracted or modified; its manifest can only make
+    # javac read other class files it can already read.
+    shutil.copyfile(path, staged)
     types = {n[:-6].replace("/", "."): None for n in names
              if n.endswith(".class") and "$" not in n and not n.endswith(("module-info.class", "package-info.class"))}
     return {"kind": "jar", "classpath": str(staged), "types": types, "entries": len(types),
@@ -273,23 +289,16 @@ def build_check(programs: list[dict], report: dict | None = None, domain_classes
         # class collisions: same fully qualified type, different source
         collisions = []
         for fq, versions in sorted(types_by_program.items()):
-            if len(versions) > 1:
-                owners = sorted({p for ps in versions.values() for p in ps})
+            owners = sorted({p for ps in versions.values() for p in ps})
+            if len(owners) > 1:
                 collisions.append({"class": fq, "between": owners})
-                fail(f"class {fq} is declared with different source in {', '.join(owners)}")
-            if domain and fq in domain["types"] and (domain["types"][fq] is None or domain["types"][fq] not in versions):
-                owners = sorted({p for ps in versions.values() for p in ps})
+                fail(f"class {fq} is declared in {', '.join(owners)}")
+            if domain and fq in domain["types"]:
                 collisions.append({"class": fq, "between": [*owners, "domain classes"]})
                 fail(f"class {fq} in {', '.join(owners)} has the same name as a supplied domain class")
-        # one compile of everything (identical copies of a file compile once)
-        seen, whole_files = set(), []
-        for rel in all_files:
-            digest = hashlib.sha256((stage / rel).read_bytes()).hexdigest()
-            name = Path(rel).name
-            if (name, digest) in seen:
-                continue
-            seen.add((name, digest))
-            whole_files.append(rel)
+        # One compile of everything, exactly what the generated CI compiles: byte-identical copies are NOT skipped,
+        # because javac reports them as duplicate classes there too.
+        whole_files = list(all_files)
         if support_used:
             whole_files.append("_support/DioSql.java")
         whole = _javac(whole_files, stage, cp) if whole_files else {"status": "skipped", "javacExit": None, "diagnostics": [], "note": "no Java files"}
@@ -387,7 +396,7 @@ def _graph(sources: list[Source], programs: list[dict], report: dict | None, cop
 
 def _md(text: object) -> str:
     """Report text into Markdown: only a conservative character set survives (no links, HTML, tables or code fences)."""
-    return re.sub(r"[^A-Za-z0-9 _.,:;'/=+#$@-]", "?", str(text))
+    return re.sub(r"[^A-Za-z0-9 _.,:;'/=+$-]", "?", str(text))
 
 
 def render_markdown(r: dict) -> str:
