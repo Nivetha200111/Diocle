@@ -61,11 +61,30 @@ export type RunListItem = {
 
 export type FieldDiff = { field: string; original: string; converted: string };
 
+// verification-report v0.9 runs.database, passed through by GET /runs/{id} (run contract v0.15). Every field optional on read.
+export type DatabaseTable = {
+  name?: string;
+  rowsSeeded?: number;
+  rowsOriginal?: number;
+  rowsConverted?: number;
+  match?: boolean;
+  firstMismatch?: { row?: number; column?: string; original?: string; converted?: string } | null;
+  changedFromSeed?: { original?: boolean; converted?: boolean };
+};
+export type DatabaseComparison = {
+  engine?: string;
+  engineVersion?: string;
+  subset?: string;
+  seededFrom?: string;
+  tables?: DatabaseTable[];
+};
+
 export type Verification = {
   total: number;
   passed: number;
   failed: number;
   stdoutMatch: boolean;
+  database?: DatabaseComparison | null;
   failingExamples: { inputId: string; inputSource?: string; diff: string; fieldDiffs?: FieldDiff[] }[];
 };
 

@@ -1150,3 +1150,18 @@ a.nav-item {
 .claim .data-table { table-layout: fixed; width: 100%; }
 .claim .data-table td.mono, .claim .data-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
 .claim .data-table th:first-child, .claim .data-table td:first-child { width: 78px; }
+
+/* Database comparison panel: a table whose final contents differ is the case worth noticing (red title bar and border). */
+.db-panel.db-failing {
+  border: 2px solid #a00000;
+}
+.db-panel.db-failing .panel-heading {
+  background: #a00000 !important;
+}
+.db-panel .db-row-failing td strong {
+  color: #a00000;
+}
+.db-panel .data-table td > div {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}

@@ -7,6 +7,7 @@ import { AssuranceBadge, AssuranceNote } from "./assurance";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 import { BehaviorPanel } from "./behavior-panel";
+import { DatabasePanel } from "./database-panel";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
 const usd = (n: number | null) => (n === null ? "n/a" : `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`);
@@ -501,6 +502,7 @@ function RunDetail({ run }: { run: Run }) {
       {run.breaker && <BreakerPanel b={run.breaker} />}
       {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
       {run.behavior && <BehaviorPanel b={run.behavior} />}
+      {run.after?.database && <DatabasePanel d={run.after.database} />}
       {run.tiers?.enabled && <TiersPanel t={run.tiers} />}
 
       {run.guard && <GuardPanel g={run.guard} />}
