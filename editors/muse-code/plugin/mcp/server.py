@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -148,12 +149,20 @@ def cap(text: str, limit: int = MAX_OUTPUT) -> str:
 
 def run_argv(argv: list[str], cwd: Path, env: dict, timeout: int) -> tuple[int, str]:
     try:
-        p = subprocess.run(argv, cwd=str(cwd), env=env, capture_output=True, text=True, timeout=timeout, shell=False)
-    except subprocess.TimeoutExpired:
-        raise ToolError(f"timed out after {timeout} s")
+        p = subprocess.Popen(argv, cwd=str(cwd), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                             shell=False, start_new_session=True)
     except OSError as e:
         raise ToolError(f"could not start {Path(argv[0]).name}: {e.strerror or 'error'}")
-    return p.returncode, (p.stdout or "") + (("\n" + p.stderr) if p.stderr else "")
+    try:
+        out, errs = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)  # the whole group: cobc, java and the converter's own children
+        except (ProcessLookupError, PermissionError):
+            p.kill()
+        p.communicate()
+        raise ToolError(f"timed out after {timeout} s")
+    return p.returncode, (out or "") + (("\n" + errs) if errs else "")
 
 
 def dump(obj) -> str:
@@ -231,12 +240,20 @@ def tool_verify_stored(args: dict) -> str:
                               "inputs (tested inputs, not a proof of equivalence). No model was called.")})
 
 
+class _Refuse(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *a, **k):  # a redirect could leave the Diocle API: treat it as an error
+        return None
+
+
+_NO_REDIRECT = urllib.request.build_opener(_Refuse)
+
+
 def _get_json(url: str) -> object:
     if not url.startswith(LIVE_BASE) and not (os.environ.get("DIOCLE_API_BASE") and url.startswith(os.environ["DIOCLE_API_BASE"])):
         raise ToolError("refusing to fetch outside the Diocle API")
     req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "diocle-muse-code/0.1"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with _NO_REDIRECT.open(req, timeout=15) as r:
             raw = r.read(400_000)
     except urllib.error.HTTPError as e:
         raise ToolError(f"the Diocle API answered HTTP {e.code}")
@@ -486,11 +503,15 @@ def sample_resources() -> list[dict]:
 
 
 def read_resource(uri: str) -> dict:
+    if not isinstance(uri, str):
+        raise ToolError("unknown resource")
     m = re.match(r"^diocle://samples/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/(src|copybooks)/([A-Za-z0-9][A-Za-z0-9_.-]{0,63})$", uri or "")
     if not m or m.group(3).rsplit(".", 1)[-1].lower() not in ("cbl", "cob", "cpy"):
         raise ToolError("unknown resource")
-    f = confine(f"samples/{m.group(1)}/{m.group(2)}/{m.group(3)}")
-    if not f.is_file():
+    samples_root = (repo_root() / "samples").resolve()
+    raw = samples_root / m.group(1) / m.group(2) / m.group(3)
+    f = confine(str(raw))
+    if raw.is_symlink() or samples_root not in f.parents or not f.is_file():
         raise ToolError("unknown resource")
     return {"uri": uri, "mimeType": "text/plain", "text": cap(f.read_text(errors="replace"), MAX_RESOURCE)}
 
@@ -531,7 +552,8 @@ def handle(msg: dict) -> dict | None:
     if method == "tools/list":
         return ok(i, {"tools": [public_tool(t) for t in TOOLS]})
     if method == "tools/call":
-        t = TOOL_BY_NAME.get(params.get("name"))
+        tname = params.get("name")
+        t = TOOL_BY_NAME.get(tname) if isinstance(tname, str) else None
         if not t:
             return err(i, -32602, "unknown tool")
         a = params.get("arguments") or {}
@@ -556,10 +578,13 @@ def handle(msg: dict) -> dict | None:
     if method == "prompts/list":
         return ok(i, {"prompts": [{"name": n, "description": p["description"], "arguments": p["arguments"]} for n, p in PROMPTS.items()]})
     if method == "prompts/get":
-        p = PROMPTS.get(params.get("name"))
+        pname = params.get("name")
+        p = PROMPTS.get(pname) if isinstance(pname, str) else None
         if not p:
             return err(i, -32602, "unknown prompt")
         a = params.get("arguments") or {}
+        if not isinstance(a, dict):
+            return err(i, -32602, "arguments must be an object")
         vals = {x["name"]: str(a.get(x["name"], "")) for x in p["arguments"]}
         if not all(re.match(r"^[A-Za-z0-9_/.-]{1,96}$", v) for v in vals.values()):
             return err(i, -32602, "invalid prompt argument")
@@ -567,21 +592,36 @@ def handle(msg: dict) -> dict | None:
     return err(i, -32601, "method not found")
 
 
+MAX_LINE = 1_000_000
+
+
 def main() -> int:
-    for line in sys.stdin:
-        line = line.strip()
+    while True:
+        line = sys.stdin.readline(MAX_LINE)
         if not line:
-            continue
-        try:
-            msg = json.loads(line)
-        except ValueError:
-            resp = err(None, -32700, "parse error")
+            return 0
+        if len(line) >= MAX_LINE and not line.endswith("\n"):
+            while True:  # drain the rest of the oversized line without holding it
+                rest = sys.stdin.readline(MAX_LINE)
+                if not rest or rest.endswith("\n"):
+                    break
+            resp = err(None, -32600, "message too large")
         else:
-            resp = handle(msg)
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                msg = json.loads(line)
+            except ValueError:
+                resp = err(None, -32700, "parse error")
+            else:
+                try:
+                    resp = handle(msg)
+                except Exception:  # never die on a bad request, never leak detail
+                    resp = err(msg.get("id") if isinstance(msg, dict) and isinstance(msg.get("id"), (int, str)) else None, -32603, "internal error")
         if resp is not None:
             sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
             sys.stdout.flush()
-    return 0
 
 
 if __name__ == "__main__":

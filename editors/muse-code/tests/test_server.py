@@ -230,3 +230,90 @@ def test_verify_stored_real_sample():
     assert not err and data["failed"] == 0 and data["passed"] == data["total"] > 100 and "not a proof" in data["honestly"]
     err, text = call("diocle_verify_stored", {"sample": "display-report"})
     assert err and "no certified-java" in text
+
+
+def test_type_confused_params_do_not_crash(proc):
+    for method, params in (("tools/call", {"name": ["x"]}), ("tools/call", {"name": {}}), ("tools/call", {"name": "diocle_analyze", "arguments": 5}),
+                           ("prompts/get", {"name": ["x"]}), ("prompts/get", {"name": {}}),
+                           ("prompts/get", {"name": "explain-a-run", "arguments": []}), ("resources/read", {"uri": 5}),
+                           ("resources/read", {"uri": ["a"]}), ("tools/call", {"name": "diocle_live_run", "arguments": {"run_id": 7}}),
+                           ("tools/call", {"name": "diocle_explain", "arguments": {"run": {}}}),
+                           ("tools/call", {"name": "diocle_analyze", "arguments": {"path": ["x"]}})):
+        r = rpc(proc, method, params)
+        assert "error" in r or r["result"].get("isError") is True, (method, params)
+    assert rpc(proc, "ping", i=99)["result"] == {}  # still alive
+
+
+def test_internal_exception_returns_32603_without_detail(proc, monkeypatch):
+    monkeypatch.setattr(server, "handle", lambda m: 1 / 0)
+    code = ("import sys, json; sys.path.insert(0, %r); import server; server.handle = lambda m: 1/0; sys.exit(server.main())" % str(SERVER.parent))
+    p = subprocess.Popen([sys.executable, "-c", code], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    r = rpc(p, "ping")
+    assert r["error"]["code"] == -32603 and "division" not in json.dumps(r) and r["id"] == 1
+    r = rpc(p, "ping", i=2)  # survived
+    assert r["error"]["code"] == -32603
+    p.stdin.close(); p.wait(timeout=5)
+
+
+def test_non_object_messages_survive(proc):
+    for raw in ("[]", "5", "null", '"x"', '{"jsonrpc":"2.0","method":5,"id":1}'):
+        proc.stdin.write(raw + "\n"); proc.stdin.flush()
+        assert "error" in json.loads(proc.stdout.readline())
+    assert rpc(proc, "ping", i=3)["result"] == {}
+
+
+def test_oversized_line_rejected_and_drained(proc):
+    proc.stdin.write("x" * 2_500_000 + "\n"); proc.stdin.flush()
+    assert json.loads(proc.stdout.readline())["error"]["code"] == -32600
+    assert rpc(proc, "ping", i=4)["result"] == {}  # the rest of the line was drained, the next message is parsed
+
+
+def test_resource_symlink_and_root_confinement(tmp_path, monkeypatch):
+    root = tmp_path / "repo"; (root / "samples" / "s" / "src").mkdir(parents=True)
+    (root / ".env").write_text("META_MODEL_API_KEY=topsecretvalue1234\n")
+    (root / "samples" / "s" / "src" / "A.cbl").write_text("       PROGRAM-ID. A.\n")
+    (root / "samples" / "s" / "src" / "B.cbl").symlink_to("../../../.env")
+    monkeypatch.setenv("DIOCLE_REPO", str(root))
+    assert "PROGRAM-ID" in server.read_resource("diocle://samples/s/src/A.cbl")["text"]
+    with pytest.raises(server.ToolError):
+        server.read_resource("diocle://samples/s/src/B.cbl")
+    (root / "samples" / "s" / "copybooks").symlink_to(root)  # a directory symlink out of the sample is not followed either
+    with pytest.raises(server.ToolError):
+        server.read_resource("diocle://samples/s/copybooks/.env")
+
+
+def test_redirects_are_refused():
+    class R(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(302); self.send_header("Location", "http://127.0.0.1:1/x"); self.end_headers()
+        def log_message(self, *a): pass
+    srv = HTTPServer(("127.0.0.1", 0), R); threading.Thread(target=srv.serve_forever, daemon=True).start()
+    os.environ["DIOCLE_API_BASE"] = f"http://127.0.0.1:{srv.server_port}"
+    try:
+        err, text = call("diocle_live_run", {"run_id": "some-run"})
+        assert err and "302" in text
+    finally:
+        del os.environ["DIOCLE_API_BASE"]; srv.shutdown()
+
+
+def test_timeout_kills_process_group(tmp_path):
+    marker = tmp_path / "alive"
+    (tmp_path / "grand.py").write_text(f"import time\ntime.sleep(2)\nopen({str(marker)!r}, 'w').write('x')\n")
+    (tmp_path / "child.py").write_text(f"import subprocess, sys, time\nsubprocess.Popen([sys.executable, {str(tmp_path / 'grand.py')!r}])\ntime.sleep(30)\n")
+    with pytest.raises(server.ToolError, match="timed out"):
+        server.run_argv([sys.executable, str(tmp_path / "child.py")], tmp_path, dict(os.environ), 1)
+    import time; time.sleep(3)
+    assert not marker.exists()  # the grandchild was killed with the group
+
+
+def test_install_script_update_path_with_compact_json(tmp_path):
+    fake = tmp_path / "muse"
+    fake.write_text('#!/bin/sh\necho "$@" >> "$CALLS"\nif [ "$1 $2" = "plugins list" ]; then echo \'{"plugins":[{"record":{"id":"diocle","enabled":true}}]}\'; fi\nexit 0\n')
+    fake.chmod(0o755)
+    env = {**os.environ, "MUSE": str(fake), "CALLS": str(tmp_path / "calls"), "XDG_DATA_HOME": str(tmp_path / "d"), "XDG_CONFIG_HOME": str(tmp_path / "c")}
+    r = subprocess.run(["sh", str(HERE.parent / "install.sh")], env=env, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    calls = (tmp_path / "calls").read_text()
+    assert "plugins update diocle" in calls and "plugins install" not in calls
+    assert "approve diocle:mcp_server:diocle" in r.stdout
+    assert not (tmp_path / "c" / "diocle-muse" / "allow-convert").exists()
