@@ -22,12 +22,12 @@ done
 PY=${PYTHON:-python3}
 # One venv per service at services/<s>/.venv (gitignored), as deploy/Dockerfile.api builds them: the API launches the
 # verifier and converter through their own venvs, and some of its tests need those paths to exist. Every venv gets the
-# packages it imports (editable), so verifier -> analyzer and converter -> verifier -> analyzer resolve.
+# packages it imports (editable; the verifier's tests also import diocle_converter), so verifier -> analyzer and converter -> verifier -> analyzer resolve.
 if [ "$install" = 1 ]; then
   "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' || { echo "Python 3.11+ is required (found: $("$PY" --version 2>&1)); set PYTHON=/path/to/python3.12" >&2; exit 1; }
   A="-e $root/services/analyzer"; V="$A -e $root/services/verifier"; C="$V -e $root/services/converter"; P="$C -e $root/services/api"
   for s in analyzer verifier converter api; do
-    case $s in analyzer) pk=$A ;; verifier) pk=$V ;; converter) pk=$C ;; api) pk=$P ;; esac
+    case $s in analyzer) pk=$A ;; verifier) pk=$C ;; converter) pk=$C ;; api) pk=$P ;; esac
     echo "== installing $s into services/$s/.venv"
     [ -x "$root/services/$s/.venv/bin/python" ] || "$PY" -m venv "$root/services/$s/.venv" || exit 1
     # shellcheck disable=SC2086
