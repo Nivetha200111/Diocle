@@ -1,6 +1,6 @@
 # Headline measurement: Muse Spark alone vs. with Diocle
 
-> **Status: PLAN (pre-registration), written and committed before any model call. Results are appended below after the run.**
+> **Status: COMPLETE. The plan below was written and committed before any model call; results and deviations are appended at the end ("Results", "Deviations").**
 > All programs are **synthetic**. Nothing here is a benchmark of general COBOL.
 
 ## Question
@@ -61,7 +61,7 @@ and re-certified counts as certified). Reported: certified or not, repair rounds
 calls, estimated cost, wall-clock time. "Looks right, is wrong": a run whose Java passed the held-out check with zero
 repair rounds and was then broken by the breaker is reported explicitly.
 
-**(c) Not planned.** Applying the breaker to the (a) first translations is out of budget scope and is not run.
+**(c) Added after the main arm, by the owner's decision (see Deviations).** The breaker is applied to one fresh first translation per program that passed the 1,000 held-out inputs, to count translations that pass the test and are still wrong. Script: `eval/headline_attack.py`.
 
 ## Cost cap and stopping rule
 Hard cap **$1.00** real spend for everything, owner-approved. Cost is the sum of the per-call token usage
@@ -81,3 +81,82 @@ the order of the table. Per program: the K=3 first translations, then the full r
 ## Script
 `eval/headline.py` (sequential, resumable): writes `eval/results-headline.json` after every unit of work and prints the
 running spend.
+
+
+## Results
+
+Raw data: `eval/results-headline.json` (main arm, merged from three shards) and `eval/results-headline-attack.json`
+(attack arm). Total real spend about **$0.62** (main arm $0.47, attack arm $0.15), under the $1.00 cap. Estimated from
+list prices. n is small (15 programs, one model, one day, synthetic programs): read these as a measurement of this set,
+not as a general rate.
+
+### Main arm: first translation vs. full Diocle run
+
+| Program | Status | First try, passes of 3 | Diocle run | Repair rounds | Breaker: broke / tried |
+|---|---|---|---|---|---|
+| ACCTMTCH | seen | 3/3 | certified | 0 | 0 / 0 |
+| ACCTRPT | seen | 1/3 | certified | 1 | 0 / 0 |
+| BRNCHSUM | unseen | 3/3 | certified | 0 | 0 / 8 |
+| CHQCLR | unseen | 3/3 | **not certified** | 2 | 12 / 24 |
+| DAYCTRL | seen | 3/3 | certified | 1 | 2 / 18 (fixed) |
+| FEEPOST | seen | 3/3 | certified | 0 | 0 / 12 |
+| FEESCHD | seen | 3/3 | certified | 0 | 0 / 36 |
+| FXCONV | unseen | 3/3 | certified | 0 | 0 / 36 |
+| INTACCR | seen | 1/3 | certified | 1 | 1 / 32 (fixed) |
+| LDGRWRT | seen | 1/3 | certified | 1 | 0 / 0 |
+| LOANAMRT | unseen | 3/3 | certified | 0 | 0 / 36 |
+| LOYWAIVE | seen | 3/3 | certified | 0 | 0 / 24 |
+| PKDPOST | seen | 1/3 | certified | 2 | 1 / 11 (fixed) |
+| TXNLIST | seen | 3/3 | certified | 0 | 0 / 0 |
+| TXNPOST | seen | 3/3 | certified | 0 | 0 / 21 |
+
+- **First translations passing 1,000 held-out inputs: 37 of 45 (82%).** All 15 programs passed at least once in three
+  tries; 11 passed all three; four (ACCTRPT, INTACCR, LDGRWRT, PKDPOST) passed one of three.
+- **Unseen programs (4): 12 of 12 first translations passed. Seen programs (11): 25 of 33.** The unseen set is small and
+  was not harder for the model on this test; do not read the seen/unseen difference as evidence of overfitting either way.
+- **Full Diocle run: 14 of 15 certified.** It certified all four programs the model got wrong on some first tries.
+  **CHQCLR was not certified**: the breaker broke it on 12 of 24 inputs, one repair cycle did not fix it within the caps.
+  We report it as it came out.
+- Model spend: first translations about $0.18 in total, full runs about $0.29 in total.
+
+### Attack arm: do translations that pass the held-out test survive an attacker?
+
+15 programs; 12 can be attacked (the breaker designs single-file records, so ACCTMTCH, ACCTRPT and TXNLIST are not
+applicable). One fresh first translation per program, 1,000 held-out inputs (seed 8801), then the breaker.
+
+| Outcome | Programs | Count |
+|---|---|---|
+| Failed the 1,000 held-out inputs already | LDGRWRT, PKDPOST | 2 |
+| Passed, and the breaker found no breaking input | BRNCHSUM, FEEPOST, FEESCHD, FXCONV, LOANAMRT, LOYWAIVE | 6 |
+| **Passed, then broken by the breaker** | CHQCLR, DAYCTRL, INTACCR, TXNPOST | **4** |
+
+**Headline: of 10 attackable translations that passed 1,000 held-out inputs, 4 were still wrong when attacked
+(40%).** Among the 4 unseen programs the breaker broke 1 (CHQCLR); among the 6 seen programs it broke 3.
+
+What this does and does not show:
+- It shows that passing a large random held-out test is not the same as being correct for these programs. The breaker's
+  inputs were designed by Muse Spark to attack risky operations and are checked against GnuCOBOL.
+- It does not say Diocle "catches them all": the breaker is itself limited (single-file programs only, a cap on rounds
+  and inputs), and CHQCLR stayed uncertified. A program the breaker cannot break is not proven correct.
+- The 4 programs the breaker broke are on the 82% side of the first-try number: three of them passed all 3 first-try
+  trials. The two numbers (82% of first translations passing the test; 6 of 10 attackable test-passers surviving the attack)
+  are different measures on overlapping program sets; do not multiply or merge them.
+- Mutation testing (see README) points the same way for some programs: the held-out inputs left many seeded faults
+  undetected on the certified CHQCLR run (9 of 40 detected in the first mutation run). That analysis is separate and is not part of
+  this measurement.
+
+## Deviations from the plan (appended after the run, labelled)
+
+1. **Step (c) was added.** The plan said it was out of scope. After the main arm the owner approved it within the same
+   $1.00 cap; it was run and is reported above as its own arm.
+2. **ACCTRPT (db2-account-report) was excluded and re-run once for an infrastructure defect.** The sqlite-jdbc driver
+   was missing in the measurement checkout, so every ACCTRPT test ran 0 of 0 cases. The first-try units and the full run
+   (about $0.07 of spend, one run that spent 3 repair rounds on a 0-case result) were excluded and logged in
+   `infrastructureLog` in `eval/results-headline.json`, with the excluded record kept. The driver was installed (sha256
+   in the log) and ACCTRPT was re-run once; the table uses the re-run. Spend for the excluded units counts toward the total.
+   ACCTRPT first try after the re-run: 1 of 3 passed. In the second trial the harness recorded 0 test cases (not a model
+   result we can interpret), so for this SQL program the "1/3" may partly reflect the harness, not only the model.
+3. **Sharding.** To save time the work ran in three parallel shards and was merged (`--shard I/N`, `--merge`); this does
+   not change what each unit did.
+4. **Base commit.** The plan named base commit `1b17381`; the units ran in a worktree at that commit plus the eval scripts in this branch. Later changes to `main` (keyed files, mutation testing, minimization, voice question) are not in the measured code.
+5. **No re-runs for a better result.** Apart from item 2, no unit was repeated.

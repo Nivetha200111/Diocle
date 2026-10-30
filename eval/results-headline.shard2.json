@@ -1,0 +1,644 @@
+{
+  "plan": "docs/MEASUREMENT.md",
+  "model": "muse-spark-1.3-contributor",
+  "heldOutSeed": 8801,
+  "heldOutCases": 1000,
+  "k": 3,
+  "hardCapUsd": 1.0,
+  "stopUsd": 0.85,
+  "memory": false,
+  "guard": "policy only",
+  "infrastructureLog": [
+    {
+      "unit": "samples/db2-account-report (ACCTRPT): first-try 1-3 and the full run",
+      "reason": "sqlite-jdbc.jar was missing in the measurement checkout, so no test ran (0 of 0 cases in every unit); this is an environment defect, not a model result. Excluded and re-run once with the driver installed (sha256 4a483272...).",
+      "rerun": true,
+      "excludedRecord": {
+        "firstTry": [
+          {
+            "trial": 1,
+            "seed": 8801,
+            "cases": 1000,
+            "translated": true,
+            "passed": false,
+            "total": 0,
+            "failedCases": 0,
+            "compiled": false,
+            "exitCodeMatch": false,
+            "stdoutMatch": true,
+            "costUsd": 0.004417,
+            "calls": 1,
+            "inputTokens": 5216,
+            "outputTokens": 19477,
+            "seconds": 198.6
+          },
+          {
+            "trial": 2,
+            "seed": 8801,
+            "cases": 1000,
+            "translated": true,
+            "passed": false,
+            "total": 0,
+            "failedCases": 0,
+            "compiled": false,
+            "exitCodeMatch": false,
+            "stdoutMatch": true,
+            "costUsd": 0.00519,
+            "calls": 1,
+            "inputTokens": 5216,
+            "outputTokens": 23340,
+            "seconds": 236.1
+          },
+          {
+            "trial": 3,
+            "seed": 8801,
+            "cases": 1000,
+            "translated": true,
+            "passed": false,
+            "total": 0,
+            "failedCases": 0,
+            "compiled": false,
+            "exitCodeMatch": false,
+            "stdoutMatch": true,
+            "costUsd": 0.003006,
+            "calls": 1,
+            "inputTokens": 5216,
+            "outputTokens": 14921,
+            "seconds": 152.1
+          }
+        ],
+        "diocle": {
+          "runId": "db2-account-report-20261030-175351",
+          "certified": false,
+          "status": "not-certified",
+          "repairRounds": 3,
+          "initial200": {
+            "passed": 0,
+            "total": 0
+          },
+          "costUsd": 0.05318,
+          "minutes": 47.5
+        }
+      }
+    }
+  ],
+  "programs": {
+    "BRNCHSUM": {
+      "directory": "eval/samples/brnchsum",
+      "status": "unseen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 766,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004755,
+          "calls": 1,
+          "inputTokens": 1788,
+          "outputTokens": 22880,
+          "seconds": 207.1
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 766,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004877,
+          "calls": 1,
+          "inputTokens": 1788,
+          "outputTokens": 23489,
+          "seconds": 214.1
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 766,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004995,
+          "calls": 1,
+          "inputTokens": 1788,
+          "outputTokens": 24080,
+          "seconds": 229.3
+        }
+      ],
+      "diocle": {
+        "runId": "brnchsum-20261030-154759",
+        "exitCode": 0,
+        "certified": true,
+        "status": "certified",
+        "error": null,
+        "repairRounds": 0,
+        "initial200": {
+          "passed": 155,
+          "total": 155
+        },
+        "breaker": {
+          "rounds": 3,
+          "tried": 8,
+          "broke": 0,
+          "repairCycles": 0,
+          "fixed": false
+        },
+        "modelCalls": 4,
+        "costUsd": 0.018242,
+        "inputTokens": 14116,
+        "outputTokens": 87961,
+        "runCapUsd": 0.25,
+        "minutes": 16.4,
+        "stdoutTail": null
+      }
+    },
+    "CHQCLR": {
+      "directory": "eval/samples/chqclr",
+      "status": "unseen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1004,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004101,
+          "calls": 1,
+          "inputTokens": 1739,
+          "outputTokens": 19634,
+          "seconds": 218.5
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1004,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004439,
+          "calls": 1,
+          "inputTokens": 1739,
+          "outputTokens": 21326,
+          "seconds": 241.4
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1004,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.005938,
+          "calls": 1,
+          "inputTokens": 1739,
+          "outputTokens": 28822,
+          "seconds": 306.3
+        }
+      ],
+      "diocle": null
+    },
+    "FXCONV": {
+      "directory": "eval/samples/fxconv",
+      "status": "unseen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1016,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.005789,
+          "calls": 1,
+          "inputTokens": 1673,
+          "outputTokens": 28106,
+          "seconds": 306.5
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1016,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.00457,
+          "calls": 1,
+          "inputTokens": 1673,
+          "outputTokens": 22821,
+          "seconds": 259.2
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1016,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004225,
+          "calls": 1,
+          "inputTokens": 1673,
+          "outputTokens": 21097,
+          "seconds": 233.6
+        }
+      ],
+      "diocle": {
+        "runId": "fxconv-20261030-164321",
+        "exitCode": 0,
+        "certified": true,
+        "status": "certified",
+        "error": null,
+        "repairRounds": 0,
+        "initial200": {
+          "passed": 216,
+          "total": 216
+        },
+        "breaker": {
+          "rounds": 3,
+          "tried": 36,
+          "broke": 0,
+          "repairCycles": 0,
+          "fixed": false
+        },
+        "modelCalls": 4,
+        "costUsd": 0.018978,
+        "inputTokens": 14831,
+        "outputTokens": 89971,
+        "runCapUsd": 0.25,
+        "minutes": 16.5,
+        "stdoutTail": null
+      }
+    },
+    "TXNPOST": {
+      "directory": "samples/txn-posting",
+      "status": "seen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1032,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.003635,
+          "calls": 1,
+          "inputTokens": 2428,
+          "outputTokens": 16959,
+          "seconds": 174.9
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1032,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.003482,
+          "calls": 1,
+          "inputTokens": 2428,
+          "outputTokens": 17382,
+          "seconds": 188.5
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1032,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.003105,
+          "calls": 1,
+          "inputTokens": 2428,
+          "outputTokens": 15496,
+          "seconds": 163.1
+        }
+      ],
+      "diocle": {
+        "runId": "txn-posting-20261030-170837",
+        "exitCode": 0,
+        "certified": true,
+        "status": "certified",
+        "error": null,
+        "repairRounds": 0,
+        "initial200": {
+          "passed": 232,
+          "total": 232
+        },
+        "breaker": {
+          "rounds": 2,
+          "tried": 21,
+          "broke": 0,
+          "repairCycles": 0,
+          "fixed": false
+        },
+        "modelCalls": 4,
+        "costUsd": 0.019667,
+        "inputTokens": 19989,
+        "outputTokens": 93408,
+        "runCapUsd": 0.25,
+        "minutes": 17.8,
+        "stdoutTail": null
+      }
+    },
+    "LDGRWRT": {
+      "directory": "samples/ledger-rewrite",
+      "status": "seen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": false,
+          "total": 1021,
+          "failedCases": 346,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": false,
+          "costUsd": 0.003142,
+          "calls": 1,
+          "inputTokens": 1766,
+          "outputTokens": 14828,
+          "seconds": 166.7
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": false,
+          "total": 1021,
+          "failedCases": 346,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": false,
+          "costUsd": 0.004342,
+          "calls": 1,
+          "inputTokens": 1766,
+          "outputTokens": 20829,
+          "seconds": 206.1
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1021,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.003532,
+          "calls": 1,
+          "inputTokens": 1766,
+          "outputTokens": 17585,
+          "seconds": 180.5
+        }
+      ],
+      "diocle": {
+        "runId": "ledger-rewrite-20261030-173540",
+        "exitCode": 0,
+        "certified": true,
+        "status": "certified",
+        "error": null,
+        "repairRounds": 1,
+        "initial200": {
+          "passed": 143,
+          "total": 221
+        },
+        "breaker": {
+          "rounds": 0,
+          "tried": 0,
+          "broke": 0,
+          "repairCycles": 0,
+          "fixed": false
+        },
+        "modelCalls": 7,
+        "costUsd": 0.011018,
+        "inputTokens": 40608,
+        "outputTokens": 46673,
+        "runCapUsd": 0.25,
+        "minutes": 8.4,
+        "stdoutTail": null
+      }
+    },
+    "ACCTRPT": {
+      "directory": "samples/db2-account-report",
+      "status": "seen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1358,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.004753,
+          "calls": 1,
+          "inputTokens": 5216,
+          "outputTokens": 21158,
+          "seconds": 205.2
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": false,
+          "total": 0,
+          "failedCases": 0,
+          "compiled": false,
+          "exitCodeMatch": false,
+          "stdoutMatch": true,
+          "costUsd": 0.004766,
+          "calls": 1,
+          "inputTokens": 5216,
+          "outputTokens": 23722,
+          "seconds": 256.3
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": false,
+          "total": 1358,
+          "failedCases": 670,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.003468,
+          "calls": 1,
+          "inputTokens": 5216,
+          "outputTokens": 17235,
+          "seconds": 203.5
+        }
+      ],
+      "diocle": {
+        "runId": "db2-account-report-20261030-191053",
+        "exitCode": 0,
+        "certified": true,
+        "status": "certified",
+        "error": null,
+        "repairRounds": 1,
+        "initial200": {
+          "passed": 0,
+          "total": 0
+        },
+        "breaker": {
+          "rounds": 0,
+          "tried": 0,
+          "broke": 0,
+          "repairCycles": 0,
+          "fixed": false
+        },
+        "modelCalls": 21,
+        "costUsd": 0.027687,
+        "inputTokens": 379009,
+        "outputTokens": 108538,
+        "runCapUsd": 0.25,
+        "minutes": 21.5,
+        "stdoutTail": null
+      }
+    },
+    "LOYWAIVE": {
+      "directory": "samples/loyalty-waiver",
+      "status": "seen",
+      "firstTry": [
+        {
+          "trial": 1,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1013,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.001977,
+          "calls": 1,
+          "inputTokens": 1314,
+          "outputTokens": 9226,
+          "seconds": 104.5
+        },
+        {
+          "trial": 2,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1013,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.002717,
+          "calls": 1,
+          "inputTokens": 1314,
+          "outputTokens": 13547,
+          "seconds": 150.9
+        },
+        {
+          "trial": 3,
+          "seed": 8801,
+          "cases": 1000,
+          "translated": true,
+          "passed": true,
+          "total": 1013,
+          "failedCases": 0,
+          "compiled": true,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "costUsd": 0.001707,
+          "calls": 1,
+          "inputTokens": 1314,
+          "outputTokens": 7877,
+          "seconds": 91.9
+        }
+      ],
+      "diocle": {
+        "runId": "loyalty-waiver-20261030-184708",
+        "exitCode": 0,
+        "certified": true,
+        "status": "certified",
+        "error": null,
+        "repairRounds": 0,
+        "initial200": {
+          "passed": 213,
+          "total": 213
+        },
+        "breaker": {
+          "rounds": 2,
+          "tried": 24,
+          "broke": 0,
+          "repairCycles": 0,
+          "fixed": false
+        },
+        "modelCalls": 4,
+        "costUsd": 0.009145,
+        "inputTokens": 10177,
+        "outputTokens": 42251,
+        "runCapUsd": 0.25,
+        "minutes": 8.3,
+        "stdoutTail": null
+      }
+    }
+  },
+  "spentUsd": 0.189052
+}

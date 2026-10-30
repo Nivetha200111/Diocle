@@ -136,29 +136,70 @@ def full_run(directory: str, budget_left: float) -> dict:
             "stdoutTail": proc.stdout.strip().splitlines()[-3:] if not meta else None}
 
 
+def merge() -> int:
+    """Combine the shard files (and the sequential file) into eval/results-headline.json: per program, the most complete record wins."""
+    merged = json.loads(OUT.read_text()) if OUT.exists() else None
+    for f in sorted(OUT.parent.glob("results-headline.shard*.json")):
+        d = json.loads(f.read_text())
+        if merged is None:
+            merged = d
+            continue
+        known = merged.get("infrastructureLog", [])
+        merged["infrastructureLog"] = known + [x for x in d.get("infrastructureLog", []) if x not in known]
+        for name, r in d["programs"].items():
+            m = merged["programs"].get(name)
+            if m is None or (len(r["firstTry"]), r["diocle"] is not None) > (len(m["firstTry"]), m["diocle"] is not None):
+                merged["programs"][name] = r
+    if merged is None:
+        print("nothing to merge", flush=True)
+        return 1
+    save(merged)
+    print(f"merged: {len(merged['programs'])} programs, spend ${merged['spentUsd']:.4f}", flush=True)
+    return 0
+
+
 def main() -> int:
+    global OUT
+    import argparse
+    ap = argparse.ArgumentParser(description="Headline measurement; --shard I/N runs every N-th program (parallel workers), --merge combines the shard files.")
+    ap.add_argument("--shard", help="I/N: only programs with index %% N == I; progress goes to results-headline.shardI.json")
+    ap.add_argument("--merge", action="store_true")
+    args = ap.parse_args()
+    if args.merge:
+        return merge()
+    todo, limit = PROGRAMS, STOP_USD
+    if args.shard:
+        i, n = (int(x) for x in args.shard.split("/"))
+        base = OUT
+        OUT = base.with_name(f"results-headline.shard{i}.json")
+        if not OUT.exists() and base.exists():
+            OUT.write_text(base.read_text())  # start from the progress made before sharding
+        todo = [p for k, p in enumerate(PROGRAMS) if k % n == i]
+        # Each worker starts from the same base file (its spend is counted in every copy): split only what is left of the stop line.
+        done = spent(json.loads(base.read_text())) if base.exists() else 0.0
+        limit = done + (STOP_USD - done) / n  # the merged total is checked after the merge
     results = json.loads(OUT.read_text()) if OUT.exists() else {
         "plan": "docs/MEASUREMENT.md", "model": "muse-spark-1.3-contributor", "heldOutSeed": HELD_OUT_SEED,
         "heldOutCases": HELD_OUT_CASES, "k": K, "hardCapUsd": HARD_CAP_USD, "stopUsd": STOP_USD, "memory": False,
         "guard": "policy only", "infrastructureLog": [], "programs": {}}
-    for name, directory, status in PROGRAMS:
+    for name, directory, status in todo:
         r = results["programs"].setdefault(name, {"directory": directory, "status": status, "firstTry": [], "diocle": None})
         for trial in range(1, K + 1):
             if len(r["firstTry"]) >= trial:
                 continue
-            if spent(results) >= STOP_USD:
+            if spent(results) >= limit:
                 break
             r["firstTry"].append(first_try(directory, trial, results["infrastructureLog"]))
             save(results)
             t = r["firstTry"][-1]
             print(f"{name} first-try {trial}: passed={t.get('passed')} ${t.get('costUsd')} | spend ${results['spentUsd']:.4f}", flush=True)
-        if r["diocle"] is None and spent(results) < STOP_USD:
+        if r["diocle"] is None and spent(results) < limit:
             r["diocle"] = full_run(directory, HARD_CAP_USD - spent(results) - 0.01)
             save(results)
             d = r["diocle"]
             print(f"{name} DIOCLE: certified={d['certified']} rounds={d['repairRounds']} ${d['costUsd']} {d['minutes']}min | spend ${results['spentUsd']:.4f}", flush=True)
-        if spent(results) >= STOP_USD:
-            print(f"stop: spend ${spent(results):.4f} reached ${STOP_USD}; programs not reached stay unrun", flush=True)
+        if spent(results) >= limit:
+            print(f"stop: spend ${spent(results):.4f} reached ${limit:.2f}; programs not reached stay unrun", flush=True)
             break
     save(results)
     return 0

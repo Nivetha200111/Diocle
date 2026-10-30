@@ -6,6 +6,13 @@
 
 Diocle is a verification layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark converts COBOL to Java and repairs it. Nothing is accepted on the model's word: the original program runs next to the Java on the same inputs, and every output field, byte, exit code and display line must match, including on 1,000 held-out inputs the agent never saw. The result ships as a pull request with a certificate, and the target repository's CI repeats the test on fresh inputs.
 
+## Measured on 15 synthetic programs
+
+Muse Spark's first translation passed 1,000 held-out inputs for 37 of 45 attempts (82%). But when the breaker agent attacked the
+translations that passed, 4 of 10 attackable ones were still wrong (CHQCLR, DAYCTRL, INTACCR, TXNPOST). A full Diocle run certified 14 of
+15 programs; CHQCLR was not certified. Small sample, one model, synthetic programs, about $0.62 of spend; the method, per-program
+table, caveats and deviations are in [docs/MEASUREMENT.md](docs/MEASUREMENT.md).
+
 ## Why it matters
 
 COBOL still runs about 43% of US banking systems and 95% of ATM swipes, with some 220 billion lines in use
