@@ -38,7 +38,7 @@ flowchart LR
    an independent cross-check and a guard add a second look. Models only propose. **A model never certifies.**
 3. **Verifier.** GnuCOBOL compiles and runs the original; the Java runs on the same generated inputs; the outputs are compared byte for
    byte, then again on fresh held-out inputs. Only this step can certify, and it runs inside the sandbox.
-4. **Output.** A equivalence report (with the assurance label, diffs and cost) returns to the API and the web app, and can ship as a pull request
+4. **Output.** An equivalence report (with the assurance label, diffs and cost) returns to the API and the web app, and can ship as a pull request
    that the target repository's own CI re-checks.
 
 ## Trust boundaries
