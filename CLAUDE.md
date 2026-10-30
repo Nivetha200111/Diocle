@@ -60,6 +60,7 @@ contract first (rule 2), with tests, README "Not supported yet" updated, and a r
    into SQLite and write them back byte-identical. Fulfils the project goal above.
 4. **DB2 / EXEC SQL (~1.5-2 days, only if time remains).** COBOL through an SQL precompiler against PostgreSQL, Java
    through JDBC, compare outputs and final table contents; needs a database inside the sandbox (security review).
+   **Status (Oct 30, branch `db2-verifier`, local, not pushed or deployed):** built as a stated SUBSET verified on a SQLite stand-in (our own precompiler + C shim, not GixSQL/PostgreSQL; decision and limits in `docs/HANDOFF.md` and `services/verifier/README.md`). Needs a sandbox image rebuild and `deploy/update-engine.sh`.
 
 Do not break what works: re-run the six Quillmark programs and the eval programs after each step, keep the live
 demo (CHQCLR, Try the sample) green, and freeze deploys after submission (Nov 4, 9 PM ET = Nov 5, 7:30 AM IST).

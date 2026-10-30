@@ -128,3 +128,69 @@ wired into the `diocle_verifier` CLI or `verify_sample()`'s auto-dispatch; call 
   different exit code), a no-output no-DISPLAY program that must not pass, and `reverify` rebuilding both shapes from a
   legacy checkout.
 - **Not done:** `verify_job` still compares output files only, so the analyzer keeps such programs out of JCL jobs.
+
+## Programs with EXEC SQL, on a stand-in database (report v0.9, subset `db2-subset-1`)
+
+**What is verified.** The COBOL with embedded SQL and the Java (JDBC) start from the SAME seeded database state plus the
+same generated input files. Afterwards their files, stdout, exit code AND the final contents of every table they touched
+are compared, value for value (`runs.database`, one `table:NAME` result per table with the first mismatching row and
+column). Only the verifier certifies; a model's opinion never counts. **The claim is exactly this: equivalent on this
+stand-in engine for these statements on the inputs tried. It is never "DB2-verified".**
+
+**The engine is SQLite, not DB2.** Both sides use it (the COBOL side through a small C shim, `dbsupport/dioshim.c`, linked
+into the GnuCOBOL executable; the Java side through the org.xerial JDBC driver), so what is compared is COBOL against Java
+on identical engine semantics. Numbers never touch floating point: DECIMAL(p,s) and the integer types are INTEGER columns
+holding value x 10^s (a CHECK keeps the value within p digits, SQLCODE -413), CHAR/VARCHAR are TEXT without trailing
+blanks (CHECK on length, -404).
+
+**Pipeline.** `sqlpre.py` rewrites each EXEC SQL statement into COBOL: host variables are MOVEd into work items (so
+GnuCOBOL itself does PIC / COMP-3 / sign / scale conversion exactly as for any MOVE), one `CALL "DIOSQL"`, and MOVEs
+of the results back. The statement table is generated C compiled in with the shim. `sqlseed.py`/`sqldb.py` seed one
+database file per side (identical content): tables come from `sample.json` `sql.tables`, rows are deterministic from the
+seed (boundary values, NULLs in nullable columns, unique primary keys), and key columns shared with an input file draw
+from that file's values (80% present, so found and not-found paths both run). `seedRows` (per table; the analyzer sets 0
+for tables the program only INSERTs into), `columnValues` and `keyLinks` in `sample.json` refine it. The Java is compiled
+with the verifier's own `DioSql.java` over any file of that name in the conversion.
+
+**The subset** (the analyzer's `sqlsubset.py` is the one definition; the precompiler refuses everything else):
+INCLUDE SQLCA (required) and INCLUDE of copybooks (DCLGEN); DECLARE TABLE (program or copybook) or CREATE TABLE in a
+`*.sql` file (no schema: refused, never guessed); host variables that are elementary items, with null indicators;
+`SELECT cols | COUNT(*) | SUM/MIN/MAX(col) INTO ... FROM t [WHERE] [ORDER BY]` (one table); `INSERT INTO t [(cols)] VALUES`
+(every column supplied); `UPDATE t SET col = value | col +/- value [WHERE]`; `DELETE FROM t [WHERE]`; cursors
+(`DECLARE c CURSOR FOR SELECT ... ORDER BY`, OPEN, FETCH INTO, CLOSE; ORDER BY is required since the row order must be
+defined); COMMIT; ROLLBACK; `WHENEVER ... CONTINUE`. Conditions: `col (= <> < > <= >=) host|literal`, `IS [NOT] NULL`, AND/OR,
+parentheses. Types: CHAR, VARCHAR, SMALLINT, INTEGER, BIGINT (18 digits), DECIMAL(p<=18,s). SQLCODE set: 0, +100,
+-803 duplicate key, -811 more than one row, -407, -404, -413, -305 (NULL without indicator), -501/-502 (cursor state), -901
+(other engine error), -904 (statement cap, `DIOCLE_SQL_MAX_STMTS`, default 500000, COBOL side). Only SQLCODE and SQLERRD(3) are set;
+a program that reads SQLSTATE, SQLERRM or SQLWARN is refused. COMMIT and ROLLBACK close every cursor; work still open at
+normal end is committed (what DB2 does in batch).
+
+**Refused, with the exact reason and line** (`notConvertibleReason`; convert-anyway still translates them as
+`compiled-unverified`): dynamic SQL (PREPARE, EXECUTE, DESCRIBE), stored procedures (CALL), JOINs, subselects, GROUP BY, DISTINCT,
+functions and special registers (CURRENT DATE, UPPER, ...), FETCH FIRST, WITH UR / isolation, FOR UPDATE, WHERE CURRENT OF,
+cursor WITH HOLD, multi-row FETCH/INSERT, SQLDA, LOB/DATE/TIMESTAMP/float columns, DEFAULT columns, schema-qualified names, group host
+variables, numeric-edited host variables. CICS and IMS are out of scope.
+
+**Known gaps between SQLite and DB2** (nothing here is claimed): DB2 type and precision rules, isolation and locking
+(no concurrent users here), -811/-305 corner cases beyond those listed, VARCHAR keeps trailing blanks in DB2 (here every
+character value is blank-trimmed), character collation (SQLite sorts bytes; z/OS sorts EBCDIC unless told otherwise),
+optimizer-dependent behaviour, DB2 error codes outside the small set above, SQL syntax DB2 accepts and SQLite does not (and
+the reverse). A program that is equivalent here can still behave differently on DB2.
+
+**Security model.** The engine runs inside the existing sandbox job: no network, no secrets, read-only image, the database
+is a file in the job's private tmpfs (`/tmp`, created per job, removed with the job's directory; the sandbox also deletes
+`/tmp` and kills every process after each job), rows are capped (2000 per table seeded), the database file is capped at 32 MB
+(`max_page_count`), the job has the existing time limit, and a statement cap exists on the COBOL side. Statement text in the
+generated C comes only from the parsed subset (escaped, identifiers validated), never from the program's raw text. Model-written
+Java can run any SQL SQLite allows (ATTACH, extensions are off in the driver) but is confined to the container and to /tmp. The
+JDBC driver and `libsqlite3-dev` are added to the image at BUILD time (`deploy/Dockerfile.api`); nothing is fetched at run time.
+Residual risks: the driver jar is downloaded at build (checked against Maven Central's published checksum unless
+`SQLITE_JDBC_SHA256` is pinned); the guard's Java policy is a speed bump, not a boundary (the sandbox is); the C shim is
+our code linked into the same process as untrusted COBOL (a hostile COBOL program can overwrite its memory, as it can in any
+program it compiles); the Java side has no statement counter (only the job timeout bounds it); SQLite and the JDBC driver
+bundle different SQLite versions (the report states the verifier's); never run in the real container (see HANDOFF).
+
+**Run locally.** GnuCOBOL 3.2, a JDK, a C compiler with the SQLite headers (`libsqlite3-dev`; macOS has them in the SDK), and
+the JDBC driver: `export DIOCLE_SQLITE_JDBC=/path/to/sqlite-jdbc.jar` (or put it in `services/verifier/lib/sqlite-jdbc.jar`,
+gitignored). Then `python -m diocle_verifier ../../samples/db2-account-report`. Tests: `tests/test_sql.py` (skipped when
+cobc, javac or the driver are missing).
