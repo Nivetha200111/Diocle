@@ -104,6 +104,26 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </section>
       </div>
 
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>A public course repository, imported by a visitor</h2>
+            <p>Not our code: the Open Mainframe Project&apos;s COBOL course, imported with the public import (delivery-20261030-022234).</p>
+          </div>
+        </div>
+        <ul className="home-list">
+          <li><strong>2 certified, 1 not, 21 skipped, under a cent of model spend ($0.0074).</strong> The programs are tiny teaching programs (13 to 23 lines) that print to the screen, so each is checked on one run of its output, not on a thousand inputs.</li>
+          <li><strong>CBL0013 and CBL0014 certified</strong>: the Java printed exactly what the COBOL printed, and the exit code matched.</li>
+          <li><strong>CBL0015 not certified, correctly:</strong> the program loops forever (<span className="mono">PERFORM UNTIL ALWAYS-TRUE = &apos;N&apos;</span>, and nothing sets it), so GnuCOBOL never finishes it. The engine reports this as a verifier failure; saying &quot;the program never ends&quot; is on the to-do list.</li>
+          <li><strong>11 skipped before any model spend:</strong> their originals do not compile under GnuCOBOL (<span className="mono">-std=ibm</span>), so there is nothing to compare against. The other 10 were skipped by the visitor limit of three programs.</li>
+        </ul>
+        <p className="home-pr">
+          Source: <a href="https://github.com/openmainframeproject/cobol-programming-course" target="_blank" rel="noreferrer">openmainframeproject/cobol-programming-course</a>,
+          licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a> by its authors
+          (the Open Mainframe Project community). We converted the programs to Java; the originals are unchanged in that repository.
+        </p>
+      </section>
+
       {runs === null ? <Skeleton rows={3} label="Loading this engine's runs" /> : (
         <section className="panel">
           <div className="panel-heading">

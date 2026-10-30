@@ -277,6 +277,12 @@ github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctl
 - Evaluation re-run done: 4/4 certified, memory off (docs/EVALUATION.md).
 - Prizes: post the vertical cut on **X** right after submitting (Most Viral counts engagement until Nov 8).
 
+### Oct 30: course-repo visitor import (live engine, after the deploy)
+- `delivery-20261030-022234` on https://github.com/openmainframeproject/cobol-programming-course (CC-BY-4.0, credited on /evidence):
+  the compile pre-check skipped 11 programs whose originals do not compile under `-std=ibm` (no model spend), the visitor cap skipped 10,
+  **CBL0013 and CBL0014 certified** (DISPLAY-only, one run each, 10 and 5 model calls), **CBL0015 not certified because it loops forever**
+  (the engine reports a verifier traceback; open work: report "the original never terminates" in plain words). Spend $0.0074.
+
 ## Open work (priority order)
 - **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (item 1 is built on the branch above, awaiting a reviewer pass,
   a merge and one real model run per new sample; dependencies: display-only and I-O programs,
