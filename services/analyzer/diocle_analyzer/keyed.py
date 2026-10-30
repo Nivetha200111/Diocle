@@ -96,7 +96,7 @@ def keyed_files(code: str, organizations: dict[str, str]) -> dict[str, dict]:
                     reason = f"{name}: READ PREVIOUS is not supported"
                 elif "LOCK" in tail or "KEPT" in tail:
                     reason = f"{name}: READ ... WITH LOCK is not supported"
-                elif "KEY" in tail:
+                elif _reads_by_key(tail):
                     reason = f"{name}: READ ... KEY IS (reading by an alternate key) is not supported"
             if reason:
                 out[name]["refusal"] = reason
@@ -119,6 +119,11 @@ def keyed_files(code: str, organizations: dict[str, str]) -> dict[str, dict]:
             if not out[name]["refusal"]:
                 out[name]["refusal"] = f"{name}: DECLARATIVES / USE AFTER ERROR procedures are not supported"
     return out
+
+
+def _reads_by_key(tail: list[str]) -> bool:
+    """READ f KEY [IS] x is an alternate-key read; INVALID KEY is the exception phrase, not a key clause."""
+    return any(w == "KEY" and (i == 0 or tail[i - 1] != "INVALID") for i, w in enumerate(tail))
 
 
 def _start_refusal(name: str, tail: list[str]) -> str | None:

@@ -163,3 +163,15 @@ def test_keyed_file_whose_select_is_not_recognised_is_refused(tmp_path):
 def test_copy_inside_file_control_is_refused(tmp_path):
     p = report_for(tmp_path, PROGRAM.replace("           SELECT OUT-FILE", "           COPY SELCOPY.\n           SELECT OUT-FILE"))
     assert not p["convertible"] and "FILE-CONTROL contains a COPY" in p["notConvertibleReason"]
+
+
+def test_read_invalid_key_is_not_an_alternate_key_read(tmp_path):
+    new = PROGRAM.replace("READ KF NEXT\n", "READ KF INVALID KEY MOVE SPACES TO K-DATA END-READ\n")
+    assert new != PROGRAM
+    p = report_for(tmp_path, new)
+    assert p["convertible"], p["notConvertibleReason"]
+
+
+def test_read_with_key_is_still_an_alternate_key_read(tmp_path):
+    p = report_for(tmp_path, PROGRAM.replace("READ KF NEXT", "READ KF KEY IS K-DATA"))
+    assert not p["convertible"] and "alternate key" in p["notConvertibleReason"]
