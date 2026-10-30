@@ -7,14 +7,16 @@ import os
 from fastapi import FastAPI, HTTPException, Request
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from fastapi.middleware.cors import CORSMiddleware
 
+import base64
+import binascii
 import hmac
 
 from fastapi import Header
 
-from . import livesamples, public
+from . import asks, livesamples, public
 from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
 from .deliver import GITHUB_URL, validate_create_target
 from .reverify import Busy, reverify_run
@@ -151,6 +153,14 @@ def _admin_ok(token: str | None) -> bool:
     return bool(token) and hmac.compare_digest(token.encode(), expected.encode())
 
 
+def _upload_ok(request: Request, token: str | None) -> bool:
+    """May this caller send its own audio clip to the ask button? Gated exactly like createTarget and convert-anyway: the admin
+    check must pass, and with neither DIOCLE_HOSTED nor DIOCLE_ADMIN_TOKEN set (a check that is open) only this machine may."""
+    if not _admin_ok(token):
+        return False
+    return _admin_configured() or _loopback(request)
+
+
 def _visitor(request: Request) -> str:
     """Best-effort visitor address: Vercel's forwarded header, else the connecting address."""
     for header in ("x-vercel-forwarded-for", "x-real-ip"):
@@ -160,11 +170,13 @@ def _visitor(request: Request) -> str:
 
 
 @app.get("/config")
-def config(http: Request) -> dict:
+def config(http: Request, x_diocle_admin: str | None = Header(default=None)) -> dict:
     return {"hosted": os.environ.get("DIOCLE_HOSTED") == "1",
             "startNeedsPasscode": bool(os.environ.get("DIOCLE_ADMIN_TOKEN")) or os.environ.get("DIOCLE_HOSTED") == "1",
             # `samples` (contracts/live-sample.schema.json $defs.status): the two live buttons, additive
-            "publicImports": {**public.status(), "samples": livesamples.status(_visitor(http))}}
+            # `asks` (contracts/voice-question.schema.json $defs.status): the ask button, additive
+            "publicImports": {**public.status(), "samples": livesamples.status(_visitor(http)),
+                              "asks": asks.status(_visitor(http), _upload_ok(http, x_diocle_admin))}}
 
 
 @app.post("/deliveries", status_code=202)
@@ -262,3 +274,70 @@ def printout_image():
     from .samplejob import PRINTOUT_IMAGE
 
     return FileResponse(PRINTOUT_IMAGE, media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
+
+
+class AskRequest(BaseModel):
+    """contracts/voice-question.schema.json $defs.request: two names from fixed lists and nothing else (any other field is refused)."""
+    model_config = ConfigDict(extra="forbid")
+    sample: Literal["interest-accrual", "loyalty-waiver"]
+    clip: Literal["fee-overdrawn", "waiver-tenure"]
+
+
+class AskUploadRequest(BaseModel):
+    """The local/admin path: a sample name and one WAV clip as base64 (at most 500 KB once decoded; validated by its bytes)."""
+    model_config = ConfigDict(extra="forbid")
+    sample: Literal["interest-accrual", "loyalty-waiver"]
+    audioBase64: str = Field(max_length=700_000)
+
+
+@app.post("/asks", status_code=202)
+def start_ask(request: AskRequest, http: Request) -> dict:
+    """The public "Ask the original program" button. No passcode: the request can carry only a bundled sample and a bundled clip
+    (voice-question.schema.json), under hard caps (asks.py); the claims run on the sandbox."""
+    try:
+        with start_lock:
+            return {"id": asks.start(request.sample, request.clip, _visitor(http))}
+    except livesamples.Refused as e:
+        raise HTTPException(status_code=e.status, detail=e.message)
+
+
+@app.post("/asks/upload", status_code=202)
+async def start_ask_upload(http: Request, x_diocle_admin: str | None = Header(default=None)) -> dict:
+    """Ask with a recorded or uploaded clip: local or admin only (never a public visitor). The gate runs BEFORE the body is
+    read, and a body over 1 MB is refused unread, so a visitor cannot make the engine hold a large upload."""
+    if not _upload_ok(http, x_diocle_admin):
+        if x_diocle_admin and not _admin_ok(x_diocle_admin):
+            raise HTTPException(status_code=403, detail="wrong passcode")
+        raise HTTPException(status_code=403, detail="asking with your own audio needs the admin passcode, or this machine's local engine")
+    try:
+        declared = int(http.headers.get("content-length", "-1"))
+    except ValueError:
+        declared = -1
+    if declared < 0 or declared > 1_000_000:
+        raise HTTPException(status_code=413, detail="the request is too large (audio clips are at most 500 KB)")
+    try:
+        request = AskUploadRequest.model_validate_json(await http.body())
+        wav = base64.b64decode(request.audioBase64, validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(status_code=400, detail="the request is not a sample name and base64 audio")
+    try:
+        with start_lock:
+            return {"id": asks.start_upload(request.sample, wav)}
+    except livesamples.Refused as e:
+        raise HTTPException(status_code=e.status, detail=e.message)
+
+
+@app.get("/asks/clips/{name}")
+def ask_clip(name: Literal["fee-overdrawn", "waiver-tenure"]):
+    """One of the two bundled synthetic-voice clips (the name is an enum, not a path)."""
+    from fastapi.responses import FileResponse
+
+    return FileResponse(asks.CLIPS_DIR / f"{name}.wav", media_type="audio/wav", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/asks/{job_id}")
+def ask_job(job_id: str) -> dict:
+    job = asks.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="job not found")
+    return job

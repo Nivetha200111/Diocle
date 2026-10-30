@@ -198,9 +198,9 @@ def run_cli(args) -> int:
     program = Program.load(args.sample_dir)
 
     def emit(stage, message, data=None):
-        print(f"stage {stage}: {message}", flush=True)
-        if args.out and data:
+        if args.out and data:  # first, so a reader that reacts to the line below finds the data
             (args.out / "ask-partial.json").write_text(json.dumps({"stage": stage, **data}) + "\n")
+        print(f"stage {stage}: {message}", flush=True)
 
     if args.out:
         args.out.mkdir(parents=True, exist_ok=True)

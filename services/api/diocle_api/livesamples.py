@@ -136,15 +136,16 @@ def convert_spent() -> float:
 
 
 def spent() -> float:
-    return convert_spent() + printout_spent()
+    from .asks import spent as asks_spent  # the ask button draws on the same pool
+    return convert_spent() + printout_spent() + asks_spent()
 
 
-def _pid_is_samplejob(pid: int) -> bool:
+def _pid_is_samplejob(pid: int, module: str = "diocle_api.samplejob") -> bool:
     try:
         cmdline = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
     except OSError:
         cmdline = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
-    return "diocle_api.samplejob" in cmdline
+    return module in cmdline
 
 
 def _alive(job: dict) -> bool:
@@ -184,7 +185,8 @@ def running_job() -> str | None:
         job.update(status="failed", error=job.get("error") or "interrupted: the engine restarted or the job was stopped",
                    finishedAt=datetime.now(timezone.utc).isoformat(timespec="seconds"))
         _write(job)
-    return None
+    from .asks import running_ask  # one job at a time across the live buttons and the ask button
+    return running_ask()
 
 
 def busy() -> str | None:

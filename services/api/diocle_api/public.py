@@ -52,9 +52,10 @@ def spent_today() -> float:
         if cost is None and usage.get("calls"):
             return float("inf")
         total += float(cost or 0)
+    from .asks import spent as asks_spent  # nor is the ask button's
     from .livesamples import printout_spent  # the printout button's spend is not in a run record
-    printouts = printout_spent()
-    return float("inf") if printouts == float("inf") else round(total + printouts, 4)
+    extra = printout_spent() + asks_spent()
+    return float("inf") if extra == float("inf") else round(total + extra, 4)
 
 
 def status() -> dict:
