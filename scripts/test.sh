@@ -4,8 +4,7 @@
 #   --fast        deselect tests marked `toolchain` (they run real cobc/javac/the SQLite JDBC jar); no cobc/javac needed.
 #   --web         also type-check apps/web (npm ci if node_modules is missing, then tsc --noEmit).
 #   --no-install  reuse the venv as is.
-# One venv at <repo>/.venv (gitignored) with the four packages installed editable, so verifier -> analyzer and
-# converter -> verifier -> analyzer imports resolve exactly as in deploy/Dockerfile.api. Fetches the pinned SQLite JDBC
+# One venv per service (services/<s>/.venv, gitignored), packages installed editable as in deploy/Dockerfile.api. Fetches the pinned SQLite JDBC
 # jar (scripts/fetch-sqlite-jdbc.sh). Every suite runs even if an earlier one fails; exit status is non-zero if any
 # failed, errored, or collected nothing. The `toolchain` marker is registered in each service's pyproject.toml and
 # applied in services/*/tests/conftest.py.
@@ -21,16 +20,23 @@ for a in "$@"; do
 done
 
 PY=${PYTHON:-python3}
-venv="$root/.venv"
+# One venv per service at services/<s>/.venv (gitignored), as deploy/Dockerfile.api builds them: the API launches the
+# verifier and converter through their own venvs, and some of its tests need those paths to exist. Every venv gets the
+# packages it imports (editable), so verifier -> analyzer and converter -> verifier -> analyzer resolve.
 if [ "$install" = 1 ]; then
   "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' || { echo "Python 3.11+ is required (found: $("$PY" --version 2>&1)); set PYTHON=/path/to/python3.12" >&2; exit 1; }
-  [ -x "$venv/bin/python" ] || "$PY" -m venv "$venv" || exit 1
-  echo "== installing the four packages (editable) into $venv"
-  "$venv/bin/pip" install -q --disable-pip-version-check \
-    -e "$root/services/analyzer" -e "$root/services/verifier" -e "$root/services/converter" -e "$root/services/api" \
-    pytest httpx jsonschema || { echo "pip install failed" >&2; exit 1; }
+  A="-e $root/services/analyzer"; V="$A -e $root/services/verifier"; C="$V -e $root/services/converter"; P="$C -e $root/services/api"
+  for s in analyzer verifier converter api; do
+    case $s in analyzer) pk=$A ;; verifier) pk=$V ;; converter) pk=$C ;; api) pk=$P ;; esac
+    echo "== installing $s into services/$s/.venv"
+    [ -x "$root/services/$s/.venv/bin/python" ] || "$PY" -m venv "$root/services/$s/.venv" || exit 1
+    # shellcheck disable=SC2086
+    "$root/services/$s/.venv/bin/pip" install -q --disable-pip-version-check $pk pytest httpx jsonschema || { echo "pip install failed for $s" >&2; exit 1; }
+  done
 fi
-[ -x "$venv/bin/python" ] || { echo "no venv at $venv; run without --no-install" >&2; exit 1; }
+for s in analyzer verifier converter api; do
+  [ -x "$root/services/$s/.venv/bin/python" ] || { echo "no venv at services/$s/.venv; run without --no-install" >&2; exit 1; }
+done
 
 marker=""
 if [ "$fast" = 0 ]; then
@@ -46,7 +52,7 @@ fail=0
 summary=""
 for s in analyzer verifier converter api; do
   echo "== $s"
-  out=$(cd "$root/services/$s" && "$venv/bin/python" -m pytest -q -rfE ${marker:+-m "$marker"} 2>&1)
+  out=$(cd "$root/services/$s" && "$root/services/$s/.venv/bin/python" -m pytest -q -rfE ${marker:+-m "$marker"} 2>&1)
   rc=$?
   printf '%s\n' "$out" | tail -25
   line=$(printf '%s\n' "$out" | tail -1)
