@@ -27,7 +27,7 @@ class DocCaps:
     """Hard limits (rule 10) of one verified-documentation run. Reasoning tokens bill as output, so output is capped."""
     max_calls: int = 2
     max_usd: float = 0.10
-    max_output_tokens: int = 6000
+    max_output_tokens: int = 9000
 
 
 def _tier_from_env(name: str, default: int = 2) -> int:
@@ -129,7 +129,7 @@ class Settings:
         Raises ValueError for a malformed cap; the caller skips the feature rather than failing the run."""
         load_dotenv()
         caps = DocCaps(max_calls=int(os.environ.get("DOC_MAX_CALLS", "2")), max_usd=float(os.environ.get("DOC_MAX_USD", "0.10")),
-                       max_output_tokens=int(os.environ.get("DOC_MAX_OUTPUT_TOKENS", "6000")))
+                       max_output_tokens=int(os.environ.get("DOC_MAX_OUTPUT_TOKENS", "9000")))
         if min(caps.max_calls, caps.max_output_tokens) < 1 or caps.max_usd <= 0:
             raise ValueError("DOC_* caps must be positive")
         return replace(

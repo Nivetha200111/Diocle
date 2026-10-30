@@ -4,6 +4,27 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
+## Verified documentation (Oct 30, branch `verified-docs`, local, NOT pushed or deployed; contracts `behavior-claims` v0.1, run v0.13)
+- **What:** a Muse Spark model writes a plain-English behaviour spec of a COBOL program as claims (one sentence + 1-3 examples: input
+  field values and expected output field values). The verifier runs the ORIGINAL COBOL (GnuCOBOL -std=ibm, sandbox `POST /claims` when
+  `DIOCLE_SANDBOX_URL` is set) on every example: claim `confirmed` (all examples matched), `refuted` (actual value kept) or `unchecked`
+  (invalid for the layout via the breaker's `explain`, or the program did not run). The model never decides. Wording: "confirmed on
+  the examples tried", never "proven". Single-file record programs only.
+- **Code:** `services/verifier/diocle_verifier/claims.py` (+ sandbox kind `claims`), `services/converter/diocle_converter/documenter.py`,
+  CLI `run|repair ... --document` and `document SAMPLE`, run.json `behavior`, `behavior.json`/`behavior.md`; API passes `behavior`
+  through; web `components/behavior-panel.tsx` (badges, expected vs actual, Markdown download). Caps: `DOC_MAX_CALLS` 2,
+  `DOC_MAX_USD` 0.10 (worst case of a call checked up front; unpriced model refused), `DOC_MAX_OUTPUT_TOKENS` 9000, `DOC_MODEL_*` optional.
+  Never fails a run (any problem becomes `skipped`/`unchecked`).
+- **Run it:** `cd services/converter && .venv/bin/python -m diocle_converter run ../../samples/interest-accrual --document --no-memory`
+  (or `document ../../samples/interest-accrual` for the spec alone, about a third of a cent).
+- **Real run (INTACCR, runs/interest-accrual-20261030-075737, local only):** certified 1027/1027; spec: 9 claims, 9 confirmed, 0 refuted,
+  0 unchecked, 17 examples run; 2 documenter calls (the first hit the then 6000-token output cap mid-JSON and was unusable, the retry
+  worked; cap raised to 9000), 7,425 in / 10,192 out tokens, about $0.0028 (whole run $0.0086). No refuted claim this time; that
+  shows the model's claims held on the examples it chose, not that the spec is complete.
+- **Owner steps:** engine redeploy AND sandbox image rebuild (new `/claims` endpoint; not exercised in a real container, only the in-process
+  handler), seed the run folder to the server volume, then check the Behaviour spec panel on that run.
+- **Not done:** multi-file / DISPLAY-only / I-O programs; the checked-in samples have no stored spec yet.
+
 ## Compile pre-check for visitor imports (Oct 30, branch `worktree-agent-aeaa1ad23cf3a94b1`, local, NOT pushed or deployed)
 - `diocle_verifier.precheck.compile_original` + sandbox `POST /compile` (contract `contracts/compile-check.schema.json` v0.1):
   compiles the ORIGINAL with the verification flags inside the sandbox (60 s job limit, 8 MB in, 16 KB out, paths stripped),

@@ -207,7 +207,7 @@ def test_document_settings_default_to_the_cheap_run_model_and_hard_caps(monkeypa
         monkeypatch.delenv(name, raising=False)
     s, caps = _settings().for_document()
     assert s.model == "muse-spark-1.3-contributor" and s.max_calls_per_run == 2
-    assert (caps.max_calls, caps.max_usd, caps.max_output_tokens) == (2, 0.10, 6000)
+    assert (caps.max_calls, caps.max_usd, caps.max_output_tokens) == (2, 0.10, 9000)
     monkeypatch.setenv("DOC_MODEL_ID", "muse-spark-1.3")
     monkeypatch.setenv("DOC_MAX_USD", "0")
     with pytest.raises(ValueError):

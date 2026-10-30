@@ -51,7 +51,7 @@ a claim is *confirmed* (every example matched), *refuted* (the COBOL produced so
 or *unchecked* (an example was invalid for the layout, or the program did not run). Wording: "confirmed on the examples tried",
 never "proven". Single-file record programs only. Hard caps: `DOC_MAX_CALLS` (2; the second call only retries an unusable
 answer), `DOC_MAX_USD` (0.10; a call whose worst case could pass it is refused before it is made), `DOC_MAX_OUTPUT_TOKENS`
-(6000, because reasoning tokens bill as output); an unpriced model is refused (fail closed). It never fails a run: any problem
+(9000, because reasoning tokens bill as output); an unpriced model is refused (fail closed). It never fails a run: any problem
 becomes `skipped`/`unchecked` with a reason. Output: run.json `behavior` (run contract v0.13, `contracts/behavior-claims.schema.json`),
 `behavior.json`, `behavior.md`; token use is logged in the run's usage.
 
