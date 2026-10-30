@@ -13,6 +13,7 @@ export const LINKS = {
   evidenceCi: "https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870",
   evidenceDoc: "https://github.com/Nivetha200111/Diocle/blob/main/docs/EVIDENCE.md",
   evaluation: "https://github.com/Nivetha200111/Diocle/blob/main/docs/EVALUATION.md",
+  measurement: "https://github.com/Nivetha200111/Diocle/blob/main/docs/MEASUREMENT.md",
   certified: "https://github.com/Nivetha200111/Diocle#what-certified-means-and-does-not",
   buildLog: "https://github.com/Nivetha200111/Diocle/blob/main/docs/BUILD_LOG.md",
 };

@@ -238,6 +238,25 @@ export default function HomeView({ go }: { go: Go }) {
         </div>
       </section>
 
+      <section className="panel home-headline" aria-label="Measured result">
+        <div className="panel-heading">
+          <div>
+            <h2>Measured: passing the test is not the same as being right</h2>
+            <p>15 synthetic COBOL programs, Muse Spark, GnuCOBOL as the judge</p>
+          </div>
+        </div>
+        <dl className="eff-grid home-evidence">
+          <div><dt>First translations passing 1,000 held-out inputs (3 tries x 15 programs)</dt><dd className="mono">37/45</dd></div>
+          <div><dt>Test-passing translations still wrong when attacked</dt><dd className="mono">4/10</dd></div>
+          <div><dt>Programs certified by a full Diocle run</dt><dd className="mono">14/15</dd></div>
+        </dl>
+        <p className="home-pr">
+          Four of the ten translations that passed the 1,000-input test (and could be attacked) were broken by the
+          breaker agent&apos;s designed inputs. One program, CHQCLR, was not certified. Small sample, one model, synthetic
+          programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>.
+        </p>
+      </section>
+
       <WhatIsCobol />
 
       <SampleHero go={go} />
