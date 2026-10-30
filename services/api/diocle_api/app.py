@@ -16,7 +16,7 @@ from fastapi import Header
 
 from . import livesamples, public
 from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
-from .deliver import GITHUB_URL
+from .deliver import GITHUB_URL, validate_create_target
 from .reverify import Busy, reverify_run
 from .runs import get_run, get_source, list_runs
 from .schema import run_schema
@@ -113,6 +113,14 @@ def delivery(delivery_id: str) -> dict:
 
 
 
+class CreateTarget(BaseModel):
+    """contracts/delivery.schema.json $defs.createTarget (validated again by deliver.validate_create_target)"""
+    model_config = {"extra": "forbid"}
+    name: str
+    owner: str | None = None
+    visibility: str = "private"
+
+
 class DeliveryRequest(BaseModel):
     """contracts/delivery.schema.json $defs.request"""
     legacy: str
@@ -120,6 +128,7 @@ class DeliveryRequest(BaseModel):
     parallel: bool = False
     breaker: bool = False
     convertAnyway: bool = False  # admin only (a visitor who sets it is refused): see deliver.py --convert-anyway
+    createTarget: CreateTarget | None = None  # admin only (a visitor who sets it is refused): see deliver.py --create-target
 
 
 def _admin_configured() -> bool:
@@ -163,6 +172,13 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
     """Start a delivery (spends model credits within the converter's caps). With the admin passcode: a pull request
     on an allowed target. Without it: a visitor import of any public repository, sandboxed, capped, no pull request."""
     admin = _admin_ok(x_diocle_admin)
+    if (request.createTarget is not None or request.target) and not admin:
+        raise HTTPException(status_code=403, detail="a target repository, or creating one, needs the admin passcode")
+    if request.createTarget is not None and request.target:
+        raise HTTPException(status_code=400, detail="pass either a target repository or createTarget, not both")
+    if request.createTarget is not None and not _admin_configured() and not _loopback(http):
+        # with neither DIOCLE_HOSTED nor DIOCLE_ADMIN_TOKEN set the admin check is open: only this machine may create repositories
+        raise HTTPException(status_code=403, detail="creating a repository over the network needs DIOCLE_ADMIN_TOKEN (or DIOCLE_HOSTED=1) on the engine")
     if request.convertAnyway and not admin:
         raise HTTPException(status_code=403, detail="convert anyway needs the admin passcode or the local command line")
     if request.convertAnyway and not _admin_configured() and not _loopback(http):
@@ -176,10 +192,11 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
     try:
         with start_lock:  # busy check, budget and the new record together: parallel requests start one job
             if admin:
-                if not request.target:
+                if not request.target and request.createTarget is None:
                     raise ValueError("a target repository is required")
                 return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker,
-                                               convert_anyway=request.convertAnyway)}
+                                               convert_anyway=request.convertAnyway,
+                                               create_target=validate_create_target(**request.createTarget.model_dump()) if request.createTarget else None)}
             if not GITHUB_URL.match(request.legacy.strip()):
                 raise ValueError(f"not a GitHub repository URL: {request.legacy!r}")
             busy = running_delivery() or livesamples.running_job()

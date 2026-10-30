@@ -208,9 +208,11 @@ def test_visitor_imports_need_the_sandbox_and_respect_limits(client, monkeypatch
     from diocle_api.runs import runs_dir
     fresh = lambda: shutil.rmtree(runs_dir() / "deliveries", ignore_errors=True)  # noqa: E731 (one start per second)
     fresh()
+    n = len(started)
     assert client.post("/deliveries", json={**body, "target": "https://github.com/someone-else/x"},
-                       headers=visitor).status_code == 202  # a visitor's target is ignored, never delivered to
-    assert "https://github.com/someone-else/x" not in started[-1][0]
+                       headers=visitor).status_code == 403  # a visitor's target is refused (it used to be ignored), never delivered to
+    assert len(started) == n
+    assert client.post("/deliveries", json=body, headers=visitor).status_code == 202  # still a normal import
     fresh()
     assert client.post("/deliveries", json=body, headers=visitor).status_code == 429  # per-visitor limit
     monkeypatch.setattr(public, "spent_today", lambda: 5.0)

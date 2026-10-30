@@ -161,12 +161,12 @@ def _mark_failed(delivery_id: str, error: str) -> None:
 
 
 def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: bool, public: bool = False,
-                   convert_anyway: bool = False) -> str:
+                   convert_anyway: bool = False, create_target: dict | None = None) -> str:
     """Start diocle_api.deliver in the background and return its id. One delivery at a time (rule 10).
     public: a visitor import (no target, any public repository, sandboxed, capped, no GitHub token)."""
     import sys
 
-    from .deliver import GITHUB_URL, target_repo
+    from .deliver import GITHUB_URL, target_repo, validate_create_target
 
     busy = running_delivery()
     if busy:
@@ -174,9 +174,14 @@ def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: boo
     for url in (legacy, target) if target else (legacy,):
         if not GITHUB_URL.match(url.strip()):
             raise ValueError(f"not a GitHub repository URL: {url!r}")
+    if create_target is not None:
+        if public or target:
+            raise ValueError("creating a target repository is admin only and excludes a target URL")
+        create_target = validate_create_target(create_target.get("name"), create_target.get("owner"),
+                                               create_target.get("visibility") or "private")
     if target:
         target_repo(target)  # owner allowlist; the analyzer applies the same list to the legacy repo
-    elif not public:
+    elif not public and create_target is None:
         raise ValueError("a target repository is required")
     if convert_anyway and public:
         raise ValueError("convert anyway is not available to visitor imports")
@@ -187,6 +192,9 @@ def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: boo
            "--id", delivery_id, *(["--public"] if public else []),
            *(["--parallel"] if parallel else []), *(["--breaker"] if breaker else []),
            *(["--convert-anyway"] if convert_anyway else [])]
+    if create_target:  # argv from validated fields only: list form, no shell
+        cmd += ["--create-target", create_target["name"], *(["--target-owner", create_target["owner"]] if create_target["owner"] else []),
+                *(["--target-public"] if create_target["visibility"] == "public" else [])]
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
     if not convert_anyway:  # the engine's own environment must never switch the mode on for a delivery that did not ask
         env.pop("DIOCLE_CONVERT_ANYWAY", None)
@@ -200,7 +208,8 @@ def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: boo
               "target": target.strip().rstrip("/").removesuffix(".git") if target else None, "public": public,
               "stage": "analyzing", "startedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "finishedAt": None, "error": None, "programs": [], "pullRequest": None,
-              **({"convertAnyway": True} if convert_anyway else {})}
+              **({"convertAnyway": True} if convert_anyway else {}),
+              **({"createTarget": create_target, "targetCreated": False} if create_target else {})}
     (log.parent / "delivery.json").write_text(json.dumps(record, indent=2) + "\n")
     proc = subprocess.Popen(cmd, cwd=Path(__file__).resolve().parents[1], stdout=log.open("w"),
                             stderr=subprocess.STDOUT, env=env, start_new_session=True)
