@@ -122,6 +122,9 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("--run-model-code", action="store_true", help="allow the differential to BUILD AND RUN the model-written "
                     "COBOL on this machine (macOS: under sandbox-exec). Off by default: without it the best status is "
                     "compiled-unchecked. Only for our own synthetic printouts on a dev machine.")
+    tr.add_argument("--sandbox", action="store_true", help="compile and run the transcription ONLY inside the sandbox container "
+                    "(DIOCLE_SANDBOX_URL, needs --against); nothing model-written is built or run on this machine. This is the "
+                    "public \"Read a printout\" path. Implies the differential.")
     repo = sub.add_parser("repo", help="the whole pipeline on a local directory or GitHub repository (see README, 'Running on "
                           "your own repo'); a thin wrapper over services/api diocle_api.deliver")
     repo.add_argument("source", help="local directory or https://github.com/<owner>/<repo>")
@@ -218,7 +221,18 @@ def _transcribe(args) -> int:
 
     settings = Settings.vision_from_env()
     print(f"vision model: {settings.model if settings else 'off (VISION_MODEL_ID is empty)'}")
-    record = transcribe(args.image, args.out, settings=settings, against=args.against, run_model_code=args.run_model_code)
+    gates = {}
+    if args.sandbox:
+        import os
+
+        if not os.environ.get("DIOCLE_SANDBOX_URL") or args.against is None:
+            print("--sandbox needs DIOCLE_SANDBOX_URL and --against: refusing to build model-written COBOL anywhere else")
+            return EXIT_CODES["refused"]
+        from diocle_verifier.sandbox import remote_check, remote_differential
+
+        gates = {"check": remote_check(args.against), "diff": remote_differential()}
+    record = transcribe(args.image, args.out, settings=settings, against=args.against,
+                        run_model_code=args.run_model_code or args.sandbox, **gates)
     cost = record["usage"]["estimatedCostUsd"]
     print(f"status: {record['status']}" + (f" ({record['reason']})" if record.get("reason") else ""))
     print(f"calls: {record['usage']['calls']}, cost: " + ("n/a" if cost is None else f"${cost:.4f}"))

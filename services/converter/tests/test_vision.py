@@ -197,3 +197,41 @@ def test_real_compile_gate_rejects_garbage(tmp_path):
     bad.write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. BAD.\n       PROCEDURE DIVISION.\n           MOVE TO.\n")
     result = compile_check(bad, None)
     assert result["ok"] is False and result["errors"]
+
+
+def test_sandbox_flag_refuses_without_sandbox_or_original(tmp_path, monkeypatch, capsys):
+    """`transcribe --sandbox` never falls back to building model-written COBOL on this machine."""
+    from diocle_converter import __main__ as cli
+    monkeypatch.delenv("DIOCLE_SANDBOX_URL", raising=False)
+    img = tmp_path / "l.png"
+    img.write_bytes(PNG)
+    args = SimpleNamespace(image=img, out=tmp_path / "out", against=LOYALTY, run_model_code=False, sandbox=True)
+    assert cli._transcribe(args) == cli.EXIT_CODES["refused"]
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://127.0.0.1:9")
+    args.against = None
+    assert cli._transcribe(args) == cli.EXIT_CODES["refused"]
+    assert not (tmp_path / "out").exists()
+
+
+@needs_cobc
+def test_flow_through_the_sandbox_gates(tmp_path, monkeypatch):
+    """A scripted (test-double) model reply goes through the REAL gates, run by the sandbox's handler in-process:
+    the transcription is compiled and run there, and the record says so."""
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    from diocle_verifier import sandbox
+    monkeypatch.setattr(sandbox, "_job_lock", threading.Lock())
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), sandbox.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", f"http://127.0.0.1:{httpd.server_address[1]}")
+    try:
+        original = (LOYALTY / "src" / "LOYWAIVE.cbl").read_text()
+        img, settings, client, _ = setup(tmp_path, [f"```cobol\n{original}```"])
+        record = transcribe(img, tmp_path / "out", settings=settings, client=client, against=LOYALTY, run_model_code=True,
+                            check=sandbox.remote_check(LOYALTY), diff=sandbox.remote_differential(), log=lambda m: None)
+    finally:
+        httpd.shutdown()
+    assert record["status"] == "verified-identical" and record["differential"]["ranIn"] == "sandbox"
+    assert record["differential"]["matched"] == record["differential"]["inputs"] >= 1000
+    valid(record)

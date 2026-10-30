@@ -78,6 +78,7 @@
             "outputRecords": { "type": "integer", "description": "Output records the original wrote; verified-identical needs at least one (or non-empty stdout), otherwise ran is false" },
             "stdoutCompared": { "type": "boolean", "description": "The original's stdout was non-empty, so it counts as compared (a DISPLAY-only original has outputRecords 0)" },
             "sandbox": { "type": "string", "enum": ["sandbox-exec", "none"], "description": "Whether the transcription's executable ran under a macOS sandbox-exec profile" },
+            "ranIn": { "const": "sandbox", "description": "Present when the transcription was built and run inside the sandbox container (the public printout button, `transcribe --sandbox`); absent for a local run" },
             "matched": { "type": "integer" },
             "mismatched": { "type": "integer" },
             "stdoutMatch": { "type": "boolean" },
