@@ -130,6 +130,10 @@ def main(argv: list[str] | None = None) -> int:
     repo.add_argument("--repo-max-usd", type=float, help="REPO_MAX_USD for this run (default 1.00)")
     job_parser = sub.add_parser("run-job")
     job_parser.add_argument("sample_dir", type=Path)
+    sub.add_parser("editor", help="check/convert one file for the VS Code extension (see editors/vscode)", add_help=False)
+    if (argv if argv is not None else sys.argv[1:])[:1] == ["editor"]:
+        from . import editor
+        return editor.main((argv if argv is not None else sys.argv[1:])[1:])
     args = parser.parse_args(argv)
 
     if args.command == "transcribe":
