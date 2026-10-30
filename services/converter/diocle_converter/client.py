@@ -53,6 +53,10 @@ class ModelClient:
         """model: a higher tier's ID for this one call (the same host and key); None is the run's default model."""
         if len(self.calls) >= self.settings.max_calls_per_run:
             raise BudgetExceeded(f"model call cap reached ({self.settings.max_calls_per_run} per run)")
+        if self.settings.max_usd is not None:
+            spent = self.usage_summary()["estimatedCostUsd"]
+            if spent is None or spent >= self.settings.max_usd:
+                raise BudgetExceeded(f"spend cap reached (${self.settings.max_usd:.4f} for this run)")
         escalated = bool(model and model != self.settings.model)
         if escalated and self.escalation_exhausted():
             raise BudgetExceeded(f"escalation cap reached ({self.settings.escalation_max_calls} calls or "

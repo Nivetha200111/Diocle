@@ -24,6 +24,8 @@ already uses) to get the job's jobs[] shape; it never imports analyzer code dire
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import os
 import json
 import re
 import subprocess
@@ -31,6 +33,7 @@ import sys
 import time
 from pathlib import Path
 
+from . import anyway
 from .breaker import Breaker
 from .client import ModelClient, usage_of
 from .config import REPO_ROOT, Settings
@@ -94,6 +97,14 @@ def main(argv: list[str] | None = None) -> int:
                        "the breaker attacks at MODEL_TIER_BREAKER (default 2) and a break after certification resumes repair at "
                        "MODEL_TIER_AFTER_BREAK (default 2); hard caps MODEL_ESCALATION_MAX_CALLS / _MAX_USD")
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
+        if name == "run":
+            p.add_argument("--convert-anyway", action="store_true", help="never refuse: a program the verifier cannot "
+                           "certify is still translated and compile-checked, and labelled compiled-unverified or failed; "
+                           "an original that does not compile under GnuCOBOL is patched first (small, listed fixes) and its "
+                           "Java is then labelled certified-against-repaired-cobol. Also DIOCLE_CONVERT_ANYWAY=1. Local "
+                           "or admin use only.")
+            p.add_argument("--max-usd", type=float, help="hard dollar cap on this run's model calls (convert-anyway: what "
+                           "is left of REPO_MAX_USD)")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
     tr = sub.add_parser("transcribe", help="photo/scan of a COBOL listing to COBOL, gated by the compiler and a differential run")
@@ -103,14 +114,26 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("--run-model-code", action="store_true", help="allow the differential to BUILD AND RUN the model-written "
                     "COBOL on this machine (macOS: under sandbox-exec). Off by default: without it the best status is "
                     "compiled-unchecked. Only for our own synthetic printouts on a dev machine.")
+    repo = sub.add_parser("repo", help="the whole pipeline on a local directory or GitHub repository (see README, 'Running on "
+                          "your own repo'); a thin wrapper over services/api diocle_api.deliver")
+    repo.add_argument("source", help="local directory or https://github.com/<owner>/<repo>")
+    repo.add_argument("--convert-anyway", action="store_true")
+    repo.add_argument("--programs", help="comma-separated PROGRAM-IDs")
+    repo.add_argument("--repo-max-usd", type=float, help="REPO_MAX_USD for this run (default 1.00)")
     job_parser = sub.add_parser("run-job")
     job_parser.add_argument("sample_dir", type=Path)
     args = parser.parse_args(argv)
 
     if args.command == "transcribe":
         return _transcribe(args)
+    if args.command == "repo":
+        return _repo(args)
 
     settings = Settings.from_env()
+    if args.command == "run":
+        args.convert_anyway = anyway.enabled(args.convert_anyway)
+        if args.max_usd is not None:
+            settings = dataclasses.replace(settings, max_usd=args.max_usd)
     client = ModelClient(settings)
     guard_settings = Settings.guard_from_env()
     guard_client = ModelClient(guard_settings) if guard_settings else None
@@ -222,6 +245,10 @@ def _atomic_write(path: Path, data: dict) -> None:
 def _convert(args, settings: Settings, client: ModelClient, program: Program, run_dir: Path, base: dict,
              events: list[dict], on_event, guard: Guard) -> int:
     guard.inspect_source(program.as_text())
+    anyway_on = bool(getattr(args, "convert_anyway", False)) and args.command == "run"
+    cobol_repair, force_reason, original_program = None, None, program
+    if anyway_on and not program.anyway:
+        program, cobol_repair, force_reason = _repair_original(program, client, settings, args, on_event)
     if args.command == "repair":
         meta = json.loads((program.sample_dir / "sample.json").read_text())
         source = (args.java_dir or program.sample_dir / meta["javaConversion"]["dir"]).resolve()
@@ -230,8 +257,18 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     else:
         workspace = Workspace(run_dir / "java")
         on_event({"type": "stage", "stage": "translating", "message": f"Translating {program.name} with {settings.model}"})
-        translation = translate(program, client, workspace)
+        try:
+            translation = translate(program, client, workspace, anyway_reason=force_reason)
+        except Exception as e:
+            if not anyway_on:
+                raise
+            return _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, None, workspace,
+                                      (program.anyway or {}).get("reason") or force_reason or "the original could not be verified",
+                                      cobol_repair, translate_error=e)
         print(f"wrote {translation['file']}; translator notes: {translation['notes'][:400]}")
+        if anyway_on and (program.anyway or force_reason):
+            return _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, translation, workspace,
+                                      (program.anyway or {}).get("reason") or force_reason, cobol_repair)
 
     memory = None if args.no_memory else Memory(REPO_ROOT / "runs" / "memory.json")
     known = memory.load() if memory else []
@@ -252,6 +289,11 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         first = None
         on_event({"type": "stage", "stage": "repairing",
                   "message": "Starting point: the guard refused to run the first Java; repair agent takes over"})
+    except Exception as e:
+        if not anyway_on:
+            raise
+        return _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, translation, workspace,
+                                  f"the verifier could not run ({type(e).__name__})", cobol_repair)
     if first is not None:
         (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
         s0 = first["summary"]
@@ -259,6 +301,9 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
                   "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
     unverifiable = original_failure(first)
     held_out = verify(workspace.root, CERT_SEED, CERT_CASES) if first is not None and report_passes(first) else None
+    if unverifiable and anyway_on:
+        return _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, translation, workspace,
+                                  unverifiable, cobol_repair)
     if unverifiable:
         on_event({"type": "stage", "stage": "done", "message": f"Not certified: {unverifiable}. Stopped before any repair round."})
         outcome = {"certified": False, "rounds": [], "certificationReport": None, "lessons": []}
@@ -286,8 +331,10 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         if guard.blocked:
             on_event({"type": "stage", "stage": "done", "message": "Not certified: the guard agent blocked this Java"})
 
+    repaired = cobol_repair is not None and outcome["certified"]
+    plain = outcome["certified"] and not repaired
     learned = (memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name)
-               if memory and outcome["certified"] and not args.memory_read_only else 0)
+               if memory and plain and not args.memory_read_only else 0)
     usage = usage_of(client.calls + (guard.client.calls if guard.client else []))
     origin = (f"copied from {source.relative_to(REPO_ROOT)}" if translation is None
               else f"translated by {settings.model}")
@@ -303,7 +350,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         _atomic_write(run_dir / "verification-report.json", outcome["certificationReport"])
     _atomic_write(run_dir / "run.json", {
         **base, "javaOrigin": origin, "translation": translation,
-        "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"],
+        "status": "certified" if plain else "not-certified", "certified": plain,
+        **(_assurance_fields(outcome, repaired, cobol_repair, last_report(outcome)) if anyway_on else {}),
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
         "breaker": breaker_summary, "crosscheck": crosscheck_result, "swarm": bool(args.swarm and memory),
@@ -313,12 +361,95 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
                    "capUsd": settings.escalation_max_usd} if args.tiers and settings.tiers else None),
         "guard": guard.summary(), "error": unverifiable,
     })
-    print(f"\n{'CERTIFIED' if outcome['certified'] else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
+    print(f"\n{'CERTIFIED AGAINST REPAIRED COBOL (not plain certified)' if repaired else 'CERTIFIED' if plain else 'NOT CERTIFIED'}  ·  {usage['calls']} model calls, "
           f"{usage['inputTokens']} in ({usage['cachedInputTokens']} cached) / {usage['outputTokens']} out tokens, est. ${usage['estimatedCostUsd']}")
     if memory:
         print(f"fix memory: used {len(known)} lessons, learned {learned} new")
     print(f"run saved to {run_dir.relative_to(REPO_ROOT)}")
-    return 0 if outcome["certified"] else 1
+    return 0 if plain else 1
+
+
+def last_report(outcome: dict) -> dict | None:
+    return outcome.get("certificationReport")
+
+
+def _assurance_fields(outcome: dict, repaired: bool, cobol_repair: dict | None, report: dict | None) -> dict:
+    """run.json fields of convert-anyway mode for a run whose differential test ran."""
+    if repaired:
+        return {"assurance": anyway.REPAIRED, "assuranceReason": anyway.repaired_wording(cobol_repair),
+                "cobolRepair": cobol_repair}
+    if outcome["certified"]:
+        return {"assurance": anyway.CERTIFIED, "assuranceReason": None, "cobolRepair": cobol_repair}
+    last = (outcome.get("rounds") or [{}])[-1].get("summary") or {}
+    shown = f" ({last['passed']}/{last['total']} cases matched)" if last else ""
+    return {"assurance": anyway.FAILED, "cobolRepair": cobol_repair,
+            "assuranceReason": f"the differential test ran and the Java still differs from the COBOL{shown} after the repair caps"}
+
+
+def _repair_original(program: Program, client: ModelClient, settings: Settings, args, on_event):
+    """Convert-anyway, step 0: an original that does not compile under GnuCOBOL -std=ibm is patched (small, listed fixes,
+    the user's file untouched) before it is translated and verified. Returns (program to use, cobolRepair record, reason the
+    original cannot be verified or None). Programs that compile, or whose compile status is unknown, pass through."""
+    from diocle_verifier.precheck import compile_original
+
+    from .cobolrepair import repair_original
+
+    def check(sample_dir: Path):
+        answer = compile_original(sample_dir)
+        return answer.status, answer.diagnostics
+
+    patched, record, reason = repair_original(program.sample_dir, client, escalate=bool(args.tiers), on_event=on_event,
+                                              compile_check=check)
+    if patched is not None:
+        on_event({"type": "stage", "stage": "repairing-cobol", "message": anyway.repaired_wording(record)})
+        return Program.load(patched), record, None
+    return program, record, reason
+
+
+def _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, translation, workspace, reason,
+                       cobol_repair, translate_error=None) -> int:
+    """No differential test can run (or the original is unusable): javac-compile the translation (a bounded number of
+    model fix rounds, same caps), never run it, and record compiled-unverified or failed with the reason."""
+    compiled, output, fixes = False, "", 0
+    if translate_error is None:
+        compiled, output, fixes = anyway.compile_with_fixes(workspace, client, program.main_class, on_event)
+    label = anyway.UNVERIFIED if compiled else anyway.FAILED
+    why = reason if compiled else (
+        f"{reason}; and no compiling Java within the caps ({'translation failed: ' + describe_exception(translate_error) if translate_error else 'javac still reports errors after ' + str(fixes) + ' fix round(s)'})")
+    usage = usage_of(client.calls + (guard.client.calls if guard.client else []))
+    on_event({"type": "stage", "stage": "done", "message": (anyway.unverified_wording(reason) if compiled else
+                                                              f"Failed: {why}")})
+    _atomic_write_text(run_dir / "events.jsonl", "".join(json.dumps(e) + "\n" for e in events))
+    (run_dir / "PROVENANCE.md").write_text(
+        f"# Provenance of java/\n\n- Translated by {settings.model} in convert-anyway mode; compiled with javac ({fixes} fix round(s)); "
+        "NEVER RUN and NOT differential-tested. A developer must review it.\n")
+    _atomic_write(run_dir / "run.json", {
+        **base, "javaOrigin": f"translated by {settings.model} (convert anyway)", "translation": translation,
+        "status": "not-certified", "certified": False, "assurance": label, "assuranceReason": why[:600],
+        "cobolRepair": cobol_repair, "rounds": [], "certificationSeed": None, "usage": usage,
+        "memory": {"enabled": False, "used": 0, "learned": 0, "lessons": []},
+        "breaker": None, "crosscheck": None, "swarm": False, "tiers": None, "guard": guard.summary(), "error": why[:600]})
+    cost = usage["estimatedCostUsd"]
+    print(f"\n{'COMPILED, NOT VERIFIED' if compiled else 'FAILED'}: {why}\n{usage['calls']} model calls, est. "
+          + ("n/a" if cost is None else f"${cost:.4f}") + f"\nrun saved to {run_dir.relative_to(REPO_ROOT)}")
+    return 3 if compiled else 1
+
+
+def describe_exception(e: BaseException) -> str:
+    return _describe(e)
+
+
+def _repo(args) -> int:
+    """diocle-converter repo PATH_OR_URL [--convert-anyway]: the whole pipeline (analyze, convert every program, label)
+    on a local directory or GitHub repository, with your own key from .env and no visitor caps. It runs the delivery module
+    of services/api (no pull request without a target), so there is one implementation of the loop and the spend cap."""
+    api_python = REPO_ROOT / "services" / "api" / ".venv" / "bin" / "python"
+    cmd = [str(api_python) if api_python.exists() else sys.executable, "-m", "diocle_api.deliver", args.source,
+           *(["--convert-anyway"] if args.convert_anyway else []), *(["--programs", args.programs] if args.programs else [])]
+    env = dict(os.environ)
+    if args.repo_max_usd is not None:
+        env["REPO_MAX_USD"] = str(args.repo_max_usd)
+    return subprocess.call(cmd, cwd=REPO_ROOT / "services" / "api", env=env)
 
 
 def original_failure(report: dict | None) -> str | None:

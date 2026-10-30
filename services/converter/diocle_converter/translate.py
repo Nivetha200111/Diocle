@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from .client import ModelClient
-from .prompts import TRANSLATOR
+from .prompts import TRANSLATOR, TRANSLATOR_ANYWAY
 from .sources import Program
 from .workspace import Workspace
 
@@ -30,11 +30,17 @@ def _response_format(main_class: str) -> dict:
     }
 
 
-def translate(program: Program, client: ModelClient, workspace: Workspace) -> dict:
-    messages = [
-        {"role": "system", "content": TRANSLATOR.format(io=program.io_text(), main_class=program.main_class)},
-        {"role": "user", "content": program.as_text()},
-    ]
+def translate(program: Program, client: ModelClient, workspace: Workspace, anyway_reason: str | None = None) -> dict:
+    """anyway_reason (or a convert-anyway sample): the program cannot be differential-tested; the prompt says why and asks
+    for labelled adapter interfaces where plain Java cannot reproduce the COBOL."""
+    reason = anyway_reason or (program.anyway or {}).get("reason")
+    user = program.as_text()
+    missing = (program.anyway or {}).get("missingCopybooks")
+    if missing:
+        user += f"\n\n=== NOT FOUND (copybooks missing from the repository): {', '.join(missing)} ==="
+    system = (TRANSLATOR_ANYWAY.format(reason=reason, io=program.io_text(), main_class=program.main_class) if reason
+              else TRANSLATOR.format(io=program.io_text(), main_class=program.main_class))
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     choice = client.chat(role="translator", round=0, messages=messages, response_format=_response_format(program.main_class))
     result = json.loads(choice.message.content)
     workspace.write(f"{result['mainClass']}.java", result["javaSource"])

@@ -64,6 +64,9 @@ class Settings:
     # call cost about $0.22-0.37 (reasoning tokens bill at $20/M), 96% of the run's cost. Set 3 to opt in to Wonder.
     breaker_tier: int = 2  # the tier that designs breaker attacks
     after_break_tier: int = 2  # the tier the repair agent resumes at when a certified Java is broken
+    # Convert-anyway: a hard dollar cap for this client's calls (the delivery passes what is left of REPO_MAX_USD). None = off.
+    # An unpriced model counts as over the cap (fail closed).
+    max_usd: float | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
