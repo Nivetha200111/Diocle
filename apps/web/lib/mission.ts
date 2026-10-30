@@ -10,7 +10,7 @@ export const AGENTS: { key: AgentKey; name: string; job: string }[] = [
   { key: "breaker", name: "Breaker", job: "Designs inputs to break the certified Java" },
   { key: "repair", name: "Repair agent", job: "Patches the Java until the checks pass" },
   { key: "crosscheck", name: "Cross-checker", job: "A second model hunts for differences" },
-  { key: "guard", name: "Guard", job: "Policy checks and a model review of the output" },
+  { key: "guard", name: "Guard", job: "Deterministic policy checks on the Java" },
   { key: "verifier", name: "Verifier (GnuCOBOL)", job: "Runs the original and the Java on the same inputs" },
 ];
 
@@ -23,8 +23,8 @@ export type Step = {
   round?: number;
   ms: number;                      // pause before the next step, at 1x
   delta: { agent: AgentKey; tokens: number; usd: number; calls: number } | null;
-  tierUp?: { tier: number; model: string };
-  counterexample?: number;         // index into run.breaker.counterexamples shown from this step on
+  tierUp?: { index: number; model: string };  // index into tiers.configured, found by model id
+  counterexample?: number;         // last index into run.breaker.counterexamples revealed by this step
   patch?: { rationale: string; text: string; path: string };
   cert?: { passed: boolean; result: string };
 };
@@ -48,6 +48,12 @@ export function buildSteps(run: Run): Step[] {
   };
 
   const escalations = [...(run.tiers?.escalations ?? [])];
+  const configured = run.tiers?.configured ?? [];
+  // esc.tier is 1-based, but the model id is the unambiguous key: find the tier by it, falling back to tier - 1.
+  const tierIndex = (esc: { tier: number; model: string }) => {
+    const i = configured.indexOf(esc.model);
+    return i >= 0 ? i : Math.max(0, esc.tier - 1);
+  };
   const repairIters = new Set(run.events.filter((e) => e.type === "agent-step").map((e) => `${e.round}:${e.step}`)).size;
   let cxShown = 0;
   let iter = -1;
@@ -73,7 +79,7 @@ export function buildSteps(run: Run): Step[] {
         iter++;
         while (escalations.length && escalations[0].round <= (e.round ?? 0)) {
           const esc = escalations.shift()!;
-          push({ agent: "repair", kind: "escalation", title: `Escalated to tier ${esc.tier + 1}`, detail: esc.model, round: e.round, tierUp: { tier: esc.tier, model: esc.model }, ms: 1500 });
+          push({ agent: "repair", kind: "escalation", title: `Escalated to ${tierLabel(esc.model)} (tier ${tierIndex(esc) + 1})`, detail: esc.model, round: e.round, tierUp: { index: tierIndex(esc), model: esc.model }, ms: 1500 });
         }
       }
       // One logged repair call per iteration of the agent loop, in order; any surplus lands on the last iteration.
@@ -98,8 +104,9 @@ export function buildSteps(run: Run): Step[] {
         cert: { passed: !!e.passed, result: e.result ?? "" }, ms: 1800 });
     } else if (e.type === "breaker") {
       const broke = e.broke ?? 0;
-      if (broke) cxShown = Math.min(cxShown + 1, run.breaker?.counterexamples.length ?? 0);
-      push({ agent: "breaker", kind: "breaker", title: broke ? `Breaker broke the Java (${broke} of ${e.tried})` : `Breaker found nothing (${e.tried} inputs)`,
+      const cxFrom = cxShown;
+      if (broke) cxShown = Math.min(cxShown + broke, run.breaker?.counterexamples.length ?? 0);
+      push({ agent: "breaker", kind: "breaker", title: broke ? `Breaker broke the Java (${broke} of ${e.tried}${cxShown > cxFrom ? `; counterexample${cxShown - cxFrom > 1 ? "s" : ""} ${cxFrom + 1}${cxShown - cxFrom > 1 ? ` to ${cxShown}` : ""}` : ""})` : `Breaker found nothing (${e.tried} inputs)`,
         detail: e.message ?? "", round: e.round, delta: deltaOf("breaker", [take("breaker")]),
         counterexample: broke && cxShown ? cxShown - 1 : undefined, ms: 2000 });
     } else if (e.type === "crosscheck") {
@@ -109,7 +116,7 @@ export function buildSteps(run: Run): Step[] {
     }
   }
   // Escalations never reached by an agent step still happened; show them at the end rather than drop them.
-  for (const esc of escalations) push({ agent: "repair", kind: "escalation", title: `Escalated to tier ${esc.tier + 1}`, detail: esc.model, tierUp: { tier: esc.tier, model: esc.model }, ms: 1500 });
+  for (const esc of escalations) push({ agent: "repair", kind: "escalation", title: `Escalated to ${tierLabel(esc.model)} (tier ${tierIndex(esc) + 1})`, detail: esc.model, tierUp: { index: tierIndex(esc), model: esc.model }, ms: 1500 });
   return steps;
 }
 
@@ -133,7 +140,8 @@ export function castStats(run: Run) {
   return out;
 }
 
-export const TIER_NAMES = ["Contributor", "Spark 1.3", "Wonder"];
+// A readable tier name derived from the model id (no hardcoded list): "muse-wonder-1.0" -> "wonder 1.0".
+export const tierLabel = (model: string) => model.replace(/^.*muse-/, "").replace(/-/g, " ");
 export const priceOf = (model: string) => PRICES[model] ?? null;
 
 // A run is worth replaying when it recorded something beyond a plain translation.

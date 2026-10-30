@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Brand } from "./ui";
 import { fetchRun, fetchRuns, hostOf, type Run, type RunListItem } from "@/lib/runs";
-import { AGENTS, TIER_NAMES, buildSteps, castStats, hasTeamData, priceOf, totalsAt, type AgentKey } from "@/lib/mission";
+import { AGENTS, tierLabel, buildSteps, castStats, hasTeamData, priceOf, totalsAt, type AgentKey } from "@/lib/mission";
 
 const DEFAULT_RUN = "interest-accrual-20261029-230750";
 const SPEEDS = [0.5, 1, 2, 4, 8];
@@ -39,7 +39,9 @@ export default function MissionControl() {
     () => (list ?? []).filter((i) => runs[i.id]).sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")),
     [list, runs],
   );
-  const run = runs[runId] ?? (options.length && !runs[runId] && Object.keys(runs).length ? runs[options[0].id] : undefined);
+  const loaded = Object.keys(runs).length > 0;
+  const run = runs[runId] ?? (loaded && options.length ? runs[options[0].id] : undefined);
+  const notFound = loaded && !!run && run.id !== runId ? runId : null;
 
   return (
     <div className="mc-page">
@@ -69,6 +71,7 @@ export default function MissionControl() {
         {!failed && list && Object.keys(runs).length > 0 && !run && (
           <section className="panel mc-empty"><h2>No run to replay</h2><p>None of the stored runs recorded a breaker, cross-check or tier data.</p></section>
         )}
+        {notFound && <p className="mc-note mc-notfound" role="status">Run <code>{notFound}</code> was not found (or has no breaker, cross-check or tier data), so the newest run that has is shown.</p>}
         {run && <Replay key={run.id} run={run} options={options} pick={(id) => { setRunId(id); window.history.replaceState(null, "", `?run=${encodeURIComponent(id)}`); }} />}
       </main>
     </div>
@@ -79,16 +82,17 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
   const steps = useMemo(() => buildSteps(run), [run]);
   const stats = useMemo(() => castStats(run), [run]);
   const N = steps.length;
-  const [reduced, setReduced] = useState(true);
-  const [at, setAt] = useState(N);          // number of steps shown; N = the final state
-  const [playing, setPlaying] = useState(false);
+  // Replay only mounts on the client after the run has loaded, so matchMedia is safe to read here and there is no flash.
+  const [reduced, setReduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [at, setAt] = useState(() => (reduced || N === 0 ? N : 0));  // steps shown; N = the final state
+  const [playing, setPlaying] = useState(() => !reduced && N > 0);
   const [speed, setSpeed] = useState(2);
-  const started = useRef(false);
 
   useEffect(() => {
-    const rm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setReduced(rm);
-    if (!rm && !started.current && N > 0) { started.current = true; setAt(0); setPlaying(true); }
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const on = () => { setReduced(mq.matches); if (mq.matches) { setPlaying(false); setAt(N); } };
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
   }, [N]);
 
   useEffect(() => {
@@ -110,9 +114,8 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
   const tokens = Object.values(totals).reduce((n, t) => n + t.tokens, 0);
   const finalUsd = run.usage.estimatedCostUsd;
   const done = at >= N;
-  const tierNow = shown.reduce((t, s) => (s.tierUp ? s.tierUp.tier : t), 0);
+  const tierNow = shown.reduce((t, s) => (s.tierUp ? s.tierUp.index : t), 0);
   const cx = [...shown].reverse().find((s) => s.counterexample !== undefined)?.counterexample;
-  const counter = cx !== undefined ? run.breaker?.counterexamples[cx] : undefined;
   const patch = [...shown].reverse().find((s) => s.patch)?.patch;
   const certs = shown.filter((s) => s.cert);
   const lastCert = certs[certs.length - 1];
@@ -147,7 +150,7 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
           const verifier = k === "verifier";
           const guardInfo = k === "guard" ? run.guard : null;
           const model = verifier ? null : k === "crosscheck" ? (st?.models[0] ?? run.crosscheck?.model ?? null)
-            : k === "guard" ? (st?.models[0] ?? guardInfo?.review?.model ?? null) : st?.models[0] ?? null;
+            : k === "guard" ? (guardInfo?.review ? (st?.models[0] ?? guardInfo.review.model) : null) : st?.models[0] ?? null;
           const used = verifier || !!st || (k === "guard" && !!guardInfo) || (k === "crosscheck" && !!run.crosscheck);
           return (
             <article key={k} className={`mc-agent${active ? " is-active" : ""}${used ? "" : " is-idle"}${verifier ? " is-verifier" : ""}`} aria-current={active ? "true" : undefined}>
@@ -172,11 +175,12 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
 
       <div className="mc-grid">
         <section className="panel mc-meter" aria-label="Cost and tiers">
-          <div className="panel-heading"><div><h2>Cost meter</h2><p>Priced from the logged model calls; adds up to the run&apos;s own estimate.</p></div></div>
+          <div className="panel-heading"><div><h2>Cost meter</h2><p>Priced from the logged model calls. Each step&apos;s cost is assigned in call order within its role, so where it lands on the timeline is approximate.</p></div></div>
           <div className="mc-body">
-            <div className="mc-cost" role="status" aria-live="off">
+            <div className="mc-cost">
               <span className="mc-cost-n">{usd(spent)}</span>
               <span className="mc-cost-of">of {finalUsd === null ? "an unrecorded total" : usd(finalUsd)} · {num(tokens)} tokens · {num(run.usage.calls)} model calls in total</span>
+              {finalUsd !== null && <span className="mc-cost-of">unattributed: {usd(Math.max(0, finalUsd - spent))}{finalUsd - spent > 0.00005 ? (done ? " (cost the replay could not place on a step)" : " (cost not yet reached by the replay)") : ""}</span>}
               <div className="mc-bar" aria-hidden="true"><i style={{ width: `${finalUsd ? Math.min(100, (spent / finalUsd) * 100) : 0}%` }} /></div>
             </div>
             {tiers?.enabled ? (
@@ -187,7 +191,7 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
                     const p = priceOf(m);
                     return (
                       <li key={m} className={i === tierNow ? "is-on" : i < tierNow ? "was-on" : ""}>
-                        <strong>{TIER_NAMES[i] ?? `Tier ${i + 1}`}</strong> <code>{m}</code>
+                        <strong>Tier {i + 1}: {tierLabel(m)}</strong> <code>{m}</code>
                         <small>{p ? `$${p[0]} in · $${p[1]} cached · $${p[2]} out, per million tokens${m.includes("wonder") ? " (per third-party coverage, unconfirmed)" : ""}` : "price not on file"}</small>
                         {i === tierNow && <b> (working now)</b>}
                       </li>
@@ -209,12 +213,14 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
           <div className="mc-body mc-split">
             <div>
               <h3 className="mc-sub">Failing input</h3>
-              {counter ? (
-                <>
-                  <pre className="mc-code" tabIndex={0}>{counter.input}</pre>
-                  <p className="mc-why">{counter.why}</p>
-                  <p className="mc-diff"><code>{counter.diff}</code></p>
-                </>
+              {cx !== undefined && run.breaker?.counterexamples.length ? (
+                run.breaker.counterexamples.slice(0, cx + 1).map((c, i) => (
+                  <div key={i}>
+                    <pre className="mc-code" tabIndex={0}>{c.input}</pre>
+                    <p className="mc-why">{c.why}</p>
+                    <p className="mc-diff"><code>{c.diff}</code></p>
+                  </div>
+                ))
               ) : <p className="mc-note">{run.breaker?.broke ? "Appears when the breaker breaks the Java." : "The breaker did not break this run's Java, or did not run."}</p>}
             </div>
             <div>
@@ -231,13 +237,13 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
       </div>
 
       <section className={`panel mc-cert${lastCert?.cert?.passed && done ? " is-green" : ""}`} aria-label="Held-out certification">
-        <div className="panel-heading"><div><h2>Held-out certification</h2><p>Inputs generated after the agents finished, so the Java could not have been tuned to them. Run by the verifier.</p></div></div>
+        <div className="panel-heading"><div><h2>Held-out certification</h2><p>Run by the verifier. The certification inputs are fresh for each round and the repair agent is not shown them in that round, but failures from an earlier round can feed a later repair.</p></div></div>
         <div className="mc-body">
           {lastCert ? (
             <p className="mc-cert-line" role="status">
               <span className={`mc-light ${lastCert.cert!.passed ? "ok" : "bad"}`} aria-hidden="true" />
               {lastCert.cert!.result}
-              {done && final ? <strong> Final: {num(final.passed)} of {num(final.total)} inputs match, stdout {final.stdoutMatch ? "matches" : "differs"}; {run.certified ? "certified" : "not certified"}.</strong> : null}
+              {done && final ? <strong> Final: {num(final.passed)} of {num(final.total)} inputs match, stdout {final.stdoutMatch ? "matches" : "differs"}; {run.certified ? "certified" : "not certified"}. Certified on the inputs tried; not a proof of equivalence.</strong> : null}
             </p>
           ) : <p className="mc-note">Not yet reached in the replay.</p>}
           {certs.length > 1 && <p className="mc-note">{certs.length} certification rounds so far; the last one counts.</p>}
@@ -261,9 +267,9 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
               </div>
             </div>
           )}
-          <ol className="mc-log" ref={log} aria-live="off">
+          <ol className="mc-log" ref={log} tabIndex={0} aria-label="Recorded steps up to the playhead">
             {shown.map((s) => (
-              <li key={s.id} className={`mc-ev mc-ev-${s.kind}${s === cur && !done ? " is-now" : ""}${s.cert ? (s.cert.passed ? " pass" : " fail") : ""}`}>
+              <li key={s.id} className={`mc-ev mc-ev-${s.kind}${s === cur && !done ? " is-now" : ""}${s.kind === "breaker" ? (s.counterexample !== undefined ? " fail" : " pass") : ""}${s.cert ? (s.cert.passed ? " pass" : " fail") : ""}`}>
                 <span className="mc-tag">{AGENTS.find((a) => a.key === s.agent)?.name ?? "Engine"}</span>
                 <span className="mc-ev-main"><strong>{s.title}</strong>{s.detail ? <> <span>{s.detail}</span></> : null}</span>
                 {s.delta && <span className="mc-ev-cost">{usd(s.delta.usd)}</span>}

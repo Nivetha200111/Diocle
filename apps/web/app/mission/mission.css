@@ -60,7 +60,6 @@
 .mc-ev-main strong { color: var(--ink); }
 .mc-tag { font-size: 10.5px; font-weight: 600; color: var(--green-dark); }
 .mc-ev-cost { font-family: var(--font-plex-mono), monospace; font-size: 11px; color: var(--orange); }
-.mc-ev-breaker { border-left-color: #c0492b; }
 .mc-ev-escalation { border-left-color: var(--orange); background: #fbf4e6; }
 .mc-ev.pass { border-left-color: #3f9a4f; }
 .mc-ev.fail { border-left-color: #c0492b; }
@@ -115,3 +114,5 @@
 .mc-speed button.on { color: #000; }
 .mc-nav { flex-direction: row; align-items: center; }
 .mc-top { flex-direction: row; }
+.mc-log:focus-visible, .mc-code:focus-visible { outline: 2px solid var(--w-navy); }
+.mc-notfound { background: #ffffc0; padding: 8px 10px; box-shadow: var(--w-in); }
