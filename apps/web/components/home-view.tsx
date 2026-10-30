@@ -20,7 +20,7 @@ function explainDiff(diff: string | undefined): string {
   if (!m) return diff ?? "";
   const [, field, was, now] = m;
   if (field === "CL-FEE") {
-    return `A bounced cheque should cost a ${was} fee (the base fee doubled for insufficient funds). The COBOL charged it; the AI-written Java charged ${now}.`;
+    return `The return fee (doubled for NSF returns, i.e. cheques returned for insufficient funds): the COBOL charged ${was}; the AI-written Java charged ${now}. The unit is not stated in the COBOL.`;
   }
   return `Field ${field}: the COBOL wrote ${was}; the AI-written Java wrote ${now}.`;
 }
