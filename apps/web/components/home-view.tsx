@@ -284,8 +284,8 @@ export default function HomeView({ go }: { go: Go }) {
         </div>
         <div className="home-columns">
           <div className="editor-col">
-            <h3>VS Code (also Cursor, VSCodium, Windsurf)</h3>
-            <p className="home-pr">Check a COBOL file compiles under GnuCOBOL, then convert and verify it from the editor. Needs Python, GnuCOBOL 3.2 and JDK 21; a conversion uses your own Meta key and asks before it spends.</p>
+            <h3>VS Code (forks such as Cursor should work)</h3>
+            <p className="home-pr">Check a COBOL file compiles under GnuCOBOL, then convert and verify it from the editor. Needs Python, GnuCOBOL 3.2 and JDK 21 (run <span className="mono">sh scripts/quickstart.sh --no-key</span> once in the clone to set up the converter, and have <span className="mono">code</span> on your PATH). A conversion uses your own Meta key and asks before it spends. A local build, not yet tested in a clean editor.</p>
             <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
 cd Diocle/editors/vscode
 npm install && npm run package
