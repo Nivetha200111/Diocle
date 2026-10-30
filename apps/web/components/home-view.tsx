@@ -210,7 +210,7 @@ const STEPS: [string, React.ReactNode][] = [
   ["ANALYZE", <>Reads a mainframe library export: programs, <Term tip={GLOSSARY.copybook}>copybooks</Term>, <Term tip={GLOSSARY.JCL}>JCL</Term> and procedures. Derives every record layout byte by byte and flags behaviour a rewrite must keep.</>],
   ["CONVERT", <>Meta Muse Spark translates each program to Java. A repair agent, also Muse Spark, reads failures, patches, compiles and re-tests until it matches.</>],
   ["CHECK", <>The original COBOL and the Java run on the same inputs. Every field, byte, display line and return code must agree, including on 1,000 <Term tip={GLOSSARY["held-out"]}>held-out</Term> inputs. Then a breaker agent tries to break it.</>],
-  ["DELIVER", <>Each program that passes goes to the target repository as a pull request with a certificate. That repository&apos;s CI repeats the check on fresh inputs.</>],
+  ["DELIVER", <>Each program that passes goes to the target repository as a pull request with an equivalence report. That repository&apos;s CI repeats the check on fresh inputs.</>],
 ];
 
 export default function HomeView({ go }: { go: Go }) {
@@ -234,6 +234,10 @@ export default function HomeView({ go }: { go: Go }) {
           <p className="home-meta">
             Built with <strong>Meta Muse Spark</strong> as translator, repair agent and breaker agent, and
             {" "}<strong>Muse Spark Open</strong> (open weights) for private mode. No other model is used.
+          </p>
+          <p className="home-meta">
+            &ldquo;Certified&rdquo; here means <strong>matched on the tested inputs, not proven equivalent</strong>
+            {" "}(<a href={LINKS.certified} target="_blank" rel="noreferrer">definition and limits</a>). Synthetic programs only; GnuCOBOL, SQLite and Berkeley DB stand in for z/OS COBOL, DB2 and VSAM.
           </p>
         </div>
       </section>

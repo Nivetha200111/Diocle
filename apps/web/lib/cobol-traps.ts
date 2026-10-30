@@ -36,7 +36,7 @@ export const TRAPS: Trap[] = [
   {
     key: "ibm", title: "IBM versus GnuCOBOL differences",
     what: "The oracle is GnuCOBOL, which is not IBM Enterprise COBOL. Collating order, truncation and DISPLAY defaults differ out of the box.",
-    how: "The original is compiled with cobc -std=ibm, IBM's TRUNC(STD) and DISPLAY defaults, and EBCDIC collating order (-fdefault-colseq=EBCDIC). Honest limit: where GnuCOBOL still differs from IBM (intermediate precision, NUMPROC, hex floats) and no captured mainframe output exists, a certificate does not cover it. The generated GitHub Actions re-verify workflow builds GnuCOBOL 3.2 from source because the Ubuntu package rejected the EBCDIC flag.",
+    how: "The original is compiled with cobc -std=ibm, IBM's TRUNC(STD) and DISPLAY defaults, and EBCDIC collating order (-fdefault-colseq=EBCDIC). Honest limit: where GnuCOBOL still differs from IBM (intermediate precision, NUMPROC, hex floats) and no captured mainframe output exists, the equivalence report does not cover it. The generated GitHub Actions re-verify workflow builds GnuCOBOL 3.2 from source because the Ubuntu package rejected the EBCDIC flag.",
     evidence: [
       { kind: "doc", href: `${DOCS}/services/verifier/README.md`, label: "services/verifier/README.md" },
       { kind: "doc", href: `${DOCS}/README.md#not-supported-yet`, label: "README: Not supported yet" },
