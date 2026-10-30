@@ -118,6 +118,13 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
     doc = sub.add_parser("document", help="verified documentation only: claims about the COBOL, each checked by GnuCOBOL")
     doc.add_argument("sample_dir", type=Path)
+    ask_p = sub.add_parser("ask", help="ask the original program a question (typed or spoken); the answer comes only from claims GnuCOBOL confirmed")
+    ask_p.add_argument("sample_dir", type=Path)
+    ask_p.add_argument("--audio", type=Path, help="a 16 kHz mono 16-bit WAV clip, at most 10 s and 500 KB (transcribed by Muse Voice Transcribe)")
+    ask_p.add_argument("--text", help="the question as text (skips transcription)")
+    ask_p.add_argument("--max-usd", type=float, default=0.02, help="hard dollar cap on the whole ask (default 0.02, at most 0.10)")
+    ask_p.add_argument("--out", type=Path, help="write ask.json (and progress) here")
+    ask_p.add_argument("--clip", help=argparse.SUPPRESS)
     tr = sub.add_parser("transcribe", help="photo/scan of a COBOL listing to COBOL, gated by the compiler and a differential run")
     tr.add_argument("image", type=Path, help="PNG or JPEG, at most 2 MB")
     tr.add_argument("--out", type=Path, required=True, help="sample directory to write (src/*.cbl, transcription.json)")
@@ -142,6 +149,9 @@ def main(argv: list[str] | None = None) -> int:
         return editor.main((argv if argv is not None else sys.argv[1:])[1:])
     args = parser.parse_args(argv)
 
+    if args.command == "ask":
+        from . import ask as ask_module
+        return ask_module.run_cli(args)
     if args.command == "transcribe":
         return _transcribe(args)
     if args.command == "repo":

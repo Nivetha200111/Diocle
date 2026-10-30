@@ -102,7 +102,7 @@ def _pairs(value) -> dict[str, str] | None:
     return {str(p.get("name")): p.get("value") for p in value}
 
 
-def _parse(content: str) -> list[dict] | None:
+def _parse(content: str, limit: int = MAX_CLAIMS) -> list[dict] | None:
     """The claims list of a model answer, or None when it is malformed or holds no usable claim."""
     try:
         answer = json.loads(content or "")
@@ -112,7 +112,7 @@ def _parse(content: str) -> list[dict] | None:
     if not isinstance(raw, list):
         return None
     claims = [c for c in raw if isinstance(c, dict) and isinstance(c.get("statement"), str) and c["statement"].strip()]
-    return claims[:MAX_CLAIMS] or None
+    return claims[:limit] or None
 
 
 def _prompt(program: Program, in_fields, out_fields) -> list[dict]:
@@ -160,9 +160,12 @@ def _clip(values: dict | None) -> dict:
 
 
 def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Callable[[dict], None] = lambda e: None,
-             run_original=verifier.run_original) -> dict:
+             run_original=verifier.run_original, *, build_messages=None, max_claims: int = MAX_CLAIMS,
+             on_proposed: Callable[[list[str]], None] = lambda statements: None) -> dict:
     """The behavior-claims document for `program`. Never raises for a model or sandbox problem: `skipped` or
-    `unchecked` says what happened. `client` carries the documenter's own settings (model, hard call cap)."""
+    `unchecked` says what happened. `client` carries the documenter's own settings (model, hard call cap). `build_messages(program, in_fields, out_fields)`
+    replaces the general prompt (ask.py uses it for question-focused claims); everything after the model answer, the example
+    validation and the verifier's verdicts, is the same code for every caller."""
     model = client.settings.model
     meta = json.loads((program.sample_dir / "sample.json").read_text())
     why = verifier.unsupported(meta)
@@ -171,7 +174,7 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
     if model not in PRICES:  # fail closed: an unpriced model cannot be held to the dollar cap
         return _empty(program.name, model, f"{model} has no known price, so the cost cap cannot be enforced")
     in_fields, out_fields = load_fields(meta["layouts"]["input"]), load_fields(meta["layouts"]["output"])
-    messages = _prompt(program, in_fields, out_fields)
+    messages = (build_messages or _prompt)(program, in_fields, out_fields)
     price = PRICES[model]
 
     def worst_case() -> float:  # recomputed per round: round 2 re-sends the first reply and the correction
@@ -194,7 +197,7 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
             break
         spent += _call_cost(client.calls[-1]) or caps.max_usd
         content = choice.message.content or ""
-        proposed = _parse(content)
+        proposed = _parse(content, max_claims)
         if proposed:
             break
         on_event({"type": "behavior", "message": f"Documenter round {round_no}: the answer had no usable claims"})
@@ -204,6 +207,8 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
     short = {k: usage[k] for k in ("calls", "inputTokens", "outputTokens", "estimatedCostUsd")}
     if not proposed:
         return {**_empty(program.name, model, "the model produced no usable claims"), "usage": short}
+
+    on_proposed([verifier.flat(c["statement"], 400) for c in proposed])
 
     # Build the claims, validating every example against the input layout with the breaker's rules.
     built: list[dict] = []

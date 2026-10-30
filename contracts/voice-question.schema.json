@@ -122,7 +122,16 @@
         "finishedAt": { "type": ["string", "null"] },
         "error": { "type": ["string", "null"], "description": "A fixed phrase, never a provider message" },
         "events": { "type": "array", "maxItems": 60, "items": { "$ref": "#/$defs/event" } },
-        "result": { "oneOf": [{ "$ref": "#/$defs/result" }, { "type": "null" }] }
+        "result": { "oneOf": [{ "$ref": "#/$defs/result" }, { "type": "null" }] },
+        "partial": {
+          "type": ["object", "null"],
+          "description": "What each finished step produced so far, so the page can show the stages as they really complete. `transcript` appears when transcription ends; `proposed` (the statements a model proposed, NOT yet checked) when the claims are written.",
+          "additionalProperties": false,
+          "properties": {
+            "transcript": { "$ref": "#/$defs/transcript" },
+            "proposed": { "type": "array", "maxItems": 3, "items": { "type": "string", "maxLength": 400 } }
+          }
+        }
       }
     },
     "status": {
