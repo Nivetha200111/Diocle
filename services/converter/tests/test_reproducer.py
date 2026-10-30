@@ -34,6 +34,9 @@ def test_evidence_names_the_fields_that_matter_and_labels_the_opinion():
     assert "RT-FEE=' 1000'" in text and "RT-REASON='NS'" in text
     assert "first difference: output record 1, field CL-FEE" in text
     assert "explanation, not proof" in text and len(text) <= MAX_EVIDENCE_CHARS
+    assert "AND values as the original failure" in text
+    loose = evidence_text({**EXAMPLE, "signatureMode": "fields"})
+    assert "values may differ from the original failure" in loose
     assert "ACCT" not in text.split("fields that matter")[1].split("\n")[0].replace("CQ-ACCT", "")  # neutral fields are left out
 
 
@@ -65,6 +68,7 @@ def test_reduction_caps_and_the_reasons_it_is_skipped(tmp_path):
     broken = [{"case": Case(f"b{i}", "model", f"rec{i}"), "why": "tie", "diff": "d"} for i in range(4)]
     out = m.reproduce(broken)
     assert sorted(out) == ["b0", "b1"] and len(calls) == 2  # MINIMIZE_MAX_CASES = 2
+    assert calls[0][2]["strict"] is True  # the exact values are kept by default
     assert calls[0][2]["max_runs"] == 7 and calls[0][2]["max_seconds"] == 9.0
     assert calls[0][2]["explanation"] == {"text": "tie", "source": "breaker"}
     assert (tmp_path / "reproducers" / "b0.json").is_file()
@@ -127,6 +131,7 @@ def test_the_repair_agent_gets_the_minimal_reproducer_not_the_raw_record(monkeyp
 def test_a_repair_that_fails_a_saved_regression_case_is_not_certified(monkeypatch, tmp_path):
     outcome, summary, agent, events, m = _attack(monkeypatch, tmp_path, replay_passes=False)
     assert outcome["certified"] is False and not summary["fixed"]
+    assert outcome["lessons"] == [] and outcome["certificationReport"] is None  # run.json then reads not-certified, nothing learned
     assert any("still fails 1 saved regression case" in e.get("message", "") for e in events)
 
 

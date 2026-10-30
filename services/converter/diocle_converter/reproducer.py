@@ -33,6 +33,8 @@ def evidence_text(rec: dict) -> str:
         if needed or views:
             lines.append("  fields that matter (the rest were blanked or zeroed and the difference stayed): "
                          + ", ".join(needed + views))
+    lines.append("  same discrepancy meant: " + ("the same output field(s) AND values as the original failure" if rec.get("signatureMode") == "strict"
+                 else "the same output field(s) differ; values may differ from the original failure"))
     if first:
         lines.append(f"  first difference: output record {first['record']}"
                      + (f", field {first['field']}" if first.get("field") else "")
@@ -58,6 +60,7 @@ class Minimizing:
     replay_fn: Callable | None = None
     records: list[dict] = field(default_factory=list)
     used: int = 0
+    strict: bool = True  # keep the exact differing values, so the reduced input shows the original failure
 
     @staticmethod
     def available() -> str | None:
@@ -86,7 +89,7 @@ class Minimizing:
                 self.gate(self.java_dir)
             rec = self._minimize(self.sample_dir, self.java_dir, case_id, contexts, source=source, hint=hint,
                                  max_runs=self.max_runs, max_seconds=self.max_seconds, out_dir=self.run_dir,
-                                 explanation={"text": why, "source": "breaker"} if why else None)
+                                 explanation={"text": why, "source": "breaker"} if why else None, strict=self.strict)
             if rec["status"] == "minimized":
                 self._save(rec)
         except Exception as e:  # additive: the old evidence stays
