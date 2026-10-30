@@ -251,8 +251,9 @@ export default function HomeView({ go }: { go: Go }) {
           <div><dt>Programs certified by a full Diocle run</dt><dd className="mono">14/15</dd></div>
         </dl>
         <p className="home-pr">
-          Four of the ten translations that passed the 1,000-input test (and could be attacked) were broken by the
-          breaker agent&apos;s designed inputs. One program, CHQCLR, was not certified. Small sample, one model, synthetic
+          In a separate attack run (one fresh translation per program), four of the ten translations that passed the
+          1,000-input test and could be attacked were broken by the breaker agent&apos;s designed inputs; three of those four had
+          passed all three first-try trials. One program, CHQCLR, was not certified. Small sample, one model, synthetic
           programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>.
         </p>
       </section>
