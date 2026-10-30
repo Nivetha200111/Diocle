@@ -175,6 +175,7 @@ def list_runs() -> list[dict]:
             "calls": usage.get("calls", 0), "estimatedCostUsd": usage.get("estimatedCostUsd"),
             "model": _agents_model(calls), "efficiency": _efficiency(run, _events(path)),
             "memory": run.get("memory"),
+            **({"assurance": run["assurance"]} if run.get("assurance") else {}),
         })
     return items
 
@@ -291,4 +292,6 @@ def get_run(run_id: str) -> dict | None:
         "tiers": run.get("tiers"),
         "guard": run.get("guard"),
         "swarm": run.get("swarm", False),
+        # convert-anyway only (run contract v0.13): absent on every other run
+        **{k: run[k] for k in ("assurance", "assuranceReason", "cobolRepair") if run.get(k) is not None},
     }

@@ -117,6 +117,7 @@ class DeliveryRequest(BaseModel):
     target: str | None = None
     parallel: bool = False
     breaker: bool = False
+    convertAnyway: bool = False  # admin only (a visitor who sets it is refused): see deliver.py --convert-anyway
 
 
 def _admin_ok(token: str | None) -> bool:
@@ -148,6 +149,8 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
     """Start a delivery (spends model credits within the converter's caps). With the admin passcode: a pull request
     on an allowed target. Without it: a visitor import of any public repository, sandboxed, capped, no pull request."""
     admin = _admin_ok(x_diocle_admin)
+    if request.convertAnyway and not admin:
+        raise HTTPException(status_code=403, detail="convert anyway needs the admin passcode or the local command line")
     if not admin:
         if x_diocle_admin:
             raise HTTPException(status_code=403, detail="wrong passcode")
@@ -158,7 +161,8 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
             if admin:
                 if not request.target:
                     raise ValueError("a target repository is required")
-                return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker)}
+                return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker,
+                                               convert_anyway=request.convertAnyway)}
             if not GITHUB_URL.match(request.legacy.strip()):
                 raise ValueError(f"not a GitHub repository URL: {request.legacy!r}")
             busy = running_delivery()

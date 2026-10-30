@@ -40,11 +40,12 @@ def _sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, check=True, text=True, capture_output=True, **kw)
 
 
-def analyze(legacy_url: str, delivery_id: str) -> tuple[dict, Path]:
+def analyze(legacy_url: str, delivery_id: str, convert_anyway: bool = False) -> tuple[dict, Path]:
     """Analyze into runs/deliveries/<id>/ so concurrent deliveries never share files."""
     out = REPO_ROOT / "runs" / "deliveries" / delivery_id
     _sh([str(SERVICES / "analyzer/.venv/bin/python"), "-m", "diocle_analyzer", legacy_url,
-         "--out", str(out / "analysis-report.json"), "--samples-dir", str(out / "samples")], cwd=SERVICES / "analyzer")
+         "--out", str(out / "analysis-report.json"), "--samples-dir", str(out / "samples"),
+         *(["--convert-anyway"] if convert_anyway else [])], cwd=SERVICES / "analyzer")
     return json.loads((out / "analysis-report.json").read_text()), out / "samples"
 
 
@@ -92,12 +93,22 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def convert(sample_dir: Path, on_start=lambda run_id: None, flags: list[str] | None = None) -> str | None:
+def child_env(convert_anyway: bool) -> dict:
+    """Environment of converter children. Convert-anyway is never inherited by accident: a delivery that did not ask for it
+    (every visitor import) strips DIOCLE_CONVERT_ANYWAY, so the engine's own environment cannot switch it on for strangers."""
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    if not convert_anyway:
+        env.pop("DIOCLE_CONVERT_ANYWAY", None)
+    return env
+
+
+def convert(sample_dir: Path, on_start=lambda run_id: None, flags: list[str] | None = None,
+            convert_anyway: bool = False) -> str | None:
     """Run the converter's translate + repair + certify, streaming its output; returns the run id."""
     proc = subprocess.Popen([str(SERVICES / "converter/.venv/bin/python"), "-m", "diocle_converter", "run", str(sample_dir),
                              *(flags or [])],
                             cwd=SERVICES / "converter", text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            env={**os.environ, "PYTHONUNBUFFERED": "1"})
+                            env=child_env(convert_anyway))
     run_id = None
     for line in proc.stdout:
         sys.stdout.write(f"[{sample_dir.name}] {line}")
@@ -143,27 +154,66 @@ def _usd(cost: float | None) -> str:
     return "n/a" if cost is None else f"${cost:.4f}"
 
 
-def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str]) -> str:
+def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str], others: list[dict] | None = None) -> str:
+    """others: convert-anyway programs that are NOT certified, each {name, assurance, reason, run}. They are listed under their
+    own headings, with a sentence saying what was and was not shown; nothing in this section says "certified" of them."""
     src = report["source"]
+    others = others or []
     lines = [
         f"Diocle migrated [{src['location'].split('github.com/')[-1]}@{src['commit'][:12]}]({src['location']}/tree/{src['commit']}) "
-        "and certified each program below against the original COBOL compiled with GnuCOBOL.", "",
-        "| Program | Before | Held-out certification | Agent | Est. cost |", "|---|---|---|---|---|",
+        + ("and certified each program in the first table against the original COBOL compiled with GnuCOBOL."
+           if delivered else "in convert-anyway mode. No program below is certified.")
+        + ("" if not others else " Programs under the other headings are NOT certified; read their sections."), "",
     ]
+    if delivered:
+        lines += ["## Certified", "", "| Program | Before | Held-out certification | Agent | Est. cost |", "|---|---|---|---|---|"]
     for run, cert in delivered:
         before = f"{run['before']['passed']}/{run['before']['total']}" if run.get("before") else "n/a"
         v, a = cert["verification"], cert["agent"]
         lines.append(f"| `{cert['program']}` | {before} | **{v['passed']}/{v['total']}** match, stdout "
                      f"{'matches' if v['stdoutMatch'] else 'differs'} | {a['modelCalls']} calls, {a['rounds']} round(s), "
                      f"{a['memoryLessonsUsed']} lessons from memory | {_usd(a['estimatedCostUsd'])} |")
+    repaired = [o for o in others if o["assurance"] == "certified-against-repaired-cobol"]
+    unverified = [o for o in others if o["assurance"] == "compiled-unverified"]
+    failed = [o for o in others if o["assurance"] == "failed"]
+    if repaired:
+        lines += ["", "## Verified against repaired COBOL (not certified against the original)", ""]
+        lines += [f"- `{o['name']}`: {o['reason']}" for o in repaired]
+        lines += ["", "The patch and the diagnostics it fixed are in `unverified/<PROGRAM>/assurance.json`."]
+    if unverified:
+        lines += ["", "## Compiled, NOT verified", ""]
+        lines += [f"- `{o['name']}`: {o['reason']}" for o in unverified]
+        lines += ["", "These are under `unverified/<PROGRAM>/`, with no certificate. They were compiled with javac and never run by Diocle."]
+    if failed:
+        lines += ["", "## Failed (not delivered)", ""] + [f"- `{o['name']}`: {o['reason']}" for o in failed]
     if skipped:
         lines += ["", "**Not delivered** (not certified or not convertible): " + ", ".join(f"`{s}`" for s in skipped)]
-    lines += ["", "Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
-              "The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
-              "so this PR does not ask you to trust Diocle's own result.", "",
-              "Converted by Meta Muse Spark and certified by [Diocle](https://github.com/Nivetha200111/Diocle). "
-              "Estimated costs use list prices."]
+    lines += ["", *(["Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
+                    "The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
+                    "so this PR does not ask you to trust Diocle's own result."] if delivered else []), "",
+              ("Converted by Meta Muse Spark and certified by [Diocle](https://github.com/Nivetha200111/Diocle). "
+               if delivered else
+               "Converted by Meta Muse models with [Diocle](https://github.com/Nivetha200111/Diocle); nothing here is certified. ")
+              + "Estimated costs use list prices."]
     return "\n".join(lines)
+
+
+def _other_programs(report: dict, run_ids: dict[str, str]) -> list[dict]:
+    """Programs of a convert-anyway delivery that finished with a label other than certified (read from their run records)."""
+    out = []
+    for program in report["programs"]:
+        run = get_run(run_ids[program["name"]]) if program["name"] in run_ids else None
+        if run and not run["certified"] and run.get("assurance") in ("certified-against-repaired-cobol", "compiled-unverified", "failed"):
+            out.append({"name": program["name"], "assurance": run["assurance"], "run": run, "program": program,
+                        "reason": run.get("assuranceReason") or run.get("error") or "no reason recorded"})
+    return out
+
+
+def unverified_sentence(assurance: str, reason: str) -> str:
+    """The one sentence shown for a program that is not certified; it never says certified of the program."""
+    if assurance == "compiled-unverified":
+        return f"Java compiles; a developer must review it; the differential test could not run because {reason}"
+    return reason
 
 
 def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
@@ -182,9 +232,29 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
         branch = onto or f"diocle/{report['source']['commit'][:12]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         if not onto:
             _sh(["git", "-C", str(repo), "checkout", "-q", "-b", branch])
+        others = _other_programs(report, run_ids)
+        for o in others:
+            if o["assurance"] == "failed":
+                continue
+            dest = repo / "unverified" / o["name"]
+            if dest.exists():
+                shutil.rmtree(dest)
+            shutil.copytree(REPO_ROOT / "runs" / o["run"]["id"] / "java", dest / "java")
+            repair = o["run"].get("cobolRepair")
+            (dest / "assurance.json").write_text(json.dumps({
+                "program": o["name"], "assurance": o["assurance"], "reason": o["reason"],
+                "statement": unverified_sentence(o["assurance"], o["reason"]),
+                "legacy": {"repository": report["source"]["location"], "commit": report["source"]["commit"], "path": o["program"]["path"]},
+                "cobolRepair": repair, "agent": {"runId": o["run"]["id"], "model": o["run"]["model"],
+                                                 "estimatedCostUsd": o["run"]["efficiency"]["estimatedCostUsd"]},
+                "issuedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}, indent=2) + "\n")
+            if repair:
+                (dest / "cobol-repair.diff").write_text(repair["diff"])
         for program in report["programs"]:
             run = get_run(run_ids[program["name"]]) if program["name"] in run_ids else None
             if not run or not run["certified"] or not run.get("after"):
+                if any(o["name"] == program["name"] for o in others):
+                    continue  # listed under its own heading, never as "not certified" noise
                 skipped.append(program["name"])
                 if progress:
                     progress.program(program["name"])["status"] = "not-certified" if run else "skipped"
@@ -199,21 +269,24 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
             cert = certificate(run, sample, report, program, diocle_commit)
             (dest / "certificate.json").write_text(json.dumps(cert, indent=2) + "\n")
             delivered.append((run, cert))
-        if not delivered:
+        if not delivered and not any(o["assurance"] != "failed" for o in others):
             raise SystemExit(f"Nothing certified to deliver (skipped: {', '.join(skipped)})")
-        body = _pr_body(report, delivered, skipped)
+        body = _pr_body(report, delivered, skipped, others)
         if dry_run:
             print(body)
             return str(repo)
         git = ["git", "-C", str(repo), "-c", "user.name=Diocle", "-c", "user.email=diocle@users.noreply.github.com"]
         _sh(git + ["add", "-A"])
         models = sorted({c["agent"]["model"] or "unknown model" for _, c in delivered})
-        _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s) from {report['source']['commit'][:12]}",
-                   "-m", f"Converted by {', '.join(models)} and certified against GnuCOBOL by Diocle."])
+        extra = f" and {len([o for o in others if o['assurance'] != 'failed'])} NOT-certified program(s) under unverified/" if others else ""
+        _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s){extra} from {report['source']['commit'][:12]}",
+                   "-m", f"Converted by {', '.join(models) or 'Meta Muse models'} and checked against GnuCOBOL by Diocle."])
         _sh(git + ["push", "-q", "-u", "origin", branch])
         if onto:  # an existing branch: its pull request (if any) picks up the new commit
             return f"pushed to {branch}"
-        title = f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
+        title = (f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
+                 + (f"; {len(others)} more NOT certified" if others else "")) if delivered else \
+            f"Diocle: {len(others)} program(s) converted, NONE certified (convert anyway)"
         url = _sh(["gh", "pr", "create", "--repo", target_repo(target_url), "--head", branch,
                    "--title", title, "--body", body]).stdout.strip()
         if progress:
@@ -284,6 +357,33 @@ class CompilePrecheck:
         return None
 
 
+class Spend:
+    """REPO_MAX_USD: one hard dollar cap across all programs of a convert-anyway delivery (rule 10), on top of each run's
+    own call caps. What is left is passed to every run as --max-usd, so even the program being converted cannot overshoot
+    by more than one model call. A program whose cost is unknown (a model without a price) makes the total unknown, and
+    an unknown total stops the delivery: fail closed."""
+
+    def __init__(self, cap: float):
+        self.cap, self.spent = cap, 0.0
+
+    @classmethod
+    def from_env(cls) -> "Spend":
+        try:
+            return cls(max(0.0, float(os.environ.get("REPO_MAX_USD", "") or "1.00")))
+        except ValueError:
+            return cls(1.00)
+
+    def add(self, cost: float | None) -> None:
+        self.spent = None if cost is None or self.spent is None else round(self.spent + cost, 6)
+
+    def remaining(self) -> float | None:
+        return None if self.spent is None else self.cap - self.spent
+
+    def reason(self) -> str:
+        return (f"repo spend cap reached (REPO_MAX_USD ${self.cap:.2f}; "
+                + ("spend unknown, a model has no price" if self.spent is None else f"${self.spent:.4f} spent") + ")")
+
+
 def _visitor_caps(programs: list[dict], samples: Path, precheck: CompilePrecheck | None = None
                   ) -> tuple[list[dict], list[dict]]:
     """Visitor imports convert at most DIOCLE_PUBLIC_MAX_PROGRAMS programs of DIOCLE_PUBLIC_MAX_LINES lines each.
@@ -322,9 +422,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--breaker", action="store_true", help="after certification, a breaker agent attacks each program")
     parser.add_argument("--onto", help="commit onto this existing target branch instead of opening a new pull request")
     parser.add_argument("--id", help="delivery id to use (the API passes one so the dashboard can follow it)")
+    parser.add_argument("--convert-anyway", action="store_true",
+                        help="never refuse (local or admin only): refused, uncompilable or unverifiable programs are still "
+                             "translated and compile-checked and labelled compiled-unverified / failed; an original that "
+                             "does not compile is patched first. REPO_MAX_USD (default 1.00) caps the whole delivery.")
     parser.add_argument("--public", action="store_true",
                         help="a visitor's import: needs the sandbox, visitor caps, no pull request, no swarm or breaker")
     args = parser.parse_args(argv)
+    if args.public and args.convert_anyway:
+        parser.error("--convert-anyway is not available to visitor imports (--public)")
+    # DIOCLE_CONVERT_ANYWAY=1 in the environment counts for local runs only; a visitor import never reads it.
+    convert_anyway = args.convert_anyway or (not args.public and os.environ.get("DIOCLE_CONVERT_ANYWAY") == "1")
+    if convert_anyway:
+        args.parallel = False  # sequential, so REPO_MAX_USD is exact (no program starts while another may still spend)
     if args.public:
         if not os.environ.get("DIOCLE_SANDBOX_URL"):
             parser.error("--public needs DIOCLE_SANDBOX_URL: imported code must never run beside the secrets")
@@ -332,13 +442,17 @@ def main(argv: list[str] | None = None) -> int:
 
     target = args.target_url.rstrip("/").removesuffix(".git") if args.target_url else None
     progress = Progress(args.legacy_url, target, args.id, args.public)
-    print(f"delivery {progress.id}", flush=True)
+    spend = Spend.from_env() if convert_anyway else None
+    if spend:
+        progress.state.update(convertAnyway=True, repoMaxUsd=spend.cap, spentUsd=0.0)
+        progress.save()
+    print(f"delivery {progress.id}" + (f" (convert anyway, REPO_MAX_USD ${spend.cap:.2f})" if spend else ""), flush=True)
     try:
         if target:
             target_repo(target)  # fail fast on a bad or disallowed target
-        report, samples = analyze(args.legacy_url, progress.id)
+        report, samples = analyze(args.legacy_url, progress.id, convert_anyway)
         wanted = set(args.programs.split(",")) if args.programs else None
-        report["programs"] = [p for p in report["programs"] if p["convertible"] and (wanted is None or p["name"] in wanted)]
+        report["programs"] = [p for p in report["programs"] if (p["convertible"] or convert_anyway) and (wanted is None or p["name"] in wanted)]
         skipped, seen = [], {}
         for p in list(report["programs"]):  # samples are keyed by PROGRAM-ID, so a second file with the same one is skipped
             if p["name"] in seen:
@@ -371,7 +485,8 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"ignoring --runs {run_id}: {'not certified' if run else 'not found'}", flush=True)
         flags = ((["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
-                 + (["--memory-read-only"] if args.public else []))  # strangers' code never shapes later runs
+                 + (["--memory-read-only"] if args.public else [])  # strangers' code never shapes later runs
+                 + (["--convert-anyway"] if convert_anyway else []))
         lock = threading.Lock()
 
         def work(program: dict) -> None:
@@ -379,6 +494,15 @@ def main(argv: list[str] | None = None) -> int:
             with lock:
                 entry["status"] = "converting"
                 progress.save()
+
+            if spend:
+                left = spend.remaining()
+                if left is None or left <= 0:
+                    with lock:
+                        entry.update(status="skipped", reason=spend.reason())
+                        progress.save()
+                    print(f"{program['name']}: skipped, {spend.reason()}", flush=True)
+                    return
 
             def started(run_id: str) -> None:
                 if args.public:  # a visitor's run: labelled, and never offered for public re-verification
@@ -388,10 +512,22 @@ def main(argv: list[str] | None = None) -> int:
                     entry["runId"] = run_id
                     progress.save()
 
-            run_id = convert(samples / program["name"].lower(), started, flags)
+            run_id = convert(samples / program["name"].lower(), started,
+                             flags + (["--max-usd", f"{spend.remaining():.6f}"] if spend else []), convert_anyway)
             run = get_run(run_id) if run_id else None
             with lock:
                 entry.update(runId=run_id, status="certified" if run and run["certified"] else "not-certified")
+                if spend:
+                    cost = (run or {}).get("efficiency", {}).get("estimatedCostUsd")
+                    spend.add(cost if run else 0.0)
+                    entry.update(assurance=(run or {}).get("assurance") or ("failed" if not run else None),
+                                 costUsd=cost,
+                                 reason=((run or {}).get("assuranceReason") or (run or {}).get("error")
+                                         or (None if run else "the converter stopped before a run was recorded")))
+                    progress.state.update(spentUsd=spend.spent)
+                    print(f"{program['name']}: {entry['assurance']}; cost "
+                          f"{'n/a' if cost is None else f'${cost:.4f}'}; delivery total "
+                          f"{'n/a' if spend.spent is None else f'${spend.spent:.4f}'} of ${spend.cap:.2f}", flush=True)
                 progress.save()
                 if run_id:
                     run_ids[program["name"]] = run_id

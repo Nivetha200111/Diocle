@@ -160,7 +160,8 @@ def _mark_failed(delivery_id: str, error: str) -> None:
     tmp.replace(path)
 
 
-def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: bool, public: bool = False) -> str:
+def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: bool, public: bool = False,
+                   convert_anyway: bool = False) -> str:
     """Start diocle_api.deliver in the background and return its id. One delivery at a time (rule 10).
     public: a visitor import (no target, any public repository, sandboxed, capped, no GitHub token)."""
     import sys
@@ -177,13 +178,18 @@ def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: boo
         target_repo(target)  # owner allowlist; the analyzer applies the same list to the legacy repo
     elif not public:
         raise ValueError("a target repository is required")
+    if convert_anyway and public:
+        raise ValueError("convert anyway is not available to visitor imports")
     delivery_id = f"delivery-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     if (_deliveries_dir() / delivery_id).exists():
         raise RuntimeError("another delivery started this second; try again")
     cmd = [sys.executable, "-m", "diocle_api.deliver", legacy.strip(), *([target.strip()] if target else []),
            "--id", delivery_id, *(["--public"] if public else []),
-           *(["--parallel"] if parallel else []), *(["--breaker"] if breaker else [])]
+           *(["--parallel"] if parallel else []), *(["--breaker"] if breaker else []),
+           *(["--convert-anyway"] if convert_anyway else [])]
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    if not convert_anyway:  # the engine's own environment must never switch the mode on for a delivery that did not ask
+        env.pop("DIOCLE_CONVERT_ANYWAY", None)
     if public:  # any owner may be imported; nothing in this process tree needs GitHub write access
         env["DIOCLE_IMPORT_ANY"] = "1"
         env.pop("GH_TOKEN", None)
@@ -193,7 +199,8 @@ def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: boo
     record = {"id": delivery_id, "legacy": {"repository": legacy.strip(), "commit": None},
               "target": target.strip().rstrip("/").removesuffix(".git") if target else None, "public": public,
               "stage": "analyzing", "startedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-              "finishedAt": None, "error": None, "programs": [], "pullRequest": None}
+              "finishedAt": None, "error": None, "programs": [], "pullRequest": None,
+              **({"convertAnyway": True} if convert_anyway else {})}
     (log.parent / "delivery.json").write_text(json.dumps(record, indent=2) + "\n")
     proc = subprocess.Popen(cmd, cwd=Path(__file__).resolve().parents[1], stdout=log.open("w"),
                             stderr=subprocess.STDOUT, env=env, start_new_session=True)
