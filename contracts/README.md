@@ -2,6 +2,8 @@
 
 Shared JSON Schemas defining hand-offs between modules: analysis-report, conversion-output (draft), verification-report, run, delivery, certificate and sql-schema (copybooks as SQL tables with their SQLite round-trip proof) and transcription (a printout image transcribed to COBOL, gated by the compiler and a differential run; v0.1).
 
+voice-question v0.1 ("Ask the original program": a transcribed spoken question, at most three proposed claims reusing behavior-claims v0.1, GnuCOBOL verdicts, an answer assembled from confirmed claims only, costs and caps; request is two names from fixed lists, job and config status shapes).
+
 Change contracts first, then implementations.
 
 live-sample v0.1 (the two public "try it live" buttons: request, job and config status; the request is a name from a fixed list) and run v0.16 (`sampleRun`, additive: a run started by the live button; absent on all other runs).

@@ -137,8 +137,8 @@ export default function AskPanel() {
             Play a question, press Ask, and watch it travel: <strong>Muse Voice Transcribe</strong> writes down what was said,
             a <strong>Muse Spark</strong> model turns it into claims about the COBOL program with concrete examples, and then
             <strong> GnuCOBOL runs the original program</strong> on those examples. The answer below is put together only from
-            claims GnuCOBOL confirmed; the models propose, they never decide. You cannot upload anything here: the question is
-            one of two bundled clips, so nothing you type or say reaches a model.
+            claims GnuCOBOL confirmed; the models propose, they never decide. On the public site you cannot upload anything: the
+            question is one of two bundled clips, so nothing you type or say reaches a model.
           </p>
         </div>
       </div>

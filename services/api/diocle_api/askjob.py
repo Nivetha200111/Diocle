@@ -94,6 +94,8 @@ def run(job: Job, audio: Path) -> None:
                 job.event(m.group(2), m.group(1))
             elif _STOPPED.match(line):
                 stopped = line[len("stopped: "):]
+            else:
+                print(line[:500], file=sys.stderr, flush=True)  # job.log on the engine only: never in the job record
         proc.wait()
     finally:
         timer.cancel()
