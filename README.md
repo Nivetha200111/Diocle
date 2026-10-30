@@ -191,10 +191,12 @@ Migration teams spend nights compiling every converted program together. Diocle 
 (`diocle_verifier.buildcheck`, contract `contracts/build-report.schema.json`) looks at the delivered programs **together**.
 
 **What it checks**
-- All converted Java compiled in **one** `javac -proc:none` run (no network, nothing executed), and each program alone. Top-level class names that collide between programs (byte-identical copies are fine).
+- All converted Java compiled in **one** `javac -proc:none` run (no network, nothing executed), and each program alone. Top-level class names declared in more than one program (identical copies too, because the generated CI compiles every file and javac reports those as duplicate classes there as well).
 - **Copybook drift**: the same copybook member with different text across files (warn) or different record layouts for the same `COPY` (fail).
 - **CALL resolution**: every static `CALL 'X'` must name a program of the repository; the callee's `PROCEDURE DIVISION USING` count must be satisfied and argument byte lengths compared where both sides are plain 01/77 items (callee longer than the caller's item = fail, shorter = warn), with exact file and line.
 - A dependency graph of programs, copybooks, calls and files, and a verdict `pass | fail | warn` with one reason per cause.
+
+**Known limits**: a `module-info.java` inside a program folder makes the whole compile fail (the gate compiles every file as one classpath unit; it says so rather than hiding it), and two classes whose names differ only by case are not detected on case-insensitive file systems. The compile uses an `@argfile`, so thousands of files and spaces in paths are fine.
 
 **What it does not check**: how the programs behave together (each is still verified alone by differential testing), JCL step order and dataset wiring, subscripted or computed CALL arguments, dynamic CALLs, programs outside the repository. `scope.notChecked` in the report always says so.
 
@@ -214,7 +216,7 @@ together (`javac -proc:none -d "$RUNNER_TEMP/out" $(find programs -name '*.java'
 **EXPERIMENTAL: bring your own domain classes.** `--domain-classes PATH` (a directory of `.java` files, or one `.jar`; local only, `deliver` and `buildcheck`)
 puts your own classes on the javac classpath, so the converted programs are checked to compile beside your codebase, and a program class with the
 same name as one of yours is reported. The classes are only read by javac (and `javap -public` for a jar); they are never loaded or run, never
-extracted, and the verifier's runs never see them. With `diocle_converter run --domain-classes PATH`, when a class name matches a COBOL record or copybook
+extracted (javac and `javap` read a staged copy; a relative `Class-Path` entry in the jar's manifest cannot reach beside the original, but absolute or `file:` entries are not confined and javac may read those paths as class bytes), and the verifier's runs never see them. With `diocle_converter run --domain-classes PATH`, when a class name matches a COBOL record or copybook
 name (case, hyphens and a trailing REC/RECORD ignored), the translator is shown that class's **public signature only** (no bodies) and is told to shape
 its nested record holder after it (same field and accessor names) but **not** to reference it, because each program is still compiled and verified alone.
 So the converted programs do not yet use your classes; a swap-in is a reviewer's step and is not verified. One real run (ADDFEE, a tiny synthetic class) did shape its holder after the class and certified 1,005 of 1,005.
