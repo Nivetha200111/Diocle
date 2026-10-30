@@ -20,6 +20,7 @@ import base64
 import io
 import json
 import os
+import re
 import signal
 import stat
 import subprocess
@@ -367,13 +368,26 @@ def run_job(job: dict, kind: str = "verify") -> dict:
             timer.cancel()
         if proc.returncode != 0 or len(out) > max_report:
             tail = (err[0] if err else b"").decode(errors="replace")[-1500:]
-            if tail.startswith(PLAIN_PREFIX):  # the child's own sentence (no verdict possible): pass it on verbatim
-                raise VerifierUnavailable(tail[len(PLAIN_PREFIX):][:400])
+            sentence = tail[len(PLAIN_PREFIX):] if tail.startswith(PLAIN_PREFIX) else ""
+            if _is_known_plain(sentence):  # the child's own sentence (no verdict possible): pass it on verbatim
+                raise VerifierUnavailable(sentence)
             raise RuntimeError(f"verifier failed (exit {proc.returncode}): {tail}")
         return json.loads(out)
     finally:
         _clean_up()
         _job_lock.release()
+
+
+
+_PLAIN_RE = re.compile(r"(the original program did not terminate within [0-9.]+ seconds, so there is nothing to compare against"
+                       r"|the converted Java did not terminate within [0-9.]+ seconds, so it cannot be certified)")
+
+
+def _is_known_plain(sentence: str) -> bool:
+    """Only the verifier's own fixed sentences count as plain messages. A program running as the same user could write
+    the marker into the child's stderr, so anything else (extra text, a different sentence) is treated as an ordinary error."""
+    from . import sqlrun
+    return bool(_PLAIN_RE.fullmatch(sentence)) or sentence == sqlrun.JDBC_MISSING
 
 
 def _job_env() -> dict[str, str]:

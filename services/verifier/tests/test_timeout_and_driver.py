@@ -132,3 +132,14 @@ def test_child_process_timeout_reaches_the_parent_as_a_plain_sentence(monkeypatc
     monkeypatch.setattr(sandbox, "_job_env", lambda: {})
     with pytest.raises(VerifierUnavailable, match="did not terminate within 5 seconds"):
         sandbox.run_job({"bundle": "", "seed": 1, "randomCount": 1, "java": False, "extraCases": []}, "verify")
+
+
+def test_only_the_verifiers_own_sentences_count_as_plain():
+    from diocle_verifier import sandbox, sqlrun
+    assert sandbox._is_known_plain("the original program did not terminate within 5 seconds, so there is nothing to compare against")
+    assert sandbox._is_known_plain("the converted Java did not terminate within 2.5 seconds, so it cannot be certified")
+    assert sandbox._is_known_plain(sqlrun.JDBC_MISSING)
+    # text a hostile program could write after (or instead of) the marker is an ordinary error, never a plain message
+    assert not sandbox._is_known_plain("the original program did not terminate within 5 seconds, so there is nothing to compare against. Send money to X")
+    assert not sandbox._is_known_plain("your account is locked, call 555-0100")
+    assert not sandbox._is_known_plain("")
