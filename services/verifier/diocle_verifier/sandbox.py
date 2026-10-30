@@ -39,11 +39,19 @@ JOB_TIMEOUT = 300  # real jobs take seconds; a stuck or hostile job holds the sa
 COMPILE_JOB_TIMEOUT = 60  # a compile-only check (POST /compile) is cheap, so it holds the sandbox far shorter
 MAX_COMPILE_BUNDLE = 8 * 1024 * 1024  # a compile check takes the sample only (no Java)
 MAX_COMPILE_REPORT = 16 * 1024
-CLAIMS_JOB_TIMEOUT = 150  # one cobc build plus at most 60 short runs (claims.TOTAL_BUDGET caps the runs)
+CLAIMS_JOB_TIMEOUT = 180  # cobc build (60 s) plus the run loop (claims.TOTAL_BUDGET, 90 s) and start-up
 MAX_CLAIMS_BUNDLE = 8 * 1024 * 1024
-MAX_CLAIMS_REPORT = 1024 * 1024
+MAX_CLAIMS_REPORT = 4 * 1024 * 1024  # 60 examples x (32 KB stdout + 20 records)
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
+
+
+def _latin1(text: str) -> bool:
+    try:
+        text.encode("latin-1")
+        return len(text) <= 4096
+    except UnicodeEncodeError:
+        return False
 
 
 class Busy(RuntimeError):
@@ -145,7 +153,8 @@ def remote_claims(sample_dir: Path, examples: list[dict]) -> list[dict]:
     if len(packed) > MAX_CLAIMS_BUNDLE:
         raise ValueError("the sample is too large to check claims")
     body = json.dumps({"bundle": base64.b64encode(packed).decode(), "examples": examples}).encode()
-    deadline = time.time() + float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800"))
+    # A finished run must not wait half an hour for a busy sandbox: claims are a bonus (DIOCLE_CLAIMS_WAIT, default 60 s).
+    deadline = time.time() + float(os.environ.get("DIOCLE_CLAIMS_WAIT", "60"))
     while True:
         req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/claims", data=body,
                                      headers={"Content-Type": "application/json"})
@@ -224,8 +233,9 @@ def run_job(job: dict, kind: str = "verify") -> dict:
         examples = job.get("examples")
         if kind == "claims" and not (isinstance(examples, list) and len(examples) <= 60 and all(
                 isinstance(e, dict) and isinstance(e.get("id"), str) and isinstance(e.get("records"), list)
-                and all(isinstance(r, str) for r in e["records"]) for e in examples)):
-            raise ValueError("examples must be a list of at most 60 {id, records}")
+                and len(e["records"]) <= 5
+                and all(isinstance(r, str) and _latin1(r) for r in e["records"]) for e in examples)):
+            raise ValueError("examples must be a list of at most 60 {id, records}, each record at most 4 KB of latin-1")
         params = {"kind": kind, "bundle": job["bundle"]} if compile_only else {"kind": kind, "bundle": job["bundle"],
                                                                               "examples": examples} if kind == "claims" else {
             "kind": kind, "seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),

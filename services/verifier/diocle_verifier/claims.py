@@ -25,8 +25,11 @@ from .runners import CLOCK_ENV, _exec, build_cobol, read_records, write_records
 CHECKED_WITH = "GnuCOBOL -std=ibm"
 MAX_EXAMPLES = 60  # one cobc build, then one short run per example
 RUN_TIMEOUT = 10  # seconds per example
-TOTAL_BUDGET = 90  # seconds for all runs of one call (a hung program must not hold a job)
-MAX_STDOUT = 2000
+TOTAL_BUDGET = 90  # seconds for all runs of one call; no run starts after TOTAL_BUDGET - RUN_TIMEOUT, so the loop ends within it
+MAX_STDOUT = 2000  # what the report shows of stdout
+CAPTURE_STDOUT = 32 * 1024  # what is captured, so stdoutContains is judged on the real output, not the displayed part
+MAX_RECORDS = 20  # output records returned per example; the true count travels beside them
+MAX_RECORD_LEN = 4096
 
 
 def unsupported(meta: dict) -> str | None:
@@ -74,8 +77,12 @@ def run_local(sample_dir: Path, examples: list[dict]) -> list[dict]:
             return [_failed(e, "the original COBOL did not compile under GnuCOBOL") for e in examples]
         started, results = time.monotonic(), []
         for n, example in enumerate(examples):
-            if time.monotonic() - started > TOTAL_BUDGET:
+            if time.monotonic() - started > TOTAL_BUDGET - RUN_TIMEOUT:
                 results.append(_failed(example, "time budget for running examples was used up"))
+                continue
+            bad = next((r for r in example["records"] if len(r) > MAX_RECORD_LEN or (in_format == "line" and ("\n" in r or "\r" in r))), None)
+            if bad is not None:
+                results.append(_failed(example, "an input record is too long or breaks the line framing"))
                 continue
             input_path, output_path = work / f"in-{n}.dat", work / f"out-{n}.dat"
             write_records(input_path, list(example["records"]), in_format)
@@ -85,13 +92,16 @@ def run_local(sample_dir: Path, examples: list[dict]) -> list[dict]:
             except subprocess.TimeoutExpired:
                 results.append(_failed(example, f"the program did not finish within {RUN_TIMEOUT} seconds"))
                 continue
-            results.append({"id": example["id"], "ran": True, "records": read_records(output_path, *out_format),
-                            "stdout": proc.stdout[:MAX_STDOUT], "returnCode": proc.returncode, "error": ""})
+            lines = read_records(output_path, *out_format)
+            results.append({"id": example["id"], "ran": True, "records": [r[:MAX_RECORD_LEN] for r in lines[:MAX_RECORDS]],
+                            "recordCount": len(lines), "stdout": proc.stdout[:CAPTURE_STDOUT],
+                            "stderr": proc.stderr[:300], "returnCode": proc.returncode, "error": ""})
     return results
 
 
 def _failed(example: dict, why: str) -> dict:
-    return {"id": example["id"], "ran": False, "records": [], "stdout": "", "returnCode": None, "error": why}
+    return {"id": example["id"], "ran": False, "records": [], "recordCount": 0, "stdout": "", "stderr": "",
+            "returnCode": None, "error": why}
 
 
 def output_fields(meta: dict) -> list[Field]:
@@ -143,34 +153,56 @@ def check_expected(expected: dict, fields: list[Field]) -> str | None:
     return None
 
 
+def _flat(text: str, limit: int = 200) -> str:
+    """One printable line: whitespace collapsed, control characters dropped (nothing can start a new line in a reader)."""
+    return " ".join("".join(ch for ch in text if ch.isprintable() or ch.isspace()).split())[:limit]
+
+
 def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
-    """Decide one example from the run of the original: {"status", "actual", "mismatches", "reason"}."""
+    """Decide one example from the run of the original: {"status", "actual", "mismatches", "reason"}.
+    `actual` is present whenever the program ran, even if the example cannot be judged.
+    Matched needs a real comparison (an output field value or stdout) AND a clean run: a program that ended with a
+    non-zero return code while the example says nothing about it, or an expectation that compares nothing but a
+    return code or a record count, leaves the example unchecked instead of confirmed."""
     if not run["ran"]:
         return {"status": "unchecked", "actual": None, "mismatches": [], "reason": run["error"] or "the program did not run"}
+    records = actual_records(run["records"], fields)
+    count = run.get("recordCount", len(records))
+    actual = {"records": records[:5], "outputRecordCount": count, "stdout": run["stdout"][:MAX_STDOUT],
+              "returnCode": run["returnCode"]}
     bad = check_expected(expected, fields)
     if bad:
-        return {"status": "unchecked", "actual": None, "mismatches": [], "reason": bad}
-    records = actual_records(run["records"], fields)
-    actual = {"records": records[:5], "outputRecordCount": len(records), "stdout": run["stdout"],
-              "returnCode": run["returnCode"]}
+        return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": bad}
     by_name, mismatches = {f.name: f for f in fields}, []
     for i, want in enumerate(expected.get("records", []), 1):
-        if i > len(records):
-            mismatches.append({"what": f"record {i}", "expected": "a record", "actual": "no such record: the program wrote "
-                               f"{len(records)}"})
+        if i > count:
+            mismatches.append({"what": f"record {i}", "expected": "a record", "actual": f"no such record: the program wrote {count}"})
             continue
+        if i > len(records):
+            continue  # beyond the records kept; expectations cover at most 5
         for name, value in want.items():
             got = records[i - 1][name]
             if not _same(by_name[name], value, got):
                 mismatches.append({"what": f"record {i} {name}", "expected": value, "actual": got})
-    if "outputRecordCount" in expected and expected["outputRecordCount"] != len(records):
-        mismatches.append({"what": "number of output records", "expected": str(expected["outputRecordCount"]),
-                           "actual": str(len(records))})
+    if "outputRecordCount" in expected and expected["outputRecordCount"] != count:
+        mismatches.append({"what": "number of output records", "expected": str(expected["outputRecordCount"]), "actual": str(count)})
     if "stdoutContains" in expected and expected["stdoutContains"] not in run["stdout"]:
-        mismatches.append({"what": "stdout", "expected": f"contains {expected['stdoutContains']!r}", "actual": run["stdout"][:200]})
+        mismatches.append({"what": "stdout", "expected": f"contains {_flat(expected['stdoutContains'])!r}",
+                           "actual": _flat(run["stdout"], 200)})
     if "returnCode" in expected and expected["returnCode"] != run["returnCode"]:
         mismatches.append({"what": "return code", "expected": str(expected["returnCode"]), "actual": str(run["returnCode"])})
-    return {"status": "differed" if mismatches else "matched", "actual": actual, "mismatches": mismatches[:20], "reason": ""}
+    if mismatches:
+        return {"status": "differed", "actual": actual, "mismatches": mismatches[:20], "reason": ""}
+    if run["returnCode"] != 0 and "returnCode" not in expected:
+        err = _flat(run.get("stderr", ""), 120)
+        return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": (
+            f"the program ended with return code {run['returnCode']} and the example does not expect that"
+            + (f" (it printed: {err})" if err else ""))}
+    strong = any(v for rec in expected.get("records", []) for v in rec) or "stdoutContains" in expected
+    if not strong:
+        return {"status": "unchecked", "actual": actual, "mismatches": [],
+                "reason": "weak expectation: it compares only a record count or return code, not an output field or stdout"}
+    return {"status": "matched", "actual": actual, "mismatches": [], "reason": ""}
 
 
 def claim_status(example_statuses: list[str]) -> str:
