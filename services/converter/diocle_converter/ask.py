@@ -91,6 +91,8 @@ def assemble_answer(claims: list[dict]) -> dict:
     rest = len(claims) - len(confirmed)
     if rest:
         lines.append(f"{rest} other proposed claim(s) were refuted or could not be checked and are not part of this answer.")
+    lines.append("The sentences were written by a model; GnuCOBOL confirmed the examples shown with them, which does not prove "
+                 "the wording for inputs that were not tried.")
     return {"text": "\n".join(lines)[:3000], "basis": "confirmed-claims",
             "confirmedClaimIds": [c["id"] for c in confirmed], "refutedClaimIds": refuted}
 
