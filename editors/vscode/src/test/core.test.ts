@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as core from "../core";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 test("cobc diagnostics: only file:line: severity: text lines", () => {
   const d = core.parseCobcDiagnostics("/w/a.cbl:12: error: 'X' is not defined\n   12 |  MOVE X\n/w/c.cpy:3: warning: odd\nnoise");
@@ -11,8 +15,8 @@ test("cobc diagnostics: only file:line: severity: text lines", () => {
 
 test("command lines are argument arrays with the cap clamped", () => {
   const a = core.buildArgs("convert", "/w/my file; rm -rf.cbl", { maxUsd: 99, convertAnyway: true, copybooks: ["/c1", "c 2"] });
-  assert.deepEqual(a, ["-m", "diocle_converter", "editor", "convert", "/w/my file; rm -rf.cbl", "--copybooks", "/c1", "--copybooks", "c 2", "--max-usd", "1.00", "--convert-anyway"]);
-  assert.deepEqual(core.buildArgs("check", "a.cbl", { maxUsd: 0.25, convertAnyway: true, copybooks: [] }), ["-m", "diocle_converter", "editor", "check", "a.cbl"]);
+  assert.deepEqual(a, ["-P", "-m", "diocle_converter", "editor", "convert", "/w/my file; rm -rf.cbl", "--copybooks", "/c1", "--copybooks", "c 2", "--max-usd", "1.00", "--convert-anyway"]);
+  assert.deepEqual(core.buildArgs("check", "a.cbl", { maxUsd: 0.25, convertAnyway: true, copybooks: [] }), ["-P", "-m", "diocle_converter", "editor", "check", "a.cbl"]);
   assert.equal(core.clampMaxUsd(NaN), 0.25);
   assert.equal(core.clampMaxUsd(0), 0.01);
 });
@@ -62,4 +66,21 @@ test("html escaping and strict CSP; model-written text cannot inject", () => {
 test("cost confirmation names the cap, the destination and the label rule", () => {
   const t = core.costConfirmText(0.25, true);
   assert.match(t, /up to \$0\.25 of your own Meta key/); assert.match(t, /nothing goes to Diocle servers/); assert.match(t, /never plain certified/);
+});
+
+test("a diocle_converter/ package planted in the opened folder is not imported (python -P)", () => {
+  const py = spawnSync("python3", ["-c", "import sys; print(sys.version_info >= (3, 11))"], { encoding: "utf8" });
+  if (py.status !== 0 || py.stdout.trim() !== "True") return; // -P needs Python 3.11+: nothing to prove here
+  const dir = mkdtempSync(join(tmpdir(), "diocle-planted-"));
+  try {
+    mkdirSync(join(dir, "diocle_converter"));
+    writeFileSync(join(dir, "diocle_converter", "__init__.py"), "");
+    writeFileSync(join(dir, "diocle_converter", "__main__.py"), "open('PLANTED_RAN','w').write('x')\n");
+    const args = core.buildArgs("check", "a.cbl", { maxUsd: 0.25, convertAnyway: false, copybooks: [] });
+    spawnSync("python3", args, { cwd: dir, encoding: "utf8" });
+    assert.equal(existsSync(join(dir, "PLANTED_RAN")), false, "the planted package ran: -P is not protecting");
+    // control: without -P the same planted package IS imported, so this test would catch a regression
+    spawnSync("python3", args.slice(1), { cwd: dir, encoding: "utf8" });
+    assert.equal(existsSync(join(dir, "PLANTED_RAN")), true, "control failed: the test cannot detect the problem");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

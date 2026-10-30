@@ -40,11 +40,20 @@ def clamp_max_usd(value, fallback=DEFAULT_MAX_USD):
     return min(HARD_MAX_USD, max(0.01, n))
 
 
+def safe_env():
+    """The converter's environment plus PYTHONSAFEPATH=1 (same effect as -P, for a wrapper that drops the flag)."""
+    env = dict(os.environ)
+    env["PYTHONSAFEPATH"] = "1"
+    return env
+
+
 def build_args(command, path, max_usd=DEFAULT_MAX_USD, convert_anyway=False, copybooks=()):
     """Arguments after the Python executable. A list, never a shell string, so spaces and quotes in paths are safe."""
     if command not in ("check", "convert"):
         raise ValueError("command must be check or convert")
-    args = ["-m", "diocle_converter", "editor", command, path]
+    # -P (Python 3.11+): do not put the current folder first on sys.path. The converter is started from the user's open folder, and
+    # `python -m` would otherwise import a diocle_converter/ package planted in that folder before the installed one.
+    args = ["-P", "-m", "diocle_converter", "editor", command, path]
     for c in copybooks:
         args += ["--copybooks", c]
     if command == "convert":
