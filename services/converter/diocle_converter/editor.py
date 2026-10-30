@@ -196,8 +196,11 @@ def convert(path: str, copybooks: list[str], max_usd: float, convert_anyway: boo
     except SystemExit as e:
         return _fail("convert", path, str(e) or "model settings are missing", maxUsd=max_usd)
     source = source.resolve()
-    with tempfile.TemporaryDirectory(prefix="diocle-editor-") as tmp:
-        tmp_dir = Path(tmp)
+    # The run record stores the sample path relative to the Diocle checkout, so the staging folder lives under its runs/.
+    staging = REPO_ROOT / "runs" / "editor-staging"
+    staging.mkdir(parents=True, exist_ok=True)
+    tmp_dir = Path(tempfile.mkdtemp(prefix="stage-", dir=staging))
+    try:
         n = stage_repo(source, copybooks, tmp_dir / "repo")
         progress(f"Analyzing {source.name} ({n} copybook files staged)")
         try:
@@ -219,6 +222,8 @@ def convert(path: str, copybooks: list[str], max_usd: float, convert_anyway: boo
         dest = runs_dir.resolve() / f"{source.stem}-{time.strftime('%Y%m%d-%H%M%S')}"
         shutil.copytree(REPO_ROOT / "runs" / run_name, dest)
         _extras(run, sample, dest)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
     return build_result(path, run, dest, sample, max_usd)
 
 
