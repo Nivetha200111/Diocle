@@ -4,7 +4,7 @@ Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to 
 
 ## Our entry
 - **Track:** Indie Developer.
-- **Problem statement:** Build for Your World, a problem we know firsthand: COBOL modernization at a major payments company. Never name the employer anywhere.
+- **Problem statement:** Build for Your World, a problem we know firsthand: large COBOL modernization projects. Never name any employer or client anywhere.
 - **Bonus prizes we target:**
   - Best Build on Meta Open Weight Models: Muse Spark Open in private mode.
   - Best Agentic Use-Case: the tool-using repair agent.

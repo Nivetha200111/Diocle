@@ -1,5 +1,7 @@
 # Demo video plan (3 minutes)
 
+> **Working plan, not a description of the final video.** The shot list, narration drafts and checkboxes below are the plan as written on Oct 28 to Oct 30; unchecked boxes are historical. The final video and its link are tracked in [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md). Narration is a synthetic voice (see [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md)).
+
 The video is a primary judging artifact (Demo 25%; finalists are ranked live from it). Rules that shape it:
 - **Say what was built during the hackathon** (on screen at the start and the end), and show only that.
 - Show Meta models doing the work (Use of Meta AI tooling, 25%).

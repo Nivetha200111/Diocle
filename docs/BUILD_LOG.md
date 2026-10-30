@@ -3,7 +3,7 @@
 What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 2026), the decisions behind it, and what went wrong along the way. All programs and data are synthetic. Commit history is the detailed record; this is the readable summary.
 
 ## Oct 27: plan
-- Chose the Indie Developer track and "Build for Your World". The problem comes from firsthand experience on a large COBOL migration at a payments company: hundreds of people re-checking converted code by hand, and manual fix-rebuild-rescan cycles for code-quality findings.
+- Chose the Indie Developer track and "Build for Your World". The problem comes from firsthand experience with large COBOL migrations: converted code re-checked by hand, and manual fix-rebuild-rescan cycles for code-quality findings.
 - Repositioned from "AI converts COBOL" to **a verification layer for AI-written code**: conversion is an input, agreement with the original program is the product.
 - Rules fixed in `CLAUDE.md`: Meta models only in the product, hard caps on every model loop, contracts before code, synthetic data only.
 
@@ -37,8 +37,9 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 **Demo estates**
 - `quillmark-legacy` (simple layout) and `quillmark-mainframe` (an export of z/OS libraries: extension-less members, cataloged PROCs, DFSORT and IDCAMS cards, DB2, CICS, IMS, EBCDIC extracts), with `quillmark-modern` and `quillmark-java` as targets.
 
-## Still open
-- Breaker test on a narrow defect that ordinary testing misses (`samples/loyalty-waiver`).
-- Demo video; a review from a COBOL maintainer.
+## Still open (as of Oct 31, 2026; this list was written on Oct 28 and updated then)
+- A review of the converted Java by an experienced COBOL maintainer (not done).
+- The demo video link (the owner adds it before submission; see [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md)).
+- Breaker test on a narrow defect that ordinary testing misses (`samples/loyalty-waiver`): the breaker found nothing on LOYWAIVE in the headline measurement (0 broke of 24 tried); no narrow defect was planted, so this stays open.
 
-Done since: frozen evaluation (`eval-freeze-1` 2 of 4, then `eval-freeze-2` 4 of 4 with the corrected verifier, both in `docs/EVALUATION.md`); hosting; front page with COBOL next to certified Java and a public re-verify button; evidence page.
+Done since (Oct 28 to Oct 31): frozen evaluation (`eval-freeze-1` 2 of 4, then `eval-freeze-2` 4 of 4 with the corrected verifier, both in `docs/EVALUATION.md`); hosting; front page with COBOL next to certified Java and a public re-verify button; evidence page.

@@ -1,5 +1,7 @@
 # Hand-off: where Diocle stands and what is next
 
+> **Internal working log, not a user guide.** It is the notes the build sessions kept for each other, newest first; later dated entries supersede earlier ones, and some early entries (branch names, "not pushed", "unverified") are historical. For the current, checked picture read the [root README](../README.md), [LIVE_CHECK.md](LIVE_CHECK.md) and [MEASUREMENT.md](MEASUREMENT.md). Docs index: [README.md](README.md).
+
 Read this first in every session; update it as you build (see CLAUDE.md, "Session hand-off").
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
@@ -17,7 +19,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **Honesty pass (Oct 30 night, branch `honest-docs`):** README leads with the measured finding and a Limits block; "certificate" renamed "equivalence report" in user-facing text (contract fields, file names and the `certified` status unchanged); the human-cost multiplier was removed from the scoreboard (raw model spend only, excludes compute, hosting and human review); the coverage matrix labels keyed files experimental. Known limitation, documentation only: delivered Java for embedded-SQL programs (e.g. HRGLP060) needs the verifier's `DioSql.java` to compile, keyed programs need `DioKsds`.
 - **Home-page headline:** the "Measured" panel (37/45, 4/10, 14/15) is typed into `apps/web/components/home-view.tsx` from `docs/MEASUREMENT.md`; change both if the measurement is re-run.
 - **Not started:** multi-program workflow verification, the evidence panel (separate rows, no combined score), the Muse Code connector, a sandbox job for `minimize` (it is skipped under a sandbox config, so the "Smallest reproducer" card is empty on the live engine). Video: on hold for the owner's notes.
-- **Green main (pushed; CI green on GitHub since Oct 30, run 41104349476, about 8 min cold; 2 skips: a macOS-only sandbox-exec converter test and the INTACCR run-record API test):** `scripts/test.sh` / `make test` install and run all four suites (`--fast` skips tests marked `toolchain`, `--web` adds tsc); `scripts/fetch-sqlite-jdbc.sh` fetches the pinned jar; `.github/workflows/test.yml` is UNVERIFIED until its first push; a missing driver or a non-terminating original now gives a plain sentence instead of `0 of 0` / `TimeoutExpired`.
+- **Green main (pushed; CI green on GitHub since Oct 30, run 41104349476, about 8 min cold; 2 skips: a macOS-only sandbox-exec converter test and the INTACCR run-record API test):** `scripts/test.sh` / `make test` install and run all four suites (`--fast` skips tests marked `toolchain`, `--web` adds tsc); `scripts/fetch-sqlite-jdbc.sh` fetches the pinned jar; `.github/workflows/test.yml` was unverified until its first push (it has been green on GitHub since, see the run above); a missing driver or a non-terminating original now gives a plain sentence instead of `0 of 0` / `TimeoutExpired`.
 
 ## Smallest reproducer + regression tests (Oct 30, branch `minimize-counterexample` on origin/main d3106e9, merged to origin/main and deployed with the engine at e93f2f7 (Oct 30); contract minimal-reproducer v0.1, run v0.18)
 - **What:** when the Java differs from the COBOL, the failing input is cut down with NO model call: ddmin over the input records (1-minimal when it completes), then field-level simplification (each field to 0 / a smaller number / spaces / fewer characters, byte length preserved, REDEFINES views included, kept only if the same discrepancy remains). The oracle is the differential harness (build once, run both, `diff.compare` + exit code + stdout). "Same discrepancy" = same kind and same differing output fields; `--strict` also pins the differing values (without it a smaller input can drift to another manifestation: CHQCLR's `20.00 vs 0.00` became spaces vs `00000`).
@@ -312,7 +314,7 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   16 of 32 programs analyzer-convertible before, 25 of 32 after (9 DISPLAY-only; none use OPEN I-O or a CALL identifier; this says nothing about certification). Reviewer pass done: CALL-identifier resolver tightened (88-levels, level-66 RENAMES, PIC width, COPY members refused), verifier stdout decoded byte-for-byte as latin-1, README states that a DISPLAY that never fires fails only at verification. NOT
   proven: the translator model on these shapes (no paid calls were made), and the real course programs through the
   verifier (compiling cloned code was not run in this session).
-- **Copybooks as SQL (Oct 29, plan step 3, built on the Windows laptop):** `diocle_verifier.sqlschema` (contract
+- **Copybooks as SQL (Oct 29, plan step 3, built on another machine):** `diocle_verifier.sqlschema` (contract
   `contracts/sql-schema.schema.json` v0.1) writes one table per file layout (`DECIMAL(p,s)` from the PIC, CHECK on
   unsigned, COMP-5 by its bytes, REDEFINES and OCCURS stated) and proves it per record: values checked against the
   published column types, then a byte-exact SQLite round trip. All 24 tables of the 11 sample and evaluation
@@ -376,7 +378,7 @@ coding-agent disclosure. HACKATHON_RULES deadline corrected (Nov 5, 7:30 AM IST)
   `.venv/bin/python -m diocle_converter run ../../samples/interest-accrual --breaker --crosscheck` (about $0.05 Meta + a few cents
   per open-model host) and check run.json `guard.review.verdict` and `crosscheck`. Then push, put the key in `deploy/diocle.env` on the server
   (owner types it), `deploy/seed-runs.sh` and `deploy/update-engine.sh`. Fireworks stays the private-mode host.
-  **Review findings fixed (Oct 29, Windows):** comments set aside and literals decoded before the rules (the comment,
+  **Review findings fixed (Oct 29):** comments set aside and literals decoded before the rules (the comment,
   text-block, octal and method-reference bypasses are refused; words in comments and strings no longer block);
   reflection, management, jshell, javax.xml and socket-channel rules added; only the program's own DD names, never
   KEY/TOKEN/SECRET-like ones; computed or missing getenv names refused; review answers read finding by finding;
