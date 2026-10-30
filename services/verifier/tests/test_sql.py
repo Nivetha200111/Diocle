@@ -378,7 +378,7 @@ def test_java_that_rewrites_the_verifiers_databases_fails_closed(tmp_path):
     java = java_with(tmp_path, lambda src: src.replace("Connection c = DioSql.connect();", "Connection c = DioSql.connect();\n        " + evil, 1))
     report = verify_sample(SAMPLE, java, seed=3, random_count=10)
     assert not passes(report)
-    assert "changed the verifier's seed database" in report["runs"]["original"]["stderr"]
+    assert "changed seed.db" in report["runs"]["original"]["stderr"]
 
 
 @needs_engine
@@ -417,3 +417,59 @@ def test_real_sample_reports_changed_tables():
     report = verify_sample(SAMPLE, seed=4, random_count=30)
     assert passes(report)
     assert all(t["changedFromSeed"]["original"] for t in report["runs"]["database"]["tables"])
+
+
+@pytest.mark.parametrize("snippet", [
+    'System.load("/tmp/x.so");', 'System.loadLibrary("x");', 'Object m = java.lang.invoke.MethodHandles.lookup();',
+    'Object l = java.util.ServiceLoader.load(Runnable.class);', 'String e = System.getenv("HOME");',
+    'String e = System.getenv(String.valueOf(1));', 'java.util.function.Function<String,String> f = System::getenv;',
+    'Runtime.getRuntime().exec("ls");',
+])
+def test_more_escape_routes_are_refused(tmp_path, snippet):
+    java = java_with(tmp_path, lambda src: src.replace("Connection c = DioSql.connect();", "Connection c = DioSql.connect();\n        " + snippet, 1))
+    report = verify_sample(SAMPLE, java, seed=3, random_count=10)
+    assert not passes(report) and "refused before running" in report["runs"]["converted"]["stderr"]
+
+
+def test_legitimate_getenv_and_the_word_runtime_in_text_are_allowed():
+    from diocle_verifier.sqlrun import check_java_source
+
+    check_java_source("A.java", 'String a = System.getenv("DD_ACCTIN"); String b = System.getenv("DIOCLE_COLLATION");'
+                                ' String c = System.getenv("DD_" + name); String d = "runtime error";')
+
+
+@needs_engine
+def test_java_cannot_rewrite_the_inputs_the_original_will_read(tmp_path):
+    evil = ('for (java.io.File f : new java.io.File("..").listFiles()) { if (f.getName().endsWith("in")) '
+            'Files.write(f.toPath(), new byte[] {65}); }')
+    java = java_with(tmp_path, lambda src: src.replace("Connection c = DioSql.connect();", "Connection c = DioSql.connect();\n        " + evil, 1))
+    report = verify_sample(SAMPLE, java, seed=3, random_count=10)
+    assert not passes(report) and "changed ACCTIN.in" in report["runs"]["original"]["stderr"]
+    assert not (report["runs"]["original"]["exitCode"])  # the original never ran
+
+
+@needs_engine
+def test_database_size_cap_is_enforced_while_the_java_runs(tmp_path):
+    cobol = MINI_COBOL[:MINI_COBOL.index("       PROCEDURE DIVISION.")].replace(
+        "( K CHAR(4) NOT NULL, V DECIMAL(5,2), N CHAR(2) )", "( K CHAR(8) NOT NULL, W CHAR(200) )") + (
+        "       PROCEDURE DIVISION.\n           EXEC SQL COMMIT END-EXEC\n           STOP RUN.\n")
+    java = ("import java.sql.*;\npublic class Mini {\n    public static void main(String[] a) throws Exception {\n"
+            "        Connection c = DioSql.connect();\n        int code = 0; long n = 0;\n"
+            "        String w = DioSql.pad(\"\", 200).replace(' ', 'x');\n"
+            "        try (PreparedStatement ps = c.prepareStatement(\"INSERT INTO T (K, W) VALUES (?, ?)\")) {\n"
+            "            while (code == 0 && n < 400000) {\n                ps.setString(1, String.format(\"%08d\", n)); ps.setString(2, w);\n"
+            "                try { ps.executeUpdate(); n++; } catch (SQLException e) { code = DioSql.code(e); }\n            }\n        }\n"
+            "        System.out.println(\"CODE \" + code + \" ROWS \" + n);\n    }\n}\n")
+    root = mini_sample(tmp_path, cobol, java)
+    meta = json.loads((root / "sample.json").read_text())
+    meta["sql"]["tables"][0]["columns"] = [{"name": "K", "type": "CHAR", "length": 8, "nullable": False},
+                                            {"name": "W", "type": "CHAR", "length": 200, "nullable": True}]
+    meta["sql"]["tables"][0]["primaryKey"] = ["K"]
+    meta["sql"]["keyLinks"] = []
+    (root / "sample.json").write_text(json.dumps(meta))
+    report = verify_sample(root, seed=5, random_count=2)
+    out = report["runs"]["converted"]["stdout"]
+    assert "CODE -901" in out, out  # the engine stopped the Java at the page cap, during the run
+    rows = int(out.split("ROWS")[1])
+    assert 0 < rows < 400000
+    assert not any("grew past" in r.get("diff", "") for r in report["results"])

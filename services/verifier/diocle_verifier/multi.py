@@ -125,22 +125,30 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             shutil.copyfile(work / "seed.db", jrun / "converted.db")
             db_env = {"original": {"DIOCLE_DB": str(work / "original.db"), **cap},
                       "converted": {"DIOCLE_DB": str(jrun / "converted.db"), **cap}}
-            cobol_cmd, original = sqlrun.build_cobol_sql(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
-                                                         sql["tables"], [sample_dir / m for m in meta.get("modules", [])],
-                                                         collation)
             java_cmd, converted = sqlrun.build_java_sql(java_dir, meta["javaConversion"]["mainClass"], work)
+            # Everything the original is built from or reads is hashed before the Java runs and checked after: the Java
+            # runs as the same user, so it could otherwise rewrite them. The COBOL executable does not exist yet.
+            guarded = [work / f"{n}.in" for n in (x["dd"] for x in inputs)] + [work / f"{n}.seed" for n in (x["dd"] for x in updated)]
+            guarded += [work / "seed.db", sample_dir / meta["source"]] + [sample_dir / m for m in meta.get("modules", [])]
+            guarded += sorted(p for p in (sample_dir / meta["copybookDir"]).rglob("*") if p.is_file())
+            before = {str(p): sha(p) for p in guarded if p.is_file()}
             if java_cmd:
                 converted = run_files(java_cmd, paths, out_spec, jrun, "converted",
                                       {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
-            if sha(work / "seed.db") != seed_hash:
-                tamper.append("the converted program changed the verifier's seed database")
-            if (work / "original.db").exists():
-                tamper.append("the converted program created the original's database file")
+            tamper += [f"the converted program changed {Path(p).name}" for p, h in before.items()
+                       if not Path(p).is_file() or sha(Path(p)) != h]
+            for stray in ("original", "original.db", "sqlpre"):
+                if (work / stray).exists():
+                    tamper.append(f"the converted program created {stray}")
             if tamper:
                 original = Run(False, None, "", "not run, verification fails closed: " + "; ".join(tamper))
-            elif cobol_cmd:
-                shutil.copyfile(work / "seed.db", work / "original.db")
-                original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+            else:
+                cobol_cmd, original = sqlrun.build_cobol_sql(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                                             sql["tables"], [sample_dir / m for m in meta.get("modules", [])],
+                                                             collation)
+                if cobol_cmd:
+                    shutil.copyfile(work / "seed.db", work / "original.db")
+                    original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
         else:
             cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
                                               [sample_dir / m for m in meta.get("modules", [])], collation)

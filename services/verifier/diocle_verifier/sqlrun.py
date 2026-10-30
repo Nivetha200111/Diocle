@@ -45,7 +45,8 @@ def build_cobol_sql(source: Path, copybook_dir: Path, workdir: Path, tables: lis
 
 FORBIDDEN = (r"drivermanager", r"jdbc:", r"sqlite", r"class\s*\.\s*forname", r"forname", r"\battach\b", r"\bpragma\b",
              r"\bvacuum\b", r"load_extension", r"\.db\b", r"seed\.db", r"original\.db", r"converted\.db", r"diocle_db",
-             r"processbuilder", r"\bruntime\b", r"classloader", r"\bgetmethod\b", r"\bsetaccessible\b", r"java\.lang\.reflect",
+             r"processbuilder", r"runtime\s*\.\s*(?:getruntime|exec)", r"system\s*\.\s*load", r"loadlibrary",
+             r"methodhandle", r"serviceloader", r"getenv\b(?!\s*\()", r"classloader", r"\bgetmethod\b", r"\bsetaccessible\b", r"java\.lang\.reflect",
              r"\bdatasource\b", r"org\.sqlite")
 
 
@@ -62,6 +63,11 @@ def check_java_source(name: str, text: str) -> None:
     if re.search(r"[^\x00-\x7f]", text) or "\\u" in text:
         raise JavaRefused(f"{name}: non-ASCII characters and unicode escapes are refused in converted SQL programs")
     joined = re.sub(r'"\s*\+\s*"', "", text)
+    for m in re.finditer(r"getenv\s*\(", joined):
+        rest = joined[m.end():]
+        if not (re.match(r'\s*"(?:DD_[A-Za-z0-9_-]+|DIOCLE_COLLATION|DIOCLE_CLOCK)"\s*\)', rest)
+                or re.match(r'\s*"DD_"\s*\+\s*[A-Za-z_][\w.]*(?:\(\))?\s*\)', rest)):
+            raise JavaRefused(f"{name}: System.getenv may only name a DD_ file variable, DIOCLE_COLLATION or DIOCLE_CLOCK")
     for view in (text, joined):
         low = view.lower()
         for pattern in FORBIDDEN:
