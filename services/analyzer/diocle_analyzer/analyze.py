@@ -406,6 +406,25 @@ def _sample_sql(program: dict, inputs: list[dict]) -> dict:
             **({"seedRows": insert_only} if insert_only else {})}
 
 
+def _sample_ksds(program: dict, inputs: list[dict]) -> dict:
+    """sample.json `ksds`: which input fields hold the same keys as a keyed file's RECORD KEY (same name after the record
+    prefix, same kind and width), so generated transactions hit some seeded records and miss others."""
+    links = []
+    for kf in (f for f in program["files"] if f.get("keyed")):
+        key = kf["keyed"]["recordKey"]["field"]
+        kfield = next(x for x in kf["layout"]["fields"] if x["name"] == key)
+        want = key.split("-", 1)[-1]
+        for f in inputs:
+            for field in f["layout"]["fields"]:
+                same = (field["kind"] == kfield["kind"] and not field.get("redefines")
+                        and (field.get("length") == kfield.get("length") if field["kind"] == "alnum"
+                             else (field.get("digits"), field.get("scale"), field.get("usage", "display"), bool(field.get("signed")))
+                             == (kfield.get("digits"), kfield.get("scale"), kfield.get("usage", "display"), False)))
+                if same and (field["name"] == key or field["name"].split("-", 1)[-1] == want):
+                    links.append({"dd": f["dd"], "field": field["name"], "keyedDd": kf["dd"]})
+    return {"subset": KEYED_SUBSET, "keyLinks": links}
+
+
 def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path:
     """Materialize one convertible program as a Diocle sample directory (the converter's input format)."""
     root = root.resolve()
@@ -428,7 +447,7 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
     outputs = [f for f in program["files"] if f["direction"] == "output"]
     updated = [f for f in program["files"] if f["direction"] == "io"]
     single = (len(inputs) == 1 and len(outputs) == 1 and not updated and not program.get("displayOnly")
-              and not program.get("sql"))
+              and not program.get("sql") and not any(f.get("keyed") for f in program["files"]))
     by_direction = {f["direction"]: f for f in program["files"]}
     meta = {
         "name": program["name"].lower(),
@@ -444,11 +463,13 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                            "origin": "none yet: translate with the converter's run command"},
         "layoutsNote": "Derived from the copybooks by services/analyzer.",
         **({"layouts": {"input": by_direction["input"]["layout"], "output": by_direction["output"]["layout"]}} if single
-           else {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"]}
+           else {"files": [{"dd": f["dd"], "direction": f["direction"], "layout": f["layout"],
+                            **({"keyed": f["keyed"]} if f.get("keyed") else {})}
                            for f in inputs + updated + outputs],
                  **shared_keys(inputs)}),
         **({"displayOnly": True} if program.get("displayOnly") else {}),
         **({"sql": _sample_sql(program, inputs)} if program.get("sql") else {}),
+        **({"ksds": _sample_ksds(program, inputs)} if any(f.get("keyed") for f in program["files"]) else {}),
         "import": {"repository": report["source"]["location"], "commit": report["source"].get("commit"),
                    "path": program["path"], "job": program.get("job")},
     }
