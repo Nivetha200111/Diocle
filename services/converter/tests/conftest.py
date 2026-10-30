@@ -4,7 +4,22 @@ the default run, and CI, run everything. Add a module to TOOLCHAIN_MODULES when 
 real COBOL or Java."""
 import pytest
 
-TOOLCHAIN_MODULES = {"test_sql_conversion", "test_ksds_conversion", "test_sortgen", "test_pipeline"}
+TOOLCHAIN_MODULES = {
+    "test_sql_conversion",
+    "test_ksds_conversion",
+    "test_sortgen",
+    "test_pipeline",
+    "test_converter",
+    "test_ask",
+    "test_convert_anyway",
+    "test_documenter",
+    "test_domain_classes",
+    "test_editor",
+    "test_reproducer",
+    "test_vision",
+    "test_vision_design",
+    "test_vision_review",
+}
 
 
 def pytest_collection_modifyitems(items):
