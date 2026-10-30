@@ -249,14 +249,6 @@ def test_assurance_labels_and_wording():
     assert anyway.LABELS == ("certified", "certified-against-repaired-cobol", "compiled-unverified", "failed")
 
 
-def test_dollar_cap_stops_the_next_call():
-    client = client_for(ChatCompletionMessage(role="assistant", content="a"), ChatCompletionMessage(role="assistant", content="b"),
-                        max_usd=0.0000001)
-    client.chat(role="t", round=0, messages=[])  # first call is allowed: nothing spent yet
-    with pytest.raises(BudgetExceeded, match="spend cap"):
-        client.chat(role="t", round=0, messages=[])
-
-
 def test_enabled_by_flag_or_env(monkeypatch):
     monkeypatch.delenv("DIOCLE_CONVERT_ANYWAY", raising=False)
     assert not anyway.enabled(False) and anyway.enabled(True)
@@ -311,3 +303,45 @@ def test_unfixable_java_is_failed_within_the_fix_cap(tmp_path, monkeypatch):
     run = json.loads((tmp_path / "runs" / "r2" / "run.json").read_text())
     assert code == 1 and run["assurance"] == "failed" and run["certified"] is False
     assert len(client.calls) == anyway.COMPILE_FIX_ROUNDS  # bounded
+
+
+# ---- the dollar cap projects the next call (B2) -------------------------------------------------
+
+class BigUsageSDK(ScriptedSDK):
+    """TEST DOUBLE: every call reports a large usage (1M prompt + 100k output tokens)."""
+
+    def create(self, **kwargs):
+        self.requests.append(kwargs)
+        usage = SimpleNamespace(prompt_tokens=1_000_000, completion_tokens=100_000, prompt_tokens_details=None,
+                                completion_tokens_details=None)
+        return SimpleNamespace(choices=[SimpleNamespace(message=ChatCompletionMessage(role="assistant", content="x"))], usage=usage)
+
+
+def test_cap_refuses_the_call_that_could_overshoot_not_the_one_after():
+    sdk = BigUsageSDK([])
+    client = ModelClient(settings(max_usd=0.15), _sdk=sdk)
+    client.chat(role="t", round=0, messages=[{"role": "user", "content": "hi"}])  # costs $0.12 (cheap model, big usage)
+    assert client.spent_usd() == pytest.approx(0.12)
+    with pytest.raises(BudgetExceeded, match="next call could cost"):  # 0.12 + 0.12 > 0.15: refused BEFORE it is made
+        client.chat(role="t", round=0, messages=[{"role": "user", "content": "hi"}])
+    assert len(sdk.requests) == 1
+
+
+def test_cap_estimates_a_huge_prompt_up_front():
+    sdk = BigUsageSDK([])
+    client = ModelClient(settings(model="muse-spark-1.3", max_usd=0.05), _sdk=sdk)
+    with pytest.raises(BudgetExceeded):
+        client.chat(role="t", round=0, messages=[{"role": "user", "content": "x" * 3_000_000}])  # ~1M tokens at $1.25/M
+    assert sdk.requests == []  # nothing was sent
+
+
+def test_cap_fails_closed_on_an_unpriced_model_and_counts_the_guard_too():
+    unpriced = ModelClient(settings(model="no-such-model", max_usd=1.0), _sdk=BigUsageSDK([]))
+    with pytest.raises(BudgetExceeded, match="unknown"):
+        unpriced.chat(role="t", round=0, messages=[])
+    main = ModelClient(settings(max_usd=0.15), _sdk=BigUsageSDK([]))
+    guard = ModelClient(settings(max_usd=0.15), _sdk=BigUsageSDK([]))
+    main.shared_with, guard.shared_with = [guard], [main]
+    guard.chat(role="guard", round=0, messages=[{"role": "user", "content": "hi"}])  # the guard spends $0.12
+    with pytest.raises(BudgetExceeded):  # the main client sees it
+        main.chat(role="t", round=0, messages=[{"role": "user", "content": "hi"}])

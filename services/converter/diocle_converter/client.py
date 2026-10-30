@@ -9,6 +9,9 @@ from dataclasses import asdict, dataclass, field
 from .config import PRICES, Settings
 
 
+ASSUMED_MAX_OUTPUT_TOKENS = 8000  # worst case for a call with no max_tokens, for the dollar-cap projection only
+
+
 class BudgetExceeded(RuntimeError):
     pass
 
@@ -33,6 +36,8 @@ class ModelClient:
     escalated_calls: int = 0  # calls made with a higher tier's model, counted here (not inferred from the model ID)
     escalated_usd: float = 0.0  # their cost; an unpriced model counts as the whole cap (fail closed)
     escalated_max_call_usd: float = 0.0  # the dearest single escalated call so far, to project the next one
+    max_call_usd: float = 0.0  # the dearest single call so far (any model), to project the next one under settings.max_usd
+    shared_with: list = field(default_factory=list)  # other clients (guard, cross-check) whose calls count against max_usd too
     _sdk: object = None
 
     def __post_init__(self) -> None:
@@ -54,9 +59,7 @@ class ModelClient:
         if len(self.calls) >= self.settings.max_calls_per_run:
             raise BudgetExceeded(f"model call cap reached ({self.settings.max_calls_per_run} per run)")
         if self.settings.max_usd is not None:
-            spent = self.usage_summary()["estimatedCostUsd"]
-            if spent is None or spent >= self.settings.max_usd:
-                raise BudgetExceeded(f"spend cap reached (${self.settings.max_usd:.4f} for this run)")
+            self._check_dollar_cap(model or self.settings.model, messages, max_tokens)
         escalated = bool(model and model != self.settings.model)
         if escalated and self.escalation_exhausted():
             raise BudgetExceeded(f"escalation cap reached ({self.settings.escalation_max_calls} calls or "
@@ -87,6 +90,8 @@ class ModelClient:
                 latencyMs=int((time.monotonic() - started) * 1000),
             )
         )
+        last = _call_cost(self.calls[-1])
+        self.max_call_usd = max(self.max_call_usd, last if last is not None else 0.0)
         if escalated:
             cost = _call_cost(self.calls[-1])
             self.escalated_calls += 1
@@ -94,6 +99,33 @@ class ModelClient:
             self.escalated_usd += cost
             self.escalated_max_call_usd = max(self.escalated_max_call_usd, cost)
         return response.choices[0]
+
+    def spent_usd(self) -> float | None:
+        """Estimated spend of this client and the clients it shares a cap with; None when any call has no known price."""
+        total = 0.0
+        for c in [self, *self.shared_with]:
+            cost = usage_of(c.calls)["estimatedCostUsd"]
+            if cost is None:
+                return None
+            total += cost
+        return total
+
+    def _check_dollar_cap(self, model: str, messages: list[dict], max_tokens: int | None) -> None:
+        """Refuse a call BEFORE it is made when spent + its worst-case cost would pass settings.max_usd. Worst case = the larger
+        of the dearest call so far (any client sharing the cap) and an up-front estimate: the prompt at ~3 characters per token,
+        uncached, plus max_tokens (default ASSUMED_MAX_OUTPUT_TOKENS) at the output price (reasoning bills as output). An unknown
+        price or unknown spend fails closed."""
+        cap = self.settings.max_usd
+        price = PRICES.get(model)
+        spent = self.spent_usd()
+        if price is None or spent is None:
+            raise BudgetExceeded(f"spend cap set but the price of {model} or an earlier call is unknown: refusing (fails closed)")
+        prompt_tokens = len(str(messages)) / 3
+        estimate = (prompt_tokens * price[0] + (max_tokens or ASSUMED_MAX_OUTPUT_TOKENS) * price[2]) / 1e6
+        dearest = max([self.max_call_usd, *(p.max_call_usd for p in self.shared_with)])
+        if spent + max(estimate, dearest) > cap:
+            raise BudgetExceeded(f"spend cap: ${spent:.4f} spent, the next call could cost ${max(estimate, dearest):.4f}, "
+                                 f"cap ${cap:.4f} for this run")
 
     def _with_retries(self, kwargs: dict, attempts: int = 4):
         from openai import APIConnectionError, APIStatusError, APITimeoutError

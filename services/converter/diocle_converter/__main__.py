@@ -136,7 +136,11 @@ def main(argv: list[str] | None = None) -> int:
             settings = dataclasses.replace(settings, max_usd=args.max_usd)
     client = ModelClient(settings)
     guard_settings = Settings.guard_from_env()
+    if guard_settings and settings.max_usd is not None:  # the guard's calls count against the same dollar cap
+        guard_settings = dataclasses.replace(guard_settings, max_usd=settings.max_usd)
     guard_client = ModelClient(guard_settings) if guard_settings else None
+    if guard_client and settings.max_usd is not None:
+        client.shared_with, guard_client.shared_with = [guard_client], [client]
     print(f"model: {settings.model} ({settings.mode}), reasoning_effort={settings.reasoning_effort}, "
           f"caps: {settings.max_calls_per_run} calls/run, {settings.max_calls_per_round}/round, {settings.max_rounds} rounds")
     print(f"guard: policy on every run; review by {guard_settings.model} ({guard_settings.max_calls_per_run} calls/run)"
@@ -642,6 +646,8 @@ def _crosscheck(program, workspace, client, verify, agent, standing_cases, outco
         return skip("it designs single-file records, and this program has several files")
     try:
         cross_client = ModelClient(cross_settings)
+        if cross_settings.max_usd is not None:  # inherited from the run's settings: count the run's own calls too
+            cross_client.shared_with, client.shared_with = [client], [*client.shared_with, cross_client]
     except Exception as e:  # client construction (bad base URL etc.)
         return skip(f"could not create the client ({type(e).__name__})")
     checker = make_crosschecker(program, workspace, cross_client, verify, meta["layouts"]["input"], on_event)
