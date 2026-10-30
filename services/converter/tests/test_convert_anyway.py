@@ -172,7 +172,7 @@ def test_free_format_tab_and_headerless_files_fail_closed():
 
 
 def test_size_limit_still_applies():
-    many = ORIG.replace("AO-", "AQ-").replace("AI-", "AJ-")  # each line is an allowed identifier edit; together they are too many
+    many = ORIG.replace("AO-", "AQ-").replace("AI-", "AJ-").replace("WS-", "WT-")  # each line is an allowed identifier edit; together they are too many
     assert changed_lines(ORIG, many) > 4
     assert "differ from the original by" in check_patch(ORIG, many, ORIG, list(range(1, 60)), LIM)
 
