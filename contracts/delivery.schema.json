@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/delivery.schema.json",
   "title": "Delivery",
-  "description": "v0.3 (target optional: a visitor's import keeps its results on the site; adds public and per-program reason). A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
+  "description": "v0.4 (convert-anyway: per-program assurance, top-level convertAnyway, repoMaxUsd and spentUsd; old records stay valid) (v0.3 target optional: a visitor's import keeps its results on the site; adds public and per-program reason). A migration from a legacy GitHub repository to a pull request on a target repository, as served by services/api GET /deliveries/{id}. Updated while it runs.",
   "type": "object",
   "required": [
     "id",
@@ -115,6 +115,11 @@
             ],
             "description": "Live summary of the converter run: status, stage, recent events, efficiency so far"
           },
+          "assurance": {
+            "type": ["string", "null"],
+            "enum": ["certified", "certified-against-repaired-cobol", "compiled-unverified", "failed", null],
+            "description": "Convert-anyway mode: what the verifier could and could not show. Only `certified` is certified; status stays not-certified for the others. The run record has the details."
+          },
           "reason": {
             "type": [
               "string",
@@ -160,7 +165,13 @@
     "public": {
       "type": "boolean",
       "description": "Started by a visitor without the admin passcode (sandboxed, capped, never opens a pull request)"
-    }
+    },
+    "convertAnyway": {
+      "type": "boolean",
+      "description": "Convert-anyway mode was on (admin path or local CLI only, never a visitor import): programs that would be refused are translated and compile-checked, and labelled by assurance"
+    },
+    "repoMaxUsd": {"type": ["number", "null"], "description": "REPO_MAX_USD: hard cap on model spend across all programs of this delivery (convert-anyway mode)"},
+    "spentUsd": {"type": ["number", "null"], "description": "Model spend so far across the programs of this delivery (estimated, list prices; null if a model has no known price)"}
   },
   "$defs": {
     "request": {
@@ -188,6 +199,11 @@
         "breaker": {
           "type": "boolean",
           "default": false
+        },
+        "convertAnyway": {
+          "type": "boolean",
+          "default": false,
+          "description": "Admin only: a visitor request that sets it is refused (403)"
         }
       },
       "additionalProperties": false

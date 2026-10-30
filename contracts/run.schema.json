@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.12 (adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.13 (adds assurance, assuranceReason and cobolRepair: convert-anyway mode; a run without them is a plain certified or not-certified run, as before) (v0.12 adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -332,6 +332,32 @@
     "visitor": {
       "type": "boolean",
       "description": "From a visitor's import of a repository Diocle does not control: shown as the sandbox reported it, not offered for public re-verification"
+    },
+    "assurance": {
+      "type": "string",
+      "enum": ["certified", "certified-against-repaired-cobol", "compiled-unverified", "failed"],
+      "description": "Convert-anyway mode only (absent on older runs: read `certified`). certified = differential test passed against the ORIGINAL COBOL (certified is true). certified-against-repaired-cobol = the original did not compile under GnuCOBOL -std=ibm, the COBOL was patched (see cobolRepair) and the Java passed the differential test against the PATCHED COBOL, not the original (certified is false). compiled-unverified = the Java compiles with javac, no differential test ran, a person must review it (certified is false). failed = no compiling Java within the caps (certified is false). Only `certified` may be called certified."
+    },
+    "assuranceReason": {
+      "type": ["string", "null"],
+      "description": "Why the run is not plain certified: the analyzer's not-convertible reason, the compiler's diagnostic, or the cap that stopped it"
+    },
+    "cobolRepair": {
+      "type": ["object", "null"],
+      "description": "The original COBOL did not compile; what was changed so it does. The user's file is never overwritten: the patched COBOL is written beside it as <name>.repaired.cbl.",
+      "required": ["method", "diff", "diagnostics", "changedLines", "outcome"],
+      "properties": {
+        "method": {"type": "string", "enum": ["deterministic", "model"]},
+        "outcome": {"type": "string", "enum": ["compiles", "still-fails", "rejected", "cap-reached"]},
+        "diff": {"type": "string", "description": "Unified diff, original to patched"},
+        "diagnostics": {"type": "array", "items": {"type": "string"}, "description": "Cleaned compiler diagnostics that were fixed (or the last ones if it still fails)"},
+        "fixes": {"type": "array", "items": {"type": "string"}, "description": "One phrase per mechanical fix (deterministic) or per patch rationale (model)"},
+        "changedLines": {"type": "integer"},
+        "rounds": {"type": "integer"},
+        "modelCalls": {"type": "integer"},
+        "estimatedCostUsd": {"type": ["number", "null"]},
+        "patchedFile": {"type": "string"}
+      }
     }
   },
   "$defs": {
