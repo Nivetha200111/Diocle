@@ -19,7 +19,7 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 
 **Delivery**
 - Analyzer: layouts from copybooks, file wiring through SELECT/FD/OPEN and JCL, GitHub import with an owner allowlist.
-- Delivery: legacy repo → certified pull request with a certificate per program; the target repo's CI re-runs the check on fresh inputs.
+- Delivery: legacy repo → certified pull request with an equivalence report per program; the target repo's CI re-runs the check on fresh inputs.
 - Dashboard: Live runs and Delivery show real data; deliveries can be started from the dashboard.
 
 **Hardening after two independent code reviews**
