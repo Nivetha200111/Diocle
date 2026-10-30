@@ -1193,3 +1193,11 @@ a.nav-item {
 .cobol-primer-toggle:focus-visible { outline: 2px solid var(--w-navy); outline-offset: -4px; }
 .cobol-primer-toggle span { text-decoration: underline; font-size: 12px; }
 .cobol-primer-body { margin: 0; padding: 8px 14px 10px; font-size: 12.5px; line-height: 1.5; color: #000; background: #ffffc0; }
+
+/* For COBOL people (components/evidence-view.tsx, lib/cobol-traps.ts) */
+.trap-list { list-style: none; margin: 0; padding: 4px 16px 12px; display: grid; gap: 12px; }
+.trap { padding: 10px 12px; background: #fff; box-shadow: var(--w-in); color: #000; font-size: 12.5px; line-height: 1.5; }
+.trap h3 { font-size: 13.5px; margin: 0 0 4px; }
+.trap p { margin: 0 0 4px; overflow-wrap: anywhere; }
+.trap a { color: var(--w-navy); text-decoration: underline; }
+.trap-evidence { font-size: 12px; }
