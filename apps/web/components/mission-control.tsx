@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Brand } from "./ui";
 import LiveSamples from "./live-samples";
+import AskPanel from "./ask-panel";
 import { ASSURANCE_BADGE, fetchRun, fetchRuns, hostOf, type Run, type RunListItem } from "@/lib/runs";
 
 // "certified" only for a plain certified run; a convert-anyway label is shown as itself, never as certified.
@@ -66,6 +67,7 @@ export default function MissionControl() {
           can certify anything; the models propose.
         </p>
         <LiveSamples />
+        <AskPanel />
         <h2 className="mc-replay-h">Replay of a recorded run</h2>
         <p className="mc-note">Everything below this line is a replay of a run that was recorded earlier. It is not live and calls no model.</p>
         {failed && (
