@@ -423,6 +423,33 @@ export default function DeliveryView() {
         {delivery.programs.map((p) => <ProgramCard key={p.name} p={p} />)}
       </div>
 
+      {delivery.buildCheck && (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Build check</h2>
+              <p>
+                All certified programs compiled together, plus copybook and CALL checks. It does not run the programs together:
+                each is still verified on its own. {delivery.buildCheck.verdict === "fail" ? "The programs are delivered anyway; the pull request says the whole build did not pass." : ""}
+              </p>
+            </div>
+          </div>
+          <div className="dlv-pr">
+            <p>
+              <span className={`led led-${delivery.buildCheck.verdict === "pass" ? "ok" : delivery.buildCheck.verdict === "fail" ? "bad" : "busy"}`} />{" "}
+              <strong>{delivery.buildCheck.verdict}</strong>
+              {delivery.buildCheck.programs != null && ` · ${delivery.buildCheck.programs} programs`}
+              {delivery.buildCheck.calls != null && ` · ${delivery.buildCheck.calls} CALLs examined`}
+              {delivery.buildCheck.copybookDrift != null && ` · ${delivery.buildCheck.copybookDrift} copybook drift`}
+              {delivery.buildCheck.classCollisions != null && ` · ${delivery.buildCheck.classCollisions} class collisions`}
+            </p>
+            {delivery.buildCheck.reasons.length > 0 && (
+              <ul>{delivery.buildCheck.reasons.slice(0, 6).map((r, i) => <li key={i}>{r}</li>)}</ul>
+            )}
+          </div>
+        </section>
+      )}
+
       {delivery.pullRequest && (
         <section className="panel">
           <div className="panel-heading">
