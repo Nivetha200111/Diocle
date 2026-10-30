@@ -66,6 +66,19 @@ def test_run_detail_matches_contract(client):
     assert run["javaDiff"] is None  # translated runs have no starting file to diff against
 
 
+def test_database_comparison_passthrough(client, tmp_path):
+    run = tmp_path / "demo-20261028-124509"
+    assert "database" not in client.get("/runs/demo-20261028-124509").json()["after"]
+    report = _report(5, 5)
+    report["runs"]["database"] = {"engine": "sqlite", "engineVersion": "3.45.0", "subset": "db2-subset-1", "seededFrom": "schema.sql",
+                                  "tables": [{"name": "T", "rowsSeeded": 2, "rowsOriginal": 3, "rowsConverted": 3, "match": True,
+                                              "firstMismatch": None, "changedFromSeed": {"original": True, "converted": True}}]}
+    (run / "verification-report.json").write_text(json.dumps(report))
+    after = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(after, CONTRACT)
+    assert after["after"]["database"] == report["runs"]["database"]
+
+
 def test_rejects_unknown_and_unsafe_ids(client):
     assert client.get("/runs/missing-run").status_code == 404
     assert client.get("/runs/..%2F..%2Fetc").status_code == 404

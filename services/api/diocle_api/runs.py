@@ -32,7 +32,9 @@ def _verification(path: Path, limit: int = 8) -> dict | None:
     except json.JSONDecodeError:
         return None
     failing = [r for r in report["results"] if not r["match"]]
+    database = report["runs"].get("database")  # EXEC SQL runs only (verification-report v0.9); passed through unchanged
     return {
+        **({"database": database} if isinstance(database, dict) else {}),
         **report["summary"],
         "stdoutMatch": report["runs"]["stdoutMatch"],
         "failingExamples": [
