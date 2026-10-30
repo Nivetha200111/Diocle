@@ -66,3 +66,6 @@ demo/promo/out/
 demo/promo/public/captures/
 demo/promo/public/clicks/
 demo/promo/public/voiceover.wav
+
+# SQLite JDBC driver for local runs (see README)
+services/verifier/lib/

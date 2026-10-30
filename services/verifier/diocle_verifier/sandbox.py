@@ -269,7 +269,8 @@ def _job_env() -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if k in keep}
     package_root = str(Path(__file__).resolve().parents[1])  # the job starts in "/", so name the package's home
     return {**env, "DIOCLE_IN_SANDBOX": "1", "HOME": "/tmp", "TMPDIR": tempfile.gettempdir(),
-            "PYTHONUNBUFFERED": "1", "PYTHONPATH": package_root}
+            "PYTHONUNBUFFERED": "1",
+            "PYTHONPATH": package_root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")}
 
 
 def _job_main() -> int:

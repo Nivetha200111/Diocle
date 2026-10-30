@@ -8,6 +8,7 @@ bound; each output file is compared record by record.
 
 from __future__ import annotations
 
+import os
 import random
 import tempfile
 from pathlib import Path
@@ -29,7 +30,7 @@ def file_specs(meta: dict) -> list[dict]:
 def is_multi(meta: dict) -> bool:
     """False only for the classic shape: exactly one input, one output, nothing opened I-O, files compared."""
     specs = file_specs(meta)
-    return (sum(f["direction"] == "input" for f in specs) != 1 or sum(f["direction"] == "output" for f in specs) != 1
+    return (bool(meta.get("sql")) or sum(f["direction"] == "input" for f in specs) != 1 or sum(f["direction"] == "output" for f in specs) != 1
             or any(f["direction"] == "io" for f in specs) or bool(meta.get("displayOnly")))
 
 
@@ -92,6 +93,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
     out_fields = {s["dd"]: load_fields(s["layout"]) for s in outputs}
     data = _input_records(meta, sample_dir, inputs + updated, seed, random_count)
     collation = meta.get("collation", "ascii")
+    sql = meta.get("sql")
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
         paths = {}
@@ -103,14 +105,35 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             seeds[s["dd"]] = work / f"{s['dd']}.seed"
             write_records(seeds[s["dd"]], data[s["dd"]], record_format(s["layout"]))
         out_spec = {s["dd"]: (record_format(s["layout"]), record_length(out_fields[s["dd"]])) for s in outputs}
-        cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
-                                          [sample_dir / m for m in meta.get("modules", [])], collation)
-        java_cmd, converted = build_java(java_dir, meta["javaConversion"]["mainClass"], work)
+        db_env = {"original": {}, "converted": {}}
+        if sql:
+            from . import sqlrun
+            from .sqlseed import seed_for_meta
+            seeded = seed_for_meta(meta, sample_dir, work, data, seed, {s["dd"]: s for s in inputs + updated})
+            cap = {"DIOCLE_SQL_MAX_STMTS": os.environ["DIOCLE_SQL_MAX_STMTS"]} if os.environ.get("DIOCLE_SQL_MAX_STMTS") else {}
+            db_env = {side: {"DIOCLE_DB": str(work / f"{side}.db"), **cap} for side in db_env}
+            cobol_cmd, original = sqlrun.build_cobol_sql(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                                         sql["tables"], [sample_dir / m for m in meta.get("modules", [])],
+                                                         collation)
+            java_cmd, converted = sqlrun.build_java_sql(java_dir, meta["javaConversion"]["mainClass"], work)
+        else:
+            cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                              [sample_dir / m for m in meta.get("modules", [])], collation)
+            java_cmd, converted = build_java(java_dir, meta["javaConversion"]["mainClass"], work)
         if cobol_cmd:
-            original = run_files(cobol_cmd, paths, out_spec, work, "original", seeds=seeds)
+            original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
         if java_cmd:
-            converted = run_files(java_cmd, paths, out_spec, work, "converted", {"DIOCLE_COLLATION": collation.upper()},
-                                  seeds=seeds)
+            converted = run_files(java_cmd, paths, out_spec, work, "converted",
+                                  {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
+        db_results, db_report = [], None
+        if sql and original.compiled and converted.compiled:
+            from . import sqldb
+            db_results, tables_report = sqldb.compare_tables(work / "original.db", work / "converted.db", sql["tables"],
+                                                             seeded, meta["program"])
+            db_report = {"engine": "sqlite", "engineVersion": sqldb.engine_version(), "subset": sql.get("subset", ""),
+                         "seededFrom": ", ".join(sorted({t.get("path") or "DECLARE TABLE in the program" for t in sql["tables"]}))
+                                       + f"; generated rows (seed {seed})",
+                         "tables": tables_report}
 
     results: list[dict] = []
     if original.compiled and converted.compiled:
@@ -122,6 +145,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                 r.update({"program": meta["program"], "outputDd": dd})
                 r.pop("input", None)
                 results.append(r)
+    results += db_results
     if stdout_only and original.compiled and converted.compiled:
         results.append(stdout_result(meta["program"], original, converted))
     passed = sum(r["match"] for r in results)
@@ -139,6 +163,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             "collation": collation,
             "golden": None,
             **({"stdoutCompared": True} if stdout_only else {}),
+            **({"database": db_report} if db_report else {}),
             "files": {"inputs": {s["dd"]: len(data[s["dd"]]) for s in inputs},
                       **({"updated": {s["dd"]: {"seeded": len(data[s["dd"]]),
                                                 "original": len(original.output_files.get(s["dd"], [])),
