@@ -115,6 +115,7 @@
             ],
             "description": "Live summary of the converter run: status, stage, recent events, efficiency so far"
           },
+          "costUsd": {"type": ["number", "null"], "description": "Convert-anyway: this program's estimated model spend (null: no price known)"},
           "assurance": {
             "type": ["string", "null"],
             "enum": ["certified", "certified-against-repaired-cobol", "compiled-unverified", "failed", null],
