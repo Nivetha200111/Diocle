@@ -120,7 +120,7 @@ def ask(program: Program, *, question: str | None = None, audio: bytes | None = 
         claims_usd = _cost(behavior)
         total = None if (claims_usd is None and behavior.get("usage", {}).get("calls")) or transcribe_usd is None \
             else round((claims_usd or 0.0) + transcribe_usd, 6)
-        return {"version": VERSION, "sample": program.name, "clip": clip, "transcript": transcript, "behavior": behavior,
+        return {"version": VERSION, "sample": program.sample_dir.name, "clip": clip, "transcript": transcript, "behavior": behavior,
                 "answer": answer, "verdict": {k: s[k] for k in ("claims", "confirmed", "refuted", "unchecked")},
                 "costs": {"transcribeUsd": transcribe_usd, "claimsUsd": claims_usd, "totalUsd": total}, "caps": caps_view,
                 "decidedBy": "GnuCOBOL", "stopped": stopped}
