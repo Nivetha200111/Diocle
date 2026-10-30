@@ -16,6 +16,7 @@ export type Stat = { value: number | null; n: number };
 const stat = (xs: number[]): Stat => ({ value: median(xs), n: xs.length });
 
 export type Scoreboard = {
+  liveSampleRuns: number; // left out below: a button anyone can press must not move the statistics
   runsTotal: number;
   certifiedRuns: number;
   distinctPrograms: number;
@@ -27,11 +28,13 @@ export type Scoreboard = {
   costPer1kMedian: Stat;
 };
 
-export function scoreboard(runs: RunListItem[]): Scoreboard {
+export function scoreboard(all: RunListItem[]): Scoreboard {
+  const runs = all.filter((r) => !r.sampleRun);
   const ok = runs.filter(isPlainCertified);
   const finite = (xs: (number | null | undefined)[]) => xs.filter((x): x is number => typeof x === "number" && Number.isFinite(x));
   const costs = finite(ok.map((r) => r.efficiency.estimatedCostUsd));
   return {
+    liveSampleRuns: all.length - runs.length,
     runsTotal: runs.length,
     certifiedRuns: ok.length,
     distinctPrograms: new Set(ok.map((r) => r.program.toUpperCase())).size,

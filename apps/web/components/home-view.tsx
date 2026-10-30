@@ -121,6 +121,7 @@ function SampleHero({ go }: { go: Go }) {
           window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
           go("Live runs");
         }}>Open the full run</button>
+        <a className="button secondary" href="/mission#live">Try it live: convert a sample now</a>
         <a className="button secondary" href="/mission">Watch the agents work (replay)</a>
         <a className="button secondary" href="/bugs">Bug of the day</a>
         <a className="button secondary" href="/evidence">Cost and speed scoreboard</a>
@@ -139,7 +140,7 @@ function Evidence({ go }: { go: Go }) {
   useEffect(() => {
     fetchRuns().then(setRuns).catch(() => setRuns([]));
   }, []);
-  const certified = runs?.filter((r) => r.certified).length ?? 0;
+  const certified = runs?.filter((r) => r.certified && !r.sampleRun).length ?? 0;  // live sample runs are real but not counted here
   const repaired = runs?.filter((r) => r.assurance === "certified-against-repaired-cobol").length ?? 0;  // never inside "certified"
   const unverified = runs?.filter((r) => r.assurance === "compiled-unverified").length ?? 0;
   return (

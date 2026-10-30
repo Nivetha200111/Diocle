@@ -42,10 +42,14 @@ export type Lesson = { pattern: string; cobol: string; java: string };
 
 export type RunMemory = { enabled: boolean; used: number; learned: number; lessons: Lesson[] } | null;
 
+// contracts/run.schema.json `sampleRun`: a live sample run. A real run, labelled, and left out of the scoreboard statistics.
+export type SampleRun = { sample: "addfee"; live: true; job?: string };
+
 export type RunListItem = {
   id: string;
   status?: "running" | "certified" | "not-certified" | "interrupted";
   visitor?: boolean; // from a visitor's import: shown as reported, not re-verified here
+  sampleRun?: SampleRun; // started by the public "Convert a sample now" button (run schema v0.16)
   program: string;
   command: "repair" | "run";
   certified: boolean;
@@ -108,6 +112,9 @@ export type RunEvent = {
 export type Run = {
   id: string;
   visitor?: boolean;
+  sampleRun?: SampleRun;
+  status?: "running" | "certified" | "not-certified" | "interrupted";
+  error?: string | null;
   program: string;
   command: "repair" | "run";
   createdAt: string | null;

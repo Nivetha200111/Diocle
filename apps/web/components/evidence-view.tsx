@@ -19,7 +19,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
     fetchRuns().then(setRuns).catch(() => { setRuns([]); setFailed(true); });
   }, []);
   const kept = runs ?? [];
-  const certified = kept.filter((r) => r.certified).length;
+  const certified = kept.filter((r) => r.certified && !r.sampleRun).length;  // live sample runs are listed, not counted
   const interrupted = kept.filter((r) => isInterrupted(r)).length;
   const spend = kept.reduce((n, r) => n + (r.efficiency.estimatedCostUsd ?? 0), 0);
   const privateRun = runs?.find((r) => r.model === MODELS.open && r.certified);

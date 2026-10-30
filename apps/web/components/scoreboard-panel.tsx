@@ -49,7 +49,7 @@ export default function ScoreboardPanel({ runs, failed }: { runs: RunListItem[] 
     <section className="panel" aria-labelledby="sb-h">
       <div className="panel-heading"><div>
         <h2 id="sb-h">Cost and speed scoreboard</h2>
-        <p>Computed from the engine&apos;s runs just now. Only plain certified runs count; costs are estimates from list prices.</p>
+        <p>Computed from the engine&apos;s runs just now. Only plain certified runs count; costs are estimates from list prices.{sb.liveSampleRuns > 0 && ` ${sb.liveSampleRuns} live sample run${sb.liveSampleRuns === 1 ? "" : "s"} from the public \"Convert a sample now\" button ${sb.liveSampleRuns === 1 ? "is" : "are"} left out so a button anyone can press cannot move these numbers.`}</p>
       </div></div>
       <dl className="eff-grid home-evidence sb-grid">
         {cell("Certified runs", String(sb.certifiedRuns), sb.runsTotal, "runs kept")}

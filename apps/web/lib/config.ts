@@ -71,6 +71,17 @@ export type PublicImports = {
   maxLines: number;
   spentTodayUsd: number;
   budgetLeft: boolean;
+  samples?: SamplesStatus; // the two live buttons; absent on an engine without them
+};
+
+// contracts/live-sample.schema.json $defs.status (config.publicImports.samples)
+export type ButtonStatus = {
+  maxUsd: number; perVisitorPerDay: number; perDay: number; usedToday: number; visitorLeft: number;
+  available: boolean; reason: string | null;
+};
+export type SamplesStatus = {
+  enabled: boolean; budgetUsd: number; spentTodayUsd: number | null; busy: string | null;
+  convert: ButtonStatus; printout: ButtonStatus;
 };
 
 export type ApiConfig = { hosted: boolean; startNeedsPasscode: boolean; publicImports?: PublicImports };
