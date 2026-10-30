@@ -378,6 +378,10 @@ github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctl
 - Not covered: the engine's amd64 build (the Mac is arm64; sqlite-jdbc bundles both natives, but the first server build is the real check), the uid switch to `nobody` was exercised by the sandbox server in this run but not inspected, and nothing was run against real DB2.
 - To deploy: `deploy/update-engine.sh` (rebuilds image and sandbox), then verify `samples/db2-account-report` against the server sandbox.
 
+### Oct 30: guard model review switched on (keys set locally and on the server)
+- `deploy/set-guard-keys.sh` copies OPEN_MODEL_* into GUARD_MODEL_* (Muse Spark Open on Fireworks) without printing a value; the owner ran it locally and on the server.
+- First real smoke run with the review on: the guard BLOCKED a Java that passed 1,027/1,027, because it fell back to the file's own name ("ACCTIN") when DD_ACCTIN was unset. GnuCOBOL resolves ASSIGN names the same way (DD_name, dd_name, then the name), so that was a false positive. The guard prompt now says so (a fallback to a DIFFERENT name or an absolute path is still a block; creating the parent directory of an output DD path is at most a flag). Two re-runs after the change: guard PASS and CERTIFIED both times (different Java each time: weak evidence, about $0.02 each). The review is an LLM and not deterministic: a false block can still happen, and it can only revoke certification. If it blocks correct programs on the live engine, turn it off by removing GUARD_MODEL_API_KEY from `deploy/diocle.env` and restarting the API. The engine needs a redeploy for the prompt change to take effect.
+
 ## Open work (priority order)
 - **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (item 1 is built on the branch above, awaiting a reviewer pass,
   a merge and one real model run per new sample; dependencies: display-only and I-O programs,

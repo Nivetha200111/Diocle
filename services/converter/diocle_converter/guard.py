@@ -280,6 +280,10 @@ named DD_<name>; read DIOCLE_CLOCK and DIOCLE_COLLATION; write to stdout and std
   reflection or dynamically loaded code, native code, other environment variables or system properties, files or
   paths other than the DD files, background threads that outlive main, encoded or obfuscated code), and test gaming:
   special cases for particular input values, account IDs, dates or outputs that the COBOL does not have.
+- NOT a finding: when DD_<name> is unset, the Java falls back to the file's own name (for example "ACCTIN") relative to the
+  working directory. GnuCOBOL resolves SELECT ... ASSIGN TO names the same way (DD_name, then dd_name, then the name itself),
+  so this mirrors the COBOL. Only a fallback to a DIFFERENT name, or to an absolute path, is a block. Creating the parent
+  directory of an output DD path is at most a "flag", never a block.
 - severity "flag": anything suspicious but plausibly legitimate.
 Verdict: "block" if any finding is block, "flag" if there are only flags, "pass" if there are none. Be concrete: the
 file, the line, what the code does, and why the COBOL does not need it. Do not report style, performance or
