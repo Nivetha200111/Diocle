@@ -1,5 +1,6 @@
 """Golden replay: captured mainframe output is the oracle on its inputs, and GnuCOBOL drift is reported."""
 import json
+import os
 import shutil
 import subprocess
 from decimal import Decimal
@@ -8,6 +9,13 @@ from pathlib import Path
 from diocle_verifier.codec import convert_record
 from diocle_verifier.layout import format_record, load_fields, parse_record, record_length
 from diocle_verifier.verify import passes, verify_sample
+
+
+def _tool_env(**extra):
+    """A small environment for running the compiled programs, but with the toolchain's own PATH, library path and JAVA_HOME
+    (a bare PATH=/usr/bin picks the runner's old system Java and cannot find libcob outside the system library path)."""
+    keep = {k: os.environ[k] for k in ("PATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "JAVA_HOME") if k in os.environ}
+    return {**keep, **extra}
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKED = ROOT / "samples" / "packed-posting"
@@ -28,7 +36,7 @@ def _golden_sample(tmp: Path, tamper: bool) -> Path:
     subprocess.run(["cobc", "-x", "-std=ibm", "-I", str(sample / "copybooks"), "-o", str(exe),
                     str(sample / "src" / "PKDPOST.cbl")], check=True, capture_output=True)
     (tmp / "in.dat").write_bytes("".join(records).encode("latin-1"))
-    subprocess.run([str(exe)], env={"DD_PKIN": str(tmp / "in.dat"), "DD_PKOUT": str(tmp / "out.dat"), "PATH": "/usr/bin"},
+    subprocess.run([str(exe)], env=_tool_env(DD_PKIN=str(tmp / "in.dat"), DD_PKOUT=str(tmp / "out.dat")),
                    check=True, capture_output=True)
     out = (tmp / "out.dat").read_bytes()
     n = record_length(out_f)

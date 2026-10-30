@@ -8,6 +8,7 @@ copying its output verbatim -- see the comment above JOB for how to reproduce it
 """
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -22,6 +23,13 @@ from diocle_converter.pipeline import driver_class_name, generate_pipeline
 from diocle_converter.sources import Program
 from diocle_converter.translate import translate
 from diocle_converter.workspace import Workspace
+
+
+def _tool_env(**extra):
+    """A small environment for running the compiled programs, but with the toolchain's own PATH, library path and JAVA_HOME
+    (a bare PATH=/usr/bin picks the runner's old system Java and cannot find libcob outside the system library path)."""
+    keep = {k: os.environ[k] for k in ("PATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "JAVA_HOME") if k in os.environ}
+    return {**keep, **extra}
 
 SAMPLE = Path(__file__).resolve().parents[3] / "samples" / "account-match"
 
@@ -151,7 +159,7 @@ def test_full_pipeline_compiles_and_the_driver_runs_the_real_fixture_end_to_end(
     assert compile_proc.returncode == 0, compile_proc.stderr
 
     run_proc = subprocess.run(["java", "-cp", str(classes), manifest["driverClass"], str(classes)],
-                              capture_output=True, text=True, env={"PATH": "/usr/bin:/bin"})
+                              capture_output=True, text=True, env={**_tool_env()})
     assert run_proc.returncode == 0, run_proc.stderr
     assert "all steps completed" in run_proc.stdout
 
