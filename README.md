@@ -177,6 +177,26 @@ converter yourself:
    about a hundredth of a cent). A first full run on a sample costs a few cents; every model loop has hard call caps
    (`MODEL_MAX_CALLS_PER_RUN` and the others in `.env.example`).
 
+### Let Diocle create the target repository (local or admin only)
+
+Instead of supplying an existing target, a delivery can create its own repository and open the pull request into it:
+
+```sh
+cd services/api
+.venv/bin/python -m diocle_api.deliver https://github.com/<owner>/<legacy> --create-target <legacy>-java --dry-run   # prints the plan, creates nothing
+.venv/bin/python -m diocle_api.deliver https://github.com/<owner>/<legacy> --create-target <legacy>-java            # creates it, then the usual delivery
+#   --target-owner OWNER   default: the account `gh` is logged in as; --target-public: public (default is private)
+```
+
+It uses your own `gh` login (or `GH_TOKEN`, read by `gh`, never printed); the token needs the `repo` scope, plus `workflow` because
+the first pull request adds `.github/workflows/reverify.yml` (a repository Diocle creates has no CI of its own). The owner must be on
+the same allowlist as any target (`DIOCLE_IMPORT_OWNERS`). The repository is created only after at least one program is certified. It is
+private unless you pass `--target-public`. It never reuses, overwrites or pushes into an existing repository (it refuses and tells you to pass
+the URL as the target), and never makes anything public implicitly. If a step fails after creation the repository stays, and the message
+gives the `gh repo delete OWNER/NAME --yes` command for you to run if you want it gone. The dashboard offers it as "Create a new
+repository for the result" (admin passcode, or local); visitors never see it and the API refuses it (403) without the passcode. A delivery
+without any target still keeps its results on the site.
+
 ### Running on your own repo (local, your own key)
 
 Any COBOL repository, local directory or GitHub URL, with your own Meta key and no visitor caps:
