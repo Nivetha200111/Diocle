@@ -47,6 +47,9 @@ from .translate import translate
 from .workspace import Workspace
 
 
+DEFAULT_ANYWAY_MAX_USD = 0.25  # `run --convert-anyway` without --max-usd (the delivery always passes what is left of REPO_MAX_USD)
+
+
 def _verifier():
     try:
         from diocle_verifier.verify import validate_report, verify_sample
@@ -132,6 +135,11 @@ def main(argv: list[str] | None = None) -> int:
     settings = Settings.from_env()
     if args.command == "run":
         args.convert_anyway = anyway.enabled(args.convert_anyway)
+        if args.max_usd is None and args.convert_anyway:  # never uncapped: REPO_MAX_USD if set, else $0.25
+            try:
+                args.max_usd = float(os.environ.get("REPO_MAX_USD", "") or DEFAULT_ANYWAY_MAX_USD)
+            except ValueError:
+                args.max_usd = DEFAULT_ANYWAY_MAX_USD
         if args.max_usd is not None:
             settings = dataclasses.replace(settings, max_usd=args.max_usd)
     client = ModelClient(settings)

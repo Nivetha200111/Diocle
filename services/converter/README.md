@@ -136,3 +136,12 @@ python3 -m venv .venv && .venv/bin/pip install -e ../verifier -e . pytest jsonsc
 .venv/bin/python -m pytest -q                                                  # unit tests (scripted API double, no credits used)
 ```
 Each run is saved under `runs/` at the repo root (gitignored): `java/`, `events.jsonl` (the agent trace), `run.json` (rounds, model calls, cost), `verification-report.json`.
+
+## Convert anyway (`run --convert-anyway`, `repo`)
+See the root README ("Running on your own repo"). `run --convert-anyway` always has a dollar cap: `--max-usd`, else `REPO_MAX_USD`, else
+$0.25. The cap is projected: a call is refused before it is made when spend so far plus its worst-case cost would pass the cap (guard and
+cross-check calls count too; an unpriced model is refused). Exit codes of `run`: 0 plain certified only (certified against repaired COBOL is 1), 1 not certified or failed, 3 `compiled-unverified` (Java compiles, no differential test ran).
+The COBOL patch rule (`cobolrepair.py`) is enforced in code in every division: fixed-format files only, no added or removed lines, only lines
+the compiler reported in a fresh compile, one identifier correction / missing period / one of TO THEN IS DIVISION SECTION per line, size caps
+(`COBOL_REPAIR_MAX_LINES` <= 50, `COBOL_REPAIR_MAX_SHARE` <= 0.25, `COBOL_REPAIR_MAX_CALLS` <= 20). It cannot check that a corrected identifier is
+the one the author meant.
