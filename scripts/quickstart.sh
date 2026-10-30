@@ -30,8 +30,8 @@ while [ $# -gt 0 ]; do
     --check) CHECK=1 ;;
     --sample) [ $# -ge 2 ] || die "--sample needs a name"; SAMPLE=$2; shift ;;
     --sample=*) SAMPLE=${1#--sample=} ;;
-    *key*|*KEY*) die "never pass a key on the command line; put META_MODEL_API_KEY in .env (see .env.example)" ;;
-    *) die "unknown argument: $1 (try --help)" ;;
+    *key*|*KEY*|sk-*) die "never pass a key on the command line; put META_MODEL_API_KEY in .env (see .env.example)" ;;
+    *) die "unknown argument (not echoed, in case it was a secret; try --help)" ;;
   esac
   shift
 done
@@ -88,7 +88,7 @@ fi
 # ---- is a Meta key configured? Looks, never prints. A key counts only if the variable has a non-empty value.
 has_key() {
   [ -n "${META_MODEL_API_KEY:-}" ] && return 0
-  [ -f "$ROOT/.env" ] && grep -Eq '^[[:space:]]*META_MODEL_API_KEY=[[:space:]]*[^[:space:]#]' "$ROOT/.env"
+  [ -f "$ROOT/.env" ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?META_MODEL_API_KEY=[[:space:]]*[^[:space:]#\"']" "$ROOT/.env"
 }
 if [ "$MODE" = auto ]; then
   if has_key; then MODE=key; else
@@ -133,7 +133,7 @@ fi
 : "${META_MODEL_BASE_URL:=https://api.meta.ai/v1}"; : "${META_MODEL_ID:=muse-spark-1.3-contributor}"
 export META_MODEL_BASE_URL META_MODEL_ID
 say "Key mode: this makes REAL model calls with your key, capped at \$$CAP (QUICKSTART_MAX_USD, hard maximum \$$HARD_CAP)."
-LOG=$(mktemp "${TMPDIR:-/tmp}/diocle-quickstart.XXXXXX")
+LOG=$(mktemp "${TMPDIR:-/tmp}/diocle-quickstart.XXXXXX"); trap 'rm -f "$LOG"' EXIT INT TERM
 rc=0
 (cd "$ROOT/services/converter" && "$VPY" -I -m diocle_converter run "$SAMPLE_DIR" --no-memory --max-usd "$CAP") >"$LOG" 2>&1 || rc=$?
 grep -E '^(CERTIFIED|NOT CERTIFIED|CERTIFIED AGAINST)' "$LOG" || tail -n 15 "$LOG"

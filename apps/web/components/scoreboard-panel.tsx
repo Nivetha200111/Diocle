@@ -61,8 +61,10 @@ export default function ScoreboardPanel({ runs, failed }: { runs: RunListItem[] 
         {cell("Median cost per 1,000 lines", usd(sb.costPer1kMedian.value), sb.costPer1kMedian.n)}
       </dl>
       <p className="home-pr">
-        The mean is above the median because some certified runs used the dearer escalation tiers or a breaker on a bigger model
-        (the dearest certified run here is {usd(sb.costMax)}). Several runs can be the same program; that is why runs, not programs, are counted.
+        {sb.costMean.value !== null && sb.costMedian.value !== null && sb.costMean.value > sb.costMedian.value
+          ? "The mean is above the median: a few certified runs cost much more than the typical one (for example runs that used the dearer escalation tiers or a breaker on a bigger model)"
+          : "The mean and the median are close here"}
+        {" "}(the dearest certified run here is {usd(sb.costMax)}). Several runs can be the same program; that is why runs, not programs, are counted.
       </p>
       <div className="sb-human">
         <h3>Against a human reviewer</h3>

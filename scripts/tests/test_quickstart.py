@@ -64,6 +64,17 @@ def test_a_key_argument_is_refused(tmp_path):
     assert r.returncode == 2 and "never pass a key" in r.stderr and "sk-abc" not in r.stdout
 
 
+def test_an_unknown_argument_is_never_echoed(tmp_path):
+    """A secret pasted as an argument must not be printed back, whether or not it contains the letters 'key'."""
+    r = run(["tok_SECRET123"], tmp_path)
+    assert r.returncode == 2 and "SECRET123" not in r.stdout + r.stderr
+
+
+def test_empty_quoted_key_and_export_prefix(tmp_path):
+    assert "Falling through" in run(["--check"], tmp_path, with_env_file='META_MODEL_API_KEY=""\n').stdout
+    assert "Falling through" not in run(["--check"], tmp_path, with_env_file="export META_MODEL_API_KEY=abc\n").stdout
+
+
 def test_bad_arguments(tmp_path):
     assert run(["--bogus"], tmp_path).returncode == 2
     assert run(["--sample", "../etc"], tmp_path).returncode == 2
