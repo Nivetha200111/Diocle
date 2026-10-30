@@ -62,6 +62,10 @@ class Workspace:
         if not sources:
             return False, "no .java files in workspace"
         with tempfile.TemporaryDirectory() as out:
+            if any("DioSql" in (self.root / f).read_text(errors="replace") for f in self.list_files()):
+                from diocle_verifier.sqlpre import SUPPORT  # the verifier's own DioSql.java, as at verification time
+
+                sources = [s for s in sources if Path(s).name != "DioSql.java"] + [str(SUPPORT / "DioSql.java")]
             proc = subprocess.run(["javac", "-proc:none", "-d", out, *sources], capture_output=True, text=True, timeout=120,
                                   env=safe_env())
         return proc.returncode == 0, (proc.stderr or proc.stdout).replace(str(self.root) + "/", "")[-4000:]

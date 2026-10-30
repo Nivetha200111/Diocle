@@ -31,6 +31,34 @@ Fidelity rules:
   processes, reflection, native code or other files: a guard refuses to run such Java.
 """
 
+TRANSLATOR_SQL = """\
+
+Embedded SQL (EXEC SQL) contract. The program runs against a stand-in SQLite database, not DB2; the verifier seeds the
+same rows on both sides, runs both programs, and compares their files, stdout, exit code AND the final contents of every
+table, value for value. The user message lists the tables and gives DioSql.java, the verifier's own support class (do not
+rewrite or copy it; it is compiled in). Rules:
+- Connect only with `Connection c = DioSql.connect();` and use java.sql PreparedStatement for the program's statements.
+  Never DriverManager, Class.forName, setAutoCommit, other SQL (no CREATE/DROP/PRAGMA/ATTACH) or other files.
+- Storage convention (both sides): DECIMAL(p,s), SMALLINT, INTEGER, BIGINT are bound and read as long = value x 10^s
+  (DioSql.scaled(bigDecimal, s) truncates extra decimals toward zero exactly as a COBOL MOVE does; DioSql.dec(long, s) reads).
+  CHAR/VARCHAR bind DioSql.trim(value) (no trailing blanks) and are moved into the PIC X(n) variable with DioSql.pad(value, n).
+- Host variables follow COBOL MOVE rules when they cross into or out of SQL: a value read from a column is moved into the
+  host variable's PIC (truncating high-order digits or decimals like a MOVE); a host variable is moved into the column's
+  scale before binding. Keep COBOL arithmetic (BigDecimal) for everything outside the SQL.
+- Keep an int sqlcode updated after EVERY EXEC SQL statement and use it wherever the COBOL reads SQLCODE (tests, MOVE, DISPLAY).
+  Values: 0; +100 no row (SELECT INTO), past the last row (FETCH), UPDATE or DELETE that changed no row (DioSql.afterChange(n));
+  -803 duplicate key, -811 SELECT INTO found more than one row, -407 NULL into a NOT NULL column, -404 string too long,
+  -413 numeric overflow, -305 NULL read with no indicator, -501 cursor not open, -502 cursor already open, -901 other
+  (DioSql.code(SQLException) maps an exception to these). A statement that fails or returns +100 leaves the INTO host
+  variables unchanged. SQLERRD, SQLSTATE and SQLERRM are not modelled.
+- SELECT INTO: DioSql.selectOne(c, sql, binds...) returns code and values. Cursors: DioSql.Cursor (open evaluates the host
+  variables then; fetch() returns 0 or 100; closed by CLOSE, COMMIT and ROLLBACK). Null indicators: a negative indicator binds
+  NULL; after a fetch/select set the indicator to -1 for NULL (host variable unchanged) and 0 otherwise.
+- COMMIT and ROLLBACK call DioSql.commit(c) / DioSql.rollback(c) (they close every cursor). Work still open when the
+  program ends normally is committed, as in DB2.
+- Do not invent SQL: bind the same columns in the same order, with the same WHERE and ORDER BY, as the EXEC SQL statements.
+"""
+
 REPAIR = """\
 You are Diocle's repair agent. A Java translation of a COBOL program fails differential testing against the
 original compiled with GnuCOBOL. The COBOL program's behaviour is the source of truth, including its quirks.
@@ -51,6 +79,10 @@ Rules:
 - The Java must exit with the COBOL RETURN-CODE and read "now" from DIOCLE_CLOCK when it is set.
 - A guard refuses to run Java that uses the network, processes, reflection, native code, other files or environment
   variables not named literally. If a test result says the guard refused, remove that code.
+- For a program with EXEC SQL the test result also lists tables whose final contents differ ("table T ... row N column C:
+  original X converted Y"). The original is the source of truth: find the statement or host-variable conversion (MOVE
+  truncation, scale, CHAR padding, indicator, SQLCODE after the statement, commit boundary, cursor order) that produces
+  the difference. Never special-case SQL or data. DioSql.java is the verifier's own class and cannot be edited.
 - You have a limited budget of steps and tokens: no exploratory calls, no cosmetic changes.
 """
 
