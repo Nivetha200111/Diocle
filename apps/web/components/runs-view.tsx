@@ -10,6 +10,7 @@ import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
 import { DatabasePanel } from "./database-panel";
 import { ReproducerPanel } from "./reproducer-panel";
+import { MutationPanel } from "./mutation-panel";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
 const usd = (n: number | null) => (n === null ? "n/a" : `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`);
@@ -513,6 +514,8 @@ function RunDetail({ run }: { run: Run }) {
       {run.guard && <GuardPanel g={run.guard} />}
 
       <ReverifyPanel run={run} />
+
+      <MutationPanel run={run} />
 
       <SourcePanel run={run} />
 

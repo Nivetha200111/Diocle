@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 
 from fastapi import FastAPI, HTTPException, Request
 from typing import Literal
@@ -20,6 +21,7 @@ from . import asks, livesamples, public
 from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
 from .deliver import GITHUB_URL, validate_create_target
 from .reproducers import regression_case, run_reproducers
+from .mutation import get_mutation, run_mutation
 from .reverify import Busy, reverify_run
 from .runs import get_run, get_source, list_runs
 from .schema import run_schema
@@ -97,6 +99,32 @@ def run_sql_schema(run_id: str) -> dict:
     result = run_schema(run_id)
     if result is None:
         raise HTTPException(status_code=404, detail="no schema for this run")
+    return result
+
+
+@app.get("/runs/{run_id}/mutation")
+def run_mutation_report(run_id: str) -> dict:
+    """contracts/mutation-report.schema.json: the stored report of the last mutation run, or 404."""
+    result = get_mutation(run_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no mutation report for this run")
+    return result
+
+
+@app.post("/runs/{run_id}/mutation")
+def post_run_mutation(run_id: str) -> dict:
+    """Seed small faults into a copy of a certified run's Java and see whether its inputs notice: CPU only, no model
+    calls, one job at a time, same gating as re-verification (certified, non-visitor runs)."""
+    try:
+        result = run_mutation(run_id)
+    except Busy as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+        raise HTTPException(status_code=502, detail=f"the verifier could not run: {e}")
+    if result is None:
+        raise HTTPException(status_code=404, detail="run not found")
     return result
 
 

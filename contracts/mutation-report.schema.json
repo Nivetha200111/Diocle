@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/mutation-report.schema.json",
+  "title": "MutationReport",
+  "description": "v0.1. Mutation testing of a certified Java translation: how strong is the verification itself? Small realistic faults (a flipped comparison, a changed rounding mode, a dropped truncation, ...) are seeded into a COPY of the Java, and each mutant is run through the same differential harness on the same held-out inputs. A killed mutant means the inputs would have detected that mistake. A surviving mutant is a COVERAGE QUESTION (no input exercised the difference, or the change is harmless in a way the cheap rules cannot see), not automatically a defect and not a confidence score. No model is involved: operators, selection and extra inputs are deterministic. The certified Java is never modified.",
+  "type": "object",
+  "required": ["version", "status", "seed", "inputs", "counts", "mutants", "caps", "notes"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "runId": { "type": ["string", "null"] },
+    "program": { "type": ["string", "null"] },
+    "status": {
+      "enum": ["ok", "unsupported", "baseline-failed"],
+      "description": "ok: mutants were run. unsupported: the sample shape is not covered (see reason). baseline-failed: the unmutated Java did not match the original on these inputs, so mutants cannot be judged."
+    },
+    "reason": { "type": ["string", "null"], "description": "Why status is not ok, in plain words" },
+    "seed": { "type": "integer", "description": "Selection of mutants and extra inputs is a pure function of this seed and the Java source" },
+    "inputs": {
+      "type": "object",
+      "required": ["initial"],
+      "properties": {
+        "initial": { "type": "integer", "minimum": 0, "description": "Number of inputs every mutant is first run on" },
+        "seed": { "type": "integer", "description": "Seed those inputs were generated from" },
+        "seedSource": { "enum": ["certification", "default"], "description": "certification: the run's own certification seed. default: the run recorded none, so a fixed default seed was used; the inputs are then similar in kind to, but not the same as, the ones that certified it." }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["generated", "run", "killed", "survived", "notCompiled", "equivalentSuspected", "timeout", "error", "notRun", "score"],
+      "properties": {
+        "generated": { "type": "integer", "minimum": 0, "description": "Mutants the operators could place in the Java, before the cap" },
+        "run": { "type": "integer", "minimum": 0, "description": "Mutants selected and processed (at most caps.maxMutants)" },
+        "killed": { "type": "integer", "minimum": 0, "description": "Initial inputs detected the fault" },
+        "survived": { "type": "integer", "minimum": 0, "description": "Initial inputs did NOT detect the fault (some may be killed later by extra inputs, see augmented)" },
+        "notCompiled": { "type": "integer", "minimum": 0 },
+        "equivalentSuspected": { "type": "integer", "minimum": 0, "description": "Flagged by a cheap deterministic rule only (identical normalised bytecode); never by a model" },
+        "timeout": { "type": "integer", "minimum": 0, "description": "The mutant exceeded its time limit; a certification run would also have failed on it, so it counts as detected" },
+        "error": { "type": "integer", "minimum": 0, "description": "The harness failed on this mutant (not the mutant's fault); excluded from the score" },
+        "notRun": { "type": "integer", "minimum": 0, "description": "Selected but not processed because the wall-clock cap was reached" },
+        "score": {
+          "type": ["number", "null"], "minimum": 0, "maximum": 1,
+          "description": "(killed + timeout) / (killed + timeout + survived), over mutants that compiled and are not equivalent-suspected, by the INITIAL inputs only. null when that denominator is 0. Timeouts count as detected (a certification run would also have failed on them). A measure of how many seeded faults the inputs detected, not a probability that the translation is correct."
+        }
+      }
+    },
+    "mutants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "operator", "location", "description", "outcome"],
+        "properties": {
+          "id": { "type": "string" },
+          "operator": { "type": "string", "description": "e.g. relational-swap, arithmetic-swap, rounding-mode, remove-truncation, scale-off-by-one, boundary-constant, negate-condition, loop-bound, remove-else, string-compare, pad-char" },
+          "location": {
+            "type": "object",
+            "required": ["file", "line"],
+            "properties": { "file": { "type": "string" }, "line": { "type": "integer", "minimum": 1 } }
+          },
+          "original": { "type": "string", "description": "The source text that was replaced (trimmed, at most 200 characters)" },
+          "mutated": { "type": "string", "description": "What it was replaced with (trimmed, at most 200 characters)" },
+          "description": { "type": "string", "description": "What changed, in plain words" },
+          "outcome": { "enum": ["killed", "survived", "not-compiled", "equivalent-suspected", "timeout", "error"], "description": "By the initial inputs" },
+          "killedBy": { "type": ["string", "null"], "description": "Id of the first input that detected it, or stdout / exit-code" },
+          "augmentedOutcome": { "enum": ["killed", "survived"], "description": "Only on mutants that survived the initial inputs: result of re-running them on the extra inputs" },
+          "augmentedKilledBy": { "type": ["string", "null"] },
+          "note": { "type": "string", "description": "Rule that flagged equivalent-suspected, compiler message of a not-compiled mutant, or the harness error (short)" }
+        }
+      }
+    },
+    "augmented": {
+      "type": "object",
+      "required": ["extraInputs", "survivorsRerun", "extraKills"],
+      "description": "Extra inputs generated deterministically (boundary emphasis, duplicated and blank keys, neighbours of existing values), shared by all survivors; only survivors are re-run on them.",
+      "properties": {
+        "extraInputs": { "type": "integer", "minimum": 0 },
+        "survivorsRerun": { "type": "integer", "minimum": 0 },
+        "extraKills": { "type": "integer", "minimum": 0 },
+        "stillSurviving": { "type": "integer", "minimum": 0 },
+        "modelCalls": { "const": 0 }
+      }
+    },
+    "caps": {
+      "type": "object",
+      "required": ["maxMutants", "maxExtraInputs", "wallClockSeconds"],
+      "properties": {
+        "maxMutants": { "type": "integer", "minimum": 1 },
+        "maxExtraInputs": { "type": "integer", "minimum": 0 },
+        "wallClockSeconds": { "type": "integer", "minimum": 1 },
+        "mutantTimeoutSeconds": { "type": "integer", "minimum": 1 },
+        "budgetExhausted": { "type": "boolean" }
+      }
+    },
+    "seconds": { "type": "number", "minimum": 0 },
+    "baselineSeconds": { "type": "number", "minimum": 0, "description": "How long the unmutated Java took on the initial inputs; mutant time limits derive from it" },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Honest labels: a surviving mutant is a coverage question, not automatically a defect; equivalent-suspected is a cheap rule, not a proof; the operators are a sample of realistic faults, not all faults."
+    }
+  }
+}

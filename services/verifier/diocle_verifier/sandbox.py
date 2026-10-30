@@ -45,6 +45,8 @@ MAX_CLAIMS_REPORT = 4 * 1024 * 1024  # per example up to 32 KB stdout + 20 recor
 TRANSCRIPT_JOB_TIMEOUT = 240  # compile gate, then the original and the transcription built and run on ~1000 inputs
 MAX_TRANSCRIPT_SOURCE = 200 * 1024
 MAX_TRANSCRIPT_REPORT = 256 * 1024
+MUTATION_JOB_TIMEOUT = 600  # mutants are compiled and run one by one; mutate.py stops itself well before this
+MAX_MUTATION_REPORT = 2 * 1024 * 1024
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
 
@@ -105,6 +107,26 @@ def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_cou
         try:
             with urllib.request.urlopen(req, timeout=JOB_TIMEOUT + 60) as resp:
                 return json.loads(resp.read(MAX_REPORT))
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace")[:2000]
+            if e.code != 503:
+                raise RuntimeError(f"sandbox: {detail}") from e
+            if time.time() > deadline:
+                raise Busy("the verification engine is busy; try again in a minute") from e
+            time.sleep(3)
+
+
+def remote_mutation(sample_dir: Path, java_dir: Path, params: dict) -> dict:
+    """Mutation testing in the sandbox (diocle_verifier.mutate.mutate_local there): CPU only, no model."""
+    body = json.dumps({"bundle": base64.b64encode(pack(sample_dir, java_dir)).decode(), "java": True,
+                       **{k: int(v) for k, v in params.items()}}).encode()
+    deadline = time.time() + float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800"))
+    while True:
+        req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/mutation", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=MUTATION_JOB_TIMEOUT + 60) as resp:
+                return json.loads(resp.read(MAX_MUTATION_REPORT))
         except urllib.error.HTTPError as e:
             detail = e.read().decode(errors="replace")[:2000]
             if e.code != 503:
@@ -286,16 +308,16 @@ def _job_user() -> dict:
 def run_job(job: dict, kind: str = "verify") -> dict:
     """kind "verify": the whole verification; kind "compile": compile the original only (shorter limits);
     kind "claims": run the original on claim examples (diocle_verifier.claims)."""
-    if kind not in ("verify", "compile", "claims", "transcript"):
+    if kind not in ("verify", "compile", "claims", "transcript", "mutation"):
         raise ValueError("unknown job kind")
     if not _job_lock.acquire(blocking=False):
         raise Busy("busy")
     compile_only = kind == "compile"
     small = kind in ("compile", "claims", "transcript")
     timeout = {"compile": COMPILE_JOB_TIMEOUT, "claims": CLAIMS_JOB_TIMEOUT,
-               "transcript": TRANSCRIPT_JOB_TIMEOUT}.get(kind, JOB_TIMEOUT)
+               "transcript": TRANSCRIPT_JOB_TIMEOUT, "mutation": MUTATION_JOB_TIMEOUT}.get(kind, JOB_TIMEOUT)
     max_report = {"compile": MAX_COMPILE_REPORT, "claims": MAX_CLAIMS_REPORT,
-                  "transcript": MAX_TRANSCRIPT_REPORT}.get(kind, MAX_REPORT)
+                  "transcript": MAX_TRANSCRIPT_REPORT, "mutation": MAX_MUTATION_REPORT}.get(kind, MAX_REPORT)
     try:
         data = base64.b64decode(job["bundle"], validate=True)
         if len(data) > (MAX_COMPILE_BUNDLE if small else MAX_BUNDLE):
@@ -306,7 +328,9 @@ def run_job(job: dict, kind: str = "verify") -> dict:
                 and len(e["records"]) <= 5
                 and all(isinstance(r, str) and _latin1(r) for r in e["records"]) for e in examples)):
             raise ValueError("examples must be a list of at most 60 {id, records}, each record at most 4 KB of latin-1")
-        params = {"kind": kind, "bundle": job["bundle"]} if compile_only else {
+        mutation = {"kind": kind, "bundle": job["bundle"], **{k: int(job.get(k, d)) for k, d in (  # clamped again by mutate.py
+            ("seed", 1026), ("maxMutants", 40), ("maxExtra", 60), ("wallClock", 420), ("inputSeed", 1026), ("randomCount", 200))}}
+        params = mutation if kind == "mutation" else {"kind": kind, "bundle": job["bundle"]} if compile_only else {
             "kind": kind, "bundle": job["bundle"], "diff": bool(job.get("diff"))} if kind == "transcript" else {"kind": kind, "bundle": job["bundle"],
                                                                               "examples": examples} if kind == "claims" else {
             "kind": kind, "seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
@@ -367,6 +391,14 @@ def _job_main() -> int:
                 raise ValueError("the bundle has no transcription")
             sys.stdout.write(json.dumps(transcript_job(work / "sample", source, bool(params["diff"]))))
             return 0
+        if params.get("kind") == "mutation":
+            from .mutate import mutate_local
+
+            sys.stdout.write(json.dumps(mutate_local(
+                work / "sample", work / "java", seed=params["seed"], max_mutants=params["maxMutants"],
+                max_extra=params["maxExtra"], wall_clock=params["wallClock"], input_seed=params["inputSeed"],
+                random_count=min(params["randomCount"], 1000))))
+            return 0
         if params.get("kind") == "claims":
             from .claims import run_local
 
@@ -381,7 +413,7 @@ def _job_main() -> int:
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
-        if self.path not in ("/verify", "/compile", "/claims", "/transcript"):
+        if self.path not in ("/verify", "/compile", "/claims", "/transcript", "/mutation"):
             return self._send(404, {"error": "not found"})
         kind = self.path[1:]
         length = int(self.headers.get("Content-Length", "0"))
