@@ -128,7 +128,10 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             import shutil
 
             from . import sqlrun
+            from .runners import VerifierUnavailable
             from .sqlseed import seed_for_meta
+            if sqlrun.jdbc_jar() is None:  # an environment problem, not a verdict: fail loudly before any model work
+                raise VerifierUnavailable(sqlrun.JDBC_MISSING)
             seeded = seed_for_meta(meta, sample_dir, work, data, seed, {s["dd"]: s for s in inputs + updated})
             sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
             seed_hash = sha(work / "seed.db")

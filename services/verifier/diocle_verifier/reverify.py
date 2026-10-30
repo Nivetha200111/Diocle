@@ -19,6 +19,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from .runners import ProgramTimeout, VerifierUnavailable
 from .verify import passes, verify_sample
 
 
@@ -123,7 +124,12 @@ def reverify(programs_dir: Path, seed: int, random_count: int, expect_legacy: st
                 results.append({"program": cert.get("program", program_dir.name), "passed": 0, "total": 0,
                                 "stdoutMatch": False, "ok": False, "firstMismatch": None, "buildError": f"rejected: {e}"})
                 continue
-            report = verify_sample(sample, program_dir / "java", seed=seed, random_count=random_count)
+            try:
+                report = verify_sample(sample, program_dir / "java", seed=seed, random_count=random_count)
+            except (ProgramTimeout, VerifierUnavailable) as e:  # no verdict: say why, never a pass
+                results.append({"program": cert["program"], "passed": 0, "total": 0, "stdoutMatch": False, "ok": False,
+                                "firstMismatch": None, "buildError": str(e)})
+                continue
             runs, s = report["runs"], report["summary"]
             ok = passes(report)
             results.append({"program": cert["program"], "passed": s["passed"], "total": s["total"],

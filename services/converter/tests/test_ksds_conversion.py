@@ -70,3 +70,13 @@ def test_workspace_compiles_with_the_verifiers_own_support_class(tmp_path):
     ws.write("Custupd.java", ws.read("Custupd.java").replace("cust.open(", "cust.nonexistent("))
     ok, output = ws.compile()
     assert not ok and "nonexistent" in output
+
+
+def test_verifier_sentences_reach_the_run_record_without_a_class_name():
+    from diocle_converter.__main__ import _describe
+    from diocle_verifier.runners import ProgramTimeout, VerifierUnavailable
+
+    assert _describe(ProgramTimeout("original", ["x"], 120)) == (
+        "the original program did not terminate within 120 seconds, so there is nothing to compare against")
+    assert _describe(VerifierUnavailable("the SQLite JDBC driver is not installed on the verifier")).startswith("the SQLite JDBC")
+    assert _describe(ValueError("x")) == "ValueError: x"

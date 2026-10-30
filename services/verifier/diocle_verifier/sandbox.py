@@ -371,6 +371,7 @@ def _job_env() -> dict[str, str]:
 def _job_main() -> int:
     """Child: read the job on stdin, verify in a private directory, print the report on stdout."""
     from .inputs import Case
+    from .runners import ProgramTimeout, VerifierUnavailable
     from .verify import verify_sample
 
     params = json.loads(sys.stdin.buffer.read())
@@ -405,8 +406,12 @@ def _job_main() -> int:
             sys.stdout.write(json.dumps(run_local(work / "sample", params["examples"])))
             return 0
         cases = [Case(c["id"], c["source"], c["record"]) for c in params["extraCases"]]
-        report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
-                               random_count=params["randomCount"], extra_cases=cases or None)
+        try:
+            report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
+                                   random_count=params["randomCount"], extra_cases=cases or None)
+        except (ProgramTimeout, VerifierUnavailable) as e:  # say it plainly; no traceback in the parent's error text
+            sys.stderr.write(str(e))
+            return 1
     sys.stdout.write(json.dumps(report))
     return 0
 

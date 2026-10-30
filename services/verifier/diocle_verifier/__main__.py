@@ -8,6 +8,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from .runners import ProgramTimeout
 from .verify import passes, validate_report, verify_sample
 
 
@@ -113,7 +114,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--show", type=int, default=5, help="failing cases to print (default 5)")
     args = parser.parse_args(argv)
 
-    report = verify_sample(args.sample_dir, args.java_dir, seed=args.seed, random_count=args.random)
+    try:
+        report = verify_sample(args.sample_dir, args.java_dir, seed=args.seed, random_count=args.random)
+    except ProgramTimeout as e:  # a program that never ends is a verdict of its own, not a traceback
+        print(f"NO VERDICT: {e}", file=sys.stderr)
+        return 2
     validate_report(report)
     if args.out:
         args.out.write_text(json.dumps(report, indent=2) + "\n")

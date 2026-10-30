@@ -13,6 +13,10 @@ from .sqlpre import SUPPORT, PrecompileError, precompile
 JDBC_NAMES = ("sqlite-jdbc.jar",)
 
 
+JDBC_MISSING = ("the SQLite JDBC driver is not installed on the verifier, so the EXEC SQL program cannot be tested: "
+                "run scripts/fetch-sqlite-jdbc.sh (on a server: rebuild the image, which installs it), or set DIOCLE_SQLITE_JDBC")
+
+
 def jdbc_jar() -> Path | None:
     """The SQLite JDBC driver (org.xerial, Apache-2.0). Baked into the sandbox image at /opt/diocle/lib; on a
     developer machine set DIOCLE_SQLITE_JDBC or put the jar in services/verifier/lib/."""
@@ -93,7 +97,7 @@ def stage_java(java_dir: Path, workdir: Path) -> Path:
 def build_java_sql(java_dir: Path, main_class: str, workdir: Path) -> tuple[list[str] | None, Run | None]:
     jar = jdbc_jar()
     if jar is None:
-        return None, Run(False, 1, "", "the SQLite JDBC driver (sqlite-jdbc.jar) is not installed: set DIOCLE_SQLITE_JDBC")
+        return None, Run(False, 1, "", JDBC_MISSING)
     try:
         src = stage_java(java_dir, workdir)
     except JavaRefused as e:
