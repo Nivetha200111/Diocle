@@ -55,6 +55,7 @@ export default function MissionControl() {
           <a href="/runs">Live runs</a>
           <a href="/evidence">Evidence</a>
           <a href="/mission" aria-current="page">Mission control</a>
+          <a href="/bugs">Bug of the day</a>
         </nav>
       </header>
       <main className="mc-main">

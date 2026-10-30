@@ -1,0 +1,28 @@
+.bug-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.bug-card { background: var(--w-face); box-shadow: var(--w-out); color: #000; padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; font-size: 13px; line-height: 1.55; }
+.bug-card h2 { font-size: 15px; color: var(--w-navy); line-height: 1.3; }
+.bug-card header { display: grid; gap: 6px; }
+.bug-tag { justify-self: start; font-size: 11px; padding: 2px 6px; box-shadow: var(--w-in); background: #fff; color: #000; }
+.bug-tag.is-live { background: #b9e0b0; }
+.bug-tag.is-repo { background: #ffffc0; }
+.bug-prog { margin: 0; }
+.bug-card code, .bug-mutants code, .bug-prog code { font-family: var(--font-plex-mono), monospace; font-size: 12px; overflow-wrap: anywhere; }
+.bug-vs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.bug-vs div { display: grid; gap: 2px; padding: 8px; background: #fff; box-shadow: var(--w-in); min-width: 0; }
+.bug-vs span { font-size: 11px; color: #303030; }
+.bug-vs code { font-size: 14px; font-weight: 600; }
+.bug-meta { display: grid; gap: 4px; margin: 0; }
+.bug-meta div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 8px; }
+.bug-meta dt { color: #303030; }
+.bug-meta dd { margin: 0; overflow-wrap: anywhere; }
+.bug-meta small { color: #303030; font-size: 11px; }
+.bug-why, .bug-note, .bug-src { margin: 0; }
+.bug-note { font-size: 12px; color: #303030; }
+.bug-src { font-size: 12px; }
+.bug-card a, .bug-mutants a, .bug-hidden a { color: #00008b; text-decoration: underline; }
+.bug-h2 { color: #fff; font-family: var(--w-pixel); font-size: 26px; font-weight: 400; letter-spacing: 1px; margin-top: 12px; }
+.bug-hidden { background: #ffffc0; box-shadow: var(--w-in); color: #000; padding: 8px 10px; font-size: 12px; }
+.bug-mutants { border-radius: 0; background: var(--w-face); box-shadow: var(--w-out); color: #000; padding: 14px; display: grid; gap: 8px; font-size: 13px; line-height: 1.55; }
+.bug-mutants ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.bug-card a:focus-visible, .bug-mutants a:focus-visible, .mc-nav a:focus-visible { outline: 2px solid var(--w-navy); outline-offset: 1px; }
+@media (max-width: 640px) { .bug-vs { grid-template-columns: 1fr; } .bug-meta div { grid-template-columns: 1fr; gap: 0; } }
