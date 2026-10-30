@@ -238,6 +238,7 @@ def remote_differential():
             return {"against": str(against), "ran": False, "inputs": 0, "matched": 0, "mismatched": 0,
                     "reason": "the sandbox did not return a differential result"}
         return {**d, "against": str(against), "ranIn": "sandbox"}
+    diff.runs_in_sandbox = True  # vision.transcribe logs a warning for every other checker: they run on this machine
     return diff
 
 

@@ -354,7 +354,7 @@ def _transcribe(image_path, out_dir, settings, client, against, against_label, c
             record["reason"] = "running model-written COBOL on this machine needs --run-model-code"
             _copy_sample_files(against, Path(against_label).name, out_dir, record)
         elif against:
-            if diff is differential:
+            if not getattr(diff, "runs_in_sandbox", False):
                 log("WARNING: --run-model-code: the transcription is built and EXECUTED on this machine"
                     + (" under sandbox-exec (no network, writes only in its temp dir)." if sandbox_available()
                        else ", UNSANDBOXED (no sandbox-exec here)."))
