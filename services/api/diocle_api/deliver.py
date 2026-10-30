@@ -212,7 +212,10 @@ jobs:
             extra="$RUNNER_TEMP/diocle/services/verifier/diocle_verifier/dbsupport/DioSql.java"
           fi
           mkdir -p "$RUNNER_TEMP/out"
-          javac -proc:none -d "$RUNNER_TEMP/out" $(find programs -name '*.java') $extra
+          # One quoted path per line in an @argfile: spaces in names are safe and the command line never hits ARG_MAX.
+          find programs -name '*.java' -print | sort | sed -e 's/\\\\/\\\\\\\\/g' -e 's/"/\\\\"/g' -e 's/^/"/' -e 's/$/"/' > "$RUNNER_TEMP/files.txt"
+          if [ -n "$extra" ]; then printf '"%s"\\n' "$extra" >> "$RUNNER_TEMP/files.txt"; fi
+          javac -proc:none -d "$RUNNER_TEMP/out" @"$RUNNER_TEMP/files.txt"
       - name: Re-verify on fresh inputs
         run: python -m diocle_verifier.reverify programs --seed 777777 --expect-legacy {legacy_url} --summary "$GITHUB_STEP_SUMMARY"
 """
@@ -220,7 +223,7 @@ jobs:
 
 def _clean_line(text: object, limit: int = 300) -> str:
     """Text from the build report into the PR body: a conservative character set (no links, HTML or code spans)."""
-    return re.sub(r"[^A-Za-z0-9 _.,:;'/=+#$@()-]", "?", str(text))[:limit]
+    return re.sub(r"[^A-Za-z0-9 _.,:;'/=+$()-]", "?", str(text))[:limit]
 
 
 def run_build_check(repo: Path, delivered: list[tuple[dict, dict]], samples: Path, report: dict,

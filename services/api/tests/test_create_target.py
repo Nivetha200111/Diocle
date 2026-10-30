@@ -409,7 +409,30 @@ def test_pass_and_warn_wording_does_not_overclaim():
 
 def test_the_generated_workflow_compiles_every_program_together_and_fails_the_job_on_error():
     wf = deliver.reverify_workflow("https://github.com/me/legacy", "a" * 40)
-    assert """javac -proc:none -d "$RUNNER_TEMP/out" $(find programs -name '*.java') $extra""" in wf
+    assert 'javac -proc:none -d "$RUNNER_TEMP/out" @"$RUNNER_TEMP/files.txt"' in wf and '$(find programs -name' + " '*.java')" not in wf  # an @argfile: no ARG_MAX, spaces safe
+    assert "find programs -name '*.java' -print | sort | sed" in wf and "files.txt" in wf
     assert "set -eu" in wf and "permissions:\n  contents: read" in wf and "secrets." not in wf
     assert wf.index("Install the pinned verifier") < wf.index("Compile every program together") < wf.index("Re-verify on fresh inputs")
     assert "dbsupport/DioSql.java" in wf  # SQL programs need the verifier's support class, taken from the pinned commit
+
+
+def test_names_from_untrusted_repos_cannot_mention_users_or_cross_link_in_the_pr_body():
+    cleaned = deliver._clean_line("@everyone see #1 and org/repo#2 [x](http://e) <b>")
+    assert "@" not in cleaned and "#" not in cleaned and "](" not in cleaned and "<" not in cleaned
+
+
+def test_the_rendered_compile_step_runs_and_quotes_awkward_paths(tmp_path):
+    import shutil
+    import subprocess
+    if shutil.which("javac") is None:
+        pytest.skip("javac needed")
+    wf = deliver.reverify_workflow("https://github.com/me/legacy", "a" * 40)
+    body = wf[wf.index("run: |", wf.index("Compile every program")) + 7:wf.index("      - name: Re-verify")]
+    (tmp_path / "programs" / "A B" / "java").mkdir(parents=True)
+    (tmp_path / "programs" / "A B" / "java" / "My A.java").write_text("class MyA {}\n")
+    (tmp_path / "t").mkdir()
+    script = "\n".join(l[10:] for l in body.splitlines()) + "\n"
+    proc = subprocess.run(["sh", "-c", script], cwd=tmp_path, env={"PATH": __import__("os").environ["PATH"], "RUNNER_TEMP": str(tmp_path / "t")},
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    assert (tmp_path / "t" / "out" / "MyA.class").exists()
