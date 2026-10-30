@@ -302,6 +302,17 @@ github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctl
 6. A review from a COBOL maintainer (owner arranges). Module README consistency.
 
 ## Done recently
+
+- **Mission control (Oct 30, branch `mission-control`, local, not pushed or deployed).** New route `/mission`
+  (`apps/web/components/mission-control.tsx`, `apps/web/lib/mission.ts`): a replay of a recorded run built only from
+  run.json (events in recorded order, usage.modelCalls priced with the existing PRICES table, tiers, breaker
+  counterexamples, repair patches, final certification). Run events have no timestamps, so pauses are not real
+  durations and the page says so. Cast row, cost meter, tier prices, breaker input beside the repair patch, held-out
+  certification, play/pause/scrub/speed; reduced-motion shows the final state. Default run
+  interest-accrual-20261029-230750; picker lists runs with breaker/cross-check/tiers data. Linked from the top bar and
+  the front page. Also reworded the "20.00 vs 0.00" CHQCLR labels (returned-cheque fee, no currency invented).
+  Verified by tsc, next build and a Playwright replay against the live engine (browser needs CORS for localhost, so it was
+  proxied in the test only).
 - 2026-10-30: printout intake (see Current state): contract, `vision.py`, CLI, 12 tests (scripted fake client; two use real cobc), renderer, one real end-to-end run.
 - 2026-10-29: **CLAUDE.md plan item 1 (more programs convert), verifier support first.** See the Current-state bullet
   "Plan step 1 done" for what, the tests and the measurement. Commit order on the branch: contracts, verifier,

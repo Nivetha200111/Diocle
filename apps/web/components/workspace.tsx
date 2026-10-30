@@ -993,6 +993,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
           </div>
           <div className="topbar-actions">
             <MetaBadge />
+            <a className="topbar-link" href="/mission">Mission control</a>
             {(HOSTED || realViews.includes(view)) && (
               <a className="topbar-link" href={LINKS.diocle} target="_blank" rel="noreferrer">
                 <CodeXml size={15} /> Source

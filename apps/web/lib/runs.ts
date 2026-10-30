@@ -105,7 +105,7 @@ export type ModelCall = {
 
 // Mirrors PRICES in services/converter/diocle_converter/config.py (USD per million tokens: input, cached input,
 // output), so the per-role split adds up to the run's own estimate.
-const PRICES: Record<string, [number, number, number]> = {
+export const PRICES: Record<string, [number, number, number]> = {
   "muse-spark-1.3-contributor": [0.10, 0.002, 0.20],
   "muse-spark-1.3": [1.25, 0.15, 4.25],
   "accounts/fireworks/models/muse-spark-open": [1.25, 0.15, 4.25],

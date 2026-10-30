@@ -12,13 +12,26 @@ type Go = (view: "Delivery" | "Live runs" | "Evidence") => void;
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 
+// Turns a verifier diff string ("FIELD: original X converted Y") into a sentence a stranger can read. CL-FEE is the fee
+// CHQCLR charges when a cheque is returned for insufficient funds (NSF); the COBOL doubles the base fee. The sample has no
+// currency code, so none is shown.
+function explainDiff(diff: string | undefined): string {
+  const m = diff?.match(/^([\w-]+): original (.+?) converted (.+)$/);
+  if (!m) return diff ?? "";
+  const [, field, was, now] = m;
+  if (field === "CL-FEE") {
+    return `A bounced cheque should cost a ${was} fee (the base fee doubled for insufficient funds). The COBOL charged it; the AI-written Java charged ${now}.`;
+  }
+  return `Field ${field}: the COBOL wrote ${was}; the AI-written Java wrote ${now}.`;
+}
+
 // The verdict strip tells the sample's real story: certified, broken by the breaker agent, repaired, re-certified.
 function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boolean; check: Reverify | null }) {
   const broke = run?.breaker?.counterexamples.map((c) => c.diff) ?? SAMPLE_RECORDED.broke;
   const tried = run?.breaker?.tried ?? SAMPLE_RECORDED.tried;
   const final = run?.after ? `${run.after.passed.toLocaleString()}/${run.after.total.toLocaleString()}` : `${SAMPLE_RECORDED.finalHeldOut.toLocaleString()}/${SAMPLE_RECORDED.finalHeldOut.toLocaleString()}`;
   const frames = [
-    { tone: "bad", head: "BREAKER AGENT", text: `${broke[0]?.replace(": original ", "  original ").replace(" converted ", "  ≠  Java ")}` },
+    { tone: "bad", head: "BREAKER AGENT", text: explainDiff(broke[0]) },
     { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} designed inputs broke it · patched, compiled, re-tested` },
     { tone: "ok", head: "CERTIFIED", text: `${final} held-out inputs matched` },
   ];
@@ -108,6 +121,7 @@ function SampleHero({ go }: { go: Go }) {
           window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
           go("Live runs");
         }}>Open the full run</button>
+        <a className="button secondary" href="/mission">Watch the agents work (replay)</a>
         <span className="sample-note">
           Re-runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java on about
           1,000 inputs from a seed chosen now, and compares every byte. Takes a few seconds.
