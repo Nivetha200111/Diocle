@@ -109,6 +109,9 @@ def main(argv: list[str] | None = None) -> int:
                            "an original that does not compile under GnuCOBOL is patched first (small, listed fixes) and its "
                            "Java is then labelled certified-against-repaired-cobol. Also DIOCLE_CONVERT_ANYWAY=1. Local "
                            "or admin use only.")
+            p.add_argument("--domain-classes", type=Path, help="EXPERIMENTAL: a directory of .java files or a .jar of your own record "
+                           "classes (POJOs). Matching classes' PUBLIC SIGNATURES (never bodies) are shown to the translator, which "
+                           "shapes its record holder after them; the Java still compiles and is verified alone.")
             p.add_argument("--max-usd", type=float, help="hard dollar cap on this run's model calls (convert-anyway: what "
                            "is left of REPO_MAX_USD)")
         if name == "repair":
@@ -280,6 +283,25 @@ def _atomic_write(path: Path, data: dict) -> None:
     tmp.replace(path)
 
 
+def _domain_hint(args, program: Program, on_event) -> str:
+    """EXPERIMENTAL --domain-classes: the translator hint, and an event saying exactly what was matched (or that nothing was)."""
+    path = getattr(args, "domain_classes", None)
+    if not path:
+        return ""
+    from . import domain
+
+    try:
+        signatures = domain.load_signatures(path)
+    except ValueError as e:
+        raise SystemExit(f"error: {e}") from e
+    found = domain.matches(program, signatures)
+    on_event({"type": "stage", "stage": "translating", "message":
+              f"Domain classes (experimental): {len(signatures)} supplied, {len(found)} matched a record of {program.name}"
+              + (": " + ", ".join(f"{r} -> {c}" for r, (c, _) in found.items()) if found else "")
+              + ". Only public signatures are shown to the model."})
+    return domain.hint(found)
+
+
 def _convert(args, settings: Settings, client: ModelClient, program: Program, run_dir: Path, base: dict,
              events: list[dict], on_event, guard: Guard) -> int:
     guard.inspect_source(program.as_text())
@@ -296,7 +318,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         workspace = Workspace(run_dir / "java")
         on_event({"type": "stage", "stage": "translating", "message": f"Translating {program.name} with {settings.model}"})
         try:
-            translation = translate(program, client, workspace, anyway_reason=force_reason)
+            domain_hint = _domain_hint(args, program, on_event)
+            translation = translate(program, client, workspace, anyway_reason=force_reason, domain_hint=domain_hint)
         except Exception as e:
             if not anyway_on:
                 raise
