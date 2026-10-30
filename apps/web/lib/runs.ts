@@ -45,7 +45,7 @@ export type Verification = {
 };
 
 export type RunEvent = {
-  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker" | "crosscheck" | "guard";
+  type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker" | "crosscheck" | "guard" | "behavior";
   stage?: string;
   tried?: number;
   broke?: number;
@@ -87,13 +87,14 @@ export type Run = {
   memory: RunMemory;
   breaker?: Breaker | null;
   crosscheck?: Crosscheck | null;
+  behavior?: Behavior | null;
   tiers?: Tiers | null;
   guard?: Guard | null;
 };
 
 // One logged model call. mode "hosted" is Muse Spark on the Meta Model API; "private" is Muse Spark Open on a partner host.
 export type ModelCall = {
-  role: "translator" | "repair" | "breaker" | "crosscheck" | string;
+  role: "translator" | "repair" | "breaker" | "crosscheck" | "document" | string;
   round: number;
   mode: string;
   model: string;
@@ -159,6 +160,31 @@ export type Crosscheck = {
   fixed?: boolean;
   suspected?: { field: string; concern: string }[];
   counterexamples?: { input: string; why: string; diff: string }[];
+  skipped?: string;
+};
+
+// contracts/behavior-claims.schema.json v0.1 (run.behavior): verified documentation. A model wrote the claims; GnuCOBOL ran
+// every example on the original COBOL and decided. Wording: "confirmed on the examples tried", never "proven".
+export type FieldValues = Record<string, string>;
+export type ClaimStatus = "confirmed" | "refuted" | "unchecked";
+export type ClaimExample = {
+  id: string;
+  inputs: FieldValues[];
+  expected: { records?: FieldValues[]; outputRecordCount?: number; stdoutContains?: string; returnCode?: number };
+  status: "matched" | "differed" | "unchecked";
+  actual?: { records?: FieldValues[]; outputRecordCount?: number; stdout?: string; returnCode?: number | null } | null;
+  mismatches?: { what: string; expected: string; actual: string }[];
+  reason?: string;
+};
+export type BehaviorClaim = { id: string; statement: string; status: ClaimStatus; examples: ClaimExample[]; reason?: string };
+export type Behavior = {
+  version?: string;
+  program: string;
+  model: string;
+  checkedWith: string;
+  summary: { claims: number; confirmed: number; refuted: number; unchecked: number; examplesRun: number };
+  claims: BehaviorClaim[];
+  usage?: { calls?: number; inputTokens?: number; outputTokens?: number; estimatedCostUsd?: number | null };
   skipped?: string;
 };
 

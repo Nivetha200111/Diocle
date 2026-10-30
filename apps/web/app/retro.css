@@ -1121,3 +1121,12 @@ a.nav-item {
     padding: 3px 6px;
   }
 }
+
+/* Behaviour spec (verified documentation): one block per claim, status badge first. */
+.claim {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dotted #808080;
+}
+.claim p { margin: 4px 0; }
+.claim[data-claim-status="refuted"] p strong { color: #a00000; }
