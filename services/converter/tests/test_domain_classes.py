@@ -109,3 +109,23 @@ def test_unsafe_inputs_are_refused(tmp_path):
         z.writestr("../x.class", b"x")
     with pytest.raises(ValueError):
         domain.load_signatures(evil)
+
+
+@pytest.mark.skipif(shutil.which("javap") is None, reason="needs a JDK")
+def test_jar_entry_names_that_look_like_javap_options_never_reach_javap(tmp_path, monkeypatch):
+    calls = []
+    real = subprocess.run
+
+    def spy(cmd, *a, **k):
+        calls.append(list(cmd))
+        return real(cmd, *a, **k)
+    monkeypatch.setattr(domain.subprocess, "run", spy)
+    jar = tmp_path / "evil.jar"
+    names = ["-J-Xmx1k.class", "-Xfoo.class", "a b.class", "caf\u00e9.class", "x/y z.class", "-package/Ok.class", "Fine.class"]
+    with zipfile.ZipFile(jar, "w") as z:
+        for n in names:
+            z.writestr(n, b"not a class")
+    domain.load_signatures(jar)
+    asked = [c[-1] for c in calls if c and c[0] == "javap"]
+    assert asked == ["Fine"]  # only a plain Java class name, and never anything starting with '-'
+    assert all(str(jar) not in " ".join(c) for c in calls)  # javap read a staged copy, not the original path

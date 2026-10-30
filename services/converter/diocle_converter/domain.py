@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -19,6 +21,7 @@ from diocle_verifier.runners import safe_env
 
 MAX_FILES, MAX_BYTES, MAX_JAR_BYTES, MAX_CLASSES, MAX_SIGNATURE = 200, 1_000_000, 20_000_000, 50, 2500
 _STRIP = re.compile(r'"""(?:\\.|[^\\])*?"""|//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'', re.S)
+_CLASS_NAME = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*")  # ASCII only  # never starts with "-": javap has no "--" terminator
 _HEADER = re.compile(r"\bpublic\s+(?:(?:final|abstract|sealed|static)\s+)*(?:class|record|interface|enum)\s+([A-Za-z_]\w*)")
 
 
@@ -80,15 +83,20 @@ def load_signatures(path: Path) -> dict[str, str]:
     if any(n.startswith("/") or ".." in n.split("/") for n in names):
         raise ValueError("the jar has entry names that leave the archive")
     classes = [n[:-6].replace("/", ".") for n in names if n.endswith(".class") and "$" not in n
-               and not n.endswith(("module-info.class", "package-info.class"))][:MAX_CLASSES]
-    for cls in classes:
-        try:
-            proc = subprocess.run(["javap", "-public", "-classpath", str(path), cls], capture_output=True, text=True,
-                                  errors="replace", timeout=20, env=safe_env(), stdin=subprocess.DEVNULL)
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if proc.returncode == 0:
-            out[cls.rsplit(".", 1)[-1]] = "\n".join(l.strip() for l in proc.stdout.splitlines()[1:] if l.strip())[:MAX_SIGNATURE]
+               and not n.endswith(("module-info.class", "package-info.class"))]
+    # Entry names reach javap as arguments and javap has no option terminator: only plain Java class names pass.
+    classes = [c for c in classes if _CLASS_NAME.fullmatch(c)][:MAX_CLASSES]
+    with tempfile.TemporaryDirectory(prefix="diocle-javap-") as tmp:
+        staged = Path(tmp) / "domain.jar"  # javap reads a copy, never the customer's original path
+        shutil.copyfile(path, staged)
+        for cls in classes:
+            try:
+                proc = subprocess.run(["javap", "-public", "-classpath", str(staged), cls], capture_output=True, text=True,
+                                      errors="replace", timeout=20, env=safe_env(), stdin=subprocess.DEVNULL, cwd=tmp)
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if proc.returncode == 0:
+                out[cls.rsplit(".", 1)[-1]] = "\n".join(l.strip() for l in proc.stdout.splitlines()[1:] if l.strip())[:MAX_SIGNATURE]
     return out
 
 
