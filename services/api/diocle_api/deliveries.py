@@ -145,7 +145,8 @@ def running_delivery() -> str | None:
             continue
         if _alive(item["id"], item["startedAt"]):
             return item["id"]
-        _mark_failed(item["id"], "interrupted: the engine restarted or the job was stopped")
+        _mark_failed(item["id"], "interrupted: the engine restarted, the job was stopped, or the delivery process crashed "
+                                  f"(the traceback is in runs/deliveries/{item['id']}/deliver.log on the engine)")
     return None
 
 

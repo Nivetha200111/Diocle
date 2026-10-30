@@ -342,3 +342,16 @@ def test_child_argv_is_a_list_of_validated_fields_and_the_record_is_valid(tmp_pa
         deliveries.start_delivery(LEGACY, "https://github.com/me/t", False, False, create_target={"name": "x"})
     with pytest.raises(SystemExit):
         deliveries.start_delivery(LEGACY, None, False, False, create_target={"name": "$(id)"})
+
+
+def test_the_generated_workflow_is_least_privilege_and_quotes_what_it_interpolates():
+    from diocle_api import deliver
+    wf = deliver.reverify_workflow("https://github.com/me/legacy", "a" * 40)
+    assert "permissions:\n  contents: read" in wf and "pull_request_target" not in wf and "secrets." not in wf
+    assert "--expect-legacy https://github.com/me/legacy " in wf  # quoted by shlex (a plain URL needs no quotes)
+    for bad in ("https://github.com/me/legacy; rm -rf /", "https://github.com/me/l egacy", "https://github.com/me/x\nrun: evil", "$(id)"):
+        with pytest.raises(SystemExit):
+            deliver.reverify_workflow(bad, "a" * 40)
+    for bad_commit in ("main; id", "zzzzzzz", "", "a" * 41):
+        with pytest.raises(SystemExit):
+            deliver.reverify_workflow("https://github.com/me/legacy", bad_commit)

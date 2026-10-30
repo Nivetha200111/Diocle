@@ -155,11 +155,19 @@ def create_repository(plan: dict) -> None:
 def reverify_workflow(legacy_url: str, diocle_commit: str) -> str:
     """CI for a repository Diocle created: a target that already existed brings its own. Pins the verifier commit the
     certificates name; the seed is one the converter never used."""
+    # Both values end up in a shell line of the generated workflow: accept only what they must look like, and quote them anyway.
+    if not GITHUB_URL.fullmatch(legacy_url.strip()):
+        raise SystemExit(f"the legacy repository must be https://github.com/<owner>/<repo> to be written into CI, got {legacy_url[:60]!r}")
+    if not re.fullmatch(r"[0-9a-f]{7,40}", diocle_commit):
+        raise SystemExit("the pinned Diocle commit must be a hex commit id")
+    legacy_url = shlex.quote(legacy_url.strip())
     return f"""name: reverify
 on:
   pull_request:
   push:
     branches: [main]
+permissions:
+  contents: read
 jobs:
   reverify:
     runs-on: ubuntu-latest
