@@ -22,6 +22,14 @@ PRICES = {
 }
 
 
+@dataclass(frozen=True)
+class DocCaps:
+    """Hard limits (rule 10) of one verified-documentation run. Reasoning tokens bill as output, so output is capped."""
+    max_calls: int = 2
+    max_usd: float = 0.10
+    max_output_tokens: int = 6000
+
+
 def _tier_from_env(name: str, default: int = 2) -> int:
     """A tier number (1 to 3) from the environment; a missing, empty or non-numeric value means the default, so a typo
     in an optional tuning knob cannot crash a run. Numbers outside 1-3 are clamped."""
@@ -114,6 +122,23 @@ class Settings:
             reasoning_effort=os.environ.get("CROSSCHECK_REASONING_EFFORT", self.reasoning_effort),
             max_calls_per_run=int(os.environ.get("CROSSCHECK_MAX_CALLS", "2")),
         )
+
+    def for_document(self) -> tuple["Settings", "DocCaps"]:
+        """Settings and hard caps for the verified-documentation call (--document): the run's own host and key and the
+        default (cheap contributor) model unless DOC_MODEL_ID / DOC_MODEL_BASE_URL / DOC_MODEL_API_KEY say otherwise.
+        Raises ValueError for a malformed cap; the caller skips the feature rather than failing the run."""
+        load_dotenv()
+        caps = DocCaps(max_calls=int(os.environ.get("DOC_MAX_CALLS", "2")), max_usd=float(os.environ.get("DOC_MAX_USD", "0.10")),
+                       max_output_tokens=int(os.environ.get("DOC_MAX_OUTPUT_TOKENS", "6000")))
+        if min(caps.max_calls, caps.max_output_tokens) < 1 or caps.max_usd <= 0:
+            raise ValueError("DOC_* caps must be positive")
+        return replace(
+            self, model=os.environ.get("DOC_MODEL_ID") or self.model,
+            base_url=os.environ.get("DOC_MODEL_BASE_URL") or self.base_url,
+            api_key=os.environ.get("DOC_MODEL_API_KEY") or self.api_key,
+            reasoning_effort=os.environ.get("DOC_REASONING_EFFORT", "low"),
+            max_calls_per_run=caps.max_calls, max_calls_per_round=caps.max_calls,
+        ), caps
 
     @classmethod
     def guard_from_env(cls) -> "Settings | None":

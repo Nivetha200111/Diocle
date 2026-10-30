@@ -89,6 +89,9 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
         p.add_argument("--crosscheck", action="store_true", help="after certification, Muse Spark Open (CROSSCHECK_MODEL_* or "
                        "OPEN_MODEL_*) independently looks for inputs where the Java differs (about $0.05 per run)")
+        p.add_argument("--document", action="store_true", help="also write verified documentation: a Muse Spark model "
+                       "writes claims about the original COBOL and GnuCOBOL checks each one on its examples (DOC_* caps, "
+                       "about a cent)")
         p.add_argument("--tiers", action="store_true", help="escalate by task difficulty: after each failed certification "
                        "round the repair agent moves to the next tier (MODEL_TIER_2_ID, MODEL_TIER_3_ID, hosted mode), and "
                        "the breaker attacks at MODEL_TIER_BREAKER (default 2) and a break after certification resumes repair at "
@@ -96,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--swarm", action="store_true", help="pick up lessons other agents certify while this run is going")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
+    doc = sub.add_parser("document", help="verified documentation only: claims about the COBOL, each checked by GnuCOBOL")
+    doc.add_argument("sample_dir", type=Path)
     tr = sub.add_parser("transcribe", help="photo/scan of a COBOL listing to COBOL, gated by the compiler and a differential run")
     tr.add_argument("image", type=Path, help="PNG or JPEG, at most 2 MB")
     tr.add_argument("--out", type=Path, required=True, help="sample directory to write (src/*.cbl, transcription.json)")
@@ -121,6 +126,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "smoke":
         return _smoke(client, guard_client)
+
+    if args.command == "document":
+        return _document_only(args.sample_dir, settings, client)
 
     if args.command == "run-job":
         return _run_job(args.sample_dir, settings, client)
@@ -286,6 +294,10 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         if guard.blocked:
             on_event({"type": "stage", "stage": "done", "message": "Not certified: the guard agent blocked this Java"})
 
+    behavior_result = None
+    if args.document and not unverifiable:
+        behavior_result = _document(program, client, settings, run_dir, on_event)
+
     learned = (memory.learn(outcome["lessons"], program=program.name, run_id=run_dir.name)
                if memory and outcome["certified"] and not args.memory_read_only else 0)
     usage = usage_of(client.calls + (guard.client.calls if guard.client else []))
@@ -306,7 +318,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         "status": "certified" if outcome["certified"] else "not-certified", "certified": outcome["certified"],
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
-        "breaker": breaker_summary, "crosscheck": crosscheck_result, "swarm": bool(args.swarm and memory),
+        "breaker": breaker_summary, "crosscheck": crosscheck_result, "behavior": behavior_result, "swarm": bool(args.swarm and memory),
         "tiers": ({"enabled": True, "configured": [settings.model, *settings.tiers], "escalations": agent.escalations,
                    "breakerModel": settings.tier_model(settings.breaker_tier), "escalatedCalls": client.escalated_calls,
                    "escalatedUsd": round(client.escalated_usd, 6), "capCalls": settings.escalation_max_calls,
@@ -532,6 +544,54 @@ def _crosscheck(program, workspace, client, verify, agent, standing_cases, outco
               "message": f"Cross-check: {result['casesValid']} valid cases of {result['casesProposed']} proposed, "
                          f"{result['mismatches']} real mismatch(es)"})
     return outcome, result
+
+def _document(program, client, settings, run_dir, on_event):
+    """Verified documentation (documenter.py). Like the cross-check it must never fail a run: whatever goes wrong
+    becomes a `skipped` reason. Its model calls (own cap) are merged into the run's usage. Returns the behavior object."""
+    from .documenter import document, to_markdown, _empty
+
+    def skipped(reason: str, model: str = ""):
+        on_event({"type": "behavior", "message": f"Verified documentation skipped: {reason}"})
+        return _empty(program.name, model, reason)
+
+    try:
+        doc_settings, caps = settings.for_document()
+    except ValueError:
+        return skipped("invalid DOC_* setting")
+    try:
+        doc_client = ModelClient(doc_settings)
+    except Exception as e:
+        return skipped(f"could not create the client ({type(e).__name__})", doc_settings.model)
+    on_event({"type": "behavior",
+              "message": f"Verified documentation: {doc_settings.model} writes claims, GnuCOBOL checks them"})
+    try:
+        result = document(program, doc_client, caps, on_event)
+    except Exception as e:  # a bonus feature must not fail a certified run
+        result = _empty(program.name, doc_settings.model, f"unavailable: {type(e).__name__}")
+        on_event({"type": "behavior", "message": f"Verified documentation unavailable: {type(e).__name__}"})
+    finally:
+        client.calls.extend(doc_client.calls)  # one usage record per run, priced per call by its own model
+    s, u = result["summary"], result.get("usage") or {}
+    on_event({"type": "behavior", "message": (
+        f"Verified documentation: {s['confirmed']} of {s['claims']} claims confirmed on the examples tried, "
+        f"{s['refuted']} refuted, {s['unchecked']} unchecked" if not result.get("skipped")
+        else f"Verified documentation skipped: {result['skipped']}")
+        + (f" ({u.get('calls')} calls, {u.get('inputTokens')} in / {u.get('outputTokens')} out tokens, "
+           f"est. ${u.get('estimatedCostUsd')})" if u else "")})
+    _atomic_write(run_dir / "behavior.json", result)
+    (run_dir / "behavior.md").write_text(to_markdown(result))
+    return result
+
+
+def _document_only(sample_dir: Path, settings: Settings, client: ModelClient) -> int:
+    """`document SAMPLE`: verified documentation without translating or converting anything."""
+    program = Program.load(sample_dir)
+    run_dir = REPO_ROOT / "runs" / f"{sample_dir.resolve().name}-doc-{time.strftime('%Y%m%d-%H%M%S')}"
+    run_dir.mkdir(parents=True)
+    result = _document(program, client, settings, run_dir, _print_event)
+    print(f"saved to {run_dir.relative_to(REPO_ROOT)} (behavior.json, behavior.md)")
+    return 0 if not result.get("skipped") else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
