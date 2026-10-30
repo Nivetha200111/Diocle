@@ -1,17 +1,19 @@
 # Diocle API and pipeline: GnuCOBOL 3.2 (the oracle), JDK 21, and the Python services.
 # The services keep their own virtualenvs at the same paths as in development, because the API
 # starts the converter, analyzer and verifier by those paths.
+# GnuCOBOL is built --with-db (Berkeley DB 5.3) so INDEXED files work: the keyed-file verifier needs the real indexed handler
+# (libdb-dev here, libdb5.3t64 at run time in the stage below). Was --without-db before the keyed-file work.
 FROM ubuntu:24.04 AS gnucobol
-RUN apt-get update -q && apt-get install -y -q --no-install-recommends build-essential curl ca-certificates libgmp-dev xz-utils \
+RUN apt-get update -q && apt-get install -y -q --no-install-recommends build-essential curl ca-certificates libgmp-dev libdb-dev xz-utils \
  && rm -rf /var/lib/apt/lists/*
 RUN curl -sSfL https://ftp.gnu.org/gnu/gnucobol/gnucobol-3.2.tar.xz | tar xJ -C /tmp \
  && cd /tmp/gnucobol-3.2 \
- && ./configure -q --prefix=/opt/gnucobol --without-db --with-curses=no --without-xml2 --without-json \
+ && ./configure -q --prefix=/opt/gnucobol --with-db --with-curses=no --without-xml2 --without-json \
  && make -s -j"$(nproc)" && make -s install
 
 FROM ubuntu:24.04
 RUN apt-get update -q && apt-get install -y -q --no-install-recommends \
-      openjdk-21-jdk-headless python3 python3-venv git gh ca-certificates libgmp-dev gcc libc6-dev libsqlite3-dev curl \
+      openjdk-21-jdk-headless python3 python3-venv git gh ca-certificates libgmp-dev libdb5.3t64 gcc libc6-dev libsqlite3-dev curl \
  && rm -rf /var/lib/apt/lists/*
 # Stand-in database for the EXEC SQL verifier (SQLite, NOT DB2): libsqlite3-dev above is linked into the COBOL side by a C shim;
 # the Java side uses the org.xerial JDBC driver (Apache-2.0). Fetched at BUILD time only (the sandbox has no network at run time).
