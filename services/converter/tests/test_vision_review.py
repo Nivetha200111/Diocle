@@ -130,6 +130,15 @@ def test_image_that_grows_after_stat_is_rejected(tmp_path, monkeypatch):
     img = tmp_path / "a.png"
     img.write_bytes(PNG + b"\0" * (MAX_IMAGE_BYTES + 1))
     real_stat = Path.stat
-    monkeypatch.setattr(Path, "stat", lambda self, *a, **k: SimpleNamespace(st_size=10) if self == img else real_stat(self, *a, **k))
+    # Report a small size but keep every other field (is_file() calls stat() too, and which pathlib calls
+    # stat() varies by Python version), so only the size check is fooled and the read-back check must catch it.
+    def lying_stat(self, *a, **k):
+        st = real_stat(self, *a, **k)
+        if self != img:
+            return st
+        fields = {n: getattr(st, n) for n in dir(st) if n.startswith("st_")}
+        fields["st_size"] = 10
+        return SimpleNamespace(**fields)
+    monkeypatch.setattr(Path, "stat", lying_stat)
     with pytest.raises(ImageRejected):
         load_image(img)
