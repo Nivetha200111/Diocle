@@ -122,7 +122,10 @@ def _python_for(service: str) -> str:
 def run_analyzer(repo: Path, out: Path, convert_anyway: bool) -> dict:
     cmd = [_python_for("analyzer"), "-m", "diocle_analyzer", str(repo), "--out", str(out / "analysis-report.json"),
            "--samples-dir", str(out / "samples"), *(["--convert-anyway"] if convert_anyway else [])]
-    subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300, cwd=REPO_ROOT / "services" / "analyzer")
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300, cwd=REPO_ROOT / "services" / "analyzer")
+    if proc.returncode != 0:
+        last = (proc.stderr.strip().splitlines() or ["no message"])[-1]
+        raise RuntimeError(f"exit {proc.returncode}: {last[:200]}")
     return json.loads((out / "analysis-report.json").read_text())
 
 
@@ -212,8 +215,8 @@ def convert(path: str, copybooks: list[str], max_usd: float, convert_anyway: boo
         progress(f"Analyzing {source.name} ({n} copybook files staged)")
         try:
             report = run_analyzer(tmp_dir / "repo", tmp_dir / "out", convert_anyway)
-        except (subprocess.SubprocessError, OSError, ValueError) as e:
-            return _fail("convert", path, f"analysis failed: {type(e).__name__}", maxUsd=max_usd)
+        except (subprocess.SubprocessError, OSError, ValueError, RuntimeError) as e:
+            return _fail("convert", path, f"analysis failed: {type(e).__name__}: {e}"[:400], maxUsd=max_usd)
         programs = report.get("programs", [])
         if not programs:
             return _skipped(path, max_usd, "no program found in this file")
