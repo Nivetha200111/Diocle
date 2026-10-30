@@ -18,3 +18,4 @@ packages = ["diocle_converter"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["toolchain: needs GnuCOBOL (cobc), a JDK or the SQLite JDBC jar; deselect with -m \"not toolchain\" (scripts/test.sh --fast)"]
