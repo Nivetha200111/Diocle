@@ -724,6 +724,12 @@ def _document_inner(program, client, settings, run_dir, on_event):
         doc_client = ModelClient(doc_settings)
     except Exception as e:
         return skipped(f"could not create the client ({type(e).__name__})", doc_settings.model)
+    if settings.max_usd is not None:  # the documenter is inside the run's dollar cap too: it gets only what is left
+        spent = client.spent_usd()
+        left = 0.0 if spent is None else max(settings.max_usd - spent, 0.0)
+        caps = dataclasses.replace(caps, max_usd=min(caps.max_usd, left))
+        if caps.max_usd <= 0:
+            return skipped("the run's dollar cap is used up", doc_settings.model)
     on_event({"type": "behavior",
               "message": f"Verified documentation: {doc_settings.model} writes claims, GnuCOBOL checks them"})
     try:

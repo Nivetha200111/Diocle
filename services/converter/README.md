@@ -159,4 +159,4 @@ cross-check calls count too; an unpriced model is refused). Exit codes of `run`:
 The COBOL patch rule (`cobolrepair.py`) is enforced in code in every division: fixed-format files only, no added or removed lines, only lines
 the compiler reported in a fresh compile, one identifier correction / missing period / one of TO THEN IS DIVISION SECTION per line, size caps
 (`COBOL_REPAIR_MAX_LINES` <= 50, `COBOL_REPAIR_MAX_SHARE` <= 0.25, `COBOL_REPAIR_MAX_CALLS` <= 20). It cannot check that a corrected identifier is
-the one the author meant.
+the one the author meant, that an added period does not end an IF/EVALUATE early, or that an inserted word is in the right place.

@@ -175,8 +175,10 @@ dollar cap (`--max-usd`, the rest of `REPO_MAX_USD`) and logs tokens and cost pe
 cannot change behaviour (today: the missing period after `PROGRAM-ID`); only if the original still does not compile, a bounded
 Muse loop with `compile_cobol` and `patch_cobol` tools (at most `COBOL_REPAIR_MAX_CALLS`, default 8, inside the run caps; tier
 escalation with `--tiers`). The patched file may differ from the original by at most `COBOL_REPAIR_MAX_LINES` (20) and
-`COBOL_REPAIR_MAX_SHARE` (10%) of its lines, whichever is smaller, and in the PROCEDURE DIVISION a patch may only touch lines
-within two lines of one the compiler reported. A rejected patch is not applied; the compiler, not the model, decides whether it
+`COBOL_REPAIR_MAX_SHARE` (10%) of its lines, whichever is smaller, and a patch may only change a line the compiler reported in a fresh compile (fixed-format files only, no lines added, removed or
+blanked; per line one identifier correction of at most 3 characters, a missing period, or one added TO/THEN/IS/DIVISION/SECTION).
+Not enforceable: that a corrected identifier is the one the author meant, that an added period does not end an IF or EVALUATE early,
+or that an inserted word is in the right place (the compiler rejects a misplaced one); a person must confirm the patch. A rejected patch is not applied; the compiler, not the model, decides whether it
 now compiles. Programs the analyzer refuses (EXEC SQL, keyed files, ...) are not COBOL-patched; programs that compile but never
 finish, or fail for reasons other than compile errors, are not patched either.
 
