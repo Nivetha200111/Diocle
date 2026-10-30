@@ -1,0 +1,9 @@
+{"t": 0.0, "text": "Muse Code 1.4.14 connects to the local Diocle MCP server (no model, no key, echo provider)", "stream": "title"}
+{"t": 0.0, "text": "$ sh editors/muse-code/demo/connect-check.sh", "stream": "cmd"}
+{"t": 0.044, "text": "diocle\t0.1.0\tenabled=true active=true trust=user-local valid=true skills=1 commands=4 hooks=0 mcp=1 reminders=0 agents=0", "stream": "out"}
+{"t": 0.044, "text": "runtime-capability\tplugin:diocle:mcp_server:diocle\tstatus=trusted_enabled", "stream": "out"}
+{"t": 0.395, "text": "echo: connect check", "stream": "out"}
+{"t": 1.427, "text": "event=\"mcp.transport.startup\" server=\"plugin:diocle:diocle\" outcome=\"ready\" duration_ms=40 ", "stream": "out"}
+{"t": 1.433, "text": "event=\"mcp.handshake\" server=\"plugin:diocle:diocle\" outcome=\"ready\" duration_ms=40 ", "stream": "out"}
+{"t": 1.438, "text": "event=\"mcp.capability.discovery\" server=\"plugin:diocle:diocle\" outcome=\"ready\" tool_count=7 resource_count=45 prompt_count=2 duration_ms=1 ", "stream": "out"}
+{"kind": "end", "exit": 0, "seconds": 1.439}

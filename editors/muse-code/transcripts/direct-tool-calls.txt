@@ -1,0 +1,147 @@
+### diocle_analyze {"path": "samples/interest-accrual"}  isError=False  0.1s
+{
+  "programs": [
+    {
+      "program": "INTACCR",
+      "path": "src/INTACCR.cbl",
+      "convertible": true,
+      "refusalReason": null,
+      "copybooks": [
+        "ACCTREC",
+        "INTREC"
+      ],
+      "callsModules": [],
+      "files": [
+        {
+          "dd": "ACCTIN",
+          "direction": "input",
+          "organization": "LINE SEQUENTIAL",
+          "copybook": "ACCTREC",
+          "fieldCount": 5,
+          "fields": [
+            {
+              "name": "ACCT-ID",
+              "kind": "alnum",
+              "length": 10
+            },
+            {
+              "name": "ACCT-BALANCE",
+              "kind": "numeric",
+              "digits": 9,
+              "scale": 2,
+              "signed": true
+            },
+            {
+              "name": "ACCT-RATE",
+              "kind": "numeric",
+              "digits": 1,
+              "scale": 4,
+              "signed": false
+            },
+            {
+              "name": "ACCT-DAYS",
+              "kind": "numeric",
+              "digits": 3,
+              "scale": 0,
+              "signed": false
+            },
+            {
+              "name": "ACCT-TIER",
+              "kind": "alnum",
+              "length": 1
+            }
+          ]
+        },
+        {
+          "dd": "INTOUT",
+          "direction": "output",
+          "organization": "LINE SEQUENTIAL",
+          "copybook": "INTREC",
+          "fieldCount": 5,
+          "fields": [
+            {
+              "name": "OUT-ACCT-ID",
+              "kind": "alnum",
+              "length": 10
+            },
+            {
+              "name": "OUT-INTEREST",
+              "kind": "numeric",
+              "digits": 7,
+              "scale": 2,
+              "signed": true
+            },
+            {
+              "name": "OUT-FEE",
+  
+
+### diocle_verify_stored {"sample": "interest-accrual"}  isError=False  1.1s
+{
+  "sample": "interest-accrual",
+  "total": 1027,
+  "passed": 1027,
+  "failed": 0,
+  "stdoutMatch": true,
+  "exitCodeMatch": true,
+  "originalCompiled": true,
+  "javaCompiled": true,
+  "seed": 4243,
+  "failingExamples": [],
+  "honestly": "The checked-in Java matched the GnuCOBOL original on 1027 of 1027 generated inputs (tested inputs, not a proof of equivalence). No model was called."
+}
+
+### diocle_analyze {"path": "/etc"}  isError=True  0.0s
+path is outside the Diocle repository
+
+### diocle_convert {"sample": "interest-accrual"}  isError=True  0.0s
+diocle_convert is disabled. It spends real model money on the owner's Meta key. The owner can enable it by setting DIOCLE_MCP_ALLOW_CONVERT=1 or running install.sh --allow-convert (see editors/muse-code/README.md). Nothing was run. Ask the owner; do not try to work around this.
+
+### diocle_live_run {"run_id": "chqclr-20261028-214355"}  isError=False  0.2s
+{
+  "id": "chqclr-20261028-214355",
+  "program": "CHQCLR",
+  "status": "certified",
+  "certified": true,
+  "model": "muse-spark-1.3-contributor",
+  "createdAt": "2026-10-28T21:43:55",
+  "javaOrigin": "translated by muse-spark-1.3-contributor",
+  "rounds": [
+    {
+      "round": 1,
+      "finishedByAgent": true,
+      "certified": true,
+      "seed": 4243,
+      "summary": {
+        "total": 1006,
+        "passed": 1006,
+        "failed": 0
+      }
+    }
+  ],
+  "before": {
+    "total": 204,
+    "passed": 204,
+    "failed": 0,
+    "stdoutMatch": true,
+    "failingExamples": []
+  },
+  "after": {
+    "total": 1006,
+    "passed": 1006,
+    "failed": 0,
+    "stdoutMatch": true,
+    "failingExamples": []
+  },
+  "breaker": {
+    "rounds": 2,
+    "tried": 24,
+    "broke": 2,
+    "fixed": true
+  },
+  "modelCalls": 9,
+  "estimatedCostUsd": 0.017605,
+  "link": "https://diocle.vercel.app/runs/chqclr-20261028-214355",
+  "source": "public Diocle site, read-only GET",
+  "honestly": "Matched on the tested inputs (GnuCOBOL as the oracle); not proven equivalent."
+}
+
