@@ -184,15 +184,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/gnucobol
-          key: gnucobol-3.2-ubuntu-24.04-v1
+          key: gnucobol-3.2-ubuntu-24.04-v2-db
       - name: Build GnuCOBOL 3.2 (the version Diocle certifies with)
         if: steps.gnucobol.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update -q && sudo apt-get install -y -q libgmp-dev
+          sudo apt-get update -q && sudo apt-get install -y -q libgmp-dev libdb-dev
           curl -sSfL https://ftp.gnu.org/gnu/gnucobol/gnucobol-3.2.tar.xz | tar xJ
           cd gnucobol-3.2
-          ./configure -q --prefix="$HOME/gnucobol" --without-db --with-curses=no --without-xml2 --without-json
+          ./configure -q --prefix="$HOME/gnucobol" --with-db --with-curses=no --without-xml2 --without-json
           make -s -j"$(nproc)" && make -s install
+      - name: Install the Berkeley DB runtime (needed by the cached build too)
+        run: sudo apt-get update -q && sudo apt-get install -y -q libdb5.3t64
       - name: Put GnuCOBOL on the path
         run: |
           echo "$HOME/gnucobol/bin" >> "$GITHUB_PATH"

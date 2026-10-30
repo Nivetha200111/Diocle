@@ -33,8 +33,10 @@ def _verification(path: Path, limit: int = 8) -> dict | None:
         return None
     failing = [r for r in report["results"] if not r["match"]]
     database = report["runs"].get("database")  # EXEC SQL runs only (verification-report v0.9); passed through unchanged
+    keyed = report["runs"].get("keyed")  # keyed-file runs only (verification-report v0.10); passed through unchanged
     return {
         **({"database": database} if isinstance(database, dict) else {}),
+        **({"keyed": keyed} if isinstance(keyed, dict) else {}),
         **report["summary"],
         "stdoutMatch": report["runs"]["stdoutMatch"],
         "failingExamples": [

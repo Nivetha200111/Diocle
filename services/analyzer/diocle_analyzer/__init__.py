@@ -1,3 +1,3 @@
 """Diocle analyzer: deterministic COBOL, copybook and JCL analysis (no model calls)."""
 
-REPORT_VERSION = "0.6"
+REPORT_VERSION = "0.7"

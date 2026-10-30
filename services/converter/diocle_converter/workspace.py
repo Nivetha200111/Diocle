@@ -66,6 +66,10 @@ class Workspace:
                 from diocle_verifier.sqlpre import SUPPORT  # the verifier's own DioSql.java, as at verification time
 
                 sources = [s for s in sources if Path(s).name != "DioSql.java"] + [str(SUPPORT / "DioSql.java")]
+            if any("DioKsds" in (self.root / f).read_text(errors="replace") for f in self.list_files()):
+                from diocle_verifier.ksds import SUPPORT as KSDS_SUPPORT  # the verifier's own DioKsds.java, as at verification time
+
+                sources = [s for s in sources if Path(s).name != "DioKsds.java"] + [str(KSDS_SUPPORT / "DioKsds.java")]
             proc = subprocess.run(["javac", "-proc:none", "-d", out, *sources], capture_output=True, text=True, timeout=120,
                                   env=safe_env())
         return proc.returncode == 0, (proc.stderr or proc.stdout).replace(str(self.root) + "/", "")[-4000:]

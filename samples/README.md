@@ -13,6 +13,8 @@
 | [`daily-control/`](daily-control/) | `DAYCTRL` (Quillmark, fictional): daily interest with a running general-ledger control total, rounded per account before summing (the Quillmark leap-day ties). |
 | [`db2-account-report/`](db2-account-report/) | `ACCTRPT` (Quillmark, fictional): posts adjustments to a DB2-style `ACCOUNTS` table with EXEC SQL (SELECT INTO with a null indicator, UPDATE, INSERT into `AUDIT`, a cursor loop until SQLCODE 100, COMMIT). Schema from a DCLGEN copybook and `schema.sql`. Verified on a stand-in SQLite database (not DB2): files and the final contents of both tables are compared. |
 | [`db2-dynamic-sql/`](db2-dynamic-sql/) | `DYNQRY` (Quillmark, fictional): builds its statement at run time (PREPARE / EXECUTE). Refused on purpose: the analyzer reports the exact line and reason. |
+| [`vsam-customer-update/`](vsam-customer-update/) | `CUSTUPD` (Quillmark, fictional): applies ADD / CHANGE / DELETE updates to a keyed (`ORGANIZATION INDEXED`, DYNAMIC) customer master with FILE STATUS handling, a reject report, and a START / READ NEXT summary. Verified on GnuCOBOL's INDEXED file handler (not IBM VSAM): the final keyed-file contents are compared in key order. |
+| [`vsam-alternate-key/`](vsam-alternate-key/) | `ACCTALT` (Quillmark, fictional): reads a keyed file through an `ALTERNATE RECORD KEY`. Refused on purpose: alternate keys are not in the verified subset, and the analyzer says so. |
 
 Each sample has a hand-written naive Java port in `java-conversion/` (labelled as a test fixture, not model output). The samples share bug patterns on purpose (half-away-from-zero ROUNDED, truncation, silent high-order overflow, COMP counter display), so the repair agent's efficiency can be compared across programs.
 

@@ -1,0 +1,149 @@
+{
+  "name": "custupd",
+  "description": "SYNTHETIC. Quillmark Trust & Savings (fictional): applies a day's ADD / CHANGE / DELETE customer updates to a keyed (INDEXED) customer master with FILE STATUS handling, writes a reject report, then adds up the master with START and READ NEXT. Verified on GnuCOBOL's INDEXED file handler (not IBM VSAM): files, stdout, exit code and the final contents of the keyed file are compared.",
+  "program": "CUSTUPD",
+  "source": "src/CUSTUPD.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Custupd",
+    "origin": "hand-written fixture, not model output"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "files": [
+    {
+      "dd": "TRANIN",
+      "direction": "input",
+      "layout": {
+        "record": "TRAN-REC",
+        "fields": [
+          {
+            "name": "TR-CODE",
+            "kind": "alnum",
+            "length": 1,
+            "values": [
+              "A",
+              "C",
+              "D"
+            ]
+          },
+          {
+            "name": "TR-CUST-ID",
+            "kind": "alnum",
+            "length": 6
+          },
+          {
+            "name": "TR-NAME",
+            "kind": "alnum",
+            "length": 20
+          },
+          {
+            "name": "TR-AMOUNT",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "trailing"
+          }
+        ],
+        "format": "line"
+      }
+    },
+    {
+      "dd": "CUSTMAST",
+      "direction": "io",
+      "layout": {
+        "record": "CUST-REC",
+        "fields": [
+          {
+            "name": "CM-REGION",
+            "kind": "alnum",
+            "length": 2
+          },
+          {
+            "name": "CM-CUST-ID",
+            "kind": "alnum",
+            "length": 6
+          },
+          {
+            "name": "CM-NAME",
+            "kind": "alnum",
+            "length": 20
+          },
+          {
+            "name": "CM-BALANCE",
+            "kind": "numeric",
+            "digits": 7,
+            "scale": 2,
+            "signed": true,
+            "sign": "trailing"
+          },
+          {
+            "name": "CM-STATUS",
+            "kind": "alnum",
+            "length": 1
+          }
+        ],
+        "format": "fixed"
+      },
+      "keyed": {
+        "subset": "ksds-subset-1",
+        "accessMode": "DYNAMIC",
+        "fileStatus": "WS-CUST-STATUS",
+        "recordKey": {
+          "field": "CM-CUST-ID",
+          "offset": 2,
+          "length": 6
+        },
+        "openMode": "I-O"
+      }
+    },
+    {
+      "dd": "REJOUT",
+      "direction": "output",
+      "layout": {
+        "record": "REJ-REC",
+        "fields": [
+          {
+            "name": "RJ-TAG",
+            "kind": "alnum",
+            "length": 6
+          },
+          {
+            "name": "RJ-CUST-ID",
+            "kind": "alnum",
+            "length": 6
+          },
+          {
+            "name": "RJ-CODE",
+            "kind": "alnum",
+            "length": 1
+          },
+          {
+            "name": "RJ-REASON",
+            "kind": "alnum",
+            "length": 12
+          },
+          {
+            "name": "RJ-STATUS",
+            "kind": "alnum",
+            "length": 2
+          }
+        ],
+        "format": "line"
+      }
+    }
+  ],
+  "ksds": {
+    "subset": "ksds-subset-1",
+    "keyLinks": [
+      {
+        "dd": "TRANIN",
+        "field": "TR-CUST-ID",
+        "keyedDd": "CUSTMAST"
+      }
+    ]
+  }
+}

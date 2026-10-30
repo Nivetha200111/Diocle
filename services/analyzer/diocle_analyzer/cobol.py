@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .keyed import keyed_files
+
 _PIC = re.compile(r"\bPIC(?:TURE)?\s+(?:IS\s+)?(\S+)")
 _SIGN_LEADING_SEPARATE = re.compile(r"\bSIGN\s+(?:IS\s+)?LEADING\s+SEPARATE\b")
 _VALUES = re.compile(r"'([^']*)'")
@@ -224,6 +226,8 @@ class ProgramInfo:
     dynamic_calls: list[str] = field(default_factory=list)  # CALL identifier: the target is only known at run time
     resolved_calls: dict[str, str] = field(default_factory=dict)  # CALL identifier -> the one literal it can only hold
     stdout_display: bool = False  # the PROCEDURE DIVISION DISPLAYs something to stdout (not only UPON SYSERR)
+    keyed: dict[str, dict] = field(default_factory=dict)  # INDEXED/RELATIVE file name -> SELECT facts and refusal (keyed.py)
+    file_control_problem: str | None = None  # FILE-CONTROL the analyzer cannot trust (COPY inside it, unreadable keyed SELECT)
     console_input: bool = False  # ACCEPT from the console/stdin: its input is not something the verifier can vary
 
 
@@ -231,7 +235,8 @@ def parse_program(text: str) -> ProgramInfo:
     code = " ".join(c.strip() for _, c in source_lines(text))
     name_match = re.search(r"\bPROGRAM-ID\.\s*([A-Z0-9][A-Z0-9-]*)", code)
     name = name_match.group(1) if name_match else "UNKNOWN"
-    selects = dict(re.findall(r"\bSELECT\s+([A-Z0-9-]+)\s+ASSIGN\s+(?:TO\s+)?'?([A-Z0-9-]+)'?", code))
+    selects = {n.upper(): d.upper() for n, d in re.findall(
+        r"\bSELECT\s+(?:OPTIONAL\s+)?([A-Z0-9-]+)\s+ASSIGN\s+(?:TO\s+)?'?(?!USING\b)([A-Z0-9-]+)'?", code, re.I)}
     fd_copybooks: dict[str, str | None] = {}
     replacing: dict[str, list[tuple[str, str]]] = {}
     inline_records: dict[str, int] = {}
@@ -246,9 +251,17 @@ def parse_program(text: str) -> ProgramInfo:
         if not copy and start:
             fd_inline[m.group(1)] = start.group(1)
     organizations = {}
-    for m in re.finditer(r"\bSELECT\s+([A-Z0-9-]+)(.*?)(?=\bSELECT\s|\bDATA\s+DIVISION\b|$)", code):
-        org = re.search(r"\bORGANIZATION\s+(?:IS\s+)?(LINE\s+SEQUENTIAL|RECORD\s+SEQUENTIAL|SEQUENTIAL|INDEXED|RELATIVE)", m.group(2))
-        organizations[m.group(1)] = re.sub(r"\s+", " ", org.group(1)) if org else "SEQUENTIAL"
+    for m in re.finditer(r"\bSELECT\s+(?:OPTIONAL\s+)?([A-Z0-9-]+)(.*?)(?=\bSELECT\s|\bDATA\s+DIVISION\b|$)", code, re.I):
+        org = re.search(r"\bORGANIZATION\s+(?:IS\s+)?(LINE\s+SEQUENTIAL|RECORD\s+SEQUENTIAL|SEQUENTIAL|INDEXED|RELATIVE)",
+                        m.group(2), re.I)
+        organizations[m.group(1).upper()] = re.sub(r"\s+", " ", org.group(1)).upper() if org else "SEQUENTIAL"
+    file_control_problem = None
+    control = re.search(r"\bFILE-CONTROL\b(.*?)(?=\bDATA\s+DIVISION\b|$)", code, re.I | re.S)
+    if control and re.search(r"\bCOPY\b", control.group(1), re.I):
+        file_control_problem = "FILE-CONTROL contains a COPY: SELECT clauses from a copybook are not analysed"
+    elif len(re.findall(r"\bORGANIZATION\s+(?:IS\s+)?(?:INDEXED|RELATIVE)\b", code, re.I)) > sum(
+            1 for o in organizations.values() if o in ("INDEXED", "RELATIVE")):
+        file_control_problem = "an INDEXED or RELATIVE file was found that the analyzer could not read (SELECT not recognised)"
     exec_blocks = sorted(set(m.upper() for m in re.findall(r"\bEXEC\s+(SQL|CICS|DLI|SQLIMS)\b", code, re.I)))
     directions: dict[str, str] = {}
     tokens = re.findall(r"[A-Z0-9][A-Z0-9-]*|[^\sA-Z0-9]", code)
@@ -289,7 +302,8 @@ def parse_program(text: str) -> ProgramInfo:
     stdout_display, console_input = _console_use(procedure)
     return ProgramInfo(name, copybooks, selects, fd_copybooks, directions, calls, organizations, replacing,
                        inline_records, exec_blocks, fd_inline, sort_files, still_dynamic, resolved,
-                       stdout_display, console_input)
+                       stdout_display, console_input=console_input, keyed=keyed_files(code, organizations),
+                       file_control_problem=file_control_problem)
 
 
 # --- CALL identifier: resolved statically only when nothing but literals can ever be in it -------------------

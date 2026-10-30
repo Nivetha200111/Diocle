@@ -1,0 +1,89 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROBE.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT KF ASSIGN TO KFILE
+             ORGANIZATION IS INDEXED ACCESS MODE IS @MODE@
+             RECORD KEY IS KF-KEY FILE STATUS IS FS.
+           SELECT OPS ASSIGN TO OPSIN
+             ORGANIZATION IS LINE SEQUENTIAL.
+       DATA DIVISION.
+       FILE SECTION.
+       FD KF.
+       01 KF-REC.
+          05 KF-PRE PIC X(2).
+          05 KF-KEY PIC X(4).
+          05 KF-DATA PIC X(6).
+       FD OPS.
+       01 OP-REC.
+          05 OP-CODE PIC X(2).
+          05 OP-MODE PIC X(2).
+          05 OP-KEY PIC X(4).
+          05 OP-DATA PIC X(6).
+       WORKING-STORAGE SECTION.
+       01 FS PIC XX.
+       01 EOF-FLAG PIC X VALUE 'N'.
+       PROCEDURE DIVISION.
+           OPEN INPUT OPS.
+           PERFORM UNTIL EOF-FLAG = 'Y'
+              READ OPS AT END MOVE 'Y' TO EOF-FLAG
+              NOT AT END PERFORM DO-OP
+              END-READ
+           END-PERFORM.
+           CLOSE OPS.
+           STOP RUN.
+       DO-OP.
+           MOVE 'XX' TO KF-PRE.
+           EVALUATE OP-CODE
+             WHEN 'OP'
+               EVALUATE OP-MODE
+                 WHEN 'IN' OPEN INPUT KF
+                 WHEN 'OU' OPEN OUTPUT KF
+                 WHEN 'IO' OPEN I-O KF
+                 WHEN 'EX' OPEN EXTEND KF
+               END-EVALUATE
+               DISPLAY OP-CODE OP-MODE ' ' FS
+             WHEN 'CL'
+               CLOSE KF
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'WR'
+               MOVE OP-KEY TO KF-KEY MOVE OP-DATA TO KF-DATA
+               WRITE KF-REC
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'RW'
+               MOVE OP-KEY TO KF-KEY MOVE OP-DATA TO KF-DATA
+               REWRITE KF-REC
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'DL'
+               MOVE OP-KEY TO KF-KEY
+               DELETE KF
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'RK'
+               MOVE OP-KEY TO KF-KEY
+               READ KF
+               PERFORM SHOW
+             WHEN 'RN'
+               READ KF NEXT
+               PERFORM SHOW
+             WHEN 'S1'
+               MOVE OP-KEY TO KF-KEY
+               START KF KEY = KF-KEY
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'S2'
+               MOVE OP-KEY TO KF-KEY
+               START KF KEY >= KF-KEY
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'S3'
+               MOVE OP-KEY TO KF-KEY
+               START KF KEY > KF-KEY
+               DISPLAY OP-CODE ' ' FS
+             WHEN 'DS'
+               DISPLAY OP-CODE ' ' KF-REC
+           END-EVALUATE.
+       SHOW.
+           IF FS = '00' OR FS = '02'
+              DISPLAY OP-CODE ' ' FS ' ' KF-REC
+           ELSE
+              DISPLAY OP-CODE ' ' FS
+           END-IF.

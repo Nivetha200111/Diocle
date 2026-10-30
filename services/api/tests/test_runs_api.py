@@ -79,6 +79,20 @@ def test_database_comparison_passthrough(client, tmp_path):
     assert after["after"]["database"] == report["runs"]["database"]
 
 
+def test_keyed_file_comparison_passthrough(client, tmp_path):
+    run = tmp_path / "demo-20261028-124509"
+    assert "keyed" not in client.get("/runs/demo-20261028-124509").json()["after"]
+    report = _report(5, 5)
+    report["runs"]["keyed"] = {"engine": "gnucobol-indexed", "engineVersion": "cobc (GnuCOBOL) 3.2.0; indexed handler BDB",
+                               "subset": "ksds-subset-1", "seededFrom": "generated records (seed 1)",
+                               "files": [{"dd": "K", "recordsSeeded": 2, "recordsOriginal": 3, "recordsConverted": 3, "match": True,
+                                          "firstMismatch": None, "changedFromSeed": {"original": True, "converted": True}}]}
+    (run / "verification-report.json").write_text(json.dumps(report))
+    after = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(after, CONTRACT)
+    assert after["after"]["keyed"] == report["runs"]["keyed"]
+
+
 def test_rejects_unknown_and_unsafe_ids(client):
     assert client.get("/runs/missing-run").status_code == 404
     assert client.get("/runs/..%2F..%2Fetc").status_code == 404
