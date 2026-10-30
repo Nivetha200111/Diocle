@@ -444,7 +444,8 @@ def _repo(args) -> int:
     on a local directory or GitHub repository, with your own key from .env and no visitor caps. It runs the delivery module
     of services/api (no pull request without a target), so there is one implementation of the loop and the spend cap."""
     api_python = REPO_ROOT / "services" / "api" / ".venv" / "bin" / "python"
-    cmd = [str(api_python) if api_python.exists() else sys.executable, "-m", "diocle_api.deliver", args.source,
+    source = str(Path(args.source).resolve()) if Path(args.source).is_dir() else args.source  # the child runs elsewhere
+    cmd = [str(api_python) if api_python.exists() else sys.executable, "-m", "diocle_api.deliver", source,
            *(["--convert-anyway"] if args.convert_anyway else []), *(["--programs", args.programs] if args.programs else [])]
     env = dict(os.environ)
     if args.repo_max_usd is not None:
