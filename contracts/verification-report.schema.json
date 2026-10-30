@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
+  "description": "v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
   "type": "object",
   "required": [
     "version",
@@ -56,7 +56,8 @@
               "corpus",
               "files",
               "output",
-              "stdout"
+              "stdout",
+              "database"
             ],
             "description": "How the input was generated. 'files': an output record of a multi-file run, whose inputs are whole generated files. 'output': a record of a program whose outputs do not map one to one to its inputs (aggregation, fan-out); compared by position in the output."
           },
@@ -178,6 +179,89 @@
             },
             "stderr": {
               "type": "string"
+            }
+          }
+        },
+        "database": {
+          "type": "object",
+          "description": "Additive (v0.9). The database the program ran against. Engine and subset are stated so the claim stays honest: equivalent on THIS engine for THESE statements on the inputs tried.",
+          "required": [
+            "engine",
+            "engineVersion",
+            "subset",
+            "seededFrom",
+            "tables"
+          ],
+          "properties": {
+            "engine": {
+              "type": "string",
+              "description": "e.g. sqlite (a stand-in; DECIMAL is stored as an integer scaled by 10^scale so no float rounding enters)"
+            },
+            "engineVersion": {
+              "type": "string"
+            },
+            "subset": {
+              "type": "string",
+              "description": "Version tag of the verified SQL subset."
+            },
+            "seededFrom": {
+              "type": "string",
+              "description": "Where the tables came from: the schema source files and 'generated rows (seed N)'."
+            },
+            "sqlcodeCompared": {
+              "type": "boolean",
+              "description": "True: SQLCODE values reach the program's own output, so they are compared through it."
+            },
+            "tables": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "rowsSeeded",
+                  "rowsOriginal",
+                  "rowsConverted",
+                  "match"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "rowsSeeded": {
+                    "type": "integer"
+                  },
+                  "rowsOriginal": {
+                    "type": "integer"
+                  },
+                  "rowsConverted": {
+                    "type": "integer"
+                  },
+                  "match": {
+                    "type": "boolean"
+                  },
+                  "firstMismatch": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "row": {
+                        "type": "integer",
+                        "description": "1-based row in canonical order (all columns ascending, NULL first)"
+                      },
+                      "column": {
+                        "type": "string"
+                      },
+                      "original": {
+                        "type": "string"
+                      },
+                      "converted": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
