@@ -41,7 +41,7 @@ MAX_COMPILE_BUNDLE = 8 * 1024 * 1024  # a compile check takes the sample only (n
 MAX_COMPILE_REPORT = 16 * 1024
 CLAIMS_JOB_TIMEOUT = 180  # cobc build (60 s) plus the run loop (claims.TOTAL_BUDGET, 90 s) and start-up
 MAX_CLAIMS_BUNDLE = 8 * 1024 * 1024
-MAX_CLAIMS_REPORT = 4 * 1024 * 1024  # 60 examples x (32 KB stdout + 20 records)
+MAX_CLAIMS_REPORT = 4 * 1024 * 1024  # per example up to 32 KB stdout + 20 records (a record is as wide as the layout, at most 4 KB). A pathological layout could exceed this: the job then fails and the examples are unchecked, never mis-judged
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
 

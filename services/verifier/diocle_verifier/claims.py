@@ -13,6 +13,7 @@ and with DIOCLE_SANDBOX_URL set the compile-and-run happens in the sandbox conta
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import tempfile
 import time
@@ -95,12 +96,13 @@ def run_local(sample_dir: Path, examples: list[dict]) -> list[dict]:
             lines = read_records(output_path, *out_format)
             results.append({"id": example["id"], "ran": True, "records": [r[:MAX_RECORD_LEN] for r in lines[:MAX_RECORDS]],
                             "recordCount": len(lines), "stdout": proc.stdout[:CAPTURE_STDOUT],
+                            "stdoutTruncated": len(proc.stdout) > CAPTURE_STDOUT,
                             "stderr": proc.stderr[:300], "returnCode": proc.returncode, "error": ""})
     return results
 
 
 def _failed(example: dict, why: str) -> dict:
-    return {"id": example["id"], "ran": False, "records": [], "recordCount": 0, "stdout": "", "stderr": "",
+    return {"id": example["id"], "ran": False, "records": [], "recordCount": 0, "stdout": "", "stdoutTruncated": False, "stderr": "",
             "returnCode": None, "error": why}
 
 
@@ -124,10 +126,9 @@ def actual_records(lines: list[str], fields: list[Field]) -> list[dict[str, str]
 def _same(f: Field, expected: str, actual: str) -> bool:
     if f.kind == "alnum":
         return expected.rstrip() == actual.rstrip()
-    try:
-        return Decimal(expected.strip().replace("+", "")) == Decimal(actual)
-    except InvalidOperation:
+    if not _NUMBER.fullmatch(expected.strip()) or not _NUMBER.fullmatch(actual.strip()):
         return False
+    return Decimal(expected.strip()) == Decimal(actual.strip())
 
 
 def check_expected(expected: dict, fields: list[Field]) -> str | None:
@@ -143,17 +144,17 @@ def check_expected(expected: dict, fields: list[Field]) -> str | None:
             if not isinstance(value, str):
                 return f"expected record {i}: {name} is not a string"
             if f.kind == "numeric":
-                try:
-                    if not Decimal(value.strip().replace("+", "")).is_finite():
-                        raise InvalidOperation
-                except InvalidOperation:
-                    return f"expected record {i}: {name} is not a number"
+                if not _NUMBER.fullmatch(value.strip()):
+                    return f"expected record {i}: {name} is not a plain decimal number"
+            elif any(ord(ch) in _CONTROLS for ch in value):
+                return f"expected record {i}: {name} has a line break or control character a record cannot hold"
     if not any(k in expected for k in ("records", "outputRecordCount", "stdoutContains", "returnCode")):
         return "the example states no expected output"
     return None
 
 
-_CONTROLS = {c: " " for c in [*range(0, 32), *range(127, 160)]}
+_CONTROLS = {c: " " for c in [*range(0, 32), *range(127, 160), 0xFEFF]}  # U+FEFF: JS treats it as whitespace, so both renderers do
+_NUMBER = re.compile(r"[+-]?[0-9]+(\.[0-9]+)?")  # ASCII digits only; no exponent, no underscores, no trailing sign
 
 
 def flat(text: str, limit: int = 200) -> str:
@@ -177,6 +178,11 @@ def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
     bad = check_expected(expected, fields)
     if bad:
         return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": bad}
+    if run["returnCode"] != 0 and "returnCode" not in expected:  # before any verdict: a crash decides nothing about the claim
+        err = flat(run.get("stderr", ""), 120)
+        return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": (
+            f"crashed (rc {run['returnCode']}): the program ended with return code {run['returnCode']} and the example "
+            "does not expect that" + (f" (it printed: {err})" if err else ""))}
     by_name, mismatches = {f.name: f for f in fields}, []
     for i, want in enumerate(expected.get("records", []), 1):
         if i > count:
@@ -187,22 +193,24 @@ def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
         for name, value in want.items():
             got = records[i - 1][name]
             if not _same(by_name[name], value, got):
-                mismatches.append({"what": f"record {i} {name}", "expected": value, "actual": got})
+                mismatches.append({"what": f"record {i} {name}", "expected": flat(value), "actual": flat(got)})
     if "outputRecordCount" in expected and expected["outputRecordCount"] != count:
         mismatches.append({"what": "number of output records", "expected": str(expected["outputRecordCount"]), "actual": str(count)})
+    truncated_miss = False
     if "stdoutContains" in expected and expected["stdoutContains"] not in run["stdout"]:
-        mismatches.append({"what": "stdout", "expected": f"contains {flat(expected['stdoutContains'])!r}",
-                           "actual": flat(run["stdout"], 200)})
+        if run.get("stdoutTruncated"):
+            truncated_miss = True  # the text may be in the part that was not captured: no verdict
+        else:
+            mismatches.append({"what": "stdout", "expected": f"contains {flat(expected['stdoutContains'])!r}",
+                               "actual": flat(run["stdout"], 200)})
     if "returnCode" in expected and expected["returnCode"] != run["returnCode"]:
         mismatches.append({"what": "return code", "expected": str(expected["returnCode"]), "actual": str(run["returnCode"])})
     if mismatches:
         return {"status": "differed", "actual": actual, "mismatches": mismatches[:20], "reason": ""}
-    if run["returnCode"] != 0 and "returnCode" not in expected:
-        err = flat(run.get("stderr", ""), 120)
-        return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": (
-            f"the program ended with return code {run['returnCode']} and the example does not expect that"
-            + (f" (it printed: {err})" if err else ""))}
-    strong = any(v for rec in expected.get("records", []) for v in rec) or "stdoutContains" in expected
+    if truncated_miss:
+        return {"status": "unchecked", "actual": actual, "mismatches": [],
+                "reason": f"output truncated at {CAPTURE_STDOUT // 1024} KB: the expected text was not in the captured part"}
+    strong = any(v for rec in expected.get("records", []) for v in rec.values()) or "stdoutContains" in expected
     if not strong:
         return {"status": "unchecked", "actual": actual, "mismatches": [],
                 "reason": "weak expectation: it compares only a record count or return code, not an output field or stdout"}

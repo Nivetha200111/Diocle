@@ -79,7 +79,7 @@ def test_expecting_more_records_than_the_program_wrote_differs():
 
 def test_expectations_that_cannot_be_judged_are_unchecked_not_guessed():
     for expected, why in (({"records": [{"NO-SUCH-FIELD": "1"}]}, "not a field"),
-                          ({"records": [{"OUT-FEE": "lots"}]}, "not a number"),
+                          ({"records": [{"OUT-FEE": "lots"}]}, "plain decimal"),
                           ({"records": [{"OUT-FEE": 1}]}, "not a string"),
                           ({}, "states no expected output")):
         result = claims.judge(expected, run([TIE]), OUT)
@@ -220,3 +220,41 @@ def test_a_record_that_would_break_line_framing_is_not_run():
 def test_a_program_that_runs_reports_the_true_record_count_and_stderr_field():
     [r] = claims.run_original(SAMPLE, [{"id": "e1", "records": [TIE, TIE]}])
     assert r["recordCount"] == 2 and len(r["records"]) == 2 and r["stderr"] == "" and r["returnCode"] == 0
+
+
+# --- second review ----------------------------------------------------------------------------------------------
+
+def test_numbers_must_be_plain_decimals_and_compare_by_value():
+    f = next(x for x in OUT if x.name == "OUT-INTEREST")
+    for bad in ("1+0", "5+", "+-5", "1_0", "1e1", "٥", "", " ", "--1", "1.", ".5", "0x10"):
+        assert not claims._same(f, bad, "5.00") and not claims._same(f, bad, "10.00"), bad
+        assert "plain decimal" in claims.check_expected({"records": [{"OUT-INTEREST": bad}]}, OUT), bad
+    for good, actual in (("-0", "0.00"), ("0.50", "0.5"), ("007", "7.00"), ("+5", "5.00"), (" 5.0 ", "5.00")):
+        assert claims._same(f, good, actual), good
+
+
+def test_text_comparison_is_exact_apart_from_trailing_spaces():
+    f = next(x for x in OUT if x.name == "OUT-ACCT-ID")
+    assert claims._same(f, "A   B", "A   B") and claims._same(f, "  A", "  A") and not claims._same(f, "A B", "A   B")
+    assert "line break" in claims.check_expected({"records": [{"OUT-ACCT-ID": "A\nB"}]}, OUT)
+
+
+def test_a_crash_with_a_missing_record_is_unchecked_not_refuted():
+    got = claims.judge({"records": [{"OUT-STATUS": "FE"}, {"OUT-STATUS": "OK"}]}, fake_run(returnCode=139), OUT)
+    assert got["status"] == "unchecked" and "crashed (rc 139)" in got["reason"] and got["mismatches"] == []
+
+
+def test_stdout_cut_at_the_capture_never_gives_a_false_refutation():
+    full = "x" * claims.CAPTURE_STDOUT
+    cut = claims.judge({"stdoutContains": "NEEDLE"}, fake_run(stdout=full, stdoutTruncated=True), OUT)
+    assert cut["status"] == "unchecked" and "truncated at 32 KB" in cut["reason"]
+    found = claims.judge({"stdoutContains": "xx"}, fake_run(stdout=full, stdoutTruncated=True), OUT)
+    assert found["status"] == "matched"
+    real = claims.judge({"records": [{"OUT-STATUS": "OK"}], "stdoutContains": "NEEDLE"}, fake_run(stdout=full, stdoutTruncated=True), OUT)
+    assert real["status"] == "differed"  # a real field mismatch is still reported
+    assert claims.judge({"stdoutContains": "NEEDLE"}, fake_run(stdout="short"), OUT)["status"] == "differed"
+
+
+def test_run_local_marks_a_truncated_stdout(monkeypatch):
+    [r] = claims.run_original(SAMPLE, [{"id": "e1", "records": [TIE]}])
+    assert r["stdoutTruncated"] is False
