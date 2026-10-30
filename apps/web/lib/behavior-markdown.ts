@@ -5,12 +5,19 @@
 import type { Behavior, ClaimExample, ClaimStatus, FieldValues } from "./runs";
 
 const LABEL: Record<ClaimStatus, string> = { confirmed: "CONFIRMED", refuted: "REFUTED", unchecked: "UNCHECKED" };
-const SPECIAL = "\\`*_[]<>#|&!";
+const SPECIAL = "\\`*_[]<>#|&!@~"; // @ and ~ stop emails and ~~strike~~; esc() also breaks bare URLs
 
 export const flat = (t: unknown, limit = 200): string =>
-  // eslint-disable-next-line no-control-regex
-  String(t ?? "").replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").split(/\s+/).filter(Boolean).join(" ").slice(0, limit);
-export const esc = (t: unknown): string => Array.from(flat(t, 400)).map((c) => (SPECIAL.includes(c) ? `\\${c}` : c)).join("");
+  // control characters and U+FEFF become spaces (as in Python); the limit counts code points, not UTF-16 units
+  Array.from(String(t ?? "").replace(/[\u0000-\u001f\u007f-\u009f\ufeff]/g, " ").split(/\s+/).filter(Boolean).join(" ")).slice(0, limit).join("");
+export const esc = (t: unknown): string => {
+  const chars = Array.from(flat(t, 400));
+  return chars.map((c, i) => {
+    // the ':' of '://' and the '.' of 'www.' are escaped too, so no reader turns prose into a bare link
+    const link = (c === ":" && chars.slice(i + 1, i + 3).join("") === "//") || (c === "." && chars.slice(Math.max(0, i - 3), i).join("").toLowerCase() === "www");
+    return SPECIAL.includes(c) || link ? `\\${c}` : c;
+  }).join("");
+};
 export const code = (t: unknown): string => "`" + flat(t, 400).replace(/`/g, "'") + "`";
 export const fields = (v: FieldValues | null | undefined): string => Object.entries(v ?? {}).map(([k, x]) => `${k}=${x}`).join("  ");
 
