@@ -1,0 +1,56 @@
+# Runs every test suite (analyzer, verifier, converter, api) with the real toolchain: GnuCOBOL 3.2, JDK 21 and the pinned
+# SQLite JDBC jar. Same command as on a laptop: `sh scripts/test.sh`. No secrets are used and none are needed: the model
+# client is a test double in the suites. UNVERIFIED until its first run on GitHub (it was written and syntax-checked
+# offline). The GnuCOBOL build mirrors reverify_workflow in services/api/diocle_api/deliver.py; the first run builds it
+# (a few minutes), later runs restore it from the cache.
+name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-java@v4.7.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/*/pyproject.toml
+      # The verifier compiles with options only GnuCOBOL 3.2 knows (-fdefault-colseq=EBCDIC): the distribution package is older.
+      - name: Cache GnuCOBOL 3.2
+        id: gnucobol
+        uses: actions/cache@v4.2.3
+        with:
+          path: ~/gnucobol
+          key: gnucobol-3.2-ubuntu-24.04-v2-db
+      - name: Build GnuCOBOL 3.2 (the version Diocle certifies with)
+        if: steps.gnucobol.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q libgmp-dev libdb-dev
+          curl -sSfL https://ftp.gnu.org/gnu/gnucobol/gnucobol-3.2.tar.xz | tar xJ
+          cd gnucobol-3.2
+          ./configure -q --prefix="$HOME/gnucobol" --with-db --with-curses=no --without-xml2 --without-json
+          make -s -j"$(nproc)" && make -s install
+      - name: Install runtime libraries (Berkeley DB for the cached build; SQLite headers for the EXEC SQL shim)
+        run: sudo apt-get update -q && sudo apt-get install -y -q libdb5.3t64 libsqlite3-dev
+      - name: Put GnuCOBOL on the path
+        run: |
+          echo "$HOME/gnucobol/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$HOME/gnucobol/lib" >> "$GITHUB_ENV"
+      - name: Show the toolchain
+        run: cobc --version | head -1 && javac -version && python --version
+      - name: Install and run every suite
+        run: sh scripts/test.sh
