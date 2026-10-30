@@ -197,9 +197,12 @@ def run_cli(args) -> int:
         return 2
     program = Program.load(args.sample_dir)
 
+    partial: dict = {}
+
     def emit(stage, message, data=None):
-        if args.out and data:  # first, so a reader that reacts to the line below finds the data
-            (args.out / "ask-partial.json").write_text(json.dumps({"stage": stage, **data}) + "\n")
+        if args.out and data:  # cumulative, and written first, so a reader that reacts to the line below finds the data
+            partial.update(data)
+            (args.out / "ask-partial.json").write_text(json.dumps({"stage": stage, **partial}) + "\n")
         print(f"stage {stage}: {message}", flush=True)
 
     if args.out:
