@@ -31,8 +31,8 @@ def _tokens(code: str) -> list[str]:
 
 
 def select_clauses(code: str) -> dict[str, str]:
-    return {m.group(1): m.group(2)
-            for m in re.finditer(r"\bSELECT\s+([A-Z0-9-]+)(.*?)(?=\bSELECT\s|\bDATA\s+DIVISION\b|$)", code)}
+    return {m.group(1).upper(): m.group(2)
+            for m in re.finditer(r"\bSELECT\s+(?:OPTIONAL\s+)?([A-Z0-9-]+)(.*?)(?=\bSELECT\s|\bDATA\s+DIVISION\b|$)", code, re.I)}
 
 
 def keyed_files(code: str, organizations: dict[str, str]) -> dict[str, dict]:

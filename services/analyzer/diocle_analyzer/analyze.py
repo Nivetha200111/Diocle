@@ -279,6 +279,8 @@ def _writes_tables(sql: SqlFacts | None) -> bool:
 
 def _not_convertible(files: list[dict], used: list[str], available: dict[str, Path], info, program_ids: set[str],
                      sql: SqlFacts | None = None) -> str | None:
+    if info.file_control_problem:
+        return info.file_control_problem
     missing = [c for c in used if c not in available]
     if missing:
         return f"copybook(s) not found: {', '.join(missing)}"
@@ -294,6 +296,9 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
     unknown = [c for c in info.calls if c not in program_ids]
     if unknown:
         return f"CALLs program(s) not in the repository: {', '.join(unknown)}"
+    for name in info.keyed:
+        if name not in info.selects:
+            return f"keyed file {name}: its SELECT/ASSIGN clause was not recognised, so the file cannot be mapped"
     keyed = [f for f in files if f.get("keyed")]
     for f in keyed:
         if f["keyed"].get("refusal"):

@@ -139,3 +139,27 @@ def test_contract_accepts_old_reports_and_rejects_a_malformed_keyed_block(tmp_pa
     next(f for f in report["programs"][0]["files"] if f.get("keyed"))["keyed"]["accessMode"] = "BACKWARDS"
     with pytest.raises(Exception):
         validate_report(report)
+
+
+def test_select_optional_keeps_the_file_name_and_stays_in_the_subset(tmp_path):
+    p = report_for(tmp_path, PROGRAM.replace("SELECT KF ASSIGN", "SELECT OPTIONAL KF ASSIGN"))
+    assert p["convertible"], p["notConvertibleReason"]
+    assert keyed(p)["recordKey"]["field"] == "K-ID"
+
+
+def test_lowercase_select_clause_is_read_case_insensitively(tmp_path):
+    new = PROGRAM.replace("SELECT KF ASSIGN TO KFILE", "select kf assign to kfile")
+    p = report_for(tmp_path, new)
+    assert p["convertible"], p["notConvertibleReason"]
+    assert next(f for f in p["files"] if f.get("keyed"))["dd"] == "KFILE"
+
+
+def test_keyed_file_whose_select_is_not_recognised_is_refused(tmp_path):
+    p = report_for(tmp_path, PROGRAM.replace("ASSIGN TO KFILE", 'ASSIGN USING WS-NAME'))
+    assert not p["convertible"]
+    assert "not recognised" in p["notConvertibleReason"] or "could not read" in p["notConvertibleReason"]
+
+
+def test_copy_inside_file_control_is_refused(tmp_path):
+    p = report_for(tmp_path, PROGRAM.replace("           SELECT OUT-FILE", "           COPY SELCOPY.\n           SELECT OUT-FILE"))
+    assert not p["convertible"] and "FILE-CONTROL contains a COPY" in p["notConvertibleReason"]
