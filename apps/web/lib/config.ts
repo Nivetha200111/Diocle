@@ -14,6 +14,8 @@ export const LINKS = {
   evidenceDoc: "https://github.com/Nivetha200111/Diocle/blob/main/docs/EVIDENCE.md",
   evaluation: "https://github.com/Nivetha200111/Diocle/blob/main/docs/EVALUATION.md",
   measurement: "https://github.com/Nivetha200111/Diocle/blob/main/docs/MEASUREMENT.md",
+  vscode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/vscode",
+  museCode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/muse-code",
   certified: "https://github.com/Nivetha200111/Diocle#what-certified-means-and-does-not",
   buildLog: "https://github.com/Nivetha200111/Diocle/blob/main/docs/BUILD_LOG.md",
 };

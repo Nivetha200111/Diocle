@@ -1229,3 +1229,8 @@ a.nav-item {
 .repro-regress { display: grid; gap: 6px; }
 .repro-card .data-table td, .repro-card .data-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
 .repro-origin { padding: 6px 8px; border: 1px dashed #a00000; }
+
+.editor-col { padding: 0 14px 12px; }
+.editor-col h3 { margin: 0 0 6px; font-size: 13px; }
+.editor-col .home-pr { margin: 0 0 6px; padding: 0; }
+.editor-cmd { margin: 6px 0 8px; padding: 8px 10px; background: #000; color: #9f9 !important; font-size: 12px; line-height: 1.5; overflow: auto; white-space: pre; box-shadow: var(--w-in); }

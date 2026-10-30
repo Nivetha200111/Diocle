@@ -275,6 +275,35 @@ export default function HomeView({ go }: { go: Go }) {
         ))}
       </div>
 
+      <section className="panel" aria-label="Use Diocle from your editor">
+        <div className="panel-heading">
+          <div>
+            <h2>Use it from your editor</h2>
+            <p>Two local installs from this repository. Neither is on a marketplace, and neither is an official Meta product.</p>
+          </div>
+        </div>
+        <div className="home-columns">
+          <div className="editor-col">
+            <h3>VS Code (also Cursor, VSCodium, Windsurf)</h3>
+            <p className="home-pr">Check a COBOL file compiles under GnuCOBOL, then convert and verify it from the editor. Needs Python, GnuCOBOL 3.2 and JDK 21; a conversion uses your own Meta key and asks before it spends.</p>
+            <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
+cd Diocle/editors/vscode
+npm install && npm run package
+code --install-extension diocle-0.1.0.vsix`}</pre>
+            <p className="home-pr"><a href={LINKS.vscode} target="_blank" rel="noreferrer">Install notes and settings <ExternalLink size={11} /></a></p>
+          </div>
+          <div className="editor-col">
+            <h3>Muse Code (Meta&apos;s coding agent)</h3>
+            <p className="home-pr">A local plugin: Muse Code can analyze COBOL, re-verify a conversion against the original, and read run records through Diocle tools. A real conversion is off unless you turn it on. Tested with Muse Code 1.4.14 on macOS; a model-driven session has not been recorded yet.</p>
+            <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
+cd Diocle
+sh editors/muse-code/install.sh
+muse plugins approve diocle:mcp_server:diocle`}</pre>
+            <p className="home-pr"><a href={LINKS.museCode} target="_blank" rel="noreferrer">Install notes, tools and limits <ExternalLink size={11} /></a></p>
+          </div>
+        </div>
+      </section>
+
       <Evidence go={go} />
 
       <div className="home-columns">
