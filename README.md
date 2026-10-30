@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/logo.svg" alt="Diocle logo" width="96" height="96"></p>
+
 # Diocle
 
 **AI writes the code. Diocle checks it against the original before anyone has to trust it.**
