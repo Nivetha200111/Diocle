@@ -223,7 +223,8 @@ def _clean_line(text: object, limit: int = 300) -> str:
     return re.sub(r"[^A-Za-z0-9 _.,:;'/=+#$@()-]", "?", str(text))[:limit]
 
 
-def run_build_check(repo: Path, delivered: list[tuple[dict, dict]], samples: Path, report: dict) -> dict | None:
+def run_build_check(repo: Path, delivered: list[tuple[dict, dict]], samples: Path, report: dict,
+                    domain_classes: Path | None = None) -> dict | None:
     """Whole-repository build check of the certified programs as they sit in the delivery (programs/<NAME>/java), through
     the verifier's own CLI in a child with a minimal environment (it compiles model-written Java with javac -proc:none and
     runs nothing). Writes build/build-report.json and build/BUILD-REPORT.md into the delivery. Returns the report, or None
@@ -243,7 +244,8 @@ def run_build_check(repo: Path, delivered: list[tuple[dict, dict]], samples: Pat
         report_file = Path(tmp) / "analysis-report.json"
         report_file.write_text(json.dumps(report))
         try:
-            proc = subprocess.run([str(py), "-m", "diocle_verifier.buildcheck", *args, "--report", str(report_file), "--out", str(Path(tmp) / "out")],
+            proc = subprocess.run([str(py), "-m", "diocle_verifier.buildcheck", *args, "--report", str(report_file),
+                                   *(["--domain-classes", str(domain_classes)] if domain_classes else []), "--out", str(Path(tmp) / "out")],
                                   cwd=SERVICES / "verifier", env=env, capture_output=True, text=True, timeout=600, stdin=subprocess.DEVNULL)
             result = json.loads((Path(tmp) / "out" / "build-report.json").read_text())
             if proc.returncode not in (0, 1) or result.get("verdict") not in ("pass", "warn", "fail"):
@@ -447,12 +449,14 @@ def unverified_sentence(assurance: str, reason: str) -> str:
 
 
 def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
-            progress: Progress | None = None, onto: str | None = None, create: dict | None = None) -> str:
-    """create: a plan_create() result. The repository is created here, after everything is certified, so a delivery with
+            progress: Progress | None = None, onto: str | None = None, create: dict | None = None,
+            domain_classes: Path | None = None) -> str:
+    """domain_classes: EXPERIMENTAL, local only: the customer's own classes, put on the classpath of the build check.
+    create: a plan_create() result. The repository is created here, after everything is certified, so a delivery with
     nothing to deliver creates nothing. If a later step fails, the repository stays (never deleted automatically)."""
     created: list[str] = []
     try:
-        return _deliver(report, samples, run_ids, target_url, dry_run, progress, onto, create, created)
+        return _deliver(report, samples, run_ids, target_url, dry_run, progress, onto, create, created, domain_classes)
     except BaseException as e:
         if not created:
             raise
@@ -463,7 +467,8 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
 
 
 def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
-             progress: Progress | None, onto: str | None, create: dict | None, created: list[str]) -> str:
+             progress: Progress | None, onto: str | None, create: dict | None, created: list[str],
+             domain_classes: Path | None = None) -> str:
     diocle_commit = _sh(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"]).stdout.strip()
     pushed = _sh(["git", "-C", str(REPO_ROOT), "branch", "-r", "--contains", diocle_commit]).stdout.strip()
     if not pushed and not dry_run:
@@ -540,7 +545,7 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
             delivered.append((run, cert))
         if not delivered and not any(o["assurance"] != "failed" for o in others):
             raise SystemExit(f"Nothing certified to deliver (skipped: {', '.join(skipped)})")
-        build = run_build_check(repo, delivered, samples, report) if delivered else None
+        build = run_build_check(repo, delivered, samples, report, domain_classes) if delivered else None
         if progress and delivered:
             progress.update(buildCheck=build_summary(build))
         body = _pr_body(report, delivered, skipped, others, build)
@@ -716,6 +721,9 @@ def main(argv: list[str] | None = None) -> int:
                         "request into it (private unless --target-public; refused if it already exists; not with a target URL or --onto)")
     parser.add_argument("--target-owner", help="owner of the repository --create-target creates (default: your gh login); allowlisted")
     parser.add_argument("--target-public", action="store_true", help="make the created repository public (default private)")
+    parser.add_argument("--domain-classes", type=Path, help="EXPERIMENTAL, local only: a directory of .java files or a .jar of your own "
+                        "classes. The whole-repository build check compiles the programs beside them (compile-time classpath, never "
+                        "run), and the translator sees matching classes' public signatures. Not with --public.")
     parser.add_argument("--id", help="delivery id to use (the API passes one so the dashboard can follow it)")
     parser.add_argument("--convert-anyway", action="store_true",
                         help="never refuse (local or admin only): refused, uncompilable or unverifiable programs are still "
@@ -724,6 +732,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--public", action="store_true",
                         help="a visitor's import: needs the sandbox, visitor caps, no pull request, no swarm or breaker")
     args = parser.parse_args(argv)
+    if args.public and args.domain_classes:
+        parser.error("--domain-classes is not available to visitor imports (--public)")
     if args.public and args.convert_anyway:
         parser.error("--convert-anyway is not available to visitor imports (--public)")
     if args.create_target is None and (args.target_owner or args.target_public):
@@ -792,7 +802,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"ignoring --runs {run_id}: {'not certified' if run else 'not found'}", flush=True)
         flags = ((["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
                  + (["--memory-read-only"] if args.public else [])  # strangers' code never shapes later runs
-                 + (["--convert-anyway"] if convert_anyway else []))
+                 + (["--convert-anyway"] if convert_anyway else [])
+                 + (["--domain-classes", str(args.domain_classes)] if args.domain_classes else []))
         lock = threading.Lock()
 
         def work(program: dict) -> None:
@@ -858,7 +869,7 @@ def main(argv: list[str] | None = None) -> int:
                 work(program)
         if target:
             progress.update(stage="delivering")
-            print(deliver(report, samples, run_ids, target, args.dry_run, progress, args.onto, plan))
+            print(deliver(report, samples, run_ids, target, args.dry_run, progress, args.onto, plan, args.domain_classes))
         progress.update(stage="done", finishedAt=_now())
     except BaseException as e:
         progress.update(stage="failed", error=str(e)[:500] or type(e).__name__, finishedAt=_now())
