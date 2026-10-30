@@ -170,12 +170,33 @@ permissions:
   contents: read
 jobs:
   reverify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: {{distribution: temurin, java-version: '21'}}
-      - run: sudo apt-get update && sudo apt-get install -y gnucobol
+      - uses: actions/setup-python@v5
+        with: {{python-version: '3.12'}}
+      # The verifier compiles with options only GnuCOBOL 3.2 knows (-fdefault-colseq=EBCDIC): the distribution package is older.
+      - name: Cache GnuCOBOL 3.2
+        id: gnucobol
+        uses: actions/cache@v4
+        with:
+          path: ~/gnucobol
+          key: gnucobol-3.2-ubuntu-24.04-v1
+      - name: Build GnuCOBOL 3.2 (the version Diocle certifies with)
+        if: steps.gnucobol.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q libgmp-dev
+          curl -sSfL https://ftp.gnu.org/gnu/gnucobol/gnucobol-3.2.tar.xz | tar xJ
+          cd gnucobol-3.2
+          ./configure -q --prefix="$HOME/gnucobol" --without-db --with-curses=no --without-xml2 --without-json
+          make -s -j"$(nproc)" && make -s install
+      - name: Put GnuCOBOL on the path
+        run: |
+          echo "$HOME/gnucobol/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$HOME/gnucobol/lib" >> "$GITHUB_ENV"
       - name: Install the pinned verifier
         run: |
           git clone {DIOCLE_URL}.git "$RUNNER_TEMP/diocle"

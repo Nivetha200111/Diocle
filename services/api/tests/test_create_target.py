@@ -355,3 +355,12 @@ def test_the_generated_workflow_is_least_privilege_and_quotes_what_it_interpolat
     for bad_commit in ("main; id", "zzzzzzz", "", "a" * 41):
         with pytest.raises(SystemExit):
             deliver.reverify_workflow("https://github.com/me/legacy", bad_commit)
+
+
+def test_the_generated_workflow_builds_gnucobol_3_2_not_the_distribution_package():
+    """First real run on GitHub: Ubuntu's gnucobol rejected -fdefault-colseq=EBCDIC, so every program read 0/0. 3.2 is built from source."""
+    from diocle_api import deliver
+    wf = deliver.reverify_workflow("https://github.com/me/legacy", "a" * 40)
+    assert "gnucobol-3.2.tar.xz" in wf and "ubuntu-24.04" in wf and "actions/cache@v4" in wf
+    assert "apt-get install -y gnucobol" not in wf and "setup-python@v5" in wf
+    assert "$HOME/gnucobol/bin" in wf and "LD_LIBRARY_PATH" in wf
