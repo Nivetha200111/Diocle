@@ -6,6 +6,7 @@ import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, MODELS, SAMPLE_RUN 
 import { fetchRuns, isInterrupted, type RunListItem } from "@/lib/runs";
 import { Skeleton, Term } from "./ui";
 import ScoreboardPanel from "./scoreboard-panel";
+import CoverageMatrix from "./coverage-matrix";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
@@ -107,6 +108,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           {privateRun && <p className="home-more"><a href={runLink(privateRun.id)} onClick={open(privateRun.id)}>Open the private-mode run</a></p>}
         </section>
       </div>
+
+      <CoverageMatrix />
 
       <section className="panel">
         <div className="panel-heading">
