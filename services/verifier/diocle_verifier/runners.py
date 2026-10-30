@@ -63,10 +63,11 @@ def write_records(path: Path, records: list[str], fmt: str = "line") -> None:
 
 
 def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str,
-                 out_format: tuple[str, int] = ("line", 0), extra_env: dict[str, str] | None = None) -> Run:
+                 out_format: tuple[str, int] = ("line", 0), extra_env: dict[str, str] | None = None,
+                 timeout: int = 120) -> Run:
     output_path = workdir / f"{label}.out"
     env = {**CLOCK_ENV, **(extra_env or {}), f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
-    proc = _exec(cmd, env=env, cwd=workdir)
+    proc = _exec(cmd, env=env, cwd=workdir, timeout=timeout)
     return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
 
 

@@ -11,7 +11,30 @@ from pathlib import Path
 from .verify import passes, validate_report, verify_sample
 
 
+def mutate_main(argv: list[str]) -> int:
+    from .mutate import DEFAULT_MAX_EXTRA, DEFAULT_MAX_MUTANTS, mutate_run
+
+    parser = argparse.ArgumentParser(prog="diocle_verifier mutate", description="Mutation testing of a certified run's Java.")
+    parser.add_argument("run_dir", type=Path)
+    parser.add_argument("--max-mutants", type=int, default=DEFAULT_MAX_MUTANTS)
+    parser.add_argument("--max-extra", type=int, default=DEFAULT_MAX_EXTRA, help="extra inputs for survivors (default 60)")
+    parser.add_argument("--seed", type=int, default=1026, help="selects the mutants; same seed, same mutants")
+    parser.add_argument("--random", type=int, default=1000, help="random inputs besides fixtures and boundaries")
+    args = parser.parse_args(argv)
+    report = mutate_run(args.run_dir, seed=args.seed, max_mutants=args.max_mutants, max_extra=args.max_extra,
+                        random_count=args.random)
+    (args.run_dir / "mutation-report.json").write_text(json.dumps(report, indent=2) + "\n")
+    c, a = report["counts"], report["augmented"]
+    print(f"{report['status']}: {c['killed']} killed, {c['survived']} survived, {c['notCompiled']} not compiled, "
+          f"{c['equivalentSuspected']} suspected equivalent, {c['timeout']} timeout, {c['error']} error "
+          f"(score {c['score']}); extra inputs killed {a['extraKills']} of {a['survivorsRerun']} survivors")
+    return 0 if report["status"] == "ok" else 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["mutate"]:
+        return mutate_main(argv[1:])
     parser = argparse.ArgumentParser(prog="diocle_verifier", description=__doc__)
     parser.add_argument("sample_dir", type=Path)
     parser.add_argument("--java-dir", type=Path, help="converted Java sources (default: the sample's javaConversion dir)")
