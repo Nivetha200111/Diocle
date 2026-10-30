@@ -19,7 +19,9 @@
       "type": "object",
       "required": ["initial"],
       "properties": {
-        "initial": { "type": "integer", "minimum": 0, "description": "Number of inputs the certified verification used (the ones every mutant is first run on)" }
+        "initial": { "type": "integer", "minimum": 0, "description": "Number of inputs every mutant is first run on" },
+        "seed": { "type": "integer", "description": "Seed those inputs were generated from" },
+        "seedSource": { "enum": ["certification", "default"], "description": "certification: the run's own certification seed. default: the run recorded none, so a fixed default seed was used; the inputs are then similar in kind to, but not the same as, the ones that certified it." }
       }
     },
     "counts": {
@@ -37,7 +39,7 @@
         "notRun": { "type": "integer", "minimum": 0, "description": "Selected but not processed because the wall-clock cap was reached" },
         "score": {
           "type": ["number", "null"], "minimum": 0, "maximum": 1,
-          "description": "(killed + timeout) / (killed + timeout + survived), over mutants that compiled and are not equivalent-suspected, by the INITIAL inputs only. null when that denominator is 0. A measure of how many seeded faults the inputs detected, not a probability that the translation is correct."
+          "description": "(killed + timeout) / (killed + timeout + survived), over mutants that compiled and are not equivalent-suspected, by the INITIAL inputs only. null when that denominator is 0. Timeouts count as detected (a certification run would also have failed on them). A measure of how many seeded faults the inputs detected, not a probability that the translation is correct."
         }
       }
     },
@@ -89,6 +91,7 @@
       }
     },
     "seconds": { "type": "number", "minimum": 0 },
+    "baselineSeconds": { "type": "number", "minimum": 0, "description": "How long the unmutated Java took on the initial inputs; mutant time limits derive from it" },
     "notes": {
       "type": "array",
       "items": { "type": "string" },

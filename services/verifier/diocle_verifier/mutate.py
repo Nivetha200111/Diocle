@@ -52,6 +52,8 @@ NOTES = [
     "or the change is harmless in a way the cheap rules cannot see.",
     "The score counts detected seeded faults among mutants that compiled and are not suspected equivalent, by the "
     "initial inputs only. It is not a confidence score and not the probability that the translation is correct.",
+    "A mutant that times out (it never finishes where the original does) counts as detected, because a certification "
+    "run would also have failed on it; the timeout count is reported separately.",
     "equivalent-suspected means only that the mutant's bytecode is identical to the certified Java's (a cheap "
     "deterministic rule); it is not a proof of equivalence, and mutants it misses count as survivors.",
     "The operators are a sample of realistic faults (comparison, arithmetic, rounding, truncation, scale, branch, "
@@ -338,6 +340,7 @@ def mutate_local(sample_dir: Path, java_dir: Path, *, seed: int = 1026, max_muta
     started = time.time()
     max_mutants = max(1, min(int(max_mutants), HARD_MAX_MUTANTS))
     max_extra = max(0, min(int(max_extra), HARD_MAX_EXTRA))
+    random_count = max(0, min(int(random_count), 1000))
     wall_clock = max(10, min(int(wall_clock), HARD_MAX_WALL_CLOCK))
     sample_dir, java_dir = Path(sample_dir).resolve(), Path(java_dir).resolve()
     meta = json.loads((sample_dir / "sample.json").read_text())
@@ -401,6 +404,7 @@ def mutate_local(sample_dir: Path, java_dir: Path, *, seed: int = 1026, max_muta
         base_code = _bytecode(base_work / "classes")
         timeout = mutant_timeout or int(min(30, max(10, 10 * baseline_seconds)))
         report["caps"]["mutantTimeoutSeconds"] = timeout
+        report["baselineSeconds"] = round(baseline_seconds, 2)
 
         mutants, generated = generate_mutants(java_dir, seed=seed, max_mutants=max_mutants)
         report["counts"]["generated"] = generated
@@ -431,9 +435,12 @@ def mutate_local(sample_dir: Path, java_dir: Path, *, seed: int = 1026, max_muta
                     entry.update(outcome="equivalent-suspected", note="bytecode identical to the certified Java")
                     continue
                 try:
-                    run = _run_program(cmd_m, dd, main_in, mdir / "run", "converted", out_format, env, timeout)
+                    try:
+                        run = _run_program(cmd_m, dd, main_in, mdir / "run", "converted", out_format, env, timeout)
+                    except subprocess.TimeoutExpired:  # once more, in case the machine was merely busy
+                        run = _run_program(cmd_m, dd, main_in, mdir / "run", "converted", out_format, env, timeout)
                 except subprocess.TimeoutExpired:
-                    entry.update(outcome="timeout", note=f"no result within {timeout} s")
+                    entry.update(outcome="timeout", note=f"no result within {timeout} s (twice)")
                     continue
                 killer = _detect(cases, original, run, out_fields, fmt)
                 if killer:
@@ -462,7 +469,6 @@ def mutate_local(sample_dir: Path, java_dir: Path, *, seed: int = 1026, max_muta
                 for entry, mu in survivors:
                     if time.time() > started + wall_clock:
                         break
-                    report["augmented"]["survivorsRerun"] += 1
                     mdir = work / f"mutx-{mu.id}"
                     try:
                         shutil.copytree(java_dir, mdir / "src")
@@ -471,13 +477,17 @@ def mutate_local(sample_dir: Path, java_dir: Path, *, seed: int = 1026, max_muta
                         target.write_text(text[: mu.start] + mu.replacement + text[mu.end :], encoding="utf-8", errors="surrogateescape")
                         (mdir / "run").mkdir()
                         cmd_m, _ = build_java(mdir / "src", main_class, mdir / "run")
+                        if cmd_m is None:  # not run, so neither killed nor still surviving
+                            entry.update(note="augmentation not run: the mutant failed to build again")
+                            continue
+                        report["augmented"]["survivorsRerun"] += 1
                         try:
-                            run = _run_program(cmd_m, dd, extra_in, mdir / "run", "converted", out_format, env, timeout) if cmd_m else None
+                            run = _run_program(cmd_m, dd, extra_in, mdir / "run", "converted", out_format, env, timeout)
                         except subprocess.TimeoutExpired:
                             entry.update(augmentedOutcome="killed", augmentedKilledBy="timeout")
                             report["augmented"]["extraKills"] += 1
                             continue
-                        killer = _detect(extra, original_x, run, out_fields, fmt) if run else None
+                        killer = _detect(extra, original_x, run, out_fields, fmt)
                         if killer:
                             entry.update(augmentedOutcome="killed", augmentedKilledBy=killer)
                             report["augmented"]["extraKills"] += 1
@@ -533,6 +543,10 @@ def mutate_run(run_dir: Path, *, seed: int = 1026, max_mutants: int = DEFAULT_MA
     report = mutate_sample(sample, run_dir / "java", seed=seed, max_mutants=max_mutants, max_extra=max_extra,
                            wall_clock=wall_clock, input_seed=int(run.get("certificationSeed") or 1026),
                            random_count=random_count)
+    report["inputs"]["seedSource"] = "certification" if run.get("certificationSeed") else "default"
+    if not run.get("certificationSeed"):
+        report["notes"].append("This run recorded no certification seed, so a default seed was used: the inputs are of the "
+                               "same kind as the certifying ones but not the same inputs.")
     report["runId"] = run_dir.name
     validate_report(report)
     return report
