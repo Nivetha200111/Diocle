@@ -288,6 +288,8 @@ def _smoke(client: ModelClient, guard_client: ModelClient | None) -> int:
 
 def _describe(e: BaseException) -> str:
     """Model-provider errors are published by type and HTTP status only: their messages can echo account details."""
+    if getattr(e, "plain_message", False):  # the verifier's own sentences (a program that never ends, a missing driver)
+        return str(e)[:400]
     return describe_error(e) if getattr(e, "status_code", None) else f"{type(e).__name__}: {str(e)[:300]}"
 
 
@@ -377,7 +379,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         if not anyway_on:
             raise
         return _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, translation, workspace,
-                                  f"the verifier could not run ({type(e).__name__})", cobol_repair)
+                                  (_describe(e) if getattr(e, "plain_message", False) else f"the verifier could not run ({type(e).__name__})"), cobol_repair)
     if first is not None:
         (run_dir / "initial-verification.json").write_text(json.dumps(first, indent=2) + "\n")
         s0 = first["summary"]

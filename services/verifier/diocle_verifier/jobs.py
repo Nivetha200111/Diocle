@@ -44,7 +44,7 @@ from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
-from .runners import CLOCK, CLOCK_ENV, Run, _exec, build_cobol, read_records, safe_env, write_records
+from .runners import CLOCK, CLOCK_ENV, Run, _exec, _exec_side, build_cobol, read_records, safe_env, write_records
 
 
 def _seed_free_dds(job: dict) -> set[str]:
@@ -122,7 +122,7 @@ def _run_original(sample_dir: Path, job: dict, dd_paths: dict[str, Path], work: 
                 break
             env = {f"DD_{dd}": str(dd_paths[(step["step"], dd)]) for dd in step["dds"]
                    if dd not in ("SYSIN", "SYSOUT")}
-            proc = _exec(cobol_cmd, env={**CLOCK_ENV, **env}, cwd=work)
+            proc = _exec_side("original", cobol_cmd, env={**CLOCK_ENV, **env}, cwd=work)
             cobol_run = Run(True, proc.returncode, proc.stdout, proc.stderr)
             for f in meta["files"]:
                 if f["direction"] == "output":

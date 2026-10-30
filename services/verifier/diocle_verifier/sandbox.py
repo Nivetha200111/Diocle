@@ -20,6 +20,7 @@ import base64
 import io
 import json
 import os
+import re
 import signal
 import stat
 import subprocess
@@ -32,6 +33,8 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+from .runners import VerifierUnavailable
 
 MAX_BUNDLE = 64 * 1024 * 1024  # bytes of sample + Java, packed
 MAX_REPORT = 64 * 1024 * 1024
@@ -93,6 +96,20 @@ def pack(sample_dir: Path, java_dir: Path | None, extra: dict[str, bytes] | None
     return buf.getvalue()
 
 
+PLAIN_PREFIX = "DIOCLE-PLAIN: "  # child stderr marker: what follows is a sentence for a person, not a traceback
+
+
+def _raise_sandbox_error(detail: str, code: int, cause: Exception):
+    """A sandbox error body is JSON {"error": ..., "plain": true?}; a plain one is raised verbatim."""
+    try:
+        body = json.loads(detail)
+        if isinstance(body, dict) and body.get("plain") and isinstance(body.get("error"), str):
+            raise VerifierUnavailable(body["error"][:400]) from cause
+    except ValueError:
+        pass
+    raise RuntimeError(f"sandbox: {detail}") from cause
+
+
 def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_count: int,
                   extra_cases: list | None) -> dict:
     job = {"bundle": base64.b64encode(pack(sample_dir, java_dir)).decode(), "java": java_dir is not None,
@@ -110,7 +127,7 @@ def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_cou
         except urllib.error.HTTPError as e:
             detail = e.read().decode(errors="replace")[:2000]
             if e.code != 503:
-                raise RuntimeError(f"sandbox: {detail}") from e
+                _raise_sandbox_error(detail, e.code, e)
             if time.time() > deadline:
                 raise Busy("the verification engine is busy; try again in a minute") from e
             time.sleep(3)
@@ -351,11 +368,26 @@ def run_job(job: dict, kind: str = "verify") -> dict:
             timer.cancel()
         if proc.returncode != 0 or len(out) > max_report:
             tail = (err[0] if err else b"").decode(errors="replace")[-1500:]
+            sentence = tail[len(PLAIN_PREFIX):] if tail.startswith(PLAIN_PREFIX) else ""
+            if _is_known_plain(sentence):  # the child's own sentence (no verdict possible): pass it on verbatim
+                raise VerifierUnavailable(sentence)
             raise RuntimeError(f"verifier failed (exit {proc.returncode}): {tail}")
         return json.loads(out)
     finally:
         _clean_up()
         _job_lock.release()
+
+
+
+_PLAIN_RE = re.compile(r"(the original program did not terminate within [0-9.]+ seconds, so there is nothing to compare against"
+                       r"|the converted Java did not terminate within [0-9.]+ seconds, so it cannot be certified)")
+
+
+def _is_known_plain(sentence: str) -> bool:
+    """Only the verifier's own fixed sentences count as plain messages. A program running as the same user could write
+    the marker into the child's stderr, so anything else (extra text, a different sentence) is treated as an ordinary error."""
+    from . import sqlrun
+    return bool(_PLAIN_RE.fullmatch(sentence)) or sentence == sqlrun.JDBC_MISSING
 
 
 def _job_env() -> dict[str, str]:
@@ -371,6 +403,7 @@ def _job_env() -> dict[str, str]:
 def _job_main() -> int:
     """Child: read the job on stdin, verify in a private directory, print the report on stdout."""
     from .inputs import Case
+    from .runners import ProgramTimeout, VerifierUnavailable
     from .verify import verify_sample
 
     params = json.loads(sys.stdin.buffer.read())
@@ -405,8 +438,12 @@ def _job_main() -> int:
             sys.stdout.write(json.dumps(run_local(work / "sample", params["examples"])))
             return 0
         cases = [Case(c["id"], c["source"], c["record"]) for c in params["extraCases"]]
-        report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
-                               random_count=params["randomCount"], extra_cases=cases or None)
+        try:
+            report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
+                                   random_count=params["randomCount"], extra_cases=cases or None)
+        except (ProgramTimeout, VerifierUnavailable) as e:  # say it plainly; no traceback in the parent's error text
+            sys.stderr.write(PLAIN_PREFIX + str(e))
+            return 1
     sys.stdout.write(json.dumps(report))
     return 0
 
@@ -425,7 +462,7 @@ class Handler(BaseHTTPRequestHandler):
         except Busy:
             self._send(503, {"error": "busy"})
         except (ValueError, KeyError, TypeError, tarfile.TarError, RuntimeError) as e:
-            self._send(400, {"error": str(e)[:800]})
+            self._send(400, {"error": str(e)[:800], **({"plain": True} if getattr(e, "plain_message", False) else {})})
 
     def _send(self, status: int, body: dict) -> None:
         data = json.dumps(body).encode()

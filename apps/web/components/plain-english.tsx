@@ -37,7 +37,7 @@ export function verdictSentence(run: Run): string {
   }
   if (run.certified) return `Certified${reported}, but this record has no held-out input counts to quote.`;
   if (counts) return `Not certified: the Java matched the original on only ${counts} held-out inputs.`;
-  const why = run.error ? ` The run record says: ${clip(run.error.replace(/\s+/g, " "), 160)}` : "";
+  const why = run.error ? ` The run record says: ${clip(run.error.replace(/\s+/g, " "), 320)}` : "";
   return `Not certified: the run ended before a comparison could be made.${why}`;
 }
 

@@ -9,6 +9,7 @@ this test never imports diocle_converter directly from the verifier's package).
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -23,7 +24,10 @@ from diocle_verifier.verify import validate_report
 
 ROOT = Path(__file__).resolve().parents[3]
 SAMPLE = ROOT / "samples" / "account-match"
-CONVERTER_PYTHON = ROOT / "services" / "converter" / ".venv" / "bin" / "python"
+# The job generator runs in a subprocess that must be able to import diocle_converter: the service's own venv, or
+# (single-venv setups such as scripts/test.sh and CI) the interpreter running this test when it has the converter.
+_SERVICE_PYTHON = ROOT / "services" / "converter" / ".venv" / "bin" / "python"
+CONVERTER_PYTHON = (Path(sys.executable) if importlib.util.find_spec("diocle_converter") is not None else _SERVICE_PYTHON)
 # A faithful Java port of samples/account-match/src/ACCTMTCH.cbl already exists in this repo (used to prove
 # multi-file verification): respects DIOCLE_COLLATION and propagates RETURN-CODE via System.exit(). The
 # sample's own java-conversion/Acctmtch.java is a DELIBERATELY naive fixture (ASCII key compare, no exit

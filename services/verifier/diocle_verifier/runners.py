@@ -18,6 +18,41 @@ class Run:
     output_files: dict[str, list[str]] = field(default_factory=dict)  # DD name -> records (multi-file runs)
 
 
+class VerifierUnavailable(RuntimeError):
+    """The verifier itself lacks something it needs (not a verdict on the program). The message is for a person."""
+
+    plain_message = True
+
+
+class ProgramTimeout(subprocess.TimeoutExpired):
+    """A program under test ran past the time limit. A TimeoutExpired (callers that tolerate one, such as mutation
+    testing, still do), but its message is the sentence a person should read, never the raw command line."""
+
+    plain_message = True
+
+    def __init__(self, side: str, cmd, timeout: float):
+        super().__init__(cmd, timeout)
+        self.side = side
+
+    def __str__(self) -> str:
+        n = int(self.timeout) if float(self.timeout).is_integer() else self.timeout
+        if self.side == "original":
+            return f"the original program did not terminate within {n} seconds, so there is nothing to compare against"
+        return f"the converted Java did not terminate within {n} seconds, so it cannot be certified"
+
+
+def side_of(label: str) -> str:
+    return "original" if label.startswith("original") else "converted"
+
+
+def _exec_side(side: str, cmd: list[str], **kw):
+    """_exec for running (not building) one side: a timeout becomes a ProgramTimeout that names the side."""
+    try:
+        return _exec(cmd, **kw)
+    except subprocess.TimeoutExpired as e:
+        raise ProgramTimeout(side, cmd, e.timeout) from None
+
+
 # Only what compilers and the programs need. Code we run (model-written Java, imported COBOL) must never
 # inherit secrets such as model API keys that the converter loads into its own environment.
 _ENV_ALLOW = ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "JAVA_HOME", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")
@@ -67,7 +102,7 @@ def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: 
                  timeout: int = 120) -> Run:
     output_path = workdir / f"{label}.out"
     env = {**CLOCK_ENV, **(extra_env or {}), f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
-    proc = _exec(cmd, env=env, cwd=workdir, timeout=timeout)
+    proc = _exec_side(side_of(label), cmd, env=env, cwd=workdir, timeout=timeout)
     return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
 
 
@@ -129,6 +164,6 @@ def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[
         paths[dd].write_bytes(seed.read_bytes())
     env = {**CLOCK_ENV, **(extra_env or {}), **{f"DD_{dd}": str(p) for dd, p in inputs.items()},
            **{f"DD_{dd}": str(p) for dd, p in paths.items()}}
-    proc = _exec(cmd, env=env, cwd=workdir, timeout=timeout)
+    proc = _exec_side(side_of(label), cmd, env=env, cwd=workdir, timeout=timeout)
     files = {dd: read_records(paths[dd], *outputs[dd]) for dd in outputs}
     return Run(True, proc.returncode, proc.stdout, proc.stderr, output_files=files)
