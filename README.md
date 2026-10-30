@@ -136,6 +136,21 @@ A stated subset of DB2-style embedded SQL (`db2-subset-1`: INCLUDE SQLCA, DECLAR
 - Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
 - Costs are estimates from list prices.
 
+## Coverage today: what Diocle verifies, and what it does not
+By kind of mainframe artifact, as of Oct 30, 2026 (also on the [Evidence page](https://diocle.vercel.app/evidence)). "In progress" means not merged or deployed yet; certified always means on the inputs tried.
+
+| Artifact | Status | What is checked | Limit |
+|---|---|---|---|
+| Sequential files (QSAM-style) | Verified | Outputs compared byte for byte, original on GnuCOBOL against the Java, plus 1,000 held-out inputs | On the inputs tried |
+| Copybooks (COPY, REPLACING) | Verified | Layouts come from the copybooks; verification and SQL schemas derive from them | Copybooks outside the repository refuse the program with a reason |
+| Static CALLs between programs | Verified | Called programs are translated together and linked into one executable | Dynamic CALLs and calls to programs not in the repository are refused |
+| JCL jobs | Partial | One SORT step feeding one COBOL step, with DD overrides: every final dataset compared | Runs through the converter's `run-job` command, not the web delivery flow; longer jobs, several SORT steps, COND-gated steps and IDCAMS are refused with a reason |
+| Embedded SQL (DB2) | Subset | A named subset (SELECT INTO, INSERT, UPDATE, DELETE, cursors, COMMIT, ROLLBACK, SQLCODE), final table contents compared | On a SQLite stand-in, never real DB2; dynamic SQL, joins and DB2-only clauses are refused |
+| Keyed files (VSAM KSDS-style) | In progress | A keyed-file subset compared by key order on GnuCOBOL's indexed-file handler | Refused today |
+| Whole-repository build check | In progress | Compile every converted program together; copybook drift and CALL signature mismatches | Each program is compiled and verified on its own today |
+| Hierarchical database (IMS DL/I) | Not supported | There is no free IMS runtime to compare against | Roadmap |
+| CICS online transactions | Not supported | Programs with EXEC CICS are refused with a reason | |
+
 ## Not supported yet
 - The whole-repository build check is a compile and interface check of the certified programs: it does not run them together, does not follow JCL step order or dataset wiring, and compares CALL argument lengths only for plain 01/77 items. Domain classes (`--domain-classes`) are compile-time only and experimental.
 - The live buttons convert one fixed program and read one fixed printout; there is no way to try your own code on the public site (use a visitor import, or run it locally). On the Convert button the guard model's review (Fireworks) is skipped by the $0.02 cap and says so in the run (`review failed: BudgetExceeded`); the verifier's result is unaffected.

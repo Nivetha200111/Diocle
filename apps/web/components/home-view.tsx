@@ -171,6 +171,41 @@ function Evidence({ go }: { go: Go }) {
   );
 }
 
+const COBOL_KEY = "diocle.whatIsCobol.open";
+
+// A 20-second primer for visitors who do not know COBOL. Open on a first visit; the choice is remembered (localStorage may
+// be unavailable, so every access is guarded and the box simply stays open).
+function WhatIsCobol() {
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(COBOL_KEY) === "closed") setOpen(false);
+    } catch { /* storage blocked: keep the default */ }
+  }, []);
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    try { window.localStorage.setItem(COBOL_KEY, next ? "open" : "closed"); } catch { /* ignore */ }
+  }
+  return (
+    <section className="panel cobol-primer" aria-label="What is COBOL">
+      <button type="button" className="cobol-primer-toggle" aria-expanded={open} aria-controls="cobol-primer-body" onClick={toggle}>
+        <strong>What is COBOL? (20 seconds)</strong>
+        <span aria-hidden="true">{open ? "hide" : "show"}</span>
+      </button>
+      {open && (
+        <p id="cobol-primer-body" className="cobol-primer-body">
+          COBOL is a programming language from 1959 that still runs the nightly <em>batch jobs</em> (programs that
+          process a whole day of records at once) at banks: adding interest, charging fees, posting transactions.
+          These programs are decades old and hold rules nobody fully remembers, so nobody wants to touch them. AI can
+          now rewrite one in Java in minutes; the risk is a silent wrong cent on some input. Diocle runs the old
+          program and the new Java on the same inputs and compares every byte.
+        </p>
+      )}
+    </section>
+  );
+}
+
 const STEPS: [string, React.ReactNode][] = [
   ["ANALYZE", <>Reads a mainframe library export: programs, <Term tip={GLOSSARY.copybook}>copybooks</Term>, <Term tip={GLOSSARY.JCL}>JCL</Term> and procedures. Derives every record layout byte by byte and flags behaviour a rewrite must keep.</>],
   ["CONVERT", <>Meta Muse Spark translates each program to Java. A repair agent, also Muse Spark, reads failures, patches, compiles and re-tests until it matches.</>],
@@ -202,6 +237,8 @@ export default function HomeView({ go }: { go: Go }) {
           </p>
         </div>
       </section>
+
+      <WhatIsCobol />
 
       <SampleHero go={go} />
 

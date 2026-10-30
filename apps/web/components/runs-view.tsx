@@ -6,6 +6,7 @@ import { API_URL, ASSURANCE_BADGE, callCostUsd, fetchRun, fetchRunSchema, fetchR
 import { AssuranceBadge, AssuranceNote } from "./assurance";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
+import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
 import { DatabasePanel } from "./database-panel";
 
@@ -484,6 +485,8 @@ function RunDetail({ run }: { run: Run }) {
           {SUPERSEDED[run.id] && <p className="dlv-reason">{SUPERSEDED[run.id]}</p>}
         </div>
       </div>
+
+      <PlainEnglishCard run={run} />
 
       <div className="stats-grid">
         <StatCard label="Before" tone="orange" icon={<ShieldAlert size={15} />}
