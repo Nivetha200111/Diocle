@@ -57,7 +57,7 @@ export const TRAPS: Trap[] = [
   {
     key: "jcl", title: "Whole JCL jobs: SORT step, then a COBOL step",
     what: "A batch job is JCL steps wired together by DD names; the SORT step's output file is the COBOL step's input.",
-    how: "The analyzer maps DD names (procs, symbolics, overrides) to datasets, and a job-level check runs one SORT step (SORT FIELDS= with character keys) feeding one COBOL step both ways. Jobs with three or more steps, several SORT steps, COND-gated steps, numeric sort keys, INCLUDE/OMIT and similar are reported as not convertible. This is a library function, not yet wired into the site, CLI or delivery flow.",
+    how: "The analyzer maps DD names (procs, symbolics, overrides) to datasets, and a job-level check runs one SORT step (SORT FIELDS= with character keys) feeding one COBOL step both ways. Jobs with three or more steps, several SORT steps, COND-gated steps, numeric sort keys, INCLUDE/OMIT and similar are reported as not convertible. It runs through the converter's run-job command, not through the site's delivery flow.",
     evidence: [{ kind: "doc", href: `${DOCS}/services/verifier/README.md#whole-jcl-job-verification-v1-one-sort-step-feeding-one-cobol-step`, label: "services/verifier/README.md: whole-JCL-job verification" }],
     note: "No live run on this site.",
   },
