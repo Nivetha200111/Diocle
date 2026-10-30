@@ -190,6 +190,23 @@ our code linked into the same process as untrusted COBOL (a hostile COBOL progra
 program it compiles); the Java side has no statement counter (only the job timeout bounds it); SQLite and the JDBC driver
 bundle different SQLite versions (the report states the verifier's); never run in the real container (see HANDOFF).
 
+**Keeping the converted Java honest (report v0.9).** (1) Every converted `.java` file except the verifier's own `DioSql.java` is
+checked before it runs (`sqlrun.check_java_source`): DriverManager, `jdbc:`, sqlite, Class.forName, ATTACH, PRAGMA, VACUUM,
+load_extension, `.db` names, DIOCLE_DB, ProcessBuilder, Runtime, reflection, non-ASCII text and unicode escapes are refused (also across
+string concatenation), and the refusal reaches the repair agent as the Java's build output. It is a speed bump: a determined author can
+build names at run time. (2) The Java runs FIRST, in its own directory, on its own copy of the seeded database; the original's database does
+not exist yet, so the Java cannot read or overwrite the answer it is compared with. The verifier hashes `seed.db` before and after the Java
+run and refuses to run the original (verification fails closed, reason in `runs.original.stderr`) if it changed or if the Java created the
+original's file. (3) The verifier itself opens both final databases for the dump; after the run each database file must be within the size
+cap (32 MB, `PRAGMA max_page_count` on both sides plus a check by the verifier), else a failing `database-check` result. (4) A program
+with INSERT/UPDATE/DELETE whose tables did not change from the seed on either side is NOT certified ("no write statement took effect on
+the inputs tried"); `runs.database.tables[].changedFromSeed` says per table and side. This is per table, not per statement. Seeding draws key
+columns from the input file only for the `keyLinks` the analyzer finds by name; a WHERE on a host variable the analyzer could not link may
+still never match, and then the no-effect rule fails the run rather than certifying it. Same uid in the job: the checks above and the sandbox
+(not file permissions) are the defence; a hostile Java that finds the original's directory after the COBOL run is not possible (nothing runs
+after it), but a Java that damages other files in /tmp is only contained by the container. **SQLCODE is compared only through its visible effects**
+(files, stdout, exit code, table contents): a SQLCODE the program never shows or acts on is not compared.
+
 **Run locally.** GnuCOBOL 3.2, a JDK, a C compiler with the SQLite headers (`libsqlite3-dev`; macOS has them in the SDK), and
 the JDBC driver: `export DIOCLE_SQLITE_JDBC=/path/to/sqlite-jdbc.jar` (or put it in `services/verifier/lib/sqlite-jdbc.jar`,
 gitignored). Then `python -m diocle_verifier ../../samples/db2-account-report`. Tests: `tests/test_sql.py` (skipped when

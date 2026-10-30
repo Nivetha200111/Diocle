@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -42,8 +43,39 @@ def build_cobol_sql(source: Path, copybook_dir: Path, workdir: Path, tables: lis
     return [str(exe)], None
 
 
+FORBIDDEN = (r"drivermanager", r"jdbc:", r"sqlite", r"class\s*\.\s*forname", r"forname", r"\battach\b", r"\bpragma\b",
+             r"\bvacuum\b", r"load_extension", r"\.db\b", r"seed\.db", r"original\.db", r"converted\.db", r"diocle_db",
+             r"processbuilder", r"\bruntime\b", r"classloader", r"\bgetmethod\b", r"\bsetaccessible\b", r"java\.lang\.reflect",
+             r"\bdatasource\b", r"org\.sqlite")
+
+
+class JavaRefused(ValueError):
+    pass
+
+
+def check_java_source(name: str, text: str) -> None:
+    """Static check of one converted source file (every file except the verifier's own DioSql.java): the Java must reach
+    the database only through DioSql. Matched case-insensitively on the text, on the text with string-literal
+    concatenation joined, and with every \\u escape refused; non-ASCII characters are refused outright. A speed bump
+    (a determined author can still build names at run time), backed by the sandbox and by the verifier's own checks of
+    the databases afterwards."""
+    if re.search(r"[^\x00-\x7f]", text) or "\\u" in text:
+        raise JavaRefused(f"{name}: non-ASCII characters and unicode escapes are refused in converted SQL programs")
+    joined = re.sub(r'"\s*\+\s*"', "", text)
+    for view in (text, joined):
+        low = view.lower()
+        for pattern in FORBIDDEN:
+            m = re.search(pattern, low)
+            if m:
+                raise JavaRefused(f"{name}: '{m.group(0)}' is refused: converted programs reach the database only through "
+                                  "DioSql.connect() and the java.sql statements on that connection")
+
+
 def stage_java(java_dir: Path, workdir: Path) -> Path:
     """A copy of the converted sources with the verifier's own DioSql.java over any file of that name."""
+    for path in sorted(java_dir.rglob("*.java")):
+        if path.name != "DioSql.java":
+            check_java_source(path.name, path.read_text(errors="replace"))
     dest = workdir / "java-src"
     if dest.exists():
         shutil.rmtree(dest)
@@ -56,7 +88,10 @@ def build_java_sql(java_dir: Path, main_class: str, workdir: Path) -> tuple[list
     jar = jdbc_jar()
     if jar is None:
         return None, Run(False, 1, "", "the SQLite JDBC driver (sqlite-jdbc.jar) is not installed: set DIOCLE_SQLITE_JDBC")
-    src = stage_java(java_dir, workdir)
+    try:
+        src = stage_java(java_dir, workdir)
+    except JavaRefused as e:
+        return None, Run(False, 1, "", f"refused before running: {e}")
     classes = workdir / "classes"
     classes.mkdir(exist_ok=True)
     build = _exec(["javac", "-proc:none", "-d", str(classes), *sorted(str(p) for p in src.rglob("*.java"))])

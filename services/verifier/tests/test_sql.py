@@ -340,3 +340,80 @@ def test_contract_old_valid_and_invalid_database_blocks():
            "runs": {"database": {"engine": "sqlite", "tables": [{"name": "T"}]}}}
     with pytest.raises(Exception):
         validate_report(bad)  # engine version, subset, seededFrom and per-table counts are required
+
+
+# --- the converted Java must not be able to reach, replace or fake the compared databases --------------------------
+
+def java_with(tmp_path, edit):
+    java = tmp_path / "java"
+    shutil.copytree(SAMPLE / "java-conversion", java)
+    src = (java / "Acctrpt.java").read_text()
+    new = edit(src)
+    assert new != src
+    (java / "Acctrpt.java").write_text(new)
+    return java
+
+
+@pytest.mark.parametrize("snippet", [
+    'java.sql.DriverManager.getConnection("jdbc:sqlite:x.db");',
+    'Files.copy(Path.of("../original.db"), Path.of("converted.db"));',
+    'Files.copy(Path.of("../orig" + "inal.d" + "b"), Path.of("x"));',
+    'c.createStatement().execute("ATT" + "ACH DATABASE \'x\' AS y");',
+    'c.createStatement().execute("pragma journal_mode=off");',
+    'System.getenv("DIOCLE" + "_DB");',
+    'Class.forName("org.sqlite.JDBC");',
+    'String s = "café";',
+])
+def test_java_that_bypasses_dioSql_is_refused_before_running(tmp_path, snippet):
+    java = java_with(tmp_path, lambda src: src.replace("Connection c = DioSql.connect();", "Connection c = DioSql.connect();\n        " + snippet, 1))
+    report = verify_sample(SAMPLE, java, seed=3, random_count=10)
+    assert not passes(report) and not report["runs"]["converted"]["compiled"]
+    assert "refused before running" in report["runs"]["converted"]["stderr"]
+
+
+@needs_engine
+def test_java_that_rewrites_the_verifiers_databases_fails_closed(tmp_path):
+    evil = ('for (java.io.File f : new java.io.File("..").listFiles()) { if (f.getName().endsWith("db")) '
+            'Files.write(f.toPath(), new byte[] {0}); }')
+    java = java_with(tmp_path, lambda src: src.replace("Connection c = DioSql.connect();", "Connection c = DioSql.connect();\n        " + evil, 1))
+    report = verify_sample(SAMPLE, java, seed=3, random_count=10)
+    assert not passes(report)
+    assert "changed the verifier's seed database" in report["runs"]["original"]["stderr"]
+
+
+@needs_engine
+def test_java_that_never_touches_the_database_does_not_certify(tmp_path):
+    java = java_with(tmp_path, lambda src: src.replace("try (var ps = c.prepareStatement(\"UPDATE", "if (false) try (var ps = c.prepareStatement(\"UPDATE", 1)
+                     .replace('try (var ps = c.prepareStatement("INSERT', 'if (false) try (var ps = c.prepareStatement("INSERT', 1))
+    report = verify_sample(SAMPLE, java, seed=3, random_count=30)
+    assert not passes(report)
+    assert any(r["outputDd"].startswith("table:") and not r["match"] for r in report["results"])
+
+
+@needs_engine
+def test_a_write_that_never_takes_effect_is_not_a_certificate(tmp_path):
+    cobol = MINI_COBOL.replace("""           PERFORM UNTIL WS-EOF = 'Y'""", """           PERFORM UNTIL WS-EOF = 'Y'
+               EXEC SQL UPDATE T SET V = 9 WHERE K = 'ZZZZ' END-EXEC
+               READ IN-FILE AT END MOVE 'Y' TO WS-EOF END-READ
+           END-PERFORM
+           MOVE 'Y' TO WS-EOF
+           PERFORM UNTIL WS-EOF = 'Z'""", 1)
+    cobol = cobol[:cobol.index("           PERFORM UNTIL WS-EOF = 'Z'")] + "           STOP RUN.\n"
+    java = ("import java.sql.*;\npublic class Mini {\n    public static void main(String[] a) throws Exception {\n"
+            "        Connection c = DioSql.connect();\n        try (PreparedStatement ps = c.prepareStatement(\"UPDATE T SET V = 900 WHERE K = 'ZZZZ'\")) { ps.executeUpdate(); }\n"
+            "        DioSql.commit(c);\n    }\n}\n")
+    root = mini_sample(tmp_path, cobol, java)
+    meta = json.loads((root / "sample.json").read_text())
+    meta["sql"]["writes"] = True
+    (root / "sample.json").write_text(json.dumps(meta))
+    report = verify_sample(root, seed=5, random_count=4)
+    assert not passes(report)
+    assert any("no write statement took effect" in r.get("diff", "") for r in report["results"])
+    assert report["runs"]["database"]["tables"][0]["changedFromSeed"] == {"original": False, "converted": False}
+
+
+@needs_engine
+def test_real_sample_reports_changed_tables():
+    report = verify_sample(SAMPLE, seed=4, random_count=30)
+    assert passes(report)
+    assert all(t["changedFromSeed"]["original"] for t in report["runs"]["database"]["tables"])

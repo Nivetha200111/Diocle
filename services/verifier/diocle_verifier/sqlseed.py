@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import random
-import shutil
 from pathlib import Path
 
 from . import sqldb
@@ -12,7 +11,7 @@ from .layout import load_fields, parse_record
 
 def seed_for_meta(meta: dict, sample_dir: Path, work: Path, data: dict[str, list[str]], seed: int,
                   input_specs: dict[str, dict]) -> dict[str, int]:
-    """Writes work/seed.db, copies it to work/original.db and work/converted.db, returns rows seeded per table.
+    """Writes work/seed.db (the caller copies it, once per side), returns rows seeded per table.
 
     sample.json `sql`: tables (the schema), keyLinks (input field <-> table column holding the same keys),
     seedRows {table: n} (override; 0 = empty, the default for tables the program only INSERTs into), columnValues
@@ -36,6 +35,4 @@ def seed_for_meta(meta: dict, sample_dir: Path, work: Path, data: dict[str, list
         count = min(count, sqldb.ROW_CAP)
         rows[t["name"]] = sqldb.generate_rows(t, rng, count, pool, sql.get("columnValues", {})) if count else []
     seeded = sqldb.seed_database(work / "seed.db", sql["tables"], rows)
-    for side in ("original", "converted"):
-        shutil.copyfile(work / "seed.db", work / f"{side}.db")
     return seeded

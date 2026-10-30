@@ -122,9 +122,17 @@ def dump_table(path: Path, table: dict) -> list[list[str]]:
         con.close()
 
 
-def compare_tables(original: Path, converted: Path, tables: list[dict], seeded: dict[str, int], program: str) -> tuple[list[dict], list[dict]]:
-    """(results, report tables): one result per table, value for value."""
+DB_CAP_BYTES = 8192 * 4096  # the page cap both sides set with PRAGMA max_page_count; checked again here
+
+
+def compare_tables(original: Path, converted: Path, tables: list[dict], seeded: dict[str, int], program: str,
+                   seed_db: Path | None = None, writes: bool = False, tamper: list[str] | None = None
+                   ) -> tuple[list[dict], list[dict]]:
+    """(results, report tables): one result per table, value for value. seed_db: the seeded database, to say per table
+    whether each side changed it. writes: the program has INSERT/UPDATE/DELETE; if no table changed on either side the
+    pass would be vacuous, so it fails. tamper: reasons the run is not trustworthy (fail closed)."""
     results, report = [], []
+    any_change = False
     for t in tables:
         names = [c["name"] for c in t["columns"]]
         try:
@@ -146,8 +154,16 @@ def compare_tables(original: Path, converted: Path, tables: list[dict], seeded: 
                          "converted": "(no row)" if rb is None else rb[k] if len(rb) > k else ""}
                 break
         match = first is None
-        report.append({"name": t["name"], "rowsSeeded": seeded.get(t["name"], 0), "rowsOriginal": len(a),
-                       "rowsConverted": len(b), "match": match, "firstMismatch": first})
+        entry = {"name": t["name"], "rowsSeeded": seeded.get(t["name"], 0), "rowsOriginal": len(a),
+                 "rowsConverted": len(b), "match": match, "firstMismatch": first}
+        if seed_db is not None:
+            try:
+                base = dump_table(seed_db, t)
+                entry["changedFromSeed"] = {"original": a != base, "converted": b != base}
+                any_change = any_change or a != base or b != base
+            except Exception:
+                pass
+        report.append(entry)
         result = {"program": program, "inputId": f"table:{t['name']}", "inputSource": "database",
                   "outputDd": f"table:{t['name']}", "match": match, "fieldDiffs": []}
         if not match:
@@ -160,6 +176,18 @@ def compare_tables(original: Path, converted: Path, tables: list[dict], seeded: 
             result["fieldDiffs"] = [{"field": f"{t['name']}.{first['column']}", "original": first["original"],
                                      "converted": first["converted"]}]
         results.append(result)
+    extra = []
+    for why in tamper or []:
+        extra.append(why)
+    for path in (original, converted):
+        if path.exists() and path.stat().st_size > DB_CAP_BYTES:
+            extra.append(f"database {path.name} grew past the {DB_CAP_BYTES // 2**20} MB cap")
+    if writes and seed_db is not None and not any_change and not extra:
+        extra.append("no write statement took effect on the inputs tried: no table differs from its seed on either side, so "
+                     "equal tables prove nothing")
+    for why in extra:
+        results.append({"program": program, "inputId": "database-check", "inputSource": "database", "outputDd": "database",
+                        "match": False, "fieldDiffs": [], "diff": why})
     return results, report
 
 

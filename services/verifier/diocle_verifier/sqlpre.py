@@ -76,7 +76,7 @@ def precompile(source: Path, copybook_dir: Path | None, tables: list[dict]) -> P
     lines = text.splitlines()
     ctx = _Ctx({t["name"]: Table.from_dict(t) for t in tables}, host_defs(expand_copies(text, members)))
     blocks = find_blocks(lines)
-    proc_line = next((i for i, l in enumerate(lines) if re.search(r"\bPROCEDURE\s+DIVISION\b", l[7:72]) and l[6:7] not in "*/"),
+    proc_line = next((i for i, l in enumerate(lines) if re.search(r"\bPROCEDURE\s+DIVISION\b", l[7:72], re.I) and l[6:7] not in "*/"),
                      len(lines))
     parsed: list[Stmt] = []
     for b in blocks:
