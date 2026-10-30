@@ -211,3 +211,36 @@ after it), but a Java that damages other files in /tmp is only contained by the 
 the JDBC driver: `export DIOCLE_SQLITE_JDBC=/path/to/sqlite-jdbc.jar` (or put it in `services/verifier/lib/sqlite-jdbc.jar`,
 gitignored). Then `python -m diocle_verifier ../../samples/db2-account-report`. Tests: `tests/test_sql.py` (skipped when
 cobc, javac or the driver are missing).
+
+## Keyed (INDEXED) files, on GnuCOBOL's indexed handler (report v0.10, subset `ksds-subset-1`)
+
+**What is verified.** Programs whose keyed files are in the subset (the analyzer's `keyed.py` is the one definition) run both
+sides from identical seed records; afterwards the final contents of every keyed file are compared record by record in key
+order (`runs.keyed`, one `keyed:DD` result, first mismatching key and kind: value / missing-in-converted / extra-in-converted),
+together with the output files, stdout and exit code. **The claim is exactly: equivalent on GnuCOBOL's INDEXED handler (Berkeley DB),
+for this subset of operations, on the inputs tried. It is not IBM VSAM** (no CI/CA splits, no alternate indexes, no locking, no IDCAMS).
+
+**The two sides.** The original runs on the real handler in its own directory. The Java runs on `dbsupport/DioKsds.java`, the
+verifier's own class (compiled over any file of that name in the conversion), which reproduces the handler's observable
+behaviour: FILE STATUS codes (00 10 21 22 23 35 41 42 43 46 47 48 49), unsigned byte-wise key order, START and READ NEXT
+positioning (including the quirks found by experiment: the first READ NEXT returns the record that was first when the file was opened, a
+failed START makes the next READ NEXT report 46, a WRITE does not move the position, a sequential REWRITE or DELETE needs the
+immediately preceding successful READ). `tests/test_ksds.py` runs randomised operation sequences (all three access modes, misuse
+included, also under `-fdefault-colseq=EBCDIC`) on the real handler and on DioKsds and requires identical statuses and records. A sequential
+REWRITE that changes the key is outside the subset (the real handler deletes and re-inserts); DioKsds throws, so such a Java fails.
+**Key order:** the handler orders keys by raw bytes whatever the collating sequence, so the Java must too (the translator prompt says so).
+
+**Seeding and comparison.** `ksds.py` makes unique keys (boundary keys such as all spaces, zeros, nines, `A`, `Z`, `a`, `z`; keys with leading
+characters that sort differently in ASCII and EBCDIC), derives records from the layout (PIC boundaries and seeded random values), and
+links transaction fields (`sample.json` `ksds.keyLinks`, set by the analyzer from names and widths) to the keys: about half present in the
+seed, 40% absent. The original's keyed file is built and read back by small COBOL programs the verifier generates (`ksds-tools`), so the Python
+side never parses the Berkeley DB format; the Java keeps plain fixed-length records in key order.
+
+**Anti-tamper, as for SQL.** The Java runs first in its own directory on its own copy; inputs, seeds, the COBOL source, modules and copybooks are
+hashed around the run and any change fails closed; strays (`original`, `*.kf`, `ksds-tools`) fail closed; the Java is statically refused if it
+names a keyed file's DD, a `.kf` or `kseed` path, or uses reflection, processes, native code or `java.net` (a speed bump: a determined
+author can build names at run time; the sandbox is the boundary); sizes are capped (20,000 records, 16 MB). A program that writes keyed
+records where neither side's file differs from its seed is not certified.
+
+**Not covered:** alternate keys, duplicates, RELATIVE files, locking, OPEN EXTEND, READ PREVIOUS, START `<`/`<=`, group/signed/packed keys, multiple OPEN modes of one file,
+DECLARATIVES, keyed files together with EXEC SQL, IDCAMS and real VSAM behaviour (record length changes, CI/CA splits, free space).
