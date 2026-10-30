@@ -12,6 +12,7 @@ import re
 
 from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
 from .risks import find_risks
+from .sqlsubset import SUBSET_VERSION, SqlFacts, analyze_sql, parse_ddl
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "analysis-report.schema.json"
 COBOL_SUFFIXES = {".cbl", ".cob", ".cobol"}
@@ -86,6 +87,10 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                 out.append(by_name[callee][0].relative_to(root).as_posix())
                 out += modules_of(callee, seen)
         return out
+    ddl_tables = [t for p in sorted(root.rglob("*.sql")) if ".git" not in p.parts
+                  for t in parse_ddl(p.read_text(errors="replace"), p.relative_to(root).as_posix())]
+    sql_members = {name: (path.read_text(errors="replace"), path.relative_to(root).as_posix())
+                   for name, path in copybooks.items()}
     procs = {proc.name: proc for p in jcl_members for proc in parse_procs(p.read_text(errors="replace"))}
     steps = [s for p in jcl_members for s in parse_jcl(p.read_text(errors="replace"), p.relative_to(root).as_posix(), procs)]
     programs, dependencies, findings = [], [], []
@@ -124,18 +129,21 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                            if layout and layout.as_dict() else None),
                 **({"unsupported": layout.unsupported} if layout and layout.unsupported else {}),
             })
-        reason = _not_convertible(files, info.copybooks, copybooks, info, program_ids)
+        sql = analyze_sql(text, sql_members, ddl_tables) if "SQL" in info.exec_blocks else None
+        reason = _not_convertible(files, info.copybooks, copybooks, info, program_ids, sql)
+        includes = sql.includes if sql else []
         programs.append({
             "name": info.name,
             "path": path.relative_to(root).as_posix(),
-            "copybooks": list(dict.fromkeys(info.copybooks + module_copybooks)),
+            "copybooks": list(dict.fromkeys(info.copybooks + module_copybooks + includes)),
             "copybookPaths": {c: copybooks[c].relative_to(root).as_posix()
-                              for c in dict.fromkeys(info.copybooks + module_copybooks) if c in copybooks},
+                              for c in dict.fromkeys(info.copybooks + module_copybooks + includes) if c in copybooks},
             "modules": modules,
             "job": step.member if step else None,
             **({"resolvedCalls": info.resolved_calls} if info.resolved_calls else {}),
+            **({"sql": sql.as_dict()} if sql else {}),
             "files": [{k: v for k, v in f.items() if k != "unsupported"} for f in files],
-            **({"displayOnly": True} if _display_only(reason, files) else {}),
+            **({"displayOnly": True} if _display_only(reason, files) and info.stdout_display else {}),
             "convertible": reason is None,
             "notConvertibleReason": reason,
         })
@@ -244,12 +252,22 @@ def _display_only(reason: str | None, files: list[dict]) -> bool:
     return reason is None and not any(f["direction"] in ("output", "io") for f in files)
 
 
-def _not_convertible(files: list[dict], used: list[str], available: dict[str, Path], info, program_ids: set[str]) -> str | None:
+def _writes_tables(sql: SqlFacts | None) -> bool:
+    return bool(sql and any(s.kind in ("insert", "update", "delete") for s in sql.statements))
+
+
+def _not_convertible(files: list[dict], used: list[str], available: dict[str, Path], info, program_ids: set[str],
+                     sql: SqlFacts | None = None) -> str | None:
     missing = [c for c in used if c not in available]
     if missing:
         return f"copybook(s) not found: {', '.join(missing)}"
+    unsupported = [b for b in info.exec_blocks if b != "SQL"]
+    if unsupported:
+        return f"EXEC {'/'.join(unsupported)} needs a transaction adapter, not supported (CICS and IMS are out of scope)"
     if info.exec_blocks:
-        return f"EXEC {'/'.join(info.exec_blocks)} needs a database or transaction adapter, not supported yet"
+        if sql is None or sql.refusal:
+            return (f"EXEC SQL outside the verified subset ({SUBSET_VERSION}): "
+                    + (sql.refusal if sql else "not understood"))
     if info.dynamic_calls:
         return f"dynamic CALL through {', '.join(info.dynamic_calls)}: the called program is only known at run time"
     unknown = [c for c in info.calls if c not in program_ids]
@@ -269,7 +287,7 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
     if lines:
         return f"file(s) {', '.join(lines)} opened I-O must be ORGANIZATION SEQUENTIAL (fixed records)"
     if not outputs and not updated:
-        if not info.stdout_display:
+        if not info.stdout_display and not _writes_tables(sql):
             return "writes no output file to compare"
         if info.console_input:
             return "ACCEPT reads the console: a DISPLAY-only program is compared on stdout, and its console input cannot be varied"
@@ -336,6 +354,31 @@ def _write_anyway_meta(sample: Path, report: dict, program: dict, source_name: s
     return sample
 
 
+def _sample_sql(program: dict, inputs: list[dict]) -> dict:
+    """sample.json `sql`: the schema the verifier seeds, and which input fields hold the same keys as table columns
+    (so generated input files find some rows and miss others)."""
+    facts = program["sql"]
+    links = []
+    for table in facts["tables"]:
+        for column in table["columns"]:
+            if column["type"] not in ("CHAR", "VARCHAR"):
+                continue
+            want = column["name"].replace("_", "-")
+            for f in inputs:
+                for field in f["layout"]["fields"]:
+                    if (field["kind"] == "alnum" and not field.get("redefines") and field["length"] <= column.get("length", 0)
+                            and (field["name"] == want or field["name"].split("-", 1)[-1] == want)):
+                        links.append({"dd": f["dd"], "field": field["name"], "table": table["name"], "column": column["name"]})
+    kinds: dict[str, set[str]] = {}
+    for st in facts["statements"]:
+        for t in st.get("tables", []):
+            if st["kind"] != "declare-table":
+                kinds.setdefault(t, set()).add(st["kind"])
+    insert_only = {t: 0 for t, k in kinds.items() if k == {"insert"}}  # nothing reads it: seeded empty, no key collisions
+    return {"subset": SUBSET_VERSION, "tables": facts["tables"], "keyLinks": links,
+            **({"seedRows": insert_only} if insert_only else {})}
+
+
 def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path:
     """Materialize one convertible program as a Diocle sample directory (the converter's input format)."""
     root = root.resolve()
@@ -357,7 +400,8 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
     inputs = [f for f in program["files"] if f["direction"] == "input"]
     outputs = [f for f in program["files"] if f["direction"] == "output"]
     updated = [f for f in program["files"] if f["direction"] == "io"]
-    single = len(inputs) == 1 and len(outputs) == 1 and not updated and not program.get("displayOnly")
+    single = (len(inputs) == 1 and len(outputs) == 1 and not updated and not program.get("displayOnly")
+              and not program.get("sql"))
     by_direction = {f["direction"]: f for f in program["files"]}
     meta = {
         "name": program["name"].lower(),
@@ -377,6 +421,7 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                            for f in inputs + updated + outputs],
                  **shared_keys(inputs)}),
         **({"displayOnly": True} if program.get("displayOnly") else {}),
+        **({"sql": _sample_sql(program, inputs)} if program.get("sql") else {}),
         "import": {"repository": report["source"]["location"], "commit": report["source"].get("commit"),
                    "path": program["path"], "job": program.get("job")},
     }
