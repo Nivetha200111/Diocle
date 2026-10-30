@@ -21,7 +21,9 @@ minimized input and the bytes GnuCOBOL's output was; `replay` runs it against an
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -42,6 +44,32 @@ DEFAULT_MAX_SECONDS = 120.0
 RUN_TIMEOUT = 30  # seconds for one program run; a hung side counts as not failing
 RECORD_SHARE = 0.6  # of the run cap for record-level reduction; the rest is for fields
 EXPLANATION_LABEL = "explanation, not proof"
+
+
+class Refused(RuntimeError):
+    """The reduction or replay was not started: it builds and runs programs, which never happens on the API host when a
+    verification sandbox is configured, and never on Java the static policy would not run."""
+
+
+def refuse_if_sandboxed() -> None:
+    """Same rule as claims.py and precheck.py: with DIOCLE_SANDBOX_URL set (outside the sandbox itself), nothing is
+    built or run here."""
+    if os.environ.get("DIOCLE_SANDBOX_URL") and not os.environ.get("DIOCLE_IN_SANDBOX"):
+        raise Refused("a verification sandbox is configured (DIOCLE_SANDBOX_URL): minimize and replay build and run "
+                      "programs locally and are not routed through it")
+
+
+def static_java_policy(java_dir: Path, dd_names: tuple[str, ...]) -> None:
+    """The converter guard's deterministic Java policy (only DD files, the clock, collation and printing) before the
+    Java is built or run. The verifier does not own that policy, so it is imported; if it cannot be, nothing runs."""
+    try:
+        from diocle_converter.guard import check_before_running
+    except ImportError as e:
+        raise Refused("the static Java policy (diocle_converter.guard) is not importable, so the Java is not run") from e
+    try:
+        check_before_running(Path(java_dir), dd_names)
+    except Exception as e:
+        raise Refused(str(e)[:500]) from e
 
 
 class CapReached(Exception):
@@ -102,7 +130,9 @@ class Oracle:
         self.dd = meta["dd"]
         self._cache: dict[tuple, Outcome] = {}
         self._tmp = tempfile.TemporaryDirectory(prefix="diocle-minimize-")
-        self.work = Path(self._tmp.name)
+        self.work = Path(self._tmp.name)  # the COBOL side's directory (executable, its output)
+        self.java_work = self.work / "java-run"  # the Java side's own cwd: it never shares a directory with the COBOL's files
+        self.java_work.mkdir()
         self.build_error = ""
         self._cobol = self._java = None
 
@@ -119,16 +149,16 @@ class Oracle:
         if failed:
             self.build_error = "COBOL did not build: " + failed.stderr[-300:]
             return False
-        self._java, failed = build_java(self.java_dir, meta["javaConversion"]["mainClass"], self.work)
+        self._java, failed = build_java(self.java_dir, meta["javaConversion"]["mainClass"], self.java_work)
         if failed:
             self.build_error = "Java did not build: " + failed.stderr[-300:]
             return False
         return True
 
-    def _side(self, cmd, label, input_path, extra_env=None) -> Run:
+    def _side(self, cmd, label, input_path, extra_env=None, cwd=None) -> Run:
         try:
             run = run_files(cmd, {self.dd["input"]: input_path}, {self.dd["output"]: (self.out_format, self.out_length)},
-                            self.work, label, extra_env, timeout=RUN_TIMEOUT)
+                            cwd or self.work, label, extra_env, timeout=RUN_TIMEOUT)
         except Exception:  # a hung or crashed side is "no output", never a spurious agreement
             return Run(True, -9, "", "", [])
         run.output_lines = run.output_files[self.dd["output"]]
@@ -146,9 +176,12 @@ class Oracle:
         self.runs += 1
         path = self.work / "input.dat"
         write_records(path, list(records), self.in_format)
+        digest = _sha(path)
         original = self._side(self._cobol, "original", path)
         converted = self._side(self._java, "converted", path,
-                               {"DIOCLE_COLLATION": self.meta.get("collation", "ascii").upper()})
+                               {"DIOCLE_COLLATION": self.meta.get("collation", "ascii").upper()}, self.java_work)
+        if _sha(path) != digest:  # residual-risk tripwire: a program rewrote the shared input between or during the runs
+            raise Refused("a program modified the shared input file during the differential run; the result is not trusted")
         cases = [Case(f"r{i + 1}", "minimize", r) for i, r in enumerate(records)]
         results = compare(cases, original.output_lines, converted.output_lines, self.out_fields, self.out_format)
         sig = signature(original, converted, results, self.strict)
@@ -162,6 +195,10 @@ class Oracle:
 
 
 # --- record level ----------------------------------------------------------------------------------------------
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
 
 def ddmin(items: list, test: Callable[[list], bool], state: dict | None = None) -> list:
     """Zeller's ddmin: a sublist (order kept) for which test() is still true and that is 1-minimal when it
@@ -379,15 +416,17 @@ def _bytes_of(records: list[str], fmt: str) -> int:
 
 def minimize(sample_dir: Path, java_dir: Path, case_id: str, contexts: list[list[str]], *, source: str = "manual",
              hint: list[str] | None = None, max_runs: int = DEFAULT_MAX_RUNS, max_seconds: float = DEFAULT_MAX_SECONDS,
-             explanation: dict | None = None, out_dir: Path | None = None, strict: bool = False,
+             explanation: dict | None = None, out_dir: Path | None = None, strict: bool = False, origin: str = "",
              now: Callable[[], float] = time.monotonic) -> dict:
     """Reduce the first context (a list of input records) on which the Java differs from the COBOL.
     contexts: candidate starting inputs, tried in order; hint: records to try alone first (e.g. the failing inputs
     the report names). With out_dir, the regression case is written to out_dir/regression/<case_id>/.
     Returns a minimal-reproducer record (status minimized | not-reproduced | unsupported)."""
+    refuse_if_sandboxed()
     sample_dir, java_dir = Path(sample_dir).resolve(), Path(java_dir).resolve()
     meta = json.loads((sample_dir / "sample.json").read_text())
-    base = {"version": VERSION, "id": case_id, "program": meta.get("program", sample_dir.name), "source": source}
+    base = {"version": VERSION, "id": case_id, "program": meta.get("program", sample_dir.name), "source": source,
+            "signatureMode": "strict" if strict else "fields", **({"origin": origin[:300]} if origin else {})}
 
     def done(status: str, reason: str, runs: int = 0, elapsed: float = 0.0) -> dict:
         return {**base, "status": status, "reason": reason,
@@ -398,6 +437,8 @@ def minimize(sample_dir: Path, java_dir: Path, case_id: str, contexts: list[list
     if "layouts" not in meta or is_multi(meta):
         return done("unsupported", "the minimizer handles programs with one input file and one output file compared "
                     "record by record; this program has several files, an SQL or keyed file, or DISPLAY-only output")
+    if "layouts" in meta:
+        static_java_policy(java_dir, tuple(meta["dd"].values()))  # before anything is built or run
     oracle = Oracle(sample_dir, java_dir, meta, max_runs=max_runs, max_seconds=max_seconds, strict=strict, now=now)
     try:
         if not oracle.build():
@@ -521,18 +562,22 @@ def write_regression(run_dir: Path, case_id: str, meta: dict, oracle: Oracle, re
 def replay(case_dir: Path, java_dir: Path) -> dict:
     """Run one saved regression case against a Java directory: same input, DD wiring, clock and collation as when it
     was saved; passes only if every output record, stdout and the exit code equal what GnuCOBOL produced."""
+    refuse_if_sandboxed()
     case_dir, java_dir = Path(case_dir), Path(java_dir)
     case = json.loads((case_dir / "case.json").read_text())
     out = {"id": case["id"], "passed": False, "detail": ""}
+    static_java_policy(java_dir, tuple(case["dd"].values()))
+    saved = {n: _sha(case_dir / n) for n in (case["input"]["file"], case["expected"]["file"], case["expected"]["stdout"], "case.json")}
     with tempfile.TemporaryDirectory(prefix="diocle-replay-") as tmp:
-        work = Path(tmp)
+        work = Path(tmp) / "java-run"  # the Java's own scratch directory; the input copy sits beside it, not in it
+        work.mkdir()
         cmd, failed = build_java(java_dir, case["mainClass"], work)
         if failed:
             return {**out, "detail": "Java did not build: " + failed.stderr[-300:]}
         exp = case["expected"]
         fmt, length = exp["format"], exp["recordLength"]
         dd_in, dd_out = case["dd"]["input"], case["dd"]["output"]
-        input_path = work / "input.dat"
+        input_path = work.parent / "input.dat"
         input_path.write_bytes((case_dir / case["input"]["file"]).read_bytes())
         try:
             run = run_files(cmd, {dd_in: input_path}, {dd_out: (fmt, length)}, work, "replay",
@@ -545,6 +590,8 @@ def replay(case_dir: Path, java_dir: Path) -> dict:
         diff = first_difference(want, got, fields, fmt)
         want_out = (case_dir / exp["stdout"]).read_bytes().decode("latin-1")
         problems = []
+        if saved != {n: _sha(case_dir / n) for n in saved} or _sha(input_path) != saved[case["input"]["file"]]:
+            problems.append("the Java modified the saved case files")
         if run.exit_code != exp["exitCode"]:
             problems.append(f"exit code {run.exit_code}, GnuCOBOL gave {exp['exitCode']}")
         if diff:
@@ -557,7 +604,10 @@ def replay(case_dir: Path, java_dir: Path) -> dict:
 
 
 def replay_all(run_dir: Path, java_dir: Path) -> list[dict]:
+    refuse_if_sandboxed()
     root = Path(run_dir) / "regression"
+    if root.is_symlink():
+        return []
     return [replay(d, java_dir) for d in sorted(root.iterdir()) if (d / "case.json").is_file()] if root.is_dir() else []
 
 
@@ -627,6 +677,7 @@ def minimize_run(run_dir: Path, case_id: str, *, sample_dir: Path | None = None,
                  max_runs: int = DEFAULT_MAX_RUNS, max_seconds: float = DEFAULT_MAX_SECONDS,
                  strict: bool = False, from_report: bool = False) -> dict:
     """Minimize one case of a saved run and save runs/<id>/reproducers/<case>.json plus regression/<case>/."""
+    refuse_if_sandboxed()
     run_dir = Path(run_dir).resolve()
     run = json.loads((run_dir / "run.json").read_text())
     root = Path(__file__).resolve().parents[3]

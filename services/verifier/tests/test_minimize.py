@@ -8,6 +8,7 @@ The end-to-end tests run the real harness (GnuCOBOL + JDK) on samples/interest-a
 
 import json
 import shutil
+import tempfile
 from decimal import Decimal
 from pathlib import Path
 
@@ -20,7 +21,11 @@ from diocle_verifier.__main__ import main as cli
 ROOT = Path(__file__).resolve().parents[3]
 SAMPLE = ROOT / "samples" / "interest-accrual"
 NAIVE = SAMPLE / "java-conversion"
-REFERENCE = Path(__file__).parent / "fixtures" / "reference"
+_REFERENCE_ALL = Path(__file__).parent / "fixtures" / "reference"
+# only this program's reference Java: the folder also holds other programs' Java, which the static policy rightly
+# refuses to run for interest-accrual's DD names
+REFERENCE = Path(tempfile.mkdtemp(prefix="diocle-ref-"))
+shutil.copy(_REFERENCE_ALL / "IntAccr.java", REFERENCE / "IntAccr.java")
 toolchain = pytest.mark.skipif(not (shutil.which("cobc") and shutil.which("javac")), reason="needs GnuCOBOL and a JDK")
 
 LAYOUT = {"record": "R", "format": "line", "fields": [
@@ -320,3 +325,58 @@ def test_the_schema_rejects_an_explanation_without_the_label_and_unknown_fields(
 def test_published_example_validates():
     for path in (ROOT / "contracts" / "examples").glob("minimal-reproducer*.json"):
         mz.validate(json.loads(path.read_text()))
+
+
+# --- refusals: sandbox rule, static Java policy, shared-file tripwire ------------------------------------------
+
+def test_nothing_is_built_or_run_when_a_sandbox_is_configured(monkeypatch, tmp_path):
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://sandbox")
+    monkeypatch.delenv("DIOCLE_IN_SANDBOX", raising=False)
+    with pytest.raises(mz.Refused, match="sandbox"):
+        mz.minimize(SAMPLE, NAIVE, "x", [["r"]])
+    with pytest.raises(mz.Refused):
+        mz.replay(tmp_path, NAIVE)
+    with pytest.raises(mz.Refused):
+        mz.replay_all(tmp_path, NAIVE)
+    assert cli(["minimize", str(tmp_path), "--case", "x"]) == 2
+    assert cli(["replay", str(tmp_path), "--java-dir", str(NAIVE)]) == 2
+    monkeypatch.setenv("DIOCLE_IN_SANDBOX", "1")
+    mz.refuse_if_sandboxed()  # inside the sandbox itself it is allowed
+
+
+def _hostile_java(tmp_path):
+    d = tmp_path / "hostile"
+    d.mkdir()
+    (d / "Intaccr.java").write_text('public class Intaccr { public static void main(String[] a) throws Exception '
+                                    '{ Runtime.getRuntime().exec("ls"); } }\n')
+    return d
+
+
+def test_java_the_policy_blocks_is_refused_before_it_is_built_or_run(tmp_path):
+    hostile = _hostile_java(tmp_path)
+    with pytest.raises(mz.Refused, match="refused to run"):
+        mz.minimize(SAMPLE, hostile, "x", [["r"]])
+    case = tmp_path / "case"
+    case.mkdir()
+    (case / "case.json").write_text(json.dumps({"id": "x", "dd": {"input": "A", "output": "B"}}))
+    with pytest.raises(mz.Refused, match="refused to run"):
+        mz.replay(case, hostile)
+    assert not list(hostile.glob("*.class"))
+
+
+def test_without_the_policy_module_nothing_runs(monkeypatch, tmp_path):
+    import sys
+    monkeypatch.setitem(sys.modules, "diocle_converter.guard", None)  # makes the import fail
+    with pytest.raises(mz.Refused, match="not importable"):
+        mz.static_java_policy(NAIVE, ("A", "B"))
+
+
+@toolchain
+def test_signature_mode_is_recorded_and_strict_keeps_the_values(failing_batch):
+    batch, _ = failing_batch
+    loose = mz.minimize(SAMPLE, NAIVE, "m1", [batch])
+    strict = mz.minimize(SAMPLE, NAIVE, "m2", [batch], strict=True, origin="test double origin")
+    mz.validate(loose)
+    mz.validate(strict)
+    assert loose["signatureMode"] == "fields" and strict["signatureMode"] == "strict"
+    assert "origin" not in loose and strict["origin"] == "test double origin"

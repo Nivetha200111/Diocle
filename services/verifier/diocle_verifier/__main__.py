@@ -28,11 +28,15 @@ def _minimize_main(argv: list[str]) -> int:
     parser.add_argument("--strict", action="store_true",
                         help="also keep the exact differing values (no drift to a different manifestation)")
     args = parser.parse_args(argv)
+    from .minimize import Refused
     try:
         r = minimize_run(args.run_dir, args.case, sample_dir=args.sample_dir, java_dir=args.java_dir,
                          max_runs=args.max_runs, max_seconds=args.max_seconds, strict=args.strict, from_report=args.from_report)
     except KeyError as e:
         print(e.args[0], file=sys.stderr)
+        return 2
+    except Refused as e:
+        print(f"REFUSED: {e}", file=sys.stderr)
         return 2
     red = r["reduction"]
     if r["status"] != "minimized":
@@ -53,12 +57,17 @@ def _replay_main(argv: list[str]) -> int:
     parser.add_argument("case_dir", type=Path)
     parser.add_argument("--java-dir", type=Path, required=True)
     args = parser.parse_args(argv)
-    if (args.case_dir / "case.json").is_file():
-        results = [replay(args.case_dir, args.java_dir)]
-    elif (args.case_dir / "regression").is_dir():
-        results = replay_all(args.case_dir, args.java_dir)
-    else:
-        results = [replay(d, args.java_dir) for d in sorted(args.case_dir.iterdir()) if (d / "case.json").is_file()]
+    from .minimize import Refused
+    try:
+        if (args.case_dir / "case.json").is_file():
+            results = [replay(args.case_dir, args.java_dir)]
+        elif (args.case_dir / "regression").is_dir():
+            results = replay_all(args.case_dir, args.java_dir)
+        else:
+            results = [replay(d, args.java_dir) for d in sorted(args.case_dir.iterdir()) if (d / "case.json").is_file()]
+    except Refused as e:
+        print(f"REFUSED: {e}", file=sys.stderr)
+        return 2
     for r in results:
         print(f"{'PASS' if r['passed'] else 'FAIL'}  {r['id']}: {r['detail']}")
     if not results:
