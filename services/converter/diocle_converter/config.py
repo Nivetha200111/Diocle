@@ -124,8 +124,8 @@ class Settings:
         )
 
     def for_document(self) -> tuple["Settings", "DocCaps"]:
-        """Settings and hard caps for the verified-documentation call (--document): the run's own host and key and the
-        default (cheap contributor) model unless DOC_MODEL_ID / DOC_MODEL_BASE_URL / DOC_MODEL_API_KEY say otherwise.
+        """Settings and hard caps for the verified-documentation call (--document): the run's own host, key and model
+        (the cheap contributor model in hosted mode by default) unless DOC_MODEL_ID / DOC_MODEL_BASE_URL / DOC_MODEL_API_KEY say otherwise.
         Raises ValueError for a malformed cap; the caller skips the feature rather than failing the run."""
         load_dotenv()
         caps = DocCaps(max_calls=int(os.environ.get("DOC_MAX_CALLS", "2")), max_usd=float(os.environ.get("DOC_MAX_USD", "0.10")),

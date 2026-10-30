@@ -153,9 +153,13 @@ def check_expected(expected: dict, fields: list[Field]) -> str | None:
     return None
 
 
-def _flat(text: str, limit: int = 200) -> str:
-    """One printable line: whitespace collapsed, control characters dropped (nothing can start a new line in a reader)."""
-    return " ".join("".join(ch for ch in text if ch.isprintable() or ch.isspace()).split())[:limit]
+_CONTROLS = {c: " " for c in [*range(0, 32), *range(127, 160)]}
+
+
+def flat(text: str, limit: int = 200) -> str:
+    """One line: control characters (newlines, tabs, escapes) become spaces and runs of whitespace collapse, so no
+    text can start a new line or a new section in a reader."""
+    return " ".join(str(text).translate(_CONTROLS).split())[:limit]
 
 
 def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
@@ -187,14 +191,14 @@ def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
     if "outputRecordCount" in expected and expected["outputRecordCount"] != count:
         mismatches.append({"what": "number of output records", "expected": str(expected["outputRecordCount"]), "actual": str(count)})
     if "stdoutContains" in expected and expected["stdoutContains"] not in run["stdout"]:
-        mismatches.append({"what": "stdout", "expected": f"contains {_flat(expected['stdoutContains'])!r}",
-                           "actual": _flat(run["stdout"], 200)})
+        mismatches.append({"what": "stdout", "expected": f"contains {flat(expected['stdoutContains'])!r}",
+                           "actual": flat(run["stdout"], 200)})
     if "returnCode" in expected and expected["returnCode"] != run["returnCode"]:
         mismatches.append({"what": "return code", "expected": str(expected["returnCode"]), "actual": str(run["returnCode"])})
     if mismatches:
         return {"status": "differed", "actual": actual, "mismatches": mismatches[:20], "reason": ""}
     if run["returnCode"] != 0 and "returnCode" not in expected:
-        err = _flat(run.get("stderr", ""), 120)
+        err = flat(run.get("stderr", ""), 120)
         return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": (
             f"the program ended with return code {run['returnCode']} and the example does not expect that"
             + (f" (it printed: {err})" if err else ""))}

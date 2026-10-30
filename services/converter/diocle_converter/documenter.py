@@ -42,8 +42,9 @@ Every claim has 1 to 3 examples, and each example is a concrete test:
   Each record names EVERY input field.
 - expectedRecords: the output records you expect, in order, as field values. Name only the output fields the claim is
   about; others are not compared. Write the expected number the way it would print at the output field's decimals.
-- optionally expectedRecordCount (-1 if not stated), expectedStdoutContains ("" if not stated), expectedReturnCode
-  (-1 if not stated).
+- expectedRecordCount, expectedStdoutContains and expectedReturnCode: null when you do not state them (0 is a real
+  value: zero records, return code 0). A claim must compare at least one output field value or stdout text; a count
+  or a return code alone does not count as checking it.
 Include BOUNDARY examples: values exactly at a threshold, one unit either side of it, zero, the field maximum, and
 exact rounding ties. Work the arithmetic out carefully from the COBOL before you state an expected value.
 
@@ -73,9 +74,9 @@ SCHEMA = {
                         "properties": {
                             "inputs": {"type": "array", "items": _PAIRS},
                             "expectedRecords": {"type": "array", "items": _PAIRS},
-                            "expectedRecordCount": {"type": "integer"},
-                            "expectedStdoutContains": {"type": "string"},
-                            "expectedReturnCode": {"type": "integer"},
+                            "expectedRecordCount": {"type": ["integer", "null"]},
+                            "expectedStdoutContains": {"type": ["string", "null"]},
+                            "expectedReturnCode": {"type": ["integer", "null"]},
                         },
                         "required": ["inputs", "expectedRecords", "expectedRecordCount", "expectedStdoutContains",
                                      "expectedReturnCode"],
@@ -134,16 +135,17 @@ def _expected(example: dict) -> dict:
     if isinstance(count, int) and not isinstance(count, bool) and count >= 0:
         expected["outputRecordCount"] = count
     text = example.get("expectedStdoutContains")
-    if isinstance(text, str) and text:
-        expected["stdoutContains"] = text[:200]
+    if isinstance(text, str) and text.strip():
+        expected["stdoutContains"] = verifier.flat(text)
     code = example.get("expectedReturnCode")
-    if isinstance(code, int) and not isinstance(code, bool) and code >= 0:
+    if isinstance(code, int) and not isinstance(code, bool):
         expected["returnCode"] = code
     return expected
 
 
 def _clip(values: dict | None) -> dict:
-    return {str(k)[:60]: (v if isinstance(v, str) else "<not a string>")[:200] for k, v in (values or {}).items()}
+    return {verifier.flat(k, 60): verifier.flat(v, 200) if isinstance(v, str) else "<not a string>"
+            for k, v in (values or {}).items()}
 
 
 def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Callable[[dict], None] = lambda e: None,
@@ -160,13 +162,17 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
     in_fields, out_fields = load_fields(meta["layouts"]["input"]), load_fields(meta["layouts"]["output"])
     messages = _prompt(program, in_fields, out_fields)
     price = PRICES[model]
-    worst = (sum(len(m["content"]) for m in messages) / 3 * price[0] + caps.max_output_tokens * price[2]) / 1e6
+
+    def worst_case() -> float:  # recomputed per round: round 2 re-sends the first reply and the correction
+        return (sum(len(m["content"]) for m in messages) / 3 * price[0] + caps.max_output_tokens * price[2]) / 1e6
+
+    worst = worst_case()
     if worst > caps.max_usd:
         return _empty(program.name, model, f"one call could cost up to ${worst:.3f}, over the ${caps.max_usd:.2f} cap")
 
     proposed, spent = None, 0.0
     for round_no in range(1, caps.max_calls + 1):
-        if round_no > 1 and spent + worst > caps.max_usd:
+        if round_no > 1 and spent + worst_case() > caps.max_usd:
             on_event({"type": "behavior", "message": "Documenter: no second call, it could pass the dollar cap"})
             break
         try:
@@ -213,16 +219,18 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
             else:
                 to_run.append({"id": eid, "records": records})
             examples.append(entry)
-        built.append({"id": f"C{ci}", "statement": raw["statement"].strip()[:400], "status": "unchecked", "examples": examples})
+        built.append({"id": f"C{ci}", "statement": verifier.flat(raw["statement"], 400), "status": "unchecked", "examples": examples})
 
     runs: dict[str, dict] = {}
     if to_run:
         try:
             runs = {r["id"]: r for r in run_original(program.sample_dir, to_run)}
         except Exception as e:  # sandbox down or busy: the examples are unchecked, nothing is guessed
+            busy = type(e).__name__ == "Busy"
             on_event({"type": "behavior", "message": f"Documenter: the verifier could not run the examples ({type(e).__name__})"})
-            runs = {x["id"]: {"id": x["id"], "ran": False, "records": [], "stdout": "", "returnCode": None,
-                              "error": "the verifier could not run the original COBOL"} for x in to_run}
+            runs = {x["id"]: {"id": x["id"], "ran": False, "records": [], "recordCount": 0, "stdout": "", "stderr": "",
+                              "returnCode": None, "error": "the verification engine was busy, so the examples were not run"
+                              if busy else "the verifier could not run the original COBOL"} for x in to_run}
     for claim in built:
         for entry in claim["examples"]:
             run = runs.get(entry["id"])
@@ -241,29 +249,67 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
             "summary": verifier.summarize(built), "claims": built, "usage": short}
 
 
+_SPECIAL = "\\`*_[]<>#|&!"
+
+
+def _esc(text) -> str:
+    """Plain text for Markdown: one line, and nothing in it can open a heading, a tag, a link or a list."""
+    return "".join("\\" + ch if ch in _SPECIAL else ch for ch in verifier.flat(text, 400))
+
+
+def _code(text) -> str:
+    return "`" + verifier.flat(text, 400).replace("`", "'") + "`"
+
+
+def _fields(values: dict) -> str:
+    return "  ".join(f"{k}={v}" for k, v in values.items())
+
+
+def _expected_lines(e: dict) -> list[str]:
+    lines = [f"record {i}: {_fields(r)}" for i, r in enumerate(e.get("records", []), 1)]
+    if "outputRecordCount" in e:
+        lines.append(f"{e['outputRecordCount']} output record(s)")
+    if e.get("stdoutContains"):
+        lines.append(f'stdout contains "{e["stdoutContains"]}"')
+    if "returnCode" in e:
+        lines.append(f"return code {e['returnCode']}")
+    return lines
+
+
+def _actual_lines(a: dict, shown: int) -> list[str]:
+    lines = [f"record {i}: {_fields(r)}" for i, r in enumerate((a.get("records") or [])[: max(shown, 1)], 1)]
+    if a.get("outputRecordCount") is not None:
+        lines.append(f"{a['outputRecordCount']} output record(s)")
+    if a.get("returnCode") is not None:
+        lines.append(f"return code {a['returnCode']}")
+    return lines
+
+
 def to_markdown(doc: dict) -> str:
-    """The spec as Markdown, badges included. The same wording rules as the dashboard."""
+    """The spec as Markdown, badges included. Every model-written or program-written value is flattened to one line and
+    escaped or put in backticks. apps/web/lib/behavior-markdown.ts produces the same text (tests compare both to a golden)."""
     s = doc["summary"]
-    lines = [f"# Behaviour spec: {doc['program']}", "",
+    lines = [f"# Behaviour spec: {_esc(doc['program'])}", "",
              f"{s['confirmed']} of {s['claims']} claims confirmed on the examples tried "
              f"({s['refuted']} refuted, {s['unchecked']} unchecked).", "",
-             f"Written by {doc['model']}; every example was run on the original COBOL ({doc['checkedWith']}). "
-             "GnuCOBOL decided, not the model. \"Confirmed\" means the examples tried matched, not that the claim is proven.", ""]
+             f"Written by {_code(doc['model'])}; every example was run on the original COBOL ({_code(doc['checkedWith'])}). "
+             "GnuCOBOL decided, not the model. The examples' stated expectations held on GnuCOBOL; the sentence of a claim "
+             "is not itself machine-checked. \"Confirmed\" means the examples tried matched, not that the claim is proven.", ""]
     if doc.get("skipped"):
-        return "\n".join(lines + [f"Not written: {doc['skipped']}", ""])
+        return "\n".join(lines + [f"Not written: {_esc(doc['skipped'])}", ""])
     for c in doc["claims"]:
-        lines += [f"## {c['id']} [{c['status'].upper()}] {c['statement']}", ""]
+        lines += [f"## {_esc(c['id'])} [{c['status'].upper()}] {_esc(c['statement'])}", ""]
         if c.get("reason"):
-            lines += [f"Unchecked: {c['reason']}", ""]
+            lines += [f"Unchecked: {_esc(c['reason'])}", ""]
         for e in c["examples"]:
-            lines.append(f"- {e['id']} [{e['status'].upper()}]")
-            lines.append(f"  - input: {json.dumps(e['inputs'])}")
-            lines.append(f"  - expected: {json.dumps(e['expected'])}")
+            lines.append(f"- {_esc(e['id'])} [{e['status'].upper()}]")
+            lines.append(f"  - input: {_code(' | '.join(_fields(r) for r in e['inputs']))}")
+            lines.append(f"  - expected: {_code('; '.join(_expected_lines(e['expected'])))}")
             if e.get("actual") is not None:
-                lines.append(f"  - actual: {json.dumps({k: v for k, v in e['actual'].items() if k != 'stdout'})}")
+                lines.append(f"  - actual (GnuCOBOL): {_code('; '.join(_actual_lines(e['actual'], len(e['expected'].get('records', [])))))}")
             for m in e.get("mismatches", []):
-                lines.append(f"  - differed at {m['what']}: expected {m['expected']}, GnuCOBOL produced {m['actual']}")
+                lines.append(f"  - differed at {_code(m['what'])}: expected {_code(m['expected'])}, GnuCOBOL produced {_code(m['actual'])}")
             if e.get("reason"):
-                lines.append(f"  - unchecked: {e['reason']}")
+                lines.append(f"  - unchecked: {_esc(e['reason'])}")
         lines.append("")
     return "\n".join(lines)

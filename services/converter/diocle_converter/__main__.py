@@ -546,6 +546,20 @@ def _crosscheck(program, workspace, client, verify, agent, standing_cases, outco
     return outcome, result
 
 def _document(program, client, settings, run_dir, on_event):
+    """Never raises: see _document_inner. Whatever fails becomes a `skipped` result."""
+    from .documenter import _empty
+
+    try:
+        return _document_inner(program, client, settings, run_dir, on_event)
+    except Exception as e:  # the settings, the writes, the Markdown: nothing here may fail a finished run
+        try:
+            on_event({"type": "behavior", "message": f"Verified documentation unavailable: {type(e).__name__}"})
+        except Exception:
+            pass
+        return _empty(program.name, "", f"unavailable: {type(e).__name__}")
+
+
+def _document_inner(program, client, settings, run_dir, on_event):
     """Verified documentation (documenter.py). Like the cross-check it must never fail a run: whatever goes wrong
     becomes a `skipped` reason. Its model calls (own cap) are merged into the run's usage. Returns the behavior object."""
     from .documenter import document, to_markdown, _empty
@@ -578,8 +592,11 @@ def _document(program, client, settings, run_dir, on_event):
         else f"Verified documentation skipped: {result['skipped']}")
         + (f" ({u.get('calls')} calls, {u.get('inputTokens')} in / {u.get('outputTokens')} out tokens, "
            f"est. ${u.get('estimatedCostUsd')})" if u else "")})
-    _atomic_write(run_dir / "behavior.json", result)
-    (run_dir / "behavior.md").write_text(to_markdown(result))
+    try:  # the files are a convenience: the result still goes into run.json if they cannot be written
+        _atomic_write(run_dir / "behavior.json", result)
+        (run_dir / "behavior.md").write_text(to_markdown(result))
+    except Exception as e:
+        on_event({"type": "behavior", "message": f"Verified documentation: could not write behavior files ({type(e).__name__})"})
     return result
 
 

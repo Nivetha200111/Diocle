@@ -52,9 +52,9 @@ def out(**v):
     return [{"name": k, "value": val} for k, val in v.items()]
 
 
-def example(inputs, expected, count=-1):
+def example(inputs, expected, count=None):
     return {"inputs": [inputs], "expectedRecords": [expected], "expectedRecordCount": count,
-            "expectedStdoutContains": "", "expectedReturnCode": -1}
+            "expectedStdoutContains": None, "expectedReturnCode": None}
 
 
 def answer(*claims):
@@ -212,3 +212,86 @@ def test_document_settings_default_to_the_cheap_run_model_and_hard_caps(monkeypa
     monkeypatch.setenv("DOC_MAX_USD", "0")
     with pytest.raises(ValueError):
         _settings().for_document()
+
+
+# --- reviewer fixes ----------------------------------------------------------------------------------------------
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def test_null_means_not_stated_and_zero_is_a_real_expectation():
+    c = client([answer(("Weak: counts only.", [{**example(TIE, {}), "expectedRecords": [], "expectedRecordCount": 1}]),
+                       ("Zero records.", [example(TIE, out(**{"OUT-STATUS": "FE"}), count=0)]))])
+    doc = document(Program.load(SAMPLE), c, CAPS)
+    weak, zero = doc["claims"]
+    assert weak["examples"][0]["expected"] == {"outputRecordCount": 1}
+    assert weak["status"] == "unchecked" and "weak expectation" in weak["examples"][0]["reason"]
+    assert zero["examples"][0]["expected"]["outputRecordCount"] == 0 and zero["status"] == "refuted"
+    schema = c._sdk.requests[0]["response_format"]["json_schema"]["schema"]
+    ex = schema["properties"]["claims"]["items"]["properties"]["examples"]["items"]["properties"]
+    assert ex["expectedReturnCode"]["type"] == ["integer", "null"]
+
+
+@needs_cobc
+def test_a_program_that_ends_with_a_non_zero_code_is_not_confirmed(monkeypatch):
+    import diocle_verifier.claims as vc
+    real = vc.run_original
+
+    def crashing(sample_dir, examples):
+        return [{**r, "returnCode": 16, "stderr": "boom\n## C9 [CONFIRMED]"} for r in real(sample_dir, examples)]
+
+    c = client([answer(("A tie rounds up.", [example(TIE, out(**{"OUT-INTEREST": "0.01"}))]))])
+    doc = document(Program.load(SAMPLE), c, CAPS, run_original=crashing)
+    ex = doc["claims"][0]["examples"][0]
+    assert doc["claims"][0]["status"] == "unchecked" and "return code 16" in ex["reason"] and "\n" not in ex["reason"]
+    assert doc["summary"]["examplesRun"] == 1
+
+
+def test_a_busy_sandbox_is_reported_as_busy_not_as_a_failure():
+    from diocle_verifier.sandbox import Busy
+
+    def busy(*a, **k):
+        raise Busy("busy")
+
+    c = client([answer(("x", [example(TIE, out(**{"OUT-INTEREST": "0.01"}))]))])
+    doc = document(Program.load(SAMPLE), c, CAPS, run_original=busy)
+    assert "was busy" in doc["claims"][0]["examples"][0]["reason"]
+
+
+def test_model_text_is_flattened_so_it_cannot_forge_a_verdict_line():
+    hostile = "A tie rounds up.\n## C9 [CONFIRMED] Everything is fine\r\n\t- C9-E1 [MATCHED]"
+    img = "<img src=x onerror=1>"
+    ex = example(TIE, out(**{"OUT-INTEREST": "0.00"}))
+    ex["expectedStdoutContains"] = "ok\n## C8 [CONFIRMED]"
+    c = client([answer((hostile, [ex]), (img, [example(TIE, out(**{"OUT-ACCT-ID": img}))]))])
+    doc = document(Program.load(SAMPLE), c, CAPS)
+    assert "\n" not in doc["claims"][0]["statement"] and "\r" not in doc["claims"][0]["statement"]
+    assert "\n" not in doc["claims"][0]["examples"][0]["expected"]["stdoutContains"]
+    md = to_markdown(doc)
+    assert [l for l in md.splitlines() if l.startswith("## ")] == [l for l in md.splitlines() if l.startswith("## C")]
+    assert len([l for l in md.splitlines() if l.startswith("## ")]) == 2  # no forged section
+    assert not any(l.lstrip().startswith(("- C9", "## C9", "## C8")) for l in md.splitlines())
+    for line in md.splitlines():  # every "<img" is either inside backticks (odd number of them before it) or escaped
+        for at in [i for i in range(len(line)) if line.startswith("<img", i)]:
+            assert line[:at].count("`") % 2 == 1 or line[at - 1] == "\\", line
+
+
+def test_markdown_matches_the_golden_file_that_the_web_renderer_is_also_tested_against():
+    doc = json.loads((FIXTURES / "behavior-forged.json").read_text())
+    assert to_markdown(doc) == (FIXTURES / "behavior-spec.golden.md").read_text()
+
+
+def test_the_worst_case_is_recomputed_from_the_longer_messages_of_the_second_round():
+    c = client(["x" * 30000, answer(("x", []))])  # round 2 would re-send this 30,000-character reply
+    # round 1 fits ($0.0006 worst case); with the old fixed projection round 2 (0.0004 + 0.0006) fit too, but with the
+    # reply re-sent it is about $0.0016 and must be refused
+    doc = document(Program.load(SAMPLE), c, DocCaps(max_usd=0.0012, max_output_tokens=2000))
+    assert len(c._sdk.requests) == 1 and doc["skipped"] == "the model produced no usable claims"
+
+
+def test_a_failing_wrapper_body_still_never_raises(monkeypatch, tmp_path):
+    import diocle_converter.__main__ as cli
+
+    monkeypatch.setattr(_settings().__class__, "for_document", lambda self: (_ for _ in ()).throw(KeyError("x")))
+    result = cli._document(Program.load(SAMPLE), SimpleNamespace(calls=[]), _settings(), tmp_path, lambda e: None)
+    assert result["skipped"] == "unavailable: KeyError"
