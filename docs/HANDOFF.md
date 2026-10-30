@@ -359,6 +359,12 @@ github.com/openmainframeproject/cobol-programming-course (EXEC SQL ones correctl
   **CBL0013 and CBL0014 certified** (DISPLAY-only, one run each, 10 and 5 model calls), **CBL0015 not certified because it loops forever**
   (the engine reports a verifier traceback; open work: report "the original never terminates" in plain words). Spend $0.0074.
 
+### Oct 30: DB2 verifier tested in a local Docker image (colima, arm64), not yet on the engine
+- `deploy/Dockerfile.api` builds; sqlite-jdbc 3.46.1.3 exists on Maven Central and is now pinned by SHA-256 (the SHA-1 and MD5 matched the ones Maven publishes; there is no .sha256 file there, so the old default would have failed the build).
+- A sandbox container started with the production flags (read-only rootfs, tmpfs /tmp exec 384m, cap_drop ALL + SETUID/SETGID/KILL, no-new-privileges, pids 256, 768m, 1 cpu), driven over its HTTP service: `db2-account-report` PASS 434/434 with the Java from the real run (ACCOUNTS 259 rows, AUDIT 193 rows, both changed from the seed); Java that references DriverManager/jdbc:sqlite is refused before it runs.
+- Not covered: the engine's amd64 build (the Mac is arm64; sqlite-jdbc bundles both natives, but the first server build is the real check), the uid switch to `nobody` was exercised by the sandbox server in this run but not inspected, and nothing was run against real DB2.
+- To deploy: `deploy/update-engine.sh` (rebuilds image and sandbox), then verify `samples/db2-account-report` against the server sandbox.
+
 ## Open work (priority order)
 - **Plan for Oct 29 to Nov 1: CLAUDE.md, "Current priority"** (item 1 is built on the branch above, awaiting a reviewer pass,
   a merge and one real model run per new sample; dependencies: display-only and I-O programs,
