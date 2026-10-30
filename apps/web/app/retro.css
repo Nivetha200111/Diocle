@@ -1131,3 +1131,6 @@ a.nav-item {
 .claim p { margin: 4px 0; }
 .claim[data-claim-status="refuted"] p strong { color: #a00000; }
 .behavior-refuted .panel-heading h2 { color: #a00000; }
+.claim .data-table { table-layout: fixed; width: 100%; }
+.claim .data-table td.mono, .claim .data-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.claim .data-table th:first-child, .claim .data-table td:first-child { width: 78px; }
