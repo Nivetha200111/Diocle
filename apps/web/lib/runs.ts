@@ -315,7 +315,7 @@ export type Mutant = {
 };
 export type MutationReport = {
   version: string; runId?: string | null; program?: string | null; status: "ok" | "unsupported" | "baseline-failed"; reason?: string | null;
-  seed: number; inputs: { initial: number };
+  seed: number; inputs: { initial: number; seed?: number; seedSource?: "certification" | "default" };
   counts: { generated: number; run: number; killed: number; survived: number; notCompiled: number; equivalentSuspected: number;
             timeout: number; error: number; notRun: number; score: number | null };
   mutants: Mutant[];
