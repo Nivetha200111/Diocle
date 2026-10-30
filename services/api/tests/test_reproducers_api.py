@@ -74,3 +74,15 @@ def test_regression_case_download_is_the_four_files(client):
 
 def test_the_endpoints_are_get_only(client):
     assert client.post(f"/runs/{RUN}/reproducers").status_code == 405
+
+
+def test_symlinked_folders_are_not_followed(client, tmp_path):
+    outside = tmp_path / "outside"
+    shutil_target = tmp_path / RUN / "regression"
+    import shutil
+    shutil.move(str(shutil_target), str(outside))
+    shutil_target.symlink_to(outside)
+    assert client.get(f"/runs/{RUN}/reproducers/{EXAMPLE['id']}/regression").status_code == 404
+    shutil.rmtree(tmp_path / RUN / "reproducers")
+    (tmp_path / RUN / "reproducers").symlink_to(tmp_path / "outside")
+    assert client.get(f"/runs/{RUN}/reproducers").json()["reproducers"] == []

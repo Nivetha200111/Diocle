@@ -15,7 +15,7 @@ from pathlib import Path
 from . import runs
 
 MAX_FILES = 20
-MAX_REPRODUCER_BYTES = 512 * 1024
+MAX_REPRODUCER_BYTES = 128 * 1024
 MAX_CASE_FILE_BYTES = 128 * 1024
 CASE_FILES = ("case.json", "input.dat", "expected-output.dat", "expected-stdout.txt")
 
@@ -38,6 +38,8 @@ def run_reproducers(run_id: str) -> dict | None:
         return None
     found = []
     folder = path / "reproducers"
+    if folder.is_symlink():
+        return {"runId": run_id, "reproducers": []}
     for f in sorted(folder.glob("*.json"))[:MAX_FILES] if folder.is_dir() else []:
         try:
             if f.is_symlink() or f.stat().st_size > MAX_REPRODUCER_BYTES:
@@ -54,6 +56,8 @@ def regression_case(run_id: str, case_id: str) -> dict | None:
     """The saved regression case for a download: its four files, text as text and bytes as base64."""
     path = _run_path(run_id)
     if path is None or not runs.RUN_ID.match(case_id):
+        return None
+    if (path / "regression").is_symlink() or (path / "regression" / case_id).is_symlink():
         return None
     folder = path / "regression" / case_id
     files = []
