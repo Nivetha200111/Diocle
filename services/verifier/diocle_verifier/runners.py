@@ -63,10 +63,11 @@ def write_records(path: Path, records: list[str], fmt: str = "line") -> None:
 
 
 def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: Path, label: str,
-                 out_format: tuple[str, int] = ("line", 0), extra_env: dict[str, str] | None = None) -> Run:
+                 out_format: tuple[str, int] = ("line", 0), extra_env: dict[str, str] | None = None,
+                 timeout: int = 120) -> Run:
     output_path = workdir / f"{label}.out"
     env = {**CLOCK_ENV, **(extra_env or {}), f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
-    proc = _exec(cmd, env=env, cwd=workdir)
+    proc = _exec(cmd, env=env, cwd=workdir, timeout=timeout)
     return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
 
 
@@ -118,7 +119,8 @@ def build_java(src_dir: Path, main_class: str, workdir: Path) -> tuple[list[str]
 
 
 def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[str, int]], workdir: Path, label: str,
-              extra_env: dict[str, str] | None = None, seeds: dict[str, Path] | None = None) -> Run:
+              extra_env: dict[str, str] | None = None, seeds: dict[str, Path] | None = None,
+              timeout: int = 120) -> Run:
     """Run with every DD bound: inputs DD -> file, outputs DD -> (format, record length). Outputs land per DD.
     seeds: files opened I-O. Each run gets its own copy of the seed at the DD's path (the program updates it in
     place), and the file's final contents are read back like an output."""
@@ -127,6 +129,6 @@ def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[
         paths[dd].write_bytes(seed.read_bytes())
     env = {**CLOCK_ENV, **(extra_env or {}), **{f"DD_{dd}": str(p) for dd, p in inputs.items()},
            **{f"DD_{dd}": str(p) for dd, p in paths.items()}}
-    proc = _exec(cmd, env=env, cwd=workdir)
+    proc = _exec(cmd, env=env, cwd=workdir, timeout=timeout)
     files = {dd: read_records(paths[dd], *outputs[dd]) for dd in outputs}
     return Run(True, proc.returncode, proc.stdout, proc.stderr, output_files=files)

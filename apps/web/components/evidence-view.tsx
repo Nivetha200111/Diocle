@@ -5,7 +5,9 @@ import { ExternalLink } from "lucide-react";
 import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, MODELS, SAMPLE_RUN } from "@/lib/config";
 import { fetchRuns, isInterrupted, type RunListItem } from "@/lib/runs";
 import { Skeleton, Term } from "./ui";
+import { TRAPS, type Evidence } from "@/lib/cobol-traps";
 import ScoreboardPanel from "./scoreboard-panel";
+import CoverageMatrix from "./coverage-matrix";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
@@ -19,13 +21,22 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
     fetchRuns().then(setRuns).catch(() => { setRuns([]); setFailed(true); });
   }, []);
   const kept = runs ?? [];
-  const certified = kept.filter((r) => r.certified).length;
+  const certified = kept.filter((r) => r.certified && !r.sampleRun).length;  // live sample runs are listed, not counted
   const interrupted = kept.filter((r) => isInterrupted(r)).length;
   const spend = kept.reduce((n, r) => n + (r.efficiency.estimatedCostUsd ?? 0), 0);
   const privateRun = runs?.find((r) => r.model === MODELS.open && r.certified);
   const open = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     openRun(id);
+  };
+  const known = new Set((runs ?? []).map((r) => r.id));
+  const evidenceLink = (ev: Evidence) => {
+    if (ev.kind === "run") {
+      // Link a run only if this engine lists it right now; otherwise say so rather than offer a dead link.
+      if (!known.has(ev.id)) return <span>{ev.label} <span className="mono">({ev.id})</span>{runs === null ? "" : " (not on this engine right now)"}</span>;
+      return <a href={runLink(ev.id)} onClick={open(ev.id)}>{ev.label} <span className="mono">({ev.id})</span></a>;
+    }
+    return <a href={ev.href} {...(ev.kind === "doc" ? { target: "_blank", rel: "noreferrer" } : {})}>{ev.label}</a>;
   };
   return (
     <>
@@ -108,7 +119,9 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </section>
       </div>
 
-      <section className="panel">
+      <CoverageMatrix />
+
+      <section className="panel" id="course-import">
         <div className="panel-heading">
           <div>
             <h2>A public course repository, imported by a visitor</h2>
@@ -148,6 +161,29 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           </p>
         </section>
       )}
+
+      <section className="panel cobol-traps" id="for-cobol-people">
+        <div className="panel-heading">
+          <div>
+            <h2>For COBOL people</h2>
+            <p>Traps that make a plausible Java port wrong, and what Diocle does about each. &quot;Caught&quot; always means on the inputs tried.</p>
+          </div>
+        </div>
+        <ul className="trap-list">
+          {TRAPS.map((t) => (
+            <li key={t.key} className="trap">
+              <h3>{t.title}</h3>
+              <p><strong>What it is.</strong> {t.what}</p>
+              <p><strong>What Diocle does.</strong> {t.how}</p>
+              <p className="trap-evidence"><strong>Evidence.</strong>{" "}
+                {t.evidence.map((ev, i) => <span key={i}>{i ? " · " : ""}{evidenceLink(ev)}</span>)}
+                {t.note ? ` ${t.note}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <p className="home-more"><a href={`${LINKS.diocle}#not-supported-yet`} target="_blank" rel="noreferrer">Everything not supported yet</a></p>
+      </section>
 
       <section className="panel">
         <div className="panel-heading"><div><h2>Corrections we published</h2></div></div>

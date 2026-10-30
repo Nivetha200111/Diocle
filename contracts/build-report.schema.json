@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diocle.dev/contracts/build-report.schema.json",
+  "title": "Whole-repository build report",
+  "description": "v0.1. Output of diocle_verifier.buildcheck: every certified program of a repository checked TOGETHER, which per-program verification never does. Static checks on the COBOL (copybook drift between files, CALL resolution and USING compatibility) and one javac pass over all converted Java (-proc:none, classpath = the sources, no network). It is NOT a behavioural check: each program is still verified on its own by differential testing, and `scope.notChecked` always states what this report did not look at. Every free-text field is built from fixed phrases, names found in the sources, line numbers and javac `error:` lines reduced to `file:line: error: text`; never from other compiler output. Experimental `domainClasses`: a customer's own classes put on the javac classpath so the converted programs are checked to compile beside them; compile-time only, never loaded or run by Diocle.",
+  "type": "object",
+  "required": ["version", "verdict", "reasons", "scope", "programs", "whole", "classCollisions", "copybooks", "calls", "graph"],
+  "additionalProperties": false,
+  "$defs": {
+    "diagnostic": {"type": "string", "maxLength": 200, "pattern": "^[\\w./$-]+:\\d+: error: [ -~]*$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 120},
+    "compile": {
+      "type": "object",
+      "required": ["status", "diagnostics"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"enum": ["ok", "fail", "skipped"], "description": "skipped = not run (for example the whole-set compile when no program had Java); never counted as ok."},
+        "javacExit": {"type": ["integer", "null"]},
+        "diagnostics": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/diagnostic"}}
+      }
+    }
+  },
+  "properties": {
+    "version": {"const": "0.1"},
+    "verdict": {"enum": ["pass", "fail", "warn"], "description": "fail = something proven wrong (a compile error, a class-name collision, a layout drift, a CALL to a missing program or with arguments the callee cannot take); warn = something could not be checked or looks suspicious; pass = every check that was made passed (and scope.notChecked still applies)."},
+    "reasons": {"type": "array", "maxItems": 30, "items": {"type": "string", "maxLength": 300}, "description": "One sentence per cause of a fail or warn; empty for pass."},
+    "scope": {
+      "type": "object",
+      "required": ["checked", "notChecked"],
+      "additionalProperties": false,
+      "properties": {
+        "checked": {"type": "array", "items": {"type": "string", "maxLength": 200}},
+        "notChecked": {"type": "array", "items": {"type": "string", "maxLength": 200}}
+      }
+    },
+    "programs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "javaFiles", "classes", "compile"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"$ref": "#/$defs/name"},
+          "mainClass": {"type": ["string", "null"]},
+          "javaFiles": {"type": "array", "items": {"type": "string", "maxLength": 200}},
+          "classes": {"type": "array", "items": {"type": "string", "maxLength": 200}, "description": "Top-level types declared in the program's Java files, package-qualified."},
+          "compile": {"$ref": "#/$defs/compile", "description": "This program's Java compiled on its own, as the per-program verification does."}
+        }
+      }
+    },
+    "whole": {
+      "type": "object",
+      "required": ["compile", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "compile": {"$ref": "#/$defs/compile", "description": "All programs' Java compiled in ONE javac run."},
+        "sources": {"type": "integer", "minimum": 0},
+        "supportClasses": {"type": "array", "items": {"type": "string"}, "description": "Verifier support classes added to the compile because programs reference them (DioSql): they are not part of the delivered programs."},
+        "domainClasses": {
+          "type": ["object", "null"],
+          "description": "EXPERIMENTAL. Present only when the caller supplied classes. kind source = a directory of .java compiled first on its own, jar = a .jar on the classpath. Compile-time only.",
+          "required": ["kind", "entries", "ownCompile"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {"enum": ["source", "jar"]},
+            "entries": {"type": "integer", "minimum": 0, "description": "Source files or classes found."},
+            "ownCompile": {"$ref": "#/$defs/compile", "description": "The supplied sources compiled alone (skipped for a jar). A failure here is the customer's code, not the converted programs."}
+          }
+        }
+      }
+    },
+    "classCollisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["class", "between"],
+        "additionalProperties": false,
+        "properties": {
+          "class": {"type": "string", "maxLength": 200},
+          "between": {"type": "array", "items": {"type": "string", "maxLength": 200}, "minItems": 2, "description": "Program names, or 'domain classes'."}
+        }
+      },
+      "description": "The same fully qualified top-level type declared with different source in two programs, or in a program and the supplied domain classes. Byte-identical copies are not collisions."
+    },
+    "copybooks": {
+      "type": "object",
+      "required": ["names", "drift"],
+      "additionalProperties": false,
+      "properties": {
+        "names": {"type": "array", "items": {"type": "string", "maxLength": 120}, "description": "Every copybook COPYed by the programs checked."},
+        "drift": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["copybook", "kind", "severity", "message", "versions"],
+            "additionalProperties": false,
+            "properties": {
+              "copybook": {"$ref": "#/$defs/name"},
+              "kind": {"enum": ["content", "layout"], "description": "content = the member's text differs between files (comments and spacing ignored); layout = the analyzer's field names, lengths, usage or PIC differ for the same COPY (same REPLACING)."},
+              "severity": {"enum": ["fail", "warn"], "description": "layout is fail; content with an equal layout is warn."},
+              "message": {"type": "string", "maxLength": 300},
+              "versions": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "object",
+                  "required": ["fingerprint", "programs", "paths"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "fingerprint": {"type": "string", "pattern": "^[0-9a-f]{12}$"},
+                    "programs": {"type": "array", "items": {"type": "string"}},
+                    "paths": {"type": "array", "items": {"type": "string", "maxLength": 300}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "calls": {
+      "type": "object",
+      "required": ["checked", "findings"],
+      "additionalProperties": false,
+      "properties": {
+        "checked": {"type": "integer", "minimum": 0, "description": "Static CALL statements examined."},
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["severity", "kind", "caller", "callee", "file", "line", "message"],
+            "additionalProperties": false,
+            "properties": {
+              "severity": {"enum": ["fail", "warn", "info"]},
+              "kind": {"enum": ["unresolved", "runtime-routine", "dynamic", "arity", "length", "unchecked-argument"]},
+              "caller": {"$ref": "#/$defs/name"},
+              "callee": {"type": "string", "maxLength": 120},
+              "file": {"type": "string", "maxLength": 300},
+              "line": {"type": "integer", "minimum": 1},
+              "message": {"type": "string", "maxLength": 300}
+            }
+          }
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "additionalProperties": false,
+      "properties": {
+        "nodes": {"type": "array", "items": {"type": "object", "required": ["id", "kind"], "additionalProperties": false,
+                                             "properties": {"id": {"type": "string", "maxLength": 200}, "kind": {"enum": ["program", "copybook", "file", "external"]}}}},
+        "edges": {"type": "array", "items": {"type": "object", "required": ["from", "to", "kind"], "additionalProperties": false,
+                                             "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "kind": {"enum": ["copy", "call", "file"]}}}}
+      }
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diocle.dev/contracts/voice-question.schema.json",
+  "title": "Voice question",
+  "description": "v0.1. \"Ask the original program by voice, get an answer checked by running it.\" A spoken question (an audio clip) is transcribed by Meta's Muse Voice Transcribe (muse-voice-transcribe-1.0); a Muse Spark model turns the TEXT into one to three checkable claims about the COBOL program with concrete examples (the behavior-claims format, v0.1); the verifier runs the ORIGINAL COBOL (GnuCOBOL, in the sandbox on the public path) on every example and marks each claim confirmed, refuted or unchecked. The answer text is assembled ONLY from confirmed claims by a deterministic template over the claim statements and the values GnuCOBOL produced; a refuted claim is shown as refuted with the actual value; if nothing is confirmed the answer says no claim could be confirmed. The model's prose is never presented as fact. Wording rule: 'confirmed on the examples tried', never 'proven for all inputs'. The transcript is UNTRUSTED text (capped at 300 characters, control characters stripped, passed to the model as fenced data); a spoken instruction has no effect because the verifier decides regardless. $defs.request is the body of POST /asks (the PUBLIC path: two fixed names, no upload surface), $defs.job is the answer of GET /asks/{id}, $defs.status is the `publicImports.asks` object of GET /config. The admin/local path additionally accepts one uploaded clip (POST /asks/upload, JSON body {sample, audioBase64}, max 500 KB decoded, 10 s, 16 kHz mono 16-bit PCM WAV, validated by magic bytes); that path is gated like createTarget and convert-anyway (admin passcode in hosted mode, loopback otherwise). Strings in these shapes are fixed phrases or values the engine computed; provider messages are never echoed.",
+  "$defs": {
+    "sampleName": {
+      "type": "string",
+      "enum": ["interest-accrual", "loyalty-waiver"],
+      "description": "A bundled synthetic sample (single-file record programs, so claims can be checked)."
+    },
+    "clipName": {
+      "type": "string",
+      "enum": ["fee-overdrawn", "waiver-tenure"],
+      "description": "A bundled synthetic-voice clip made with macOS say. fee-overdrawn: 'What happens to the fee when the account is overdrawn?' (interest-accrual). waiver-tenure: 'Is the fee waived for an account with a ten-year tenure?' (loyalty-waiver)."
+    },
+    "request": {
+      "type": "object",
+      "required": ["sample", "clip"],
+      "additionalProperties": false,
+      "properties": { "sample": { "$ref": "#/$defs/sampleName" }, "clip": { "$ref": "#/$defs/clipName" } }
+    },
+    "started": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": { "id": { "type": "string", "pattern": "^ask-[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$" } }
+    },
+    "event": {
+      "type": "object",
+      "required": ["at", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "at": { "type": "string", "description": "UTC time the engine saw it, ISO 8601" },
+        "message": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "caps": {
+      "type": "object",
+      "required": ["maxUsd", "maxAudioSeconds", "maxAudioBytes", "maxQuestionChars", "maxClaims"],
+      "additionalProperties": false,
+      "properties": {
+        "maxUsd": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.10, "description": "Hard dollar cap on the whole ask (both models)" },
+        "maxAudioSeconds": { "type": "number" },
+        "maxAudioBytes": { "type": "integer" },
+        "maxQuestionChars": { "type": "integer" },
+        "maxClaims": { "type": "integer", "maximum": 3 }
+      }
+    },
+    "transcript": {
+      "type": "object",
+      "required": ["text", "model", "audioSeconds", "costUsd", "priceConfirmed", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "maxLength": 300, "description": "What the model heard (or the typed question), capped, control characters stripped. UNTRUSTED data." },
+        "model": { "type": ["string", "null"], "description": "muse-voice-transcribe-1.0; null when the question was typed (no transcription ran)" },
+        "audioSeconds": { "type": "number", "minimum": 0 },
+        "costUsd": { "type": ["number", "null"], "description": "audioSeconds times the per-second price; 0 for typed text" },
+        "priceConfirmed": { "type": "boolean", "description": "False while the per-second price is a conservative estimate, not a published price" },
+        "source": { "enum": ["bundled-clip", "uploaded-clip", "typed-text"] }
+      }
+    },
+    "answer": {
+      "type": "object",
+      "required": ["text", "basis", "confirmedClaimIds", "refutedClaimIds"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "maxLength": 3000, "description": "Assembled by a fixed template from confirmed claims only (statement plus the values GnuCOBOL produced), or the fixed sentence that no claim could be confirmed. Never model prose beyond the confirmed claim statements." },
+        "basis": { "enum": ["confirmed-claims", "none-confirmed"] },
+        "confirmedClaimIds": { "type": "array", "items": { "type": "string" } },
+        "refutedClaimIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": ["version", "sample", "transcript", "behavior", "answer", "verdict", "costs", "caps", "decidedBy"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "const": "0.1" },
+        "sample": { "$ref": "#/$defs/sampleName" },
+        "clip": { "oneOf": [{ "$ref": "#/$defs/clipName" }, { "type": "null" }], "description": "The bundled clip, or null for an uploaded clip or typed text" },
+        "transcript": { "$ref": "#/$defs/transcript" },
+        "behavior": { "$ref": "https://diocle.dev/contracts/behavior-claims.schema.json", "description": "The claims the model PROPOSED (at most 3) with each verdict and the actual values from GnuCOBOL; reuses contracts/behavior-claims.schema.json v0.1 unchanged" },
+        "answer": { "$ref": "#/$defs/answer" },
+        "verdict": {
+          "type": "object",
+          "required": ["claims", "confirmed", "refuted", "unchecked"],
+          "additionalProperties": false,
+          "properties": {
+            "claims": { "type": "integer", "minimum": 0 }, "confirmed": { "type": "integer", "minimum": 0 },
+            "refuted": { "type": "integer", "minimum": 0 }, "unchecked": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "costs": {
+          "type": "object",
+          "required": ["transcribeUsd", "claimsUsd", "totalUsd"],
+          "additionalProperties": false,
+          "properties": {
+            "transcribeUsd": { "type": ["number", "null"] },
+            "claimsUsd": { "type": ["number", "null"] },
+            "totalUsd": { "type": ["number", "null"], "description": "null when any stage has no known price (the cap then treats it as spent)" }
+          }
+        },
+        "caps": { "$ref": "#/$defs/caps" },
+        "decidedBy": { "const": "GnuCOBOL", "description": "Fixed: who decided each verdict. The models only proposed." },
+        "stopped": { "type": ["string", "null"], "description": "Fixed phrase when the ask ended before the verifier ran (transcription failed, over the cap, no claims)" }
+      }
+    },
+    "job": {
+      "type": "object",
+      "description": "GET /asks/{id}. `stage` and `events` are written by the engine as each step really starts or ends (never scripted).",
+      "required": ["version", "id", "sample", "clip", "status", "stage", "startedAt", "finishedAt", "error", "events", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "const": "0.1" },
+        "id": { "type": "string", "pattern": "^ask-[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$" },
+        "sample": { "$ref": "#/$defs/sampleName" },
+        "clip": { "oneOf": [{ "$ref": "#/$defs/clipName" }, { "type": "null" }] },
+        "status": { "enum": ["running", "done", "failed"] },
+        "stage": { "enum": ["starting", "transcribing", "claims", "checking", "answering", "done", "failed"] },
+        "startedAt": { "type": "string" },
+        "finishedAt": { "type": ["string", "null"] },
+        "error": { "type": ["string", "null"], "description": "A fixed phrase, never a provider message" },
+        "events": { "type": "array", "maxItems": 60, "items": { "$ref": "#/$defs/event" } },
+        "result": { "oneOf": [{ "$ref": "#/$defs/result" }, { "type": "null" }] },
+        "partial": {
+          "type": ["object", "null"],
+          "description": "What each finished step produced so far, so the page can show the stages as they really complete. `transcript` appears when transcription ends; `proposed` (the statements a model proposed, NOT yet checked) when the claims are written.",
+          "additionalProperties": false,
+          "properties": {
+            "transcript": { "$ref": "#/$defs/transcript" },
+            "proposed": { "type": "array", "maxItems": 3, "items": { "type": "string", "maxLength": 400 } }
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "description": "`publicImports.asks` of GET /config. `reason` is the exact reason the Ask button is disabled, null when it is available.",
+      "required": ["enabled", "available", "reason", "maxUsd", "perVisitorPerDay", "perDay", "usedToday", "visitorLeft", "uploadsAllowed", "clips"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }, "available": { "type": "boolean" }, "reason": { "type": ["string", "null"] },
+        "maxUsd": { "type": "number" }, "perVisitorPerDay": { "type": "integer" }, "perDay": { "type": "integer" },
+        "usedToday": { "type": "integer" }, "visitorLeft": { "type": "integer" },
+        "uploadsAllowed": { "type": "boolean", "description": "True only for a caller that may use the upload path (loopback in a non-hosted engine, or hosted with the admin passcode configured; the passcode is still required per request). Always false for a public visitor." },
+        "clips": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["clip", "sample", "question", "seconds"], "additionalProperties": false,
+            "properties": { "clip": { "$ref": "#/$defs/clipName" }, "sample": { "$ref": "#/$defs/sampleName" },
+                            "question": { "type": "string" }, "seconds": { "type": "number" } }
+          }
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/result"
+}

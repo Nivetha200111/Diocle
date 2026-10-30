@@ -31,6 +31,20 @@ Fidelity rules:
   processes, reflection, native code or other files: a guard refuses to run such Java.
 """
 
+DOMAIN_HINT = """
+
+Customer domain classes (EXPERIMENTAL). The customer already has Java classes for some of this program's records. Their
+PUBLIC SIGNATURES (no bodies) follow:
+
+{signatures}
+
+Your Java file is compiled and run ALONE by the verifier, so do NOT reference, import or extend these classes: the build
+would fail. Instead, shape your nested record holder after the matching class where it makes the code clearer: the same field
+names and types, and the same accessor/mutator names, so the customer can replace your holder with their class in review.
+Reading and writing the files stays byte-exact exactly as described above; a holder's shape never changes what is read or
+written. If a class does not fit the COBOL record, ignore it and say so in `notes`.
+"""
+
 TRANSLATOR_SQL = """\
 
 Embedded SQL (EXEC SQL) contract. The program runs against a stand-in SQLite database, not DB2; the verifier seeds the
@@ -59,6 +73,33 @@ rewrite or copy it; it is compiled in). Rules:
 - Do not invent SQL: bind the same columns in the same order, with the same WHERE and ORDER BY, as the EXEC SQL statements.
 """
 
+TRANSLATOR_KSDS = """\
+
+Keyed-file (INDEXED / VSAM-style) contract. The original runs on GnuCOBOL's INDEXED file handler; the verifier seeds the
+same records into the keyed files for both sides, runs both programs, and compares their files, stdout, exit code AND the
+final contents of every keyed file, record by record in key order. The user message gives DioKsds.java, the verifier's own
+support class (do not rewrite or copy it; it is compiled in). Rules:
+- A keyed file is never read or written as a plain file: no Files, streams or DD_ variable for it. Create it with
+  `DioKsds f = DioKsds.select("DDNAME", recordLength, keyOffset, keyLength, "SEQUENTIAL" | "RANDOM" | "DYNAMIC");` using the
+  numbers in the file list (ACCESS MODE of the SELECT), then call its methods, each of which returns the two-character FILE
+  STATUS the COBOL statement would set (also available as f.status()): open("INPUT" | "OUTPUT" | "I-O"), close(),
+  write(record), rewrite(record), delete(key) (sequential access: the record last read), read(key) (READ by RECORD KEY,
+  random/dynamic), readNext() (READ NEXT, or plain READ in sequential access), start(">=" | ">" | "=", key).
+  Records and keys are Strings with one char per byte (ISO-8859-1), exactly record-length / key-length long. record() is the
+  record last read successfully; after any other status it is undefined, as the COBOL record area would be: do not use it.
+- Keep a String fileStatus variable for the SELECT's FILE STATUS item and set it from f.status() after EVERY keyed
+  statement, as the COBOL does; the program tests it (and may DISPLAY or write it): '00' ok, '10' end of file, '21' sequence
+  error, '22' duplicate key, '23' record not found (also START with no matching key), '35' file not found on OPEN, '41'
+  already open, '42' not open, '43' no current record (sequential REWRITE/DELETE), '46' READ NEXT after the end, '47'/'48'/'49'
+  file not open for that statement. The status of the last statement stays in the variable until the next keyed statement.
+- INVALID KEY / AT END / NOT INVALID KEY phrases run on the statuses above ('10' is AT END; '21', '22', '23' are INVALID KEY).
+- Order: keys compare as unsigned bytes, whatever the program's collating sequence (GnuCOBOL's indexed handler does the same):
+  never compare keys with EBCDIC rules for START or READ NEXT. START positions the file; the next READ NEXT returns the first
+  record at or after it. A START that finds nothing fails with '23' and the next READ NEXT then reports '46'.
+- OPEN OUTPUT empties the file. A sequential REWRITE must keep the record's key. Do not invent behaviour: if the COBOL does
+  not check a status, neither do you.
+"""
+
 REPAIR = """\
 You are Diocle's repair agent. A Java translation of a COBOL program fails differential testing against the
 original compiled with GnuCOBOL. The COBOL program's behaviour is the source of truth, including its quirks.
@@ -83,6 +124,11 @@ Rules:
   original X converted Y"). The original is the source of truth: find the statement or host-variable conversion (MOVE
   truncation, scale, CHAR padding, indicator, SQLCODE after the statement, commit boundary, cursor order) that produces
   the difference. Never special-case SQL or data. DioSql.java is the verifier's own class and cannot be edited.
+- For a program with keyed (INDEXED) files the test result also lists a keyed file whose final contents differ ("keyed file F
+  (key K): position N key X value/missing-in-converted/extra-in-converted: original ... converted ..."), with the first
+  differing record of each side. The original is the source of truth: find the statement (WRITE/REWRITE/DELETE order, a
+  FILE STATUS test, START relation, READ vs READ NEXT, key built from the wrong field or padding) that produces it. Never
+  special-case keys. DioKsds.java is the verifier's own class and cannot be edited.
 - You have a limited budget of steps and tokens: no exploratory calls, no cosmetic changes.
 """
 

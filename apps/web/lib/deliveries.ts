@@ -24,10 +24,15 @@ export type DeliveryProgram = {
   } | null;
 };
 
+// contracts/delivery.schema.json $defs.createTarget (v0.5)
+export type CreateTarget = { name: string; owner?: string | null; visibility?: "private" | "public" };
+
 export type Delivery = {
   id: string;
   legacy: { repository: string; commit: string | null };
   target: string | null; // null: a visitor's import, results stay on the site
+  createTarget?: CreateTarget; // the delivery was asked to create its target repository
+  targetCreated?: boolean; // true once it did (false: not yet, or never)
   public?: boolean;
   convertAnyway?: boolean;
   repoMaxUsd?: number | null;
@@ -38,6 +43,15 @@ export type Delivery = {
   error: string | null;
   programs: DeliveryProgram[];
   pullRequest: { url: string; checks?: { name: string; state: string; link?: string }[] } | null;
+  /** Whole-repository build check (contracts/build-report.schema.json, summarised): absent on older deliveries. */
+  buildCheck?: {
+    verdict: "pass" | "fail" | "warn";
+    reasons: string[];
+    programs?: number;
+    calls?: number;
+    copybookDrift?: number;
+    classCollisions?: number;
+  } | null;
 };
 
 export type DeliveryListItem = Pick<Delivery, "id" | "legacy" | "target" | "stage" | "startedAt" | "finishedAt"> & {
@@ -54,7 +68,7 @@ async function getJson<T>(path: string): Promise<T> {
 export const fetchDeliveries = () => getJson<DeliveryListItem[]>("/deliveries");
 export const fetchDelivery = (id: string) => getJson<Delivery>(`/deliveries/${encodeURIComponent(id)}`);
 
-export type DeliveryRequest = { legacy: string; target?: string; parallel?: boolean; breaker?: boolean };
+export type DeliveryRequest = { legacy: string; target?: string; createTarget?: CreateTarget; parallel?: boolean; breaker?: boolean };
 
 export async function startDelivery(body: DeliveryRequest, passcode = ""): Promise<string> {
   const response = await fetch(`${API_URL}/deliveries`, {

@@ -197,3 +197,67 @@ def test_real_compile_gate_rejects_garbage(tmp_path):
     bad.write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. BAD.\n       PROCEDURE DIVISION.\n           MOVE TO.\n")
     result = compile_check(bad, None)
     assert result["ok"] is False and result["errors"]
+
+
+def test_sandbox_flag_refuses_without_sandbox_or_original(tmp_path, monkeypatch, capsys):
+    """`transcribe --sandbox` never falls back to building model-written COBOL on this machine."""
+    from diocle_converter import __main__ as cli
+    monkeypatch.delenv("DIOCLE_SANDBOX_URL", raising=False)
+    img = tmp_path / "l.png"
+    img.write_bytes(PNG)
+    args = SimpleNamespace(image=img, out=tmp_path / "out", against=LOYALTY, run_model_code=False, sandbox=True)
+    assert cli._transcribe(args) == cli.EXIT_CODES["refused"]
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://127.0.0.1:9")
+    args.against = None
+    assert cli._transcribe(args) == cli.EXIT_CODES["refused"]
+    assert not (tmp_path / "out").exists()
+
+
+@needs_cobc
+def test_flow_through_the_sandbox_gates(tmp_path, monkeypatch):
+    """A scripted (test-double) model reply goes through the REAL gates, run by the sandbox's handler in-process:
+    the transcription is compiled and run there, and the record says so."""
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    from diocle_verifier import sandbox
+    monkeypatch.setattr(sandbox, "_job_lock", threading.Lock())
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), sandbox.Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    monkeypatch.setenv("DIOCLE_SANDBOX_URL", f"http://127.0.0.1:{httpd.server_address[1]}")
+    try:
+        original = (LOYALTY / "src" / "LOYWAIVE.cbl").read_text()
+        img, settings, client, _ = setup(tmp_path, [f"```cobol\n{original}```"])
+        record = transcribe(img, tmp_path / "out", settings=settings, client=client, against=LOYALTY, run_model_code=True,
+                            check=sandbox.remote_check(LOYALTY), diff=sandbox.remote_differential(), log=lambda m: None)
+    finally:
+        httpd.shutdown()
+    assert record["status"] == "verified-identical" and record["differential"]["ranIn"] == "sandbox"
+    assert record["differential"]["matched"] == record["differential"]["inputs"] >= 1000
+    valid(record)
+
+
+def test_input_estimate_is_tunable_and_defaults_to_the_generous_bound(monkeypatch):
+    from diocle_converter.vision import input_estimate
+    monkeypatch.delenv("VISION_INPUT_TOKENS_ESTIMATE", raising=False)
+    assert input_estimate() == 12000
+    monkeypatch.setenv("VISION_INPUT_TOKENS_ESTIMATE", "4000")
+    assert input_estimate() == 4000
+    for bad in ("oops", "5", "-3"):
+        monkeypatch.setenv("VISION_INPUT_TOKENS_ESTIMATE", bad)
+        assert input_estimate() in (12000, 1000)
+
+
+def test_a_tighter_input_estimate_lets_a_call_under_the_cap_through(tmp_path, monkeypatch):
+    """With the default 12000-token bound a $0.10 cap refuses the first Muse Wonder call (worst case $0.148); the public
+    printout button states 4000 + a 4000-token output cap (worst case $0.096), so the call is made."""
+    img, settings, client, _ = setup(tmp_path, [COBOL])
+    settings = Settings(**{**settings.__dict__, "model": "muse-wonder-1.0"})
+    monkeypatch.delenv("VISION_INPUT_TOKENS_ESTIMATE", raising=False)
+    refused = transcribe(img, tmp_path / "o1", settings=settings, client=ModelClient(settings, _sdk=ScriptedSDK([COBOL])), check=OK,
+                         max_usd=0.10, max_output_tokens=5000, log=lambda m: None)
+    assert refused["usage"]["calls"] == 0 and "cost cap would be exceeded" in refused["reason"]
+    monkeypatch.setenv("VISION_INPUT_TOKENS_ESTIMATE", "4000")
+    ok = transcribe(img, tmp_path / "o2", settings=settings, client=ModelClient(settings, _sdk=ScriptedSDK([COBOL])), check=OK,
+                    max_usd=0.10, max_output_tokens=4000, log=lambda m: None)
+    assert ok["usage"]["calls"] == 1 and ok["status"] == "compiled-unchecked"

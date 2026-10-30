@@ -42,10 +42,14 @@ export type Lesson = { pattern: string; cobol: string; java: string };
 
 export type RunMemory = { enabled: boolean; used: number; learned: number; lessons: Lesson[] } | null;
 
+// contracts/run.schema.json `sampleRun`: a live sample run. A real run, labelled, and left out of the scoreboard statistics.
+export type SampleRun = { sample: "addfee"; live: true; job?: string };
+
 export type RunListItem = {
   id: string;
   status?: "running" | "certified" | "not-certified" | "interrupted";
   visitor?: boolean; // from a visitor's import: shown as reported, not re-verified here
+  sampleRun?: SampleRun; // started by the public "Convert a sample now" button (run schema v0.16)
   program: string;
   command: "repair" | "run";
   certified: boolean;
@@ -105,9 +109,14 @@ export type RunEvent = {
   message?: string;
 };
 
+import type { ReproducerSummary } from "./reproducer-view";
+
 export type Run = {
   id: string;
   visitor?: boolean;
+  sampleRun?: SampleRun;
+  status?: "running" | "certified" | "not-certified" | "interrupted";
+  error?: string | null;
   program: string;
   command: "repair" | "run";
   createdAt: string | null;
@@ -130,6 +139,7 @@ export type Run = {
   efficiency: Efficiency;
   memory: RunMemory;
   breaker?: Breaker | null;
+  reproducers?: ReproducerSummary[] | null;  // run v0.18: present when the run reduced counterexamples (--minimize)
   crosscheck?: Crosscheck | null;
   behavior?: Behavior | null;
   tiers?: Tiers | null;
@@ -282,6 +292,13 @@ export type SqlSchema = {
   summary: { tables: number; records: number; identical: number; passed: boolean };
 };
 
+// contracts/minimal-reproducer.schema.json: read-only, produced without a model by services/verifier minimize.
+export type RunReproducers = { runId: string; reproducers: unknown[] };
+export type RegressionDownload = { runId: string; case: string; files: { name: string; base64: string }[]; replay: string };
+export const fetchRunReproducers = (id: string) => getJson<RunReproducers>(`/runs/${encodeURIComponent(id)}/reproducers`);
+export const fetchRegressionCase = (id: string, caseId: string) =>
+  getJson<RegressionDownload>(`/runs/${encodeURIComponent(id)}/reproducers/${encodeURIComponent(caseId)}/regression`);
+
 export const fetchRunSchema = (id: string) => getJson<SqlSchema>(`/runs/${encodeURIComponent(id)}/schema`);
 
 const count = (n: number) => n.toLocaleString("en-US");
@@ -299,3 +316,33 @@ export const schemaFile = (s: SqlSchema): SourceFile => ({
 export const isInterrupted = (r: Pick<RunListItem, "status" | "createdAt" | "efficiency">, now = Date.now()) =>
   r.status === "interrupted" || (r.status === "running" && r.efficiency.modelCalls === 0 && !!r.createdAt
     && now - Date.parse(r.createdAt) > 24 * 3600 * 1000);
+
+// contracts/mutation-report.schema.json v0.1: seeded faults vs the inputs that certified this Java. Deterministic, no model.
+export type Mutant = {
+  id: string; operator: string; location: { file: string; line: number }; original?: string; mutated?: string;
+  description: string; outcome: "killed" | "survived" | "not-compiled" | "equivalent-suspected" | "timeout" | "error";
+  killedBy?: string | null; augmentedOutcome?: "killed" | "survived"; augmentedKilledBy?: string | null; note?: string;
+};
+export type MutationReport = {
+  version: string; runId?: string | null; program?: string | null; status: "ok" | "unsupported" | "baseline-failed"; reason?: string | null;
+  seed: number; inputs: { initial: number; seed?: number; seedSource?: "certification" | "default" };
+  counts: { generated: number; run: number; killed: number; survived: number; notCompiled: number; equivalentSuspected: number;
+            timeout: number; error: number; notRun: number; score: number | null };
+  mutants: Mutant[];
+  augmented: { extraInputs: number; survivorsRerun: number; extraKills: number; stillSurviving?: number };
+  seconds?: number; notes: string[];
+};
+
+export const fetchMutation = async (id: string): Promise<MutationReport | null> => {
+  const response = await fetch(`${API_URL}/runs/${encodeURIComponent(id)}/mutation`, { cache: "no-store" });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json() as Promise<MutationReport>;
+};
+
+export async function runMutation(id: string): Promise<MutationReport> {
+  const response = await fetch(`${API_URL}/runs/${encodeURIComponent(id)}/mutation`, { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail ?? `HTTP ${response.status}`);
+  return data as MutationReport;
+}

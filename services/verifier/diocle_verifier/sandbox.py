@@ -42,6 +42,11 @@ MAX_COMPILE_REPORT = 16 * 1024
 CLAIMS_JOB_TIMEOUT = 180  # cobc build (60 s) plus the run loop (claims.TOTAL_BUDGET, 90 s) and start-up
 MAX_CLAIMS_BUNDLE = 8 * 1024 * 1024
 MAX_CLAIMS_REPORT = 4 * 1024 * 1024  # per example up to 32 KB stdout + 20 records (a record is as wide as the layout, at most 4 KB). A pathological layout could exceed this: the job then fails and the examples are unchecked, never mis-judged
+TRANSCRIPT_JOB_TIMEOUT = 240  # compile gate, then the original and the transcription built and run on ~1000 inputs
+MAX_TRANSCRIPT_SOURCE = 200 * 1024
+MAX_TRANSCRIPT_REPORT = 256 * 1024
+MUTATION_JOB_TIMEOUT = 600  # mutants are compiled and run one by one; mutate.py stops itself well before this
+MAX_MUTATION_REPORT = 2 * 1024 * 1024
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
 
@@ -64,10 +69,15 @@ class SandboxError(RuntimeError):
 
 # --- client side (the API container) -------------------------------------------------------------------------
 
-def pack(sample_dir: Path, java_dir: Path | None) -> bytes:
-    """tar.gz of sample/ and java/: regular files only, symlinks and special files skipped, size-capped."""
+def pack(sample_dir: Path, java_dir: Path | None, extra: dict[str, bytes] | None = None) -> bytes:
+    """tar.gz of sample/ and java/: regular files only, symlinks and special files skipped, size-capped.
+    `extra` adds in-memory files by archive name (the transcript job's transcribed/TRANSCRIBED.cbl)."""
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for name, data in (extra or {}).items():
+            info = tarfile.TarInfo(name)
+            info.size, info.mode = len(data), 0o644
+            tar.addfile(info, io.BytesIO(data))
         for prefix, root in (("sample", sample_dir), ("java", java_dir)):
             if root is None:
                 continue
@@ -97,6 +107,26 @@ def remote_verify(sample_dir: Path, java_dir: Path | None, seed: int, random_cou
         try:
             with urllib.request.urlopen(req, timeout=JOB_TIMEOUT + 60) as resp:
                 return json.loads(resp.read(MAX_REPORT))
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace")[:2000]
+            if e.code != 503:
+                raise RuntimeError(f"sandbox: {detail}") from e
+            if time.time() > deadline:
+                raise Busy("the verification engine is busy; try again in a minute") from e
+            time.sleep(3)
+
+
+def remote_mutation(sample_dir: Path, java_dir: Path, params: dict) -> dict:
+    """Mutation testing in the sandbox (diocle_verifier.mutate.mutate_local there): CPU only, no model."""
+    body = json.dumps({"bundle": base64.b64encode(pack(sample_dir, java_dir)).decode(), "java": True,
+                       **{k: int(v) for k, v in params.items()}}).encode()
+    deadline = time.time() + float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800"))
+    while True:
+        req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/mutation", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=MUTATION_JOB_TIMEOUT + 60) as resp:
+                return json.loads(resp.read(MAX_MUTATION_REPORT))
         except urllib.error.HTTPError as e:
             detail = e.read().decode(errors="replace")[:2000]
             if e.code != 503:
@@ -174,6 +204,66 @@ def remote_claims(sample_dir: Path, examples: list[dict]) -> list[dict]:
     return answer
 
 
+def remote_transcript(against: Path, source: str, diff: bool, wait: float | None = None) -> dict:
+    """Compile (and with `diff` also run against `against`) a MODEL-WRITTEN transcription in the sandbox, never here.
+    The answer is {"compile": {"ok", "errors"}, "differential": {...} | None} (transcript.transcript_job).
+    Raises Busy when the sandbox stays busy for `wait` seconds (default DIOCLE_SANDBOX_WAIT)."""
+    data = source.encode("utf-8")
+    if len(data) > MAX_TRANSCRIPT_SOURCE:
+        raise ValueError("the transcription is too large to check")
+    packed = pack(against, None, {"transcribed/TRANSCRIBED.cbl": data})
+    if len(packed) > MAX_COMPILE_BUNDLE:
+        raise ValueError("the sample is too large for a transcript check")
+    body = json.dumps({"bundle": base64.b64encode(packed).decode(), "diff": bool(diff)}).encode()
+    deadline = time.time() + (float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800")) if wait is None else wait)
+    while True:
+        req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/transcript", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=TRANSCRIPT_JOB_TIMEOUT + 30) as resp:
+                answer = json.loads(resp.read(MAX_TRANSCRIPT_REPORT))
+            break
+        except urllib.error.HTTPError as e:
+            detail = e.read(2000).decode(errors="replace")
+            if e.code != 503:
+                print(f"sandbox /transcript answered {e.code}: {detail[:300]}", file=sys.stderr)  # operator log only
+                raise SandboxError(f"HTTP {e.code}") from e
+            if time.time() >= deadline:
+                raise Busy("busy") from e
+            time.sleep(min(3, max(0.0, deadline - time.time())))
+    if not (isinstance(answer, dict) and isinstance(answer.get("compile"), dict)
+            and isinstance(answer["compile"].get("ok"), bool) and isinstance(answer["compile"].get("errors"), str)):
+        raise ValueError("the sandbox answered with something that is not a transcript check")
+    return answer
+
+
+def remote_check(against: Path):
+    """A `check` for diocle_converter.vision.transcribe that compiles in the sandbox: check(src_path, copybook_dir)."""
+    def check(source: Path, copybook_dir, **_ignored) -> dict:
+        try:
+            return remote_transcript(against, Path(source).read_text(), False, wait=120)["compile"]
+        except (Busy, SandboxError, OSError, ValueError):
+            return {"ok": False, "errors": "the sandbox could not compile the transcription (busy or unavailable)"}
+    return check
+
+
+def remote_differential():
+    """A `diff` for vision.transcribe that runs both programs in the sandbox: diff(against, source_path, **_)."""
+    def diff(against: Path, source: Path, **_ignored) -> dict:
+        try:
+            answer = remote_transcript(against, Path(source).read_text(), True, wait=120)
+        except (Busy, SandboxError, OSError, ValueError):
+            return {"against": str(against), "ran": False, "inputs": 0, "matched": 0, "mismatched": 0,
+                    "reason": "the sandbox could not run the differential (busy or unavailable)"}
+        d = answer.get("differential")
+        if not isinstance(d, dict) or not isinstance(d.get("ran"), bool):
+            return {"against": str(against), "ran": False, "inputs": 0, "matched": 0, "mismatched": 0,
+                    "reason": "the sandbox did not return a differential result"}
+        return {**d, "against": str(against), "ranIn": "sandbox"}
+    diff.runs_in_sandbox = True  # vision.transcribe logs a warning for every other checker: they run on this machine
+    return diff
+
+
 # --- server side (the sandbox container) ---------------------------------------------------------------------
 
 def _others() -> list[int]:
@@ -218,14 +308,16 @@ def _job_user() -> dict:
 def run_job(job: dict, kind: str = "verify") -> dict:
     """kind "verify": the whole verification; kind "compile": compile the original only (shorter limits);
     kind "claims": run the original on claim examples (diocle_verifier.claims)."""
-    if kind not in ("verify", "compile", "claims"):
+    if kind not in ("verify", "compile", "claims", "transcript", "mutation"):
         raise ValueError("unknown job kind")
     if not _job_lock.acquire(blocking=False):
         raise Busy("busy")
     compile_only = kind == "compile"
-    small = kind in ("compile", "claims")
-    timeout = {"compile": COMPILE_JOB_TIMEOUT, "claims": CLAIMS_JOB_TIMEOUT}.get(kind, JOB_TIMEOUT)
-    max_report = {"compile": MAX_COMPILE_REPORT, "claims": MAX_CLAIMS_REPORT}.get(kind, MAX_REPORT)
+    small = kind in ("compile", "claims", "transcript")
+    timeout = {"compile": COMPILE_JOB_TIMEOUT, "claims": CLAIMS_JOB_TIMEOUT,
+               "transcript": TRANSCRIPT_JOB_TIMEOUT, "mutation": MUTATION_JOB_TIMEOUT}.get(kind, JOB_TIMEOUT)
+    max_report = {"compile": MAX_COMPILE_REPORT, "claims": MAX_CLAIMS_REPORT,
+                  "transcript": MAX_TRANSCRIPT_REPORT, "mutation": MAX_MUTATION_REPORT}.get(kind, MAX_REPORT)
     try:
         data = base64.b64decode(job["bundle"], validate=True)
         if len(data) > (MAX_COMPILE_BUNDLE if small else MAX_BUNDLE):
@@ -236,7 +328,10 @@ def run_job(job: dict, kind: str = "verify") -> dict:
                 and len(e["records"]) <= 5
                 and all(isinstance(r, str) and _latin1(r) for r in e["records"]) for e in examples)):
             raise ValueError("examples must be a list of at most 60 {id, records}, each record at most 4 KB of latin-1")
-        params = {"kind": kind, "bundle": job["bundle"]} if compile_only else {"kind": kind, "bundle": job["bundle"],
+        mutation = {"kind": kind, "bundle": job["bundle"], **{k: int(job.get(k, d)) for k, d in (  # clamped again by mutate.py
+            ("seed", 1026), ("maxMutants", 40), ("maxExtra", 60), ("wallClock", 420), ("inputSeed", 1026), ("randomCount", 200))}}
+        params = mutation if kind == "mutation" else {"kind": kind, "bundle": job["bundle"]} if compile_only else {
+            "kind": kind, "bundle": job["bundle"], "diff": bool(job.get("diff"))} if kind == "transcript" else {"kind": kind, "bundle": job["bundle"],
                                                                               "examples": examples} if kind == "claims" else {
             "kind": kind, "seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
             "java": bool(job.get("java")), "extraCases": job.get("extraCases") or [], "bundle": job["bundle"]}
@@ -288,6 +383,22 @@ def _job_main() -> int:
 
             sys.stdout.write(json.dumps(compile_local(work / "sample").to_json()))
             return 0
+        if params.get("kind") == "transcript":
+            from .transcript import transcript_job
+
+            source = work / "transcribed" / "TRANSCRIBED.cbl"
+            if not source.is_file() or source.is_symlink() or source.stat().st_size > MAX_TRANSCRIPT_SOURCE:
+                raise ValueError("the bundle has no transcription")
+            sys.stdout.write(json.dumps(transcript_job(work / "sample", source, bool(params["diff"]))))
+            return 0
+        if params.get("kind") == "mutation":
+            from .mutate import mutate_local
+
+            sys.stdout.write(json.dumps(mutate_local(
+                work / "sample", work / "java", seed=params["seed"], max_mutants=params["maxMutants"],
+                max_extra=params["maxExtra"], wall_clock=params["wallClock"], input_seed=params["inputSeed"],
+                random_count=min(params["randomCount"], 1000))))
+            return 0
         if params.get("kind") == "claims":
             from .claims import run_local
 
@@ -302,11 +413,11 @@ def _job_main() -> int:
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
-        if self.path not in ("/verify", "/compile", "/claims"):
+        if self.path not in ("/verify", "/compile", "/claims", "/transcript", "/mutation"):
             return self._send(404, {"error": "not found"})
         kind = self.path[1:]
         length = int(self.headers.get("Content-Length", "0"))
-        if length > (MAX_COMPILE_BUNDLE * 2 if kind in ("compile", "claims") else MAX_BUNDLE * 2):
+        if length > (MAX_COMPILE_BUNDLE * 2 if kind in ("compile", "claims", "transcript") else MAX_BUNDLE * 2):
             return self._send(413, {"error": "job too large"})
         try:
             job = json.loads(self.rfile.read(length))

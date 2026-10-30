@@ -41,6 +41,7 @@ from .crosscheck import make_crosschecker, summarize as crosscheck_summary
 from .guard import Guard, GuardBlocked, describe_error, gated
 from .memory import Memory, lesson_key, render
 from .pipeline import generate_pipeline
+from .reproducer import Minimizing
 from .repair import CERT_CASES, CERT_SEED, TEST_CASES, TEST_SEED, RepairAgent, report_passes, summarize_report
 from .sources import Program
 from .translate import translate
@@ -93,6 +94,9 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--no-memory", action="store_true", help="baseline: do not read or write fix memory")
         p.add_argument("--memory-read-only", action="store_true", help="use fix memory but never add lessons to it")
         p.add_argument("--breaker", action="store_true", help="after certification, let a breaker agent attack the Java")
+        p.add_argument("--minimize", action="store_true", help="when the breaker or a held-out certification shows the Java "
+                       "differing, reduce the failing input deterministically (no model call) and give the repair agent the "
+                       "smallest reproducer; saves reproducers/ and regression/ cases in the run (MINIMIZE_* caps)")
         p.add_argument("--crosscheck", action="store_true", help="after certification, Muse Spark Open (CROSSCHECK_MODEL_* or "
                        "OPEN_MODEL_*) independently looks for inputs where the Java differs (about $0.05 per run)")
         p.add_argument("--document", action="store_true", help="also write verified documentation: a Muse Spark model "
@@ -109,12 +113,22 @@ def main(argv: list[str] | None = None) -> int:
                            "an original that does not compile under GnuCOBOL is patched first (small, listed fixes) and its "
                            "Java is then labelled certified-against-repaired-cobol. Also DIOCLE_CONVERT_ANYWAY=1. Local "
                            "or admin use only.")
+            p.add_argument("--domain-classes", type=Path, help="EXPERIMENTAL: a directory of .java files or a .jar of your own record "
+                           "classes (POJOs). Matching classes' PUBLIC SIGNATURES (never bodies) are shown to the translator, which "
+                           "shapes its record holder after them; the Java still compiles and is verified alone.")
             p.add_argument("--max-usd", type=float, help="hard dollar cap on this run's model calls (convert-anyway: what "
                            "is left of REPO_MAX_USD)")
         if name == "repair":
             p.add_argument("--java-dir", type=Path, help="existing Java conversion (default: the sample's javaConversion dir)")
     doc = sub.add_parser("document", help="verified documentation only: claims about the COBOL, each checked by GnuCOBOL")
     doc.add_argument("sample_dir", type=Path)
+    ask_p = sub.add_parser("ask", help="ask the original program a question (typed or spoken); the answer comes only from claims GnuCOBOL confirmed")
+    ask_p.add_argument("sample_dir", type=Path)
+    ask_p.add_argument("--audio", type=Path, help="a 16 kHz mono 16-bit WAV clip, at most 10 s and 500 KB (transcribed by Muse Voice Transcribe)")
+    ask_p.add_argument("--text", help="the question as text (skips transcription)")
+    ask_p.add_argument("--max-usd", type=float, default=0.02, help="hard dollar cap on the whole ask (default 0.02, at most 0.10)")
+    ask_p.add_argument("--out", type=Path, help="write ask.json (and progress) here")
+    ask_p.add_argument("--clip", choices=["fee-overdrawn", "waiver-tenure"], help=argparse.SUPPRESS)
     tr = sub.add_parser("transcribe", help="photo/scan of a COBOL listing to COBOL, gated by the compiler and a differential run")
     tr.add_argument("image", type=Path, help="PNG or JPEG, at most 2 MB")
     tr.add_argument("--out", type=Path, required=True, help="sample directory to write (src/*.cbl, transcription.json)")
@@ -122,6 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("--run-model-code", action="store_true", help="allow the differential to BUILD AND RUN the model-written "
                     "COBOL on this machine (macOS: under sandbox-exec). Off by default: without it the best status is "
                     "compiled-unchecked. Only for our own synthetic printouts on a dev machine.")
+    tr.add_argument("--sandbox", action="store_true", help="compile and run the transcription ONLY inside the sandbox container "
+                    "(DIOCLE_SANDBOX_URL, needs --against); nothing model-written is built or run on this machine. This is the "
+                    "public \"Read a printout\" path. Implies the differential.")
     repo = sub.add_parser("repo", help="the whole pipeline on a local directory or GitHub repository (see README, 'Running on "
                           "your own repo'); a thin wrapper over services/api diocle_api.deliver")
     repo.add_argument("source", help="local directory or https://github.com/<owner>/<repo>")
@@ -136,6 +153,9 @@ def main(argv: list[str] | None = None) -> int:
         return editor.main((argv if argv is not None else sys.argv[1:])[1:])
     args = parser.parse_args(argv)
 
+    if args.command == "ask":
+        from . import ask as ask_module
+        return ask_module.run_cli(args)
     if args.command == "transcribe":
         return _transcribe(args)
     if args.command == "repo":
@@ -218,7 +238,18 @@ def _transcribe(args) -> int:
 
     settings = Settings.vision_from_env()
     print(f"vision model: {settings.model if settings else 'off (VISION_MODEL_ID is empty)'}")
-    record = transcribe(args.image, args.out, settings=settings, against=args.against, run_model_code=args.run_model_code)
+    gates = {}
+    if args.sandbox:
+        import os
+
+        if not os.environ.get("DIOCLE_SANDBOX_URL") or args.against is None:
+            print("--sandbox needs DIOCLE_SANDBOX_URL and --against: refusing to build model-written COBOL anywhere else")
+            return EXIT_CODES["refused"]
+        from diocle_verifier.sandbox import remote_check, remote_differential
+
+        gates = {"check": remote_check(args.against), "diff": remote_differential()}
+    record = transcribe(args.image, args.out, settings=settings, against=args.against,
+                        run_model_code=args.run_model_code or args.sandbox, **gates)
     cost = record["usage"]["estimatedCostUsd"]
     print(f"status: {record['status']}" + (f" ({record['reason']})" if record.get("reason") else ""))
     print(f"calls: {record['usage']['calls']}, cost: " + ("n/a" if cost is None else f"${cost:.4f}"))
@@ -266,6 +297,25 @@ def _atomic_write(path: Path, data: dict) -> None:
     tmp.replace(path)
 
 
+def _domain_hint(args, program: Program, on_event) -> str:
+    """EXPERIMENTAL --domain-classes: the translator hint, and an event saying exactly what was matched (or that nothing was)."""
+    path = getattr(args, "domain_classes", None)
+    if not path:
+        return ""
+    from . import domain
+
+    try:
+        signatures = domain.load_signatures(path)
+    except ValueError as e:
+        raise SystemExit(f"error: {e}") from e
+    found = domain.matches(program, signatures)
+    on_event({"type": "stage", "stage": "translating", "message":
+              f"Domain classes (experimental): {len(signatures)} supplied, {len(found)} matched a record of {program.name}"
+              + (": " + ", ".join(f"{r} -> {c}" for r, (c, _) in found.items()) if found else "")
+              + ". Only public signatures are shown to the model."})
+    return domain.hint(found)
+
+
 def _convert(args, settings: Settings, client: ModelClient, program: Program, run_dir: Path, base: dict,
              events: list[dict], on_event, guard: Guard) -> int:
     guard.inspect_source(program.as_text())
@@ -282,7 +332,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         workspace = Workspace(run_dir / "java")
         on_event({"type": "stage", "stage": "translating", "message": f"Translating {program.name} with {settings.model}"})
         try:
-            translation = translate(program, client, workspace, anyway_reason=force_reason)
+            domain_hint = _domain_hint(args, program, on_event)
+            translation = translate(program, client, workspace, anyway_reason=force_reason, domain_hint=domain_hint)
         except Exception as e:
             if not anyway_on:
                 raise
@@ -303,6 +354,15 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     agent = RepairAgent(program, workspace, client, verify, on_event, hints=render(known),
                         memory_feed=memory.load if (memory and args.swarm) else None,
                         known_lessons={lesson_key(l["pattern"]) for l in known}, escalate=bool(args.tiers))
+    minimizing = None
+    if getattr(args, "minimize", False):
+        why_not = Minimizing.available()
+        if why_not:
+            on_event({"type": "stage", "stage": "repairing", "message": f"--minimize ignored: {why_not}"})
+        else:
+            minimizing = Minimizing(program.sample_dir, workspace.root, run_dir, settings.minimize_max_runs,
+                                    settings.minimize_max_seconds, settings.minimize_max_cases, on_event, gate=guard.gate)
+            agent.evidence = minimizing.certification_evidence
     if args.tiers and not settings.tiers:
         on_event({"type": "stage", "stage": "repairing", "message": "--tiers ignored: no MODEL_TIER_2_ID / "
                   "MODEL_TIER_3_ID configured, or this run is not in hosted mode"})
@@ -343,7 +403,7 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
     breaker_summary = None
     if args.breaker and outcome["certified"]:
         outcome, breaker_summary = _attack(program, workspace, client, verify, agent, standing_cases, outcome,
-                                           run_dir, settings, on_event, tiered=bool(args.tiers))
+                                           run_dir, settings, on_event, tiered=bool(args.tiers), minimizing=minimizing)
 
     crosscheck_result = None
     if args.crosscheck and outcome["certified"]:
@@ -382,7 +442,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         **(_assurance_fields(outcome, repaired, cobol_repair, last_report(outcome)) if anyway_on else {}),
         "rounds": outcome["rounds"], "certificationSeed": outcome.get("certificationSeed"), "usage": usage,
         "memory": {"enabled": memory is not None, "used": len(known), "learned": learned, "lessons": outcome["lessons"]},
-        "breaker": breaker_summary, "crosscheck": crosscheck_result, "behavior": behavior_result, "swarm": bool(args.swarm and memory),
+        "breaker": breaker_summary, "reproducers": minimizing.summaries() if minimizing and minimizing.records else None,
+        "crosscheck": crosscheck_result, "behavior": behavior_result, "swarm": bool(args.swarm and memory),
         "tiers": ({"enabled": True, "configured": [settings.model, *settings.tiers], "escalations": agent.escalations,
                    "breakerModel": settings.tier_model(settings.breaker_tier), "escalatedCalls": client.escalated_calls,
                    "escalatedUsd": round(client.escalated_usd, 6), "capCalls": settings.escalation_max_calls,
@@ -608,7 +669,7 @@ def _atomic_write_text(path: Path, text: str) -> None:
 
 
 def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event,
-            attacker=None, who="Breaker", tiered=False):
+            attacker=None, who="Breaker", tiered=False, minimizing=None):
     """Breaker cycles: attack; anything that breaks becomes a standing case and the agent repairs and re-certifies.
     The run stays certified only if the last attack found nothing. Bounded by MODEL_MAX_ATTACK_ROUNDS,
     MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
@@ -633,21 +694,41 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
                       "message": f"Not certified: {len(broken)} {who.lower()} input(s) still break the Java and the repair budget is spent"})
             break
         cycles += 1
+        evidence = minimizing.reproduce(broken, _standard_inputs(program)) if minimizing else {}
         note = (f"A {who.lower()} found inputs where the Java differs from the COBOL. They are now part of every test "
-                "and certification:\n" + "\n".join(f"- input={b['case'].record!r} ({b['why']}): {b['diff']}" for b in broken)
+                "and certification:\n" + "\n".join(evidence.get(b["case"].id) or f"- input={b['case'].record!r} ({b['why']}): {b['diff']}"
+                                                   for b in broken)
                 + "\nFix the root cause, then finish.")
         on_event({"type": "stage", "stage": "repairing", "message": f"Repair agent resumes with {len(broken)} counterexample(s)"})
         outcome = agent.resume(note, extra_rounds=1)
         if not outcome["certified"]:
             break
+        if minimizing:  # the repaired Java must also pass every saved regression case, replayed against GnuCOBOL's bytes
+            failing = minimizing.recheck()
+            if failing:
+                on_event({"type": "stage", "stage": "done", "message": "Not certified: the repaired Java still fails "
+                          f"{len(failing)} saved regression case(s): " + "; ".join(f"{f['id']}: {f['detail']}" for f in failing)[:300]})
+                outcome = {**outcome, "certified": False, "lessons": [], "certificationReport": None}
+                break
         on_event({"type": "stage", "stage": "attacking", "message": f"{who} attacks the repaired Java again"})
         broken = breaker.attack(rounds=1, label=f"recheck{cycles}")
     summary = {"rounds": len({a["id"].rsplit("-", 1)[0] for a in breaker.attempts}), "tried": len(breaker.attempts),
                "broke": len(found), "repairCycles": cycles, "fixed": bool(found) and outcome["certified"],
                "counterexamples": [{"input": b["case"].record, "why": b["why"], "diff": b["diff"]} for b in found]}
+    if minimizing and minimizing.records:
+        summary["reproducers"] = minimizing.summaries()
     if attacker is None:
         _atomic_write(run_dir / "breaker.json", {**summary, "attempts": breaker.attempts})
     return outcome, summary
+
+
+def _standard_inputs(program):
+    """A larger starting input for a breaker record that does not reproduce alone (programs that carry state)."""
+    def build(record: str) -> list[str]:
+        from diocle_verifier.minimize import reconstruct_cases
+        meta = json.loads((program.sample_dir / "sample.json").read_text())
+        return reconstruct_cases(program.sample_dir, meta) + [record]
+    return build
 
 
 def _crosscheck(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event):

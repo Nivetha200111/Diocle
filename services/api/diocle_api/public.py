@@ -52,7 +52,10 @@ def spent_today() -> float:
         if cost is None and usage.get("calls"):
             return float("inf")
         total += float(cost or 0)
-    return round(total, 4)
+    from .asks import spent as asks_spent  # nor is the ask button's
+    from .livesamples import printout_spent  # the printout button's spend is not in a run record
+    extra = printout_spent() + asks_spent()
+    return float("inf") if extra == float("inf") else round(total + extra, 4)
 
 
 def status() -> dict:
@@ -73,4 +76,26 @@ def admit(visitor: str) -> None:
         recent = [t for t in _seen.get(key, []) if now - t < 86400]
         if len(recent) >= lim["perVisitorPerDay"]:
             raise PermissionError(f"each visitor may start {lim['perVisitorPerDay']} imports a day")
+        _seen[key] = recent + [now]
+
+
+def visitor_key(visitor: str) -> str:
+    return hashlib.sha256(visitor.encode()).hexdigest()[:16]
+
+
+def visitor_left(bucket: str, visitor: str, limit: int) -> int:
+    """Starts a visitor has left in the last 24 hours in a named bucket (the live sample buttons count separately
+    from imports and from each other). Best effort, like admit(): in memory, by address, never stored on disk."""
+    now = time.time()
+    with _lock:
+        return max(0, limit - len([t for t in _seen.get(f"{bucket}:{visitor_key(visitor)}", []) if now - t < 86400]))
+
+
+def visitor_hit(bucket: str, visitor: str, limit: int) -> None:
+    """Count one start in the bucket, or raise PermissionError when the visitor is out of starts for the day."""
+    key, now = f"{bucket}:{visitor_key(visitor)}", time.time()
+    with _lock:
+        recent = [t for t in _seen.get(key, []) if now - t < 86400]
+        if len(recent) >= limit:
+            raise PermissionError(f"each visitor may start {limit} a day")
         _seen[key] = recent + [now]

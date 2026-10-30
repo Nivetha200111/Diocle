@@ -30,7 +30,7 @@ def file_specs(meta: dict) -> list[dict]:
 def is_multi(meta: dict) -> bool:
     """False only for the classic shape: exactly one input, one output, nothing opened I-O, files compared."""
     specs = file_specs(meta)
-    return (bool(meta.get("sql")) or sum(f["direction"] == "input" for f in specs) != 1 or sum(f["direction"] == "output" for f in specs) != 1
+    return (bool(meta.get("sql")) or bool(meta.get("ksds")) or sum(f["direction"] == "input" for f in specs) != 1 or sum(f["direction"] == "output" for f in specs) != 1
             or any(f["direction"] == "io" for f in specs) or bool(meta.get("displayOnly")))
 
 
@@ -47,7 +47,7 @@ def _key_slice(fields: list[Field], name: str) -> slice:
     raise KeyError(name)
 
 
-def _input_records(meta: dict, sample_dir: Path, inputs: list[dict], seed: int, random_count: int) -> dict[str, list[str]]:
+def _input_records(meta: dict, sample_dir: Path, inputs: list[dict], seed: int, random_count: int, plan=None) -> dict[str, list[str]]:
     rng = random.Random(seed)
     collation = meta.get("collation", "ascii")
     fields = {s["dd"]: load_fields(s["layout"]) for s in inputs}
@@ -67,6 +67,15 @@ def _input_records(meta: dict, sample_dir: Path, inputs: list[dict], seed: int, 
                     row[name] = f"Z{rng.randrange(span):0{length - 1}d}"[-length:]
                 else:
                     row[name] = rng.choice(pool)
+    if plan:  # transaction fields that carry a keyed file's RECORD KEY: mostly keys the seed has, some it does not
+        from . import ksds
+        lrng = random.Random(seed * 31 + 5)
+        for spec in inputs:
+            for f in fields[spec["dd"]]:
+                for row in rows[spec["dd"]]:
+                    value = ksds.link_values(plan, spec["dd"], f.name, f, lrng)
+                    if value is not None:
+                        row[f.name] = value
     out: dict[str, list[str]] = {}
     for spec in inputs:
         dd = spec["dd"]
@@ -86,12 +95,17 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
     from . import REPORT_VERSION
 
     specs = file_specs(meta)
+    plan = None
+    if meta.get("ksds"):
+        from . import ksds
+        plan = ksds.plan_seeds(meta, seed, random_count)
+    specs = [s for s in specs if not s.get("keyed")]  # keyed files are seeded and compared by ksds.py
     inputs = [s for s in specs if s["direction"] == "input"]
     updated = [s for s in specs if s["direction"] == "io"]  # opened I-O: seeded from generated records, compared at the end
     outputs = [s for s in specs if s["direction"] in ("output", "io")]
     stdout_only = not outputs and bool(meta.get("displayOnly"))  # nothing but DISPLAY and RETURN-CODE to compare
     out_fields = {s["dd"]: load_fields(s["layout"]) for s in outputs}
-    data = _input_records(meta, sample_dir, inputs + updated, seed, random_count)
+    data = _input_records(meta, sample_dir, inputs + updated, seed, random_count, plan)
     collation = meta.get("collation", "ascii")
     sql = meta.get("sql")
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
@@ -106,6 +120,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             write_records(seeds[s["dd"]], data[s["dd"]], record_format(s["layout"]))
         out_spec = {s["dd"]: (record_format(s["layout"]), record_length(out_fields[s["dd"]])) for s in outputs}
         db_env = {"original": {}, "converted": {}}
+        keyed_results, keyed_report = [], None
         jrun = work
         tamper: list[str] = []
         if sql:
@@ -149,6 +164,10 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                 if cobol_cmd:
                     shutil.copyfile(work / "seed.db", work / "original.db")
                     original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+        elif plan:
+            original, converted, keyed_results, keyed_report = ksds.run_both(
+                plan, meta, sample_dir, java_dir, work, paths, out_spec, seeds, [s["dd"] for s in inputs],
+                [s["dd"] for s in updated], collation, seed)
         else:
             cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
                                               [sample_dir / m for m in meta.get("modules", [])], collation)
@@ -179,7 +198,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                 r.update({"program": meta["program"], "outputDd": dd})
                 r.pop("input", None)
                 results.append(r)
-    results += db_results
+    results += db_results + keyed_results
     if stdout_only and original.compiled and converted.compiled:
         results.append(stdout_result(meta["program"], original, converted))
     passed = sum(r["match"] for r in results)
@@ -198,6 +217,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             "golden": None,
             **({"stdoutCompared": True} if stdout_only else {}),
             **({"database": db_report} if db_report else {}),
+            **({"keyed": keyed_report} if keyed_report else {}),
             "files": {"inputs": {s["dd"]: len(data[s["dd"]]) for s in inputs},
                       **({"updated": {s["dd"]: {"seeded": len(data[s["dd"]]),
                                                 "original": len(original.output_files.get(s["dd"], [])),

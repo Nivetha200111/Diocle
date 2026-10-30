@@ -66,6 +66,8 @@ def summarize_report(report: dict, limit: int = 6, for_agent: bool = True) -> st
         lines.append("Mismatched fields: " + ", ".join(f"{f} x{n}" for f, n in counts.most_common()))
         for r in failing[:limit]:
             lines.append(f"- {r['inputId']} input={r.get('input', '')!r}: {r.get('diff', '')}")
+            if r.get("inputSource") == "keyed":  # keyed-file evidence: the first differing record, in key order
+                lines.append(f"    original record:  {r.get('originalOutput', '')[:300]!r}\n    converted record: {r.get('convertedOutput', '')[:300]!r}")
             if r.get("inputSource") == "database":  # table evidence: the first rows from the first difference on
                 lines.append(f"    original rows:  {r.get('originalOutput', '')[:300]!r}\n    converted rows: {r.get('convertedOutput', '')[:300]!r}")
     if not runs["stdoutMatch"]:
@@ -91,6 +93,9 @@ class RepairAgent:
     # Swarm mode: returns all lessons in shared memory; new ones (certified by other agents) are passed on mid-run.
     memory_feed: Callable[[], list[dict]] | None = None
     known_lessons: set[str] = field(default_factory=set)
+    # run --minimize: called with a failed certification report and a label, returns extra evidence text (the smallest
+    # reproducer, deterministic, no model call) or ""; additive, any failure leaves the usual summary alone
+    evidence: Callable[[dict, str], str] | None = None
     escalate: bool = False  # --tiers: after each failed certification round, use the next tier's model
     escalations: list[dict] = field(default_factory=list)  # [{round, tier, model}] for run.json
     _after_break: bool = False  # resume() was called: a certified Java was shown wrong, so repair starts at settings.after_break_tier
@@ -125,7 +130,7 @@ class RepairAgent:
             {"role": "system", "content": REPAIR},
             {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
              + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
-             + (f"{self.program.support_text()}\n\n" if self.program.sql else "")
+             + (f"{self.program.support_text()}\n\n" if (self.program.sql or self.program.ksds) else "")
              + f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{initial}"},
         ]
         return self._rounds(self.client.settings.max_rounds)
@@ -159,8 +164,14 @@ class RepairAgent:
                            "result": summarize_report(certification, limit=3, for_agent=False)})
             if passed:
                 break
+            extra = ""
+            if self.evidence is not None:
+                try:
+                    extra = self.evidence(certification, f"r{round_no}")
+                except Exception:
+                    extra = ""
             self.messages.append({"role": "user", "content": "Certification on held-out inputs failed:\n"
-                                  f"{summarize_report(certification)}\nContinue fixing."})
+                                  f"{summarize_report(certification)}{extra}\nContinue fixing."})
         certified = bool(certification and report_passes(certification))
         return {"certified": certified, "rounds": self.rounds, "certificationReport": certification,
                 "certificationSeed": CERT_SEED + self.rounds[-1]["round"] if self.rounds else None,

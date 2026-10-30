@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/live-sample.schema.json",
+  "title": "Live sample",
+  "description": "v0.1. The two public \"try it live\" buttons: a visitor presses a button, Diocle runs ONE fixed bundled synthetic sample through a real Meta model call and verifies the result. The request carries nothing but the name of a sample from a fixed list; no visitor text ever reaches a model, a command line, a path or the sandbox. $defs.request is the body of POST /samples/live, $defs.job is the answer of GET /samples/live/{id}, $defs.status is the `publicImports.samples` object of GET /config. Strings in these shapes are fixed phrases or values the engine computed; provider messages are never echoed.",
+  "$defs": {
+    "sampleName": {
+      "type": "string",
+      "enum": ["addfee", "loyalty-waiver-printout"],
+      "description": "addfee: convert the bundled ADDFEE program with Muse Spark and verify it against GnuCOBOL (a normal run). loyalty-waiver-printout: read the bundled printout image with Muse Wonder and check the transcribed COBOL against the original loyalty-waiver sample."
+    },
+    "request": {
+      "type": "object",
+      "required": ["sample"],
+      "additionalProperties": false,
+      "properties": { "sample": { "$ref": "#/$defs/sampleName" } }
+    },
+    "started": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": { "id": { "type": "string", "pattern": "^live-[0-9]{8}-[0-9]{6}-[a-z]+$" } }
+    },
+    "event": {
+      "type": "object",
+      "required": ["at", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "at": { "type": "string", "description": "UTC time the engine saw it, ISO 8601" },
+        "message": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "required": ["calls", "inputTokens", "outputTokens", "estimatedCostUsd"],
+      "additionalProperties": false,
+      "properties": {
+        "calls": { "type": "integer", "minimum": 0 },
+        "inputTokens": { "type": "integer", "minimum": 0 },
+        "outputTokens": { "type": "integer", "minimum": 0 },
+        "estimatedCostUsd": { "type": ["number", "null"], "description": "List-price estimate; null when a model has no known price" }
+      }
+    },
+    "printout": {
+      "type": "object",
+      "description": "The result of the printout button (a reduced transcription.schema.json record plus the transcribed text). The verifier decides; a model reading a printout never certifies anything by itself.",
+      "required": ["status", "reason", "model", "program", "source", "usage", "attempts", "differential"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string", "enum": ["verified-identical", "differs", "compiled-unchecked", "compile-failed", "refused", "no-transcription"] },
+        "reason": { "type": ["string", "null"], "maxLength": 600 },
+        "model": { "type": ["string", "null"] },
+        "program": { "type": ["string", "null"] },
+        "source": { "type": ["string", "null"], "maxLength": 30000, "description": "The COBOL the model transcribed, as written" },
+        "usage": { "$ref": "#/$defs/usage" },
+        "attempts": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["n", "compileOk"],
+            "additionalProperties": false,
+            "properties": { "n": { "type": "integer" }, "compileOk": { "type": "boolean" }, "errors": { "type": "string", "maxLength": 1500 } }
+          }
+        },
+        "differential": {
+          "type": ["object", "null"],
+          "required": ["ran", "inputs", "matched", "mismatched"],
+          "additionalProperties": false,
+          "properties": {
+            "ran": { "type": "boolean" },
+            "inputs": { "type": "integer", "minimum": 0 },
+            "matched": { "type": "integer", "minimum": 0 },
+            "mismatched": { "type": "integer", "minimum": 0 },
+            "stdoutMatch": { "type": "boolean" },
+            "exitCodeMatch": { "type": "boolean" },
+            "reason": { "type": "string", "maxLength": 400 },
+            "ranIn": { "const": "sandbox" }
+          }
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "required": ["version", "id", "sample", "status", "stage", "startedAt", "finishedAt", "error", "maxUsd", "events", "runId", "printout"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "const": "0.1" },
+        "id": { "type": "string", "pattern": "^live-[0-9]{8}-[0-9]{6}-[a-z]+$" },
+        "sample": { "$ref": "#/$defs/sampleName" },
+        "status": { "type": "string", "enum": ["running", "done", "failed"] },
+        "stage": { "type": "string", "maxLength": 80 },
+        "startedAt": { "type": "string" },
+        "finishedAt": { "type": ["string", "null"] },
+        "error": { "type": ["string", "null"], "maxLength": 300, "description": "A fixed phrase, never a provider or program message" },
+        "maxUsd": { "type": "number", "description": "The hard dollar cap this job ran under" },
+        "events": { "type": "array", "maxItems": 60, "items": { "$ref": "#/$defs/event" } },
+        "runId": { "type": ["string", "null"], "description": "addfee only: the normal run record (GET /runs/{runId}) carrying the stages, tokens, cost and certificate; null for the printout" },
+        "printout": { "oneOf": [{ "$ref": "#/$defs/printout" }, { "type": "null" }], "description": "loyalty-waiver-printout only, once the intake has finished" }
+      }
+    },
+    "buttonStatus": {
+      "type": "object",
+      "required": ["maxUsd", "perVisitorPerDay", "perDay", "usedToday", "visitorLeft", "available", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "maxUsd": { "type": "number" },
+        "perVisitorPerDay": { "type": "integer" },
+        "perDay": { "type": "integer" },
+        "usedToday": { "type": "integer", "description": "Starts in the last 24 hours, all visitors" },
+        "visitorLeft": { "type": "integer", "description": "Starts left for the caller in the last 24 hours (best effort, by address)" },
+        "available": { "type": "boolean" },
+        "reason": { "type": ["string", "null"], "description": "Exactly why the button is disabled, null when it is available" }
+      }
+    },
+    "status": {
+      "type": "object",
+      "required": ["enabled", "budgetUsd", "spentTodayUsd", "busy", "convert", "printout"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "description": "False when DIOCLE_PUBLIC_SAMPLES=0, or the public sandbox is not configured" },
+        "budgetUsd": { "type": "number", "description": "DIOCLE_PUBLIC_SAMPLES_BUDGET: the most both buttons together may spend in 24 hours, drawn from the public daily budget" },
+        "spentTodayUsd": { "type": ["number", "null"], "description": "Estimated spend of both buttons in the last 24 hours (null: a model without a price, fails closed)" },
+        "busy": { "type": ["string", "null"], "description": "Id of the delivery or live sample that holds the one-at-a-time lock, else null" },
+        "convert": { "$ref": "#/$defs/buttonStatus" },
+        "printout": { "$ref": "#/$defs/buttonStatus" }
+      }
+    }
+  },
+  "examples": [
+    { "request": { "sample": "addfee" } }
+  ]
+}

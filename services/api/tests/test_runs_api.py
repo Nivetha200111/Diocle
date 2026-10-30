@@ -79,6 +79,20 @@ def test_database_comparison_passthrough(client, tmp_path):
     assert after["after"]["database"] == report["runs"]["database"]
 
 
+def test_keyed_file_comparison_passthrough(client, tmp_path):
+    run = tmp_path / "demo-20261028-124509"
+    assert "keyed" not in client.get("/runs/demo-20261028-124509").json()["after"]
+    report = _report(5, 5)
+    report["runs"]["keyed"] = {"engine": "gnucobol-indexed", "engineVersion": "cobc (GnuCOBOL) 3.2.0; indexed handler BDB",
+                               "subset": "ksds-subset-1", "seededFrom": "generated records (seed 1)",
+                               "files": [{"dd": "K", "recordsSeeded": 2, "recordsOriginal": 3, "recordsConverted": 3, "match": True,
+                                          "firstMismatch": None, "changedFromSeed": {"original": True, "converted": True}}]}
+    (run / "verification-report.json").write_text(json.dumps(report))
+    after = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(after, CONTRACT)
+    assert after["after"]["keyed"] == report["runs"]["keyed"]
+
+
 def test_rejects_unknown_and_unsafe_ids(client):
     assert client.get("/runs/missing-run").status_code == 404
     assert client.get("/runs/..%2F..%2Fetc").status_code == 404
@@ -208,9 +222,11 @@ def test_visitor_imports_need_the_sandbox_and_respect_limits(client, monkeypatch
     from diocle_api.runs import runs_dir
     fresh = lambda: shutil.rmtree(runs_dir() / "deliveries", ignore_errors=True)  # noqa: E731 (one start per second)
     fresh()
+    n = len(started)
     assert client.post("/deliveries", json={**body, "target": "https://github.com/someone-else/x"},
-                       headers=visitor).status_code == 202  # a visitor's target is ignored, never delivered to
-    assert "https://github.com/someone-else/x" not in started[-1][0]
+                       headers=visitor).status_code == 403  # a visitor's target is refused (it used to be ignored), never delivered to
+    assert len(started) == n
+    assert client.post("/deliveries", json=body, headers=visitor).status_code == 202  # still a normal import
     fresh()
     assert client.post("/deliveries", json=body, headers=visitor).status_code == 429  # per-visitor limit
     monkeypatch.setattr(public, "spent_today", lambda: 5.0)

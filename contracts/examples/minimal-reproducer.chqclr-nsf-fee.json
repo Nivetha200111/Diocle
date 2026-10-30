@@ -1,0 +1,179 @@
+{
+  "version": "0.1",
+  "id": "breaker-attack-r1-08",
+  "program": "CHQCLR",
+  "source": "breaker",
+  "status": "minimized",
+  "discrepancy": {
+    "kind": "output-record",
+    "summary": "an output record differs: CL-FEE",
+    "fields": [
+      "CL-FEE"
+    ]
+  },
+  "reduction": {
+    "recordsBefore": 1,
+    "recordsAfter": 1,
+    "bytesBefore": 40,
+    "bytesAfter": 40,
+    "oracleRuns": 15,
+    "maxOracleRuns": 150,
+    "wallClockSeconds": 1.5,
+    "maxWallClockSeconds": 120.0,
+    "stoppedBy": "complete",
+    "recordMinimal": true,
+    "fieldsSimplified": 5,
+    "fieldsKept": 5
+  },
+  "inputs": [
+    {
+      "dd": "CHQIN",
+      "format": "fixed",
+      "recordLength": 40,
+      "records": [
+        {
+          "hex": "522020202020202020202030303030303030304e5320313030302020202020202020202020202020",
+          "text": "R          00000000NS 1000              ",
+          "fields": [
+            {
+              "name": "CQ-TYPE",
+              "offset": 0,
+              "length": 1,
+              "value": "R",
+              "role": "needed"
+            },
+            {
+              "name": "CQ-BODY",
+              "offset": 1,
+              "length": 39,
+              "value": "          00000000NS 1000              ",
+              "role": "needed"
+            },
+            {
+              "name": "CQ-ACCT",
+              "offset": 1,
+              "length": 10,
+              "value": "          ",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "CQ-NUMBER",
+              "offset": 11,
+              "length": 8,
+              "value": "0",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "CQ-AMOUNT",
+              "offset": 19,
+              "length": 10,
+              "value": "NS 1000   ",
+              "role": "needed",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "CQ-DATE",
+              "offset": 29,
+              "length": 8,
+              "value": "        ",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "FILLER",
+              "offset": 37,
+              "length": 3,
+              "value": "   ",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "RT-ACCT",
+              "offset": 1,
+              "length": 10,
+              "value": "          ",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "RT-NUMBER",
+              "offset": 11,
+              "length": 8,
+              "value": "0",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "RT-REASON",
+              "offset": 19,
+              "length": 2,
+              "value": "NS",
+              "role": "needed",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "RT-FEE",
+              "offset": 21,
+              "length": 5,
+              "value": " 1000",
+              "role": "needed",
+              "view": "CQ-BODY"
+            },
+            {
+              "name": "FILLER",
+              "offset": 26,
+              "length": 14,
+              "value": "              ",
+              "role": "neutral",
+              "view": "CQ-BODY"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "output": {
+    "original": {
+      "records": [
+        "          00000000+00000000002000RT"
+      ],
+      "stdout": "CHQCLR NET=       -20.00\n",
+      "exitCode": 0
+    },
+    "translated": {
+      "records": [
+        "          00000000+00000000000000RT"
+      ],
+      "stdout": "CHQCLR NET=         0.00\n",
+      "exitCode": 0
+    },
+    "firstDifference": {
+      "record": 1,
+      "offset": 29,
+      "field": "CL-FEE",
+      "fieldOffset": 1,
+      "original": "          00000000+00000000002000RT",
+      "translated": "          00000000+00000000000000RT"
+    }
+  },
+  "explanation": {
+    "text": "COBOL DISPLAY numerics use low nibble so spaces and letters become digits, not zero",
+    "label": "explanation, not proof",
+    "source": "repair-agent"
+  },
+  "regression": {
+    "dir": "regression/breaker-attack-r1-08",
+    "files": [
+      "regression/breaker-attack-r1-08/case.json",
+      "regression/breaker-attack-r1-08/input.dat",
+      "regression/breaker-attack-r1-08/expected-output.dat",
+      "regression/breaker-attack-r1-08/expected-stdout.txt"
+    ],
+    "replay": "python -m diocle_verifier replay regression/breaker-attack-r1-08 --java-dir <java directory>",
+    "afterRepair": null
+  },
+  "signatureMode": "strict",
+  "origin": "REBUILT DEFECT, not the run's original pre-fix Java (it was not stored): the repaired Java with a one-line change in each number parser, so that any non-digit makes the whole field 0."
+}
