@@ -1,6 +1,6 @@
 # Feature reference
 
-The larger features of Diocle, moved here from the README so the README stays short. Nothing was removed. Each section keeps its caveats; "experimental" means merged but not verified on the live site (see [LIVE_CHECK.md](LIVE_CHECK.md)). Back to the [README](../README.md).
+The larger features of Diocle, moved here from the README so the README stays short. No feature or caveat was dropped (headings and links were adjusted, and a few words were tightened). Each section keeps its caveats; "experimental" means merged but not verified on the live site (see [LIVE_CHECK.md](LIVE_CHECK.md)). Back to the [README](../README.md).
 
 Contents: Try it live, Ask the original program, EXEC SQL, Keyed files, Verification strength (mutation testing), Smallest reproducer, Whole-repository build check, Let Diocle create the target repository, Running on your own repo.
 

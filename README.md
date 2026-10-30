@@ -28,7 +28,7 @@ As of Oct 31, 2026 the public run list has 36 runs, 29 certified (26 excluding 3
 
 ## Run it yourself in 5 minutes
 
-Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+. Linux is untested.
+Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+. The quickstart script itself is only tested on macOS; the test suites also run on Linux in CI.
 
 ```sh
 git clone https://github.com/Nivetha200111/Diocle && cd Diocle
@@ -236,7 +236,7 @@ Every known limit, one row each. Nothing in this table is claimed to work.
 | Verified documentation covers single-file record programs only | Multi-file, DISPLAY-only and I-O programs are skipped; it checks only the examples a model wrote | The claim-checking path ran live behind the "Ask the original program" panel on Oct 30, 2026; the `--document` command line and the Markdown download were not re-run live | Experimental |
 | The voice question covers two bundled single-file programs on the public site and any single-file record program locally | The speech model sometimes mishears (one real run heard "the fee the fee"), a weak transcript yields weak claims, and the answer is only as good as the examples GnuCOBOL confirmed. The speech route is Meta's client protocol, not a documented API. The microphone path was verified only up to the engine (encoder output and upload), not with a real microphone | Use `--text` locally to skip transcription | Live (one public ask checked Oct 30) with these limits |
 | The whole-repository build check is a compile and interface check only | It does not run the programs together, does not follow JCL step order or dataset wiring, and compares CALL argument lengths only for plain 01/77 items. Domain classes (`--domain-classes`) are compile-time only | Each program is still verified alone | Experimental; not checked on the live engine |
-| The live buttons convert one fixed program and read one fixed printout | There is no way to try your own code through them. On the Convert button the guard model's review (Fireworks) is skipped by the $0.02 cap and says so in the run (`review failed: BudgetExceeded`); the verifier's result is unaffected | Use a visitor import on the Delivery page, or run it locally | By design (cost caps, no free-text input) |
+| The live buttons convert one fixed program and read one fixed printout | There is no way to try your own code through them. On the Convert button the guard model's review (Fireworks) is skipped by the $0.02 cap and says so in the run ("review skipped: the run's dollar cap was reached"); the verifier's result is unaffected | Use a visitor import on the Delivery page, or run it locally | By design (cost caps, no free-text input) |
 | The VS Code extension (`editors/vscode`) runs the local converter only | No engine mode, no Marketplace listing; needs a Diocle checkout for the converter, GnuCOBOL and a JDK; converts one file at a time. Exercised in a real VS Code extension host for `check` and `convert`; Cursor, VSCodium and Windsurf were not run | Package it with `npm run package` and install the `.vsix` | Local tool, not published |
 | The Muse Code plugin (`editors/muse-code`) works on paths inside a Diocle checkout and converts the bundled samples only | Five real model-driven runs are recorded (Oct 31) but their prompts named the tools; how the agent behaves with the skill alone, and whether Muse Code runs the MCP tools unattended, is untested | See `editors/muse-code/README.md` | Local plugin, not published |
 

@@ -56,7 +56,7 @@ Narration timed to it (about 280 words, calm; the picture carries the rest):
 | Time | Narration |
 |---|---|
 | 0:00 | (no voice; let the cold open hit) |
-| 0:05 | "Banks still run on COBOL. On a migration I worked on, hundreds of people re-checked converted code by hand. AI can write the Java in minutes. So who checks the AI?" |
+| 0:05 | "Banks still run on COBOL. Converted code is often re-checked by hand. AI can write the Java in minutes. So who checks the AI?" |
 | 0:13 | "This is Diocle." |
 | 0:17 | "Three Meta Muse Spark agents. One writes the Java. One attacks it. One repairs it. And the judge isn't a model: it's the original program, run next to the Java, where every byte must match." |
 | 0:27 | "Muse Spark translates; GnuCOBOL runs the original; if anything differs, the repair agent fixes the Java until it certifies on inputs it has never seen." |
