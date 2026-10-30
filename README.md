@@ -146,7 +146,23 @@ Coverage in one line: **QSAM yes, DB2 subset yes, VSAM keyed files: a subset, on
 - Fix memory over 18 runs: 30% lower cost and 37% less model time on average than without memory.
 - Costs are estimates from list prices.
 
+## Coverage today: what Diocle verifies, and what it does not
+By kind of mainframe artifact, as of Oct 30, 2026 (also on the [Evidence page](https://diocle.vercel.app/evidence)). "In progress" means not merged or deployed yet; certified always means on the inputs tried.
+
+| Artifact | Status | What is checked | Limit |
+|---|---|---|---|
+| Sequential files (QSAM-style) | Verified | Outputs compared byte for byte, original on GnuCOBOL against the Java, plus 1,000 held-out inputs | On the inputs tried |
+| Copybooks (COPY, REPLACING) | Verified | Layouts come from the copybooks; verification and SQL schemas derive from them | Copybooks outside the repository refuse the program with a reason |
+| Static CALLs between programs | Verified | Called programs are translated together and linked into one executable | Dynamic CALLs and calls to programs not in the repository are refused |
+| JCL jobs | Partial | One SORT step feeding one COBOL step, with DD overrides: every final dataset compared | Runs through the converter's `run-job` command, not the web delivery flow; longer jobs, several SORT steps, COND-gated steps and IDCAMS are refused with a reason |
+| Embedded SQL (DB2) | Subset | A named subset (SELECT INTO, INSERT, UPDATE, DELETE, cursors, COMMIT, ROLLBACK, SQLCODE), final table contents compared | On a SQLite stand-in, never real DB2; dynamic SQL, joins and DB2-only clauses are refused |
+| Keyed files (VSAM KSDS-style) | In progress | A keyed-file subset compared by key order on GnuCOBOL's indexed-file handler | Refused today |
+| Whole-repository build check | Partial | Compiles every converted program together, flags copybook drift and CALL signature mismatches, and puts a build report in the pull request | Built and merged, not deployed to the live engine yet, CI step not yet run on GitHub; JCL step order not checked; customer domain classes are an experimental compile-time check only |
+| Hierarchical database (IMS DL/I) | Not supported | There is no free IMS runtime to compare against | Roadmap |
+| CICS online transactions | Not supported | Programs with EXEC CICS are refused with a reason | |
+
 ## Not supported yet
+- The whole-repository build check is a compile and interface check of the certified programs: it does not run them together, does not follow JCL step order or dataset wiring, and compares CALL argument lengths only for plain 01/77 items. Domain classes (`--domain-classes`) are compile-time only and experimental.
 - The live buttons convert one fixed program and read one fixed printout; there is no way to try your own code on the public site (use a visitor import, or run it locally). On the Convert button the guard model's review (Fireworks) is skipped by the $0.02 cap and says so in the run (`review failed: BudgetExceeded`); the verifier's result is unaffected.
 - **Convert anyway (local or admin only, see "Running on your own repo") never certifies what the verifier could not run.** Programs the analyzer refuses (EXEC SQL outside the verified subset, CICS/DLI, keyed files outside the subset, dynamic or external CALLs, missing copybooks, no output) are translated with labelled `// ADAPTER REQUIRED` interfaces (no invented database behaviour), compile-checked with `javac`, never executed, and labelled `COMPILED, NOT VERIFIED`; nothing here is a working DB2, CICS or keyed-file conversion. An original that does not compile under GnuCOBOL gets a bounded patch first (see the rule below) and its Java is labelled `VERIFIED AGAINST REPAIRED COBOL`, which is not `CERTIFIED`. Visitor imports on the public site cannot enable the mode and keep refusing as before.
 - Programs with EXEC SQL outside the verified subset (dynamic SQL, stored procedures, joins, DB2 functions and special registers, FETCH FIRST, WITH UR, FOR UPDATE, WHERE CURRENT OF, multi-row operations, LOB/DATE/TIMESTAMP columns, no schema source; the subset that is verified runs on a SQLite stand-in, not DB2), CICS or DLI (out of scope), RELATIVE files and INDEXED files outside `ksds-subset-1` (alternate keys, duplicates, locking, EXTEND, group/signed/packed keys, no FILE STATUS; real IBM VSAM, IDCAMS and alternate indexes are never covered, and the keyed subset has not been run in the production sandbox yet), LINE SEQUENTIAL files opened I-O (only fixed-record SEQUENTIAL files are updated in place), a file opened I-O in one place and another way elsewhere, CALL identifiers that anything other than literals can assign (STRING, UNSTRING, ACCEPT, READ INTO, a LINKAGE parameter, a MOVE from a field, a second literal), DISPLAY-only programs that ACCEPT from the console or that DISPLAY only UPON SYSERR, programs with no output file and no DISPLAY, a JCL job whose COBOL step is DISPLAY-only or updates a file in place (the job check compares output files only), several record types in one file, OCCURS DEPENDING ON, SYNCHRONIZED, PIC N or leading P scaling are reported as not convertible. Each new shape we found unhandled was added to this list with a test; there may be others.
@@ -193,6 +209,42 @@ converter yourself:
 4. Check the key and endpoint: `cd services/converter && .venv/bin/python -m diocle_converter smoke` (one tiny call,
    about a hundredth of a cent). A first full run on a sample costs a few cents; every model loop has hard call caps
    (`MODEL_MAX_CALLS_PER_RUN` and the others in `.env.example`).
+
+### Whole-repository build check
+
+Migration teams spend nights compiling every converted program together. Diocle certifies each program on its own; the build check
+(`diocle_verifier.buildcheck`, contract `contracts/build-report.schema.json`) looks at the delivered programs **together**.
+
+**What it checks**
+- All converted Java compiled in **one** `javac -proc:none` run (no network, nothing executed), and each program alone. Top-level class names declared in more than one program (identical copies too, because the generated CI compiles every file and javac reports those as duplicate classes there as well).
+- **Copybook drift**: the same copybook member with different text across files (warn) or different record layouts for the same `COPY` (fail).
+- **CALL resolution**: every static `CALL 'X'` must name a program of the repository; the callee's `PROCEDURE DIVISION USING` count must be satisfied and argument byte lengths compared where both sides are plain 01/77 items (callee longer than the caller's item = fail, shorter = warn), with exact file and line.
+- A dependency graph of programs, copybooks, calls and files, and a verdict `pass | fail | warn` with one reason per cause.
+
+**Known limits**: a `module-info.java` inside a program folder makes the whole compile fail (the gate compiles every file as one classpath unit; it says so rather than hiding it), and two classes whose names differ only by case are not detected on case-insensitive file systems. The compile uses an `@argfile`, so thousands of files and spaces in paths are fine.
+
+**What it does not check**: how the programs behave together (each is still verified alone by differential testing), JCL step order and dataset wiring, subscripted or computed CALL arguments, dynamic CALLs, programs outside the repository. `scope.notChecked` in the report always says so.
+
+**How the generated Java is built** (found by looking at real certified runs): the translator writes one self-contained file per program, default package, one public class named after the program; copybook records are inlined as private fields or nested holders, never shared POJOs; CALLed modules are translated into the caller's file. So a duplicate class name or a missing symbol can only come from two programs of the same name or from a hand edit, and the real work of the gate is the COBOL-side interface checks plus the single compile. Programs with embedded SQL need the verifier's own `DioSql.java`, which is not part of the delivered programs: the gate adds it for its compile and reports it as a warning.
+
+```sh
+cd services/verifier
+.venv/bin/python -m diocle_verifier.buildcheck --program HRFEE020 JAVA_DIR SAMPLE_DIR --program HRINT010 JAVA_DIR SAMPLE_DIR \
+    --report analysis-report.json --out build-out     # writes build-report.json and BUILD-REPORT.md; exit 1 on fail
+```
+
+**In a delivery** it runs after certification. The pull request gets `build/BUILD-REPORT.md` and `build/build-report.json`, the body has a
+"Whole-repository build check" section, and the Delivery page a "Build check" card. A failing build does **not** block the delivery of programs that
+are certified on their own; the body says in bold that the whole-repository build did not pass and why. The generated CI also compiles everything
+together (`javac -proc:none -d "$RUNNER_TEMP/out" $(find programs -name '*.java')`, adding `DioSql.java` from the pinned Diocle commit when programs use it) and fails the job on error. No `pom.xml` is generated (the programs sit in separate `programs/*/java` folders in the default package).
+
+**EXPERIMENTAL: bring your own domain classes.** `--domain-classes PATH` (a directory of `.java` files, or one `.jar`; local only, `deliver` and `buildcheck`)
+puts your own classes on the javac classpath, so the converted programs are checked to compile beside your codebase, and a program class with the
+same name as one of yours is reported. The classes are only read by javac (and `javap -public` for a jar); they are never loaded or run, never
+extracted (javac and `javap` read a staged copy; a relative `Class-Path` entry in the jar's manifest cannot reach beside the original, but absolute or `file:` entries are not confined and javac may read those paths as class bytes), and the verifier's runs never see them. With `diocle_converter run --domain-classes PATH`, when a class name matches a COBOL record or copybook
+name (case, hyphens and a trailing REC/RECORD ignored), the translator is shown that class's **public signature only** (no bodies) and is told to shape
+its nested record holder after it (same field and accessor names) but **not** to reference it, because each program is still compiled and verified alone.
+So the converted programs do not yet use your classes; a swap-in is a reviewer's step and is not verified. One real run (ADDFEE, a tiny synthetic class) did shape its holder after the class and certified 1,005 of 1,005.
 
 ### Let Diocle create the target repository (local or admin only)
 

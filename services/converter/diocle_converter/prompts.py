@@ -31,6 +31,20 @@ Fidelity rules:
   processes, reflection, native code or other files: a guard refuses to run such Java.
 """
 
+DOMAIN_HINT = """
+
+Customer domain classes (EXPERIMENTAL). The customer already has Java classes for some of this program's records. Their
+PUBLIC SIGNATURES (no bodies) follow:
+
+{signatures}
+
+Your Java file is compiled and run ALONE by the verifier, so do NOT reference, import or extend these classes: the build
+would fail. Instead, shape your nested record holder after the matching class where it makes the code clearer: the same field
+names and types, and the same accessor/mutator names, so the customer can replace your holder with their class in review.
+Reading and writing the files stays byte-exact exactly as described above; a holder's shape never changes what is read or
+written. If a class does not fit the COBOL record, ignore it and say so in `notes`.
+"""
+
 TRANSLATOR_SQL = """\
 
 Embedded SQL (EXEC SQL) contract. The program runs against a stand-in SQLite database, not DB2; the verifier seeds the

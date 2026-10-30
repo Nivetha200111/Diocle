@@ -202,9 +202,98 @@ jobs:
           git clone {DIOCLE_URL}.git "$RUNNER_TEMP/diocle"
           git -C "$RUNNER_TEMP/diocle" checkout {diocle_commit}
           pip install "$RUNNER_TEMP/diocle/services/analyzer" "$RUNNER_TEMP/diocle/services/verifier"
+      - name: Compile every program together (whole-repository build)
+        run: |
+          set -eu
+          [ -d programs ] || {{ echo "no programs/ directory: nothing to compile"; exit 0; }}
+          extra=""
+          # Programs with embedded SQL use the verifier's own DioSql.java, which is not delivered with them: take it from the pinned commit.
+          if grep -rlqw DioSql programs && [ -z "$(find programs -name DioSql.java)" ]; then
+            extra="$RUNNER_TEMP/diocle/services/verifier/diocle_verifier/dbsupport/DioSql.java"
+          fi
+          mkdir -p "$RUNNER_TEMP/out"
+          # One quoted path per line in an @argfile: spaces in names are safe and the command line never hits ARG_MAX.
+          find programs -name '*.java' -print | sort | sed -e 's/\\\\/\\\\\\\\/g' -e 's/"/\\\\"/g' -e 's/^/"/' -e 's/$/"/' > "$RUNNER_TEMP/files.txt"
+          if [ -n "$extra" ]; then printf '"%s"\\n' "$extra" >> "$RUNNER_TEMP/files.txt"; fi
+          javac -proc:none -d "$RUNNER_TEMP/out" @"$RUNNER_TEMP/files.txt"
       - name: Re-verify on fresh inputs
         run: python -m diocle_verifier.reverify programs --seed 777777 --expect-legacy {legacy_url} --summary "$GITHUB_STEP_SUMMARY"
 """
+
+
+def _clean_line(text: object, limit: int = 300) -> str:
+    """Text from the build report into the PR body: a conservative character set (no links, HTML or code spans)."""
+    return re.sub(r"[^A-Za-z0-9 _.,:;'/=+$()-]", "?", str(text))[:limit]
+
+
+def run_build_check(repo: Path, delivered: list[tuple[dict, dict]], samples: Path, report: dict,
+                    domain_classes: Path | None = None) -> dict | None:
+    """Whole-repository build check of the certified programs as they sit in the delivery (programs/<NAME>/java), through
+    the verifier's own CLI in a child with a minimal environment (it compiles model-written Java with javac -proc:none and
+    runs nothing). Writes build/build-report.json and build/BUILD-REPORT.md into the delivery. Returns the report, or None
+    when the check could not run: it never blocks a delivery, because every program is verified on its own."""
+    py = SERVICES / "verifier/.venv/bin/python"
+    args = []
+    for _, cert in delivered:
+        name = cert["program"]
+        sample = samples / name.lower()
+        if (repo / "programs" / name / "java").is_dir() and sample.is_dir():
+            args += ["--program", name, str(repo / "programs" / name / "java"), str(sample)]
+    if not args or not py.exists():
+        return None
+    env = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "JAVA_HOME")}
+    env["PYTHONPATH"] = os.pathsep.join([str(SERVICES / "verifier"), str(SERVICES / "analyzer")])
+    with tempfile.TemporaryDirectory(prefix="diocle-build-") as tmp:
+        report_file = Path(tmp) / "analysis-report.json"
+        report_file.write_text(json.dumps(report))
+        try:
+            proc = subprocess.run([str(py), "-m", "diocle_verifier.buildcheck", *args, "--report", str(report_file),
+                                   *(["--domain-classes", str(domain_classes)] if domain_classes else []), "--out", str(Path(tmp) / "out")],
+                                  cwd=SERVICES / "verifier", env=env, capture_output=True, text=True, timeout=600, stdin=subprocess.DEVNULL)
+            result = json.loads((Path(tmp) / "out" / "build-report.json").read_text())
+            if proc.returncode not in (0, 1) or result.get("verdict") not in ("pass", "warn", "fail"):
+                return None
+        except (OSError, subprocess.SubprocessError, ValueError):
+            print("build check: could not run (the delivery continues; programs are verified on their own)", flush=True)
+            return None
+        dest = repo / "build"
+        dest.mkdir(exist_ok=True)
+        shutil.copyfile(Path(tmp) / "out" / "build-report.json", dest / "build-report.json")
+        shutil.copyfile(Path(tmp) / "out" / "BUILD-REPORT.md", dest / "BUILD-REPORT.md")
+    return result
+
+
+def build_summary(result: dict | None) -> dict | None:
+    """The part of a build report kept in the delivery record (contracts/delivery.schema.json buildCheck)."""
+    if not result:
+        return None
+    return {"verdict": result["verdict"], "reasons": [_clean_line(r) for r in result["reasons"]][:30],
+            "programs": len(result["programs"]), "calls": result["calls"]["checked"],
+            "copybookDrift": len(result["copybooks"]["drift"]), "classCollisions": len(result["classCollisions"])}
+
+
+def build_section(result: dict | None, delivered_count: int) -> list[str]:
+    """PR body lines about the whole-repository build. Says plainly when it did not pass or did not run."""
+    if not delivered_count:
+        return []
+    if not result:
+        return ["", "## Whole-repository build check", "",
+                "**Not run.** The programs were not compiled together by Diocle for this pull request (the check could not run). "
+                "Each program is still verified on its own; the generated CI compiles all of them together."]
+    verdict, reasons = result["verdict"], [_clean_line(r) for r in result["reasons"]]
+    head = {"pass": f"**Pass.** All {len(result['programs'])} certified programs compiled together with `javac -proc:none`, and the copybook "
+                    "and CALL checks found no mismatch. This is a compile and interface check, not a behavioural one.",
+            "warn": "**Warn.** The programs compiled together, but something could not be checked or looks suspicious:",
+            "fail": "**FAIL: the whole-repository build did not pass.** The certified programs are delivered anyway, because each was verified "
+                    "on its own against the original COBOL, but they do not build or fit together as a whole:"}[verdict]
+    lines = ["", "## Whole-repository build check", "", head]
+    if verdict != "pass":
+        lines += [f"- {r}" for r in reasons[:8]]
+        if len(reasons) > 8:
+            lines.append(f"- and {len(reasons) - 8} more in `build/BUILD-REPORT.md`")
+    lines += ["", "`build/BUILD-REPORT.md` and `build/build-report.json` list what was checked and what was not "
+              "(behaviour of the programs together, JCL step order and dataset wiring are not checked)."]
+    return lines
 
 
 class Progress:
@@ -298,7 +387,8 @@ def _usd(cost: float | None) -> str:
     return "n/a" if cost is None else f"${cost:.4f}"
 
 
-def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str], others: list[dict] | None = None) -> str:
+def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str], others: list[dict] | None = None,
+             build: dict | None = None) -> str:
     """others: convert-anyway programs that are NOT certified, each {name, assurance, reason, run}. They are listed under their
     own headings, with a sentence saying what was and was not shown; nothing in this section says "certified" of them."""
     src = report["source"]
@@ -332,6 +422,7 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         lines += ["", "## Failed (not delivered)", ""] + [f"- `{o['name']}`: {o['reason']}" for o in failed]
     if skipped:
         lines += ["", "**Not delivered** (not certified or not convertible): " + ", ".join(f"`{s}`" for s in skipped)]
+    lines += build_section(build, len(delivered))
     lines += ["", *(["Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
                     "The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
                     "so this PR does not ask you to trust Diocle's own result."] if delivered else []), "",
@@ -361,12 +452,14 @@ def unverified_sentence(assurance: str, reason: str) -> str:
 
 
 def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
-            progress: Progress | None = None, onto: str | None = None, create: dict | None = None) -> str:
-    """create: a plan_create() result. The repository is created here, after everything is certified, so a delivery with
+            progress: Progress | None = None, onto: str | None = None, create: dict | None = None,
+            domain_classes: Path | None = None) -> str:
+    """domain_classes: EXPERIMENTAL, local only: the customer's own classes, put on the classpath of the build check.
+    create: a plan_create() result. The repository is created here, after everything is certified, so a delivery with
     nothing to deliver creates nothing. If a later step fails, the repository stays (never deleted automatically)."""
     created: list[str] = []
     try:
-        return _deliver(report, samples, run_ids, target_url, dry_run, progress, onto, create, created)
+        return _deliver(report, samples, run_ids, target_url, dry_run, progress, onto, create, created, domain_classes)
     except BaseException as e:
         if not created:
             raise
@@ -377,7 +470,8 @@ def deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: st
 
 
 def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: str, dry_run: bool,
-             progress: Progress | None, onto: str | None, create: dict | None, created: list[str]) -> str:
+             progress: Progress | None, onto: str | None, create: dict | None, created: list[str],
+             domain_classes: Path | None = None) -> str:
     diocle_commit = _sh(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"]).stdout.strip()
     pushed = _sh(["git", "-C", str(REPO_ROOT), "branch", "-r", "--contains", diocle_commit]).stdout.strip()
     if not pushed and not dry_run:
@@ -454,7 +548,10 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
             delivered.append((run, cert))
         if not delivered and not any(o["assurance"] != "failed" for o in others):
             raise SystemExit(f"Nothing certified to deliver (skipped: {', '.join(skipped)})")
-        body = _pr_body(report, delivered, skipped, others)
+        build = run_build_check(repo, delivered, samples, report, domain_classes) if delivered else None
+        if progress and delivered:
+            progress.update(buildCheck=build_summary(build))
+        body = _pr_body(report, delivered, skipped, others, build)
         if create:
             (repo / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
             (repo / ".github" / "workflows" / "reverify.yml").write_text(reverify_workflow(report["source"]["location"], diocle_commit))
@@ -473,6 +570,8 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
             return str(repo)
         git = ["git", "-C", str(repo), "-c", "user.name=Diocle", "-c", "user.email=diocle@users.noreply.github.com"]
         _sh(git + ["add", "-A"])
+        if (repo / "build").is_dir():  # a target's own .gitignore (the Node template ignores build/) must not drop the report
+            _sh(git + ["add", "-f", "build"])
         models = sorted({c["agent"]["model"] or "unknown model" for _, c in delivered})
         extra = f" and {len([o for o in others if o['assurance'] != 'failed'])} NOT-certified program(s) under not-certified/" if others else ""
         _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s){extra} from {report['source']['commit'][:12]}",
@@ -627,6 +726,9 @@ def main(argv: list[str] | None = None) -> int:
                         "request into it (private unless --target-public; refused if it already exists; not with a target URL or --onto)")
     parser.add_argument("--target-owner", help="owner of the repository --create-target creates (default: your gh login); allowlisted")
     parser.add_argument("--target-public", action="store_true", help="make the created repository public (default private)")
+    parser.add_argument("--domain-classes", type=Path, help="EXPERIMENTAL, local only: a directory of .java files or a .jar of your own "
+                        "classes. The whole-repository build check compiles the programs beside them (compile-time classpath, never "
+                        "run), and the translator sees matching classes' public signatures. Not with --public.")
     parser.add_argument("--id", help="delivery id to use (the API passes one so the dashboard can follow it)")
     parser.add_argument("--convert-anyway", action="store_true",
                         help="never refuse (local or admin only): refused, uncompilable or unverifiable programs are still "
@@ -635,6 +737,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--public", action="store_true",
                         help="a visitor's import: needs the sandbox, visitor caps, no pull request, no swarm or breaker")
     args = parser.parse_args(argv)
+    if args.public and args.domain_classes:
+        parser.error("--domain-classes is not available to visitor imports (--public)")
     if args.public and args.convert_anyway:
         parser.error("--convert-anyway is not available to visitor imports (--public)")
     if args.create_target is None and (args.target_owner or args.target_public):
@@ -703,7 +807,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"ignoring --runs {run_id}: {'not certified' if run else 'not found'}", flush=True)
         flags = ((["--swarm"] if args.parallel else []) + (["--breaker"] if args.breaker else [])
                  + (["--memory-read-only"] if args.public else [])  # strangers' code never shapes later runs
-                 + (["--convert-anyway"] if convert_anyway else []))
+                 + (["--convert-anyway"] if convert_anyway else [])
+                 + (["--domain-classes", str(args.domain_classes)] if args.domain_classes else []))
         lock = threading.Lock()
 
         def work(program: dict) -> None:
@@ -769,7 +874,7 @@ def main(argv: list[str] | None = None) -> int:
                 work(program)
         if target:
             progress.update(stage="delivering")
-            print(deliver(report, samples, run_ids, target, args.dry_run, progress, args.onto, plan))
+            print(deliver(report, samples, run_ids, target, args.dry_run, progress, args.onto, plan, args.domain_classes))
         progress.update(stage="done", finishedAt=_now())
     except BaseException as e:
         progress.update(stage="failed", error=str(e)[:500] or type(e).__name__, finishedAt=_now())

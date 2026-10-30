@@ -43,6 +43,15 @@ export type Delivery = {
   error: string | null;
   programs: DeliveryProgram[];
   pullRequest: { url: string; checks?: { name: string; state: string; link?: string }[] } | null;
+  /** Whole-repository build check (contracts/build-report.schema.json, summarised): absent on older deliveries. */
+  buildCheck?: {
+    verdict: "pass" | "fail" | "warn";
+    reasons: string[];
+    programs?: number;
+    calls?: number;
+    copybookDrift?: number;
+    classCollisions?: number;
+  } | null;
 };
 
 export type DeliveryListItem = Pick<Delivery, "id" | "legacy" | "target" | "stage" | "startedAt" | "finishedAt"> & {
