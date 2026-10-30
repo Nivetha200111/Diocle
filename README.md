@@ -122,6 +122,7 @@ Sample estate repositories: [quillmark-mainframe](https://github.com/Nivetha2001
 - Without golden files, the oracle is GnuCOBOL, which can differ from IBM Enterprise COBOL in edge cases (intermediate precision, NUMPROC, hex float arithmetic). No real mainframe output has been tested yet.
 - The breaker agent attacks single-file programs only. In the frozen evaluation it broke CHQCLR after the program had passed 1,000 held-out inputs: two designed records gave a fee of 20.00 vs 0.00 and a debit of -121.23 vs 0.00; the repair agent fixed both and the program re-certified. Both records carry malformed numeric content (a leading space, letters in a numeric field), so this shows agreement with GnuCOBOL's handling of bad data, not proven IBM behaviour.
 - Verified documentation covers single-file record programs only (multi-file, DISPLAY-only and I-O programs are skipped), checks only the examples a model wrote, and is not on the live engine yet.
+- The VS Code extension (`editors/vscode`) runs the local converter only (no engine mode, no Marketplace listing), needs a Diocle checkout for the converter, GnuCOBOL and a JDK, and converts one file at a time. It was exercised in a real VS Code extension host for `check` and `convert`; Cursor, VSCodium and Windsurf were not run.
 
 
 ## Run
@@ -188,6 +189,11 @@ verifier certifies; the model's Java is compiled, never trusted. This mode is no
 request that sets it is refused (403), and the visitor job strips `DIOCLE_CONVERT_ANYWAY` from its environment. **A hosted engine must set `DIOCLE_HOSTED=1` and a long random `DIOCLE_ADMIN_TOKEN`** (see `deploy/diocle.env.example`): with both unset the admin check is open, and the API then only accepts `convertAnyway` from the machine itself (loopback, no proxy headers). `python -m diocle_converter run --convert-anyway` without `--max-usd` is capped at `REPO_MAX_USD` or $0.25.
 
 See [CLAUDE.md](CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design.
+
+## Editors
+
+- **VS Code and forks** (Cursor, VSCodium, Windsurf): `editors/vscode` checks that a COBOL file compiles under GnuCOBOL (errors in the Problems panel) and converts and verifies it from the editor with your own Meta key on your machine, capped in dollars; results carry the same honest labels as the dashboard. See `editors/vscode/README.md`. Add `.diocle/` to your `.gitignore` (results are written there). Not published to a marketplace yet.
+- **Notepad++**: planned as a script around the same CLI (`python -m diocle_converter editor check|convert FILE`, contract `contracts/editor-result.schema.json`).
 
 ## License
 
