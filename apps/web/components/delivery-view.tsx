@@ -6,11 +6,18 @@ import { API_URL } from "@/lib/runs";
 import { CANONICAL, LINKS, useApiConfig } from "@/lib/config";
 import { Skeleton } from "./ui";
 import { AssuranceBadge } from "./assurance";
-import { fetchDeliveries, fetchDelivery, startDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
+import { fetchDeliveries, fetchDelivery, startDelivery, type CreateTarget, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
 
 const repoName = (url: string) => url.replace("https://github.com/", "");
+// Suggested name for a repository this delivery creates: the legacy repository's name plus -java, in GitHub's character set.
+const suggestName = (legacy: string) => {
+  const base = repoName(legacy.trim()).split("/")[1]?.replace(/\.git$/, "").replace(/[^A-Za-z0-9._-]/g, "-") ?? "";
+  return base ? `${base}-java`.slice(0, 100) : "";
+};
+// The same rule as the engine (contracts/delivery.schema.json createTarget.name); the engine checks again.
+const validName = (n: string) => /^[A-Za-z0-9._-]{1,100}$/.test(n) && n !== "." && n !== ".." && !n.endsWith(".git");
 const usd = (n: number | null | undefined) => (n == null ? "n/a" : `$${n.toFixed(4)}`);
 
 function elapsed(from: string, to: string | null, now: number) {
@@ -168,6 +175,15 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [passcode, setPasscode] = useState("");
+  const [createRepo, setCreateRepo] = useState(false);
+  const [name, setName] = useState("");
+  const [nameEdited, setNameEdited] = useState(false);
+  const [owner, setOwner] = useState("");
+  const [visibility, setVisibility] = useState<"private" | "public">("private");
+  const [confirming, setConfirming] = useState(false);
+  const shownName = nameEdited ? name : suggestName(legacy);
+  const nameOk = validName(shownName) && (owner === "" || /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(owner));
+  const create: CreateTarget = { name: shownName, ...(owner ? { owner } : {}), visibility };
   const limits = config?.publicImports;
   return (
     <section className="panel dlv-start" id="new-delivery">
@@ -186,9 +202,16 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
         onSubmit={async (e) => {
           e.preventDefault();
           setError("");
+          if (admin && createRepo && !confirming) {  // nothing is created until this is confirmed
+            if (!nameOk) { setError("Repository name: 1 to 100 letters, digits, '.', '-' or '_' (and a valid owner, if given)."); return; }
+            setConfirming(true);
+            return;
+          }
           setSending(true);
           try {
-            onStarted(await startDelivery(admin ? { legacy, target, parallel, breaker } : { legacy }, admin ? passcode : ""));
+            onStarted(await startDelivery(!admin ? { legacy } : createRepo ? { legacy, createTarget: create, parallel, breaker }
+              : { legacy, target, parallel, breaker }, admin ? passcode : ""));
+            setConfirming(false);
           } catch (err) {
             setError((err as Error).message);
           } finally {
@@ -209,10 +232,42 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
         )}
         {admin && (
           <>
-            <label>
-              <span>Target repository (pull request out)</span>
-              <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
+            <label className="dlv-check">
+              <input type="checkbox" checked={createRepo} onChange={(e) => { setCreateRepo(e.target.checked); setConfirming(false); }} /> Create a new repository for the result
             </label>
+            {!createRepo && (
+              <label>
+                <span>Target repository (pull request out)</span>
+                <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
+              </label>
+            )}
+            {createRepo && (
+              <>
+                <label>
+                  <span>New repository name</span>
+                  <input value={shownName} onChange={(e) => { setName(e.target.value); setNameEdited(true); setConfirming(false); }} spellCheck={false}
+                         placeholder="<legacy-repo-name>-java" />
+                </label>
+                <label>
+                  <span>Owner (optional; blank: the GitHub account the engine is logged in as)</span>
+                  <input value={owner} onChange={(e) => { setOwner(e.target.value); setConfirming(false); }} spellCheck={false} />
+                </label>
+                <label>
+                  <span>Visibility</span>
+                  <select value={visibility} onChange={(e) => { setVisibility(e.target.value as "private" | "public"); setConfirming(false); }}>
+                    <option value="private">Private (default)</option>
+                    <option value="public">Public</option>
+                  </select>
+                </label>
+                {confirming && (
+                  <p className="dlv-note" role="alert">
+                    <strong>This will create</strong> github.com/{owner || "<the engine's GitHub account>"}/{shownName}, {visibility}; a pull request with
+                    the converted programs will be opened in it. It is refused if that repository already exists.
+                    Press the button again to confirm.
+                  </p>
+                )}
+              </>
+            )}
             {config?.startNeedsPasscode && (
               <label>
                 <span>Admin passcode</span>
@@ -229,7 +284,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
             </>
           )}
           <button className="button primary" type="submit" disabled={busy || sending || (!admin && limits?.budgetLeft === false)}>
-            {busy ? "A job is running" : sending ? "Starting…" : admin ? "Start delivery" : "Import and convert"}
+            {busy ? "A job is running" : sending ? "Starting…" : admin ? (createRepo && confirming ? "Create repository and start" : "Start delivery") : "Import and convert"}
           </button>
         </div>
         {admin ? (
@@ -329,7 +384,9 @@ export default function DeliveryView() {
           <h2>
             <a href={delivery.legacy.repository} target="_blank" rel="noreferrer">{repoName(delivery.legacy.repository)}</a>
             {"  →  "}
-            {delivery.target
+            {delivery.target && delivery.createTarget && !delivery.targetCreated
+              ? <span>{repoName(delivery.target)} (to be created)</span>
+              : delivery.target
               ? <a href={delivery.target} target="_blank" rel="noreferrer">{repoName(delivery.target)}</a>
               : delivery.convertAnyway ? "Java (see each label)" : "verified Java"}
           </h2>
@@ -339,6 +396,12 @@ export default function DeliveryView() {
               : delivery.target ? "COBOL in, certified Java out as a pull request." : "COBOL in, Java verified against the original out."} Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
             {delivery.error && delivery.stage !== "failed" ? ` · error: ${delivery.error}` : ""}
           </p>
+          {delivery.targetCreated && delivery.target && !delivery.pullRequest && (
+            <p className="dlv-reason">
+              This delivery created {repoName(delivery.target)} ({delivery.createTarget?.visibility ?? "private"}); it is still there and was not deleted.
+              {delivery.stage === "failed" ? " Remove it yourself if you do not want it." : ""}
+            </p>
+          )}
           {failureReason(delivery, list) && <p className="dlv-reason">{failureReason(delivery, list)}</p>}
           <p className="dlv-canonical">
             The delivery we cite as evidence is <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>:
@@ -365,7 +428,10 @@ export default function DeliveryView() {
           <div className="panel-heading">
             <div>
               <h2><GitPullRequest size={14} /> Pull request</h2>
-              <p>Opened on {repoName(delivery.target ?? "")}. CI re-runs the proof on fresh inputs Diocle never saw.</p>
+              <p>
+                Opened on {repoName(delivery.target ?? "")}{delivery.targetCreated ? ` (a ${delivery.createTarget?.visibility ?? "private"} repository created by this delivery)` : ""}.
+                CI re-runs the proof on fresh inputs Diocle never saw.
+              </p>
             </div>
           </div>
           <div className="dlv-pr">
