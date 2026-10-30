@@ -147,7 +147,7 @@ By kind of mainframe artifact, as of Oct 30, 2026 (also on the [Evidence page](h
 | JCL jobs | Partial | One SORT step feeding one COBOL step, with DD overrides: every final dataset compared | Runs through the converter's `run-job` command, not the web delivery flow; longer jobs, several SORT steps, COND-gated steps and IDCAMS are refused with a reason |
 | Embedded SQL (DB2) | Subset | A named subset (SELECT INTO, INSERT, UPDATE, DELETE, cursors, COMMIT, ROLLBACK, SQLCODE), final table contents compared | On a SQLite stand-in, never real DB2; dynamic SQL, joins and DB2-only clauses are refused |
 | Keyed files (VSAM KSDS-style) | In progress | A keyed-file subset compared by key order on GnuCOBOL's indexed-file handler | Refused today |
-| Whole-repository build check | In progress | Compile every converted program together; copybook drift and CALL signature mismatches | Each program is compiled and verified on its own today |
+| Whole-repository build check | Partial | Compiles every converted program together, flags copybook drift and CALL signature mismatches, and puts a build report in the pull request | Built and merged, not deployed to the live engine yet, CI step not yet run on GitHub; JCL step order not checked; customer domain classes are an experimental compile-time check only |
 | Hierarchical database (IMS DL/I) | Not supported | There is no free IMS runtime to compare against | Roadmap |
 | CICS online transactions | Not supported | Programs with EXEC CICS are refused with a reason | |
 
