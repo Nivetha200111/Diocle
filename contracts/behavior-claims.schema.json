@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diocle.dev/contracts/behavior-claims.schema.json",
+  "title": "Behaviour claims (verified documentation)",
+  "description": "v0.1. A Muse Spark model writes a plain-English behaviour spec of a COBOL program as a list of CLAIMS; each claim is one sentence plus 1 to 3 concrete examples (input records as field values per the program's file layout, and the expected output field values). The verifier runs the ORIGINAL COBOL (GnuCOBOL, -std=ibm, in the sandbox when DIOCLE_SANDBOX_URL is set) on every example and decides: an example is `matched` when every stated expectation equals what the COBOL produced, `differed` when the COBOL produced something else (the actual value is kept), `unchecked` when the example was invalid for the layout or the program did not run. A claim is `confirmed` when every one of its examples matched, `refuted` when at least one example differed, `unchecked` otherwise. The model never decides; GnuCOBOL does. Wording rule for every reader: 'confirmed on the examples tried', never 'proven'. A refuted claim is kept and shown: wrong documentation is caught, not hidden. Single-file programs only (the layouts come from sample.json); a multi-file program yields `skipped`. Also embedded as `behavior` in the run record (run.schema.json v0.13).",
+  "type": "object",
+  "required": ["version", "program", "model", "checkedWith", "summary", "claims"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "0.1" },
+    "program": { "type": "string" },
+    "model": { "type": "string", "description": "The model that wrote the claims (its output is a proposal, never evidence)" },
+    "checkedWith": { "type": "string", "description": "What decided: the original COBOL compiled with GnuCOBOL, for example 'GnuCOBOL -std=ibm'" },
+    "summary": {
+      "type": "object",
+      "required": ["claims", "confirmed", "refuted", "unchecked", "examplesRun"],
+      "additionalProperties": false,
+      "properties": {
+        "claims": { "type": "integer", "minimum": 0 },
+        "confirmed": { "type": "integer", "minimum": 0 },
+        "refuted": { "type": "integer", "minimum": 0 },
+        "unchecked": { "type": "integer", "minimum": 0 },
+        "examplesRun": { "type": "integer", "minimum": 0, "description": "Examples that actually ran on the COBOL" }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "usage": {
+      "type": "object",
+      "description": "Model calls made for this spec, token counts and estimated cost (null when a model in the calls has no known price)",
+      "properties": {
+        "calls": { "type": "integer" },
+        "inputTokens": { "type": "integer" },
+        "outputTokens": { "type": "integer" },
+        "estimatedCostUsd": { "type": ["number", "null"] }
+      }
+    },
+    "skipped": { "type": "string", "description": "Why no spec was written or checked (cap, unpriced model, multi-file program, model unreachable). When set, claims is empty." }
+  },
+  "$defs": {
+    "fieldValues": {
+      "type": "object",
+      "description": "Field name to plain value: a decimal such as '-36.50' for a numeric field, printable ASCII text for an alphanumeric one",
+      "additionalProperties": { "type": "string", "maxLength": 200 }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["id", "statement", "status", "examples"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "statement": { "type": "string", "maxLength": 400, "description": "One sentence about observable behaviour in the output file or stdout" },
+        "status": { "enum": ["confirmed", "refuted", "unchecked"] },
+        "examples": { "type": "array", "maxItems": 3, "items": { "$ref": "#/$defs/example" } },
+        "reason": { "type": "string", "description": "Why the claim is unchecked, when no example could say" }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": ["id", "inputs", "expected", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "inputs": {
+          "type": "array", "minItems": 1, "maxItems": 5,
+          "description": "Input records in file order; each names every field of the input layout",
+          "items": { "$ref": "#/$defs/fieldValues" }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "What the claim says the program writes. Only the stated fields are compared.",
+          "properties": {
+            "records": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/fieldValues" }, "description": "Output records by position; numbers compare by value, text with trailing spaces ignored" },
+            "outputRecordCount": { "type": "integer", "minimum": 0 },
+            "stdoutContains": { "type": "string", "maxLength": 200 },
+            "returnCode": { "type": "integer" }
+          }
+        },
+        "status": { "enum": ["matched", "differed", "unchecked"] },
+        "actual": {
+          "type": "object",
+          "description": "What the COBOL produced; present when the example ran (absent when unchecked before running)",
+          "additionalProperties": false,
+          "properties": {
+            "records": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/fieldValues" } },
+            "outputRecordCount": { "type": "integer" },
+            "stdout": { "type": "string", "maxLength": 2000 },
+            "returnCode": { "type": ["integer", "null"] }
+          }
+        },
+        "mismatches": {
+          "type": "array", "maxItems": 20,
+          "description": "Each stated expectation the COBOL did not meet, with the actual value (status differed)",
+          "items": {
+            "type": "object",
+            "required": ["what", "expected", "actual"],
+            "additionalProperties": false,
+            "properties": {
+              "what": { "type": "string", "description": "For example 'record 1 OUT-FEE' or 'return code'" },
+              "expected": { "type": "string" },
+              "actual": { "type": "string" }
+            }
+          }
+        },
+        "reason": { "type": "string", "description": "For unchecked: why the example was invalid for the layout, or that the program failed to run" }
+      }
+    }
+  }
+}

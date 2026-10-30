@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/run.schema.json",
   "title": "Run",
-  "description": "v0.12 (adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
+  "description": "v0.13 (adds behavior: verified documentation, claims about the original COBOL checked by GnuCOBOL, and its event type) (v0.12 adds tiers: model escalation by task difficulty) (v0.11 adds the guard agent: guard events and the guard result) (v0.10 adds crosscheck, the independent Muse Spark Open check, and its event type) (v0.9 the source response and the interrupted status, v0.8 visitor, v0.2 added efficiency, v0.3 memory, v0.4 status and stage events, v0.5 breaker agent and swarm, v0.6 certificationSeed and error, v0.7 the public re-verify response). One converter run as served by services/api GET /runs/{id}: provenance, the agent trace, verification before and after, model usage, and the Java diff.",
   "type": "object",
   "required": [
     "id",
@@ -82,7 +82,8 @@
               "stage",
               "breaker",
               "crosscheck",
-              "guard"
+              "guard",
+              "behavior"
             ]
           },
           "round": {
@@ -277,6 +278,18 @@
     },
     "guard": {
       "$ref": "#/$defs/guard"
+    },
+    "behavior": {
+      "type": ["object", "null"],
+      "description": "Verified documentation (converter --document): claims a Muse Spark model wrote about the ORIGINAL COBOL, each checked by running GnuCOBOL on its examples. Same object as contracts/behavior-claims.schema.json v0.1 (validate against that file). Optional: absent or null on runs made without --document; old runs stay valid.",
+      "properties": {
+        "version": { "type": "string" },
+        "program": { "type": "string" },
+        "model": { "type": "string" },
+        "summary": { "type": "object" },
+        "claims": { "type": "array", "items": { "type": "object" } },
+        "skipped": { "type": "string" }
+      }
     },
     "swarm": {
       "type": "boolean",
