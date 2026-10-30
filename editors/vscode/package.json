@@ -1,0 +1,59 @@
+{
+  "name": "diocle",
+  "displayName": "Diocle: COBOL to Java, verified",
+  "description": "Check that a COBOL file compiles under GnuCOBOL, then convert and verify it with Diocle, using your own Meta key on your machine.",
+  "version": "0.1.0",
+  "publisher": "diocle",
+  "license": "MIT",
+  "private": true,
+  "repository": {"type": "git", "url": "https://github.com/Nivetha200111/Diocle.git", "directory": "editors/vscode"},
+  "engines": {"vscode": "^1.85.0"},
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": ["onLanguage:cobol", "workspaceContains:**/*.cbl", "workspaceContains:**/*.cob"],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Diocle compiles and runs code from the workspace (GnuCOBOL and the generated Java) to verify it, so it only works in a trusted workspace."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {"command": "diocle.check", "title": "Diocle: Check that this COBOL compiles"},
+      {"command": "diocle.convert", "title": "Diocle: Convert and verify this COBOL file"},
+      {"command": "diocle.openLast", "title": "Diocle: Open the last result"},
+      {"command": "diocle.settings", "title": "Diocle: Show cost and settings"}
+    ],
+    "menus": {
+      "editor/context": [
+        {"command": "diocle.check", "when": "resourceExtname =~ /^\\.(cbl|cob|cobol|cpy)$/i", "group": "diocle@1"},
+        {"command": "diocle.convert", "when": "resourceExtname =~ /^\\.(cbl|cob|cobol)$/i", "group": "diocle@2"}
+      ],
+      "explorer/context": [
+        {"command": "diocle.check", "when": "resourceExtname =~ /^\\.(cbl|cob|cobol|cpy)$/i", "group": "diocle@1"},
+        {"command": "diocle.convert", "when": "resourceExtname =~ /^\\.(cbl|cob|cobol)$/i", "group": "diocle@2"}
+      ]
+    },
+    "configuration": {
+      "title": "Diocle",
+      "properties": {
+        "diocle.converterPython": {"type": "string", "default": "", "scope": "machine", "markdownDescription": "Path to a Python that has `diocle_converter` installed. Empty: `services/converter/.venv` in the workspace if it exists, else `python3`."},
+        "diocle.maxUsd": {"type": "number", "default": 0.25, "minimum": 0.01, "maximum": 1, "markdownDescription": "Hard dollar cap for one conversion (your own Meta key). The converter refuses the next model call that could pass it. Maximum 1.00."},
+        "diocle.convertAnyway": {"type": "boolean", "default": false, "markdownDescription": "Also try programs Diocle would normally refuse, and repair a file that does not compile. Results are labelled: a repaired or unverified result is never shown as certified."},
+        "diocle.copybookPaths": {"type": "array", "items": {"type": "string"}, "default": [], "markdownDescription": "Folders searched for COPY members (relative to the workspace folder or absolute). The folder of the COBOL file is always searched."},
+        "diocle.confirmCost": {"type": "boolean", "default": true, "markdownDescription": "Ask before each conversion, stating the cap and where the code goes."}
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "test": "tsc -p . && node --test out/test/*.js",
+    "package": "npm run compile && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
