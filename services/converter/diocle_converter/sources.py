@@ -19,6 +19,8 @@ class Program:
     files: list[dict] = field(default_factory=list)  # [{dd, direction}] for every file the program reads or writes
     anyway: dict | None = None  # convert-anyway sample: {"reason", "missingCopybooks"}; nothing here can be verified
     sql: dict | None = None  # sample.json `sql` (tables, subset): the program has EXEC SQL in the verified subset
+    ksds: dict | None = None  # sample.json `ksds` (subset, keyLinks): the program uses keyed (INDEXED) files in the verified subset
+    keyed: list[dict] = field(default_factory=list)  # [{dd, direction, keyed, recordLength}] for those files
 
     @classmethod
     def load(cls, sample_dir: Path) -> "Program":
@@ -31,20 +33,29 @@ class Program:
         if anyway:
             files = []
         elif "files" in meta:
-            files = [{"dd": f["dd"], "direction": f["direction"]} for f in meta["files"]]
+            files = [{"dd": f["dd"], "direction": f["direction"], **({"keyed": f["keyed"]} if f.get("keyed") else {})}
+                     for f in meta["files"]]
         else:
             files = [{"dd": meta["dd"]["input"], "direction": "input"}, {"dd": meta["dd"]["output"], "direction": "output"}]
         dd = meta.get("dd") or {"input": "", "output": ""}
+        keyed = []
+        if not anyway and meta.get("ksds"):
+            from diocle_verifier.layout import load_fields, record_length  # the record length as the verifier computes it
+
+            keyed = [{"dd": f["dd"], "direction": f["direction"], "keyed": f["keyed"],
+                      "recordLength": record_length(load_fields(f["layout"]))} for f in meta["files"] if f.get("keyed")]
         return cls(sample_dir, meta["program"], (sample_dir / meta["source"]).read_text(), copybooks, dd,
-                   meta["javaConversion"]["mainClass"], modules, files, anyway, None if anyway else meta.get("sql"))
+                   meta["javaConversion"]["mainClass"], modules, files, anyway, None if anyway else meta.get("sql"),
+                   None if anyway else meta.get("ksds"), keyed)
 
     def io_text(self) -> str:
         if self.anyway:
             return ("Files: for each sequential file the COBOL names, read it from or write it to the path in environment "
                     "variable DD_<ddname>, as the program's SELECT ... ASSIGN names it. This program is NOT differential-tested.")
-        reads = ", ".join(f"DD_{f['dd']}" for f in self.files if f["direction"] == "input") or "none"
-        writes = ", ".join(f"DD_{f['dd']}" for f in self.files if f["direction"] == "output")
-        updates = ", ".join(f"DD_{f['dd']}" for f in self.files if f["direction"] == "io")
+        plain = [f for f in self.files if not f.get("keyed")]
+        reads = ", ".join(f"DD_{f['dd']}" for f in plain if f["direction"] == "input") or "none"
+        writes = ", ".join(f"DD_{f['dd']}" for f in plain if f["direction"] == "output")
+        updates = ", ".join(f"DD_{f['dd']}" for f in plain if f["direction"] == "io")
         text = f"Input file paths come from environment variables {reads}"
         if writes:
             text += f"; write the outputs to {writes}"
@@ -56,7 +67,12 @@ class Program:
         if self.sql:
             text += (" The program also uses EXEC SQL: the final contents of its tables are compared too (see the "
                      "embedded-SQL contract).")
-        if not writes and not updates and not self.sql:
+        for k in self.keyed:
+            text += (f" {k['dd']} is a KEYED (INDEXED) file, opened {k['keyed'].get('openMode', '?')}, {k['recordLength']}-byte records, "
+                     f"RECORD KEY {k['keyed']['recordKey']['field']} at byte offset {k['keyed']['recordKey']['offset']} length "
+                     f"{k['keyed']['recordKey']['length']}, ACCESS {k['keyed']['accessMode']}: do NOT read or write it as a plain "
+                     "file; reach it only through DioKsds (see the keyed-file contract). Its final contents are compared.")
+        if not writes and not updates and not self.sql and not self.keyed:
             text += (" The program writes no file: what it DISPLAYs to stdout and its RETURN-CODE (the process exit "
                      "code) are the whole result and are compared byte for byte, so print exactly what each DISPLAY "
                      "prints (including numeric edited items and the newline) and nothing else on stdout.")
@@ -73,6 +89,11 @@ class Program:
 
     def support_text(self) -> str:
         """The verifier's DioSql.java, shown to the translator and the repair agent (not part of the COBOL the guard reads)."""
+        if self.ksds and not self.sql:
+            from diocle_verifier.ksds import SUPPORT as KSDS_SUPPORT
+
+            return ("=== DioKsds.java (the verifier's support class, provided; do not rewrite it) ===\n"
+                    + (KSDS_SUPPORT / "DioKsds.java").read_text())
         if not self.sql:
             return ""
         from diocle_verifier.sqlpre import SUPPORT

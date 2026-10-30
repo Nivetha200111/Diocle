@@ -66,6 +66,8 @@ def summarize_report(report: dict, limit: int = 6, for_agent: bool = True) -> st
         lines.append("Mismatched fields: " + ", ".join(f"{f} x{n}" for f, n in counts.most_common()))
         for r in failing[:limit]:
             lines.append(f"- {r['inputId']} input={r.get('input', '')!r}: {r.get('diff', '')}")
+            if r.get("inputSource") == "keyed":  # keyed-file evidence: the first differing record, in key order
+                lines.append(f"    original record:  {r.get('originalOutput', '')[:300]!r}\n    converted record: {r.get('convertedOutput', '')[:300]!r}")
             if r.get("inputSource") == "database":  # table evidence: the first rows from the first difference on
                 lines.append(f"    original rows:  {r.get('originalOutput', '')[:300]!r}\n    converted rows: {r.get('convertedOutput', '')[:300]!r}")
     if not runs["stdoutMatch"]:
@@ -125,7 +127,7 @@ class RepairAgent:
             {"role": "system", "content": REPAIR},
             {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
              + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
-             + (f"{self.program.support_text()}\n\n" if self.program.sql else "")
+             + (f"{self.program.support_text()}\n\n" if (self.program.sql or self.program.ksds) else "")
              + f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{initial}"},
         ]
         return self._rounds(self.client.settings.max_rounds)
