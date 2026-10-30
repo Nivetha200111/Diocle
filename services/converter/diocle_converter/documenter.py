@@ -125,22 +125,33 @@ def _prompt(program: Program, in_fields, out_fields) -> list[dict]:
 
 
 def _expected(example: dict) -> dict:
-    """The contract's `expected` object from a model example (-1 and empty mean 'not stated')."""
+    """What the example expects, RAW: exactly the model's values and types, which is what is judged (flattening is for
+    display only, see _display). null means not stated; 0 is a real value. An expected record that is empty or not a
+    list keeps its position as {} (and makes the example unchecked) so later records never shift."""
     expected: dict = {}
-    records = [_pairs(r) for r in example.get("expectedRecords", []) if isinstance(r, list)]
-    records = [r for r in records if r]
-    if records:
-        expected["records"] = records[:5]
+    raw = example.get("expectedRecords")
+    if isinstance(raw, list) and raw:
+        expected["records"] = [(_pairs(r) or {}) if isinstance(r, list) else {} for r in raw[:5]]
     count = example.get("expectedRecordCount")
     if isinstance(count, int) and not isinstance(count, bool) and count >= 0:
         expected["outputRecordCount"] = count
     text = example.get("expectedStdoutContains")
     if isinstance(text, str) and text.strip():
-        expected["stdoutContains"] = verifier.flat(text)
+        expected["stdoutContains"] = text
     code = example.get("expectedReturnCode")
     if isinstance(code, int) and not isinstance(code, bool):
         expected["returnCode"] = code
     return expected
+
+
+def _display(expected: dict) -> dict:
+    """The same expectations flattened and clipped for the contract and the readers; never used for judging."""
+    out = dict(expected)
+    if "records" in out:
+        out["records"] = [_clip(r) for r in out["records"]]
+    if "stdoutContains" in out:
+        out["stdoutContains"] = verifier.flat(out["stdoutContains"])
+    return out
 
 
 def _clip(values: dict | None) -> dict:
@@ -197,15 +208,17 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
     # Build the claims, validating every example against the input layout with the breaker's rules.
     built: list[dict] = []
     to_run: list[dict] = []
+    judged: dict[str, dict] = {}  # example id -> the raw expectations that are judged
     for ci, raw in enumerate(proposed, 1):
         examples = []
         for ei, ex in enumerate([e for e in raw.get("examples", []) if isinstance(e, dict)][:MAX_EXAMPLES], 1):
             eid = f"C{ci}-E{ei}"
             inputs = [_pairs(r) for r in ex.get("inputs", []) if isinstance(r, list)][:MAX_INPUT_RECORDS] \
                 if isinstance(ex.get("inputs"), list) else []
-            entry = {"id": eid, "inputs": [_clip(r) for r in inputs if r] or [{}], "expected": _expected(ex),
+            raw_expected = _expected(ex)
+            judged[eid] = raw_expected
+            entry = {"id": eid, "inputs": [_clip(r) for r in inputs if r] or [{}], "expected": _display(raw_expected),
                      "status": "unchecked", "mismatches": []}
-            entry["expected"] = {k: ([_clip(r) for r in v] if k == "records" else v) for k, v in entry["expected"].items()}
             records, reason = [], None
             for r in inputs:
                 record, reason = explain(in_fields, r or {})
@@ -236,7 +249,7 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
             run = runs.get(entry["id"])
             if run is None:
                 continue
-            verdict = verifier.judge(entry["expected"], run, out_fields)
+            verdict = verifier.judge(judged[entry["id"]], run, out_fields)
             entry["status"], entry["mismatches"] = verdict["status"], verdict["mismatches"]
             if verdict["actual"] is not None:
                 entry["actual"] = verdict["actual"]
@@ -249,12 +262,18 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
             "summary": verifier.summarize(built), "claims": built, "usage": short}
 
 
-_SPECIAL = "\\`*_[]<>#|&!"
+_SPECIAL = "\\`*_[]<>#|&!@~"  # @ and ~ stop emails and ~~strike~~; see _esc for bare URLs
 
 
 def _esc(text) -> str:
     """Plain text for Markdown: one line, and nothing in it can open a heading, a tag, a link or a list."""
-    return "".join("\\" + ch if ch in _SPECIAL else ch for ch in verifier.flat(text, 400))
+    t = verifier.flat(text, 400)
+    out = []
+    for i, ch in enumerate(t):
+        # the ':' of '://' and the '.' of 'www.' are escaped too, so no reader turns prose into a bare link
+        link = (ch == ":" and t[i + 1 : i + 3] == "//") or (ch == "." and t[max(0, i - 3) : i].lower() == "www")
+        out.append("\\" + ch if ch in _SPECIAL or link else ch)
+    return "".join(out)
 
 
 def _code(text) -> str:

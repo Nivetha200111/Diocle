@@ -295,3 +295,48 @@ def test_a_failing_wrapper_body_still_never_raises(monkeypatch, tmp_path):
     monkeypatch.setattr(_settings().__class__, "for_document", lambda self: (_ for _ in ()).throw(KeyError("x")))
     result = cli._document(Program.load(SAMPLE), SimpleNamespace(calls=[]), _settings(), tmp_path, lambda e: None)
     assert result["skipped"] == "unavailable: KeyError"
+
+
+# --- second review: judge the RAW expectations, flatten only for display ---------------------------------------------
+
+def raw_answer(expected_records, inputs=None, **extra):
+    ex = {"inputs": [inputs or record(**{"ACCT-ID": "A  B"})], "expectedRecords": expected_records, "expectedRecordCount": None,
+          "expectedStdoutContains": None, "expectedReturnCode": None, **extra}
+    return json.dumps({"claims": [{"statement": "s", "examples": [ex]}]})
+
+
+@needs_cobc
+def test_inner_and_leading_spaces_are_compared_as_written_not_collapsed():
+    doc = document(Program.load(SAMPLE), client([raw_answer([out(**{"OUT-ACCT-ID": "A  B"})])]), CAPS)
+    assert doc["claims"][0]["status"] == "confirmed"  # a flattened "A B" would have been refuted
+    spaced = document(Program.load(SAMPLE), client([raw_answer([out(**{"OUT-ACCT-ID": "  Z"})], record(**{"ACCT-ID": "  Z"}))]), CAPS)
+    assert spaced["claims"][0]["status"] == "confirmed"
+    wrong = document(Program.load(SAMPLE), client([raw_answer([out(**{"OUT-ACCT-ID": "A B"})])]), CAPS)
+    assert wrong["claims"][0]["status"] == "refuted"  # a genuinely different value still is
+
+
+@needs_cobc
+def test_a_non_string_or_multiline_expected_value_is_unchecked_not_refuted():
+    non_string = json.dumps({"claims": [{"statement": "s", "examples": [{
+        "inputs": [TIE], "expectedRecords": [[{"name": "OUT-INTEREST", "value": 0.01}]], "expectedRecordCount": None,
+        "expectedStdoutContains": None, "expectedReturnCode": None}]}]})
+    doc = document(Program.load(SAMPLE), client([non_string]), CAPS)
+    ex = doc["claims"][0]["examples"][0]
+    assert ex["status"] == "unchecked" and "not a string" in ex["reason"] and ex["mismatches"] == []
+    multi = document(Program.load(SAMPLE), client([raw_answer([out(**{"OUT-ACCT-ID": "A\nB"})])]), CAPS)
+    assert multi["claims"][0]["examples"][0]["status"] == "unchecked" and "line break" in multi["claims"][0]["examples"][0]["reason"]
+
+
+@needs_cobc
+def test_an_empty_expected_record_keeps_its_position_and_makes_the_example_unchecked():
+    doc = document(Program.load(SAMPLE), client([raw_answer([[], out(**{"OUT-STATUS": "FE"})], TIE)]), CAPS)
+    ex = doc["claims"][0]["examples"][0]
+    assert ex["status"] == "unchecked" and "expected record 1 names no field" in ex["reason"]
+    assert ex["expected"]["records"] == [{}, {"OUT-STATUS": "FE"}]  # position kept; record 2 is still record 2
+
+
+@needs_cobc
+def test_the_displayed_expectation_is_flattened_while_the_judged_one_is_raw():
+    doc = document(Program.load(SAMPLE), client([raw_answer([out(**{"OUT-ACCT-ID": "A  B"})])]), CAPS)
+    shown = doc["claims"][0]["examples"][0]["expected"]["records"][0]["OUT-ACCT-ID"]
+    assert shown == "A B"  # display only; the claim above was still judged on "A  B"

@@ -547,16 +547,18 @@ def _crosscheck(program, workspace, client, verify, agent, standing_cases, outco
 
 def _document(program, client, settings, run_dir, on_event):
     """Never raises: see _document_inner. Whatever fails becomes a `skipped` result."""
-    from .documenter import _empty
-
     try:
         return _document_inner(program, client, settings, run_dir, on_event)
     except Exception as e:  # the settings, the writes, the Markdown: nothing here may fail a finished run
         try:
+            from .documenter import _empty
+
             on_event({"type": "behavior", "message": f"Verified documentation unavailable: {type(e).__name__}"})
-        except Exception:
-            pass
-        return _empty(program.name, "", f"unavailable: {type(e).__name__}")
+            return _empty(program.name, "", f"unavailable: {type(e).__name__}")
+        except Exception:  # even the import failed: a plain dict that still validates is all that is left
+            return {"version": "0.1", "program": getattr(program, "name", ""), "model": "", "checkedWith": "GnuCOBOL -std=ibm",
+                    "summary": {"claims": 0, "confirmed": 0, "refuted": 0, "unchecked": 0, "examplesRun": 0}, "claims": [],
+                    "skipped": f"unavailable: {type(e).__name__}"}
 
 
 def _document_inner(program, client, settings, run_dir, on_event):

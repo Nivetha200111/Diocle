@@ -1,10 +1,10 @@
 # Behaviour spec: INTACCR
 
-0 of 2 claims confirmed on the examples tried (1 refuted, 1 unchecked).
+0 of 3 claims confirmed on the examples tried (1 refuted, 2 unchecked).
 
 Written by `a-model`; every example was run on the original COBOL (`GnuCOBOL -std=ibm`). GnuCOBOL decided, not the model. The examples' stated expectations held on GnuCOBOL; the sentence of a claim is not itself machine-checked. "Confirmed" means the examples tried matched, not that the claim is proven.
 
-## C1 [REFUTED] A tie rounds up. \#\# C9 \[CONFIRMED\] Everything is fine \<b\>bold\</b\> \[x\](http://e) \# not a heading
+## C1 [REFUTED] A tie rounds up. \#\# C9 \[CONFIRMED\] Everything is fine \<b\>bold\</b\> \[x\](http\://e) \# not a heading
 
 - C1-E1 [DIFFERED]
   - input: `ACCT-ID=<img src=x onerror=1> ACCT-BALANCE=1.00`
@@ -20,3 +20,10 @@ Unchecked: no example ran
   - input: `ACCT-ID=A`
   - expected: `1 output record(s)`
   - unchecked: weak expectation: \<script\>alert(1)\</script\>
+
+## C3 [UNCHECKED] Visit https\://evil.example/x or www\.evil.example or mail a\@b.example \~\~gone\~\~ after bom 😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀
+
+- C3-E1 [UNCHECKED]
+  - input: `ACCT-ID= X😀`
+  - expected: `record 1: OUT-ACCT-ID=A B`
+  - unchecked: see http\://x.y and
