@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/analysis-report.schema.json",
   "title": "AnalysisReport",
-  "description": "v0.6 (adds, additively: program `sql`, the embedded-SQL facts: tables with their schema source, statements classified into the verified subset, cursors, and the exact refusal reason when anything is outside it; a program using only the subset is convertible and the verifier compares its files, stdout and the final contents of every table it touched on a stand-in engine, never real DB2). v0.5 (adds, additively: file direction `io` for sequential files opened I-O, program `displayOnly` for programs whose only observable output is DISPLAY/RETURN-CODE, program `resolvedCalls` for CALL identifier targets resolved statically; the analyzer marks such programs convertible only because services/verifier compares them -- see verification-report v0.8). v0.4 (v0.2 added organization and clock, collation, float and source findings; v0.3 adds field usage, all sign modes, P scaling, OCCURS, REDEFINES and record formats; v0.4 adds job-level conversion: `jobs[]` groups JCL steps by job, classifies each step, parses SORT FIELDS=, wires step-to-step DD/DSN flow and says whether the whole job converts -- v1 scope only: one SORT step then one COBOL step). Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
+  "description": "v0.7 (adds, additively: file `keyed`, the facts of an ORGANIZATION INDEXED file in the verified subset `ksds-subset-1` -- access mode, the one RECORD KEY with byte offset and length, FILE STATUS variable, OPEN mode -- or the exact refusal reason; the verifier seeds identical keyed files for both sides and compares their final contents in key order; checked against GnuCOBOL's INDEXED handler, not IBM VSAM). v0.6 (adds, additively: program `sql`, the embedded-SQL facts: tables with their schema source, statements classified into the verified subset, cursors, and the exact refusal reason when anything is outside it; a program using only the subset is convertible and the verifier compares its files, stdout and the final contents of every table it touched on a stand-in engine, never real DB2). v0.5 (adds, additively: file direction `io` for sequential files opened I-O, program `displayOnly` for programs whose only observable output is DISPLAY/RETURN-CODE, program `resolvedCalls` for CALL identifier targets resolved statically; the analyzer marks such programs convertible only because services/verifier compares them -- see verification-report v0.8). v0.4 (v0.2 added organization and clock, collation, float and source findings; v0.3 adds field usage, all sign modes, P scaling, OCCURS, REDEFINES and record formats; v0.4 adds job-level conversion: `jobs[]` groups JCL steps by job, classifies each step, parses SORT FIELDS=, wires step-to-step DD/DSN flow and says whether the whole job converts -- v1 scope only: one SORT step then one COBOL step). Output of services/analyzer for one source repository: programs, their files and record layouts derived from copybooks, JCL jobs, dependencies and risk findings.",
   "type": "object",
   "required": ["version", "source", "programs", "dependencies", "findings", "jobs"],
   "properties": {
@@ -39,6 +39,27 @@
                 "direction": { "type": "string", "enum": ["input", "output", "io", "unknown"], "description": "io: a sequential file opened I-O and updated in place (REWRITE); the verifier seeds it from generated records and compares its final contents" },
                 "dsn": { "type": ["string", "null"], "description": "Dataset name from the JCL DD statement" },
                 "organization": { "type": "string", "description": "SEQUENTIAL, LINE SEQUENTIAL, RECORD SEQUENTIAL, INDEXED or RELATIVE" },
+                "keyed": {
+                  "type": "object",
+                  "description": "Additive (v0.7). Present for ORGANIZATION INDEXED or RELATIVE files. Subset ksds-subset-1: one RECORD KEY (alphanumeric or unsigned DISPLAY numeric, elementary), ACCESS SEQUENTIAL/RANDOM/DYNAMIC, FILE STATUS required, OPEN INPUT/OUTPUT/I-O (one mode), READ/READ NEXT/WRITE/REWRITE/DELETE/START (=, >=, >)/CLOSE. `refusal` carries the exact reason the program is not convertible.",
+                  "required": ["subset", "accessMode"],
+                  "properties": {
+                    "subset": { "type": "string", "description": "Version tag of the verified keyed-file subset (ksds-subset-1)" },
+                    "accessMode": { "type": "string", "enum": ["SEQUENTIAL", "RANDOM", "DYNAMIC"] },
+                    "recordKey": {
+                      "type": "object",
+                      "required": ["field"],
+                      "properties": {
+                        "field": { "type": "string", "description": "Name of the RECORD KEY field" },
+                        "offset": { "type": "integer", "minimum": 0, "description": "0-based byte offset of the key in the record (absent when the layout was not found)" },
+                        "length": { "type": "integer", "minimum": 1, "description": "Key length in bytes" }
+                      }
+                    },
+                    "fileStatus": { "type": ["string", "null"], "description": "The FILE STATUS variable, null when the SELECT has none (then refused)" },
+                    "openMode": { "type": "string", "enum": ["INPUT", "OUTPUT", "I-O"] },
+                    "refusal": { "type": "string", "description": "Exact reason this file is outside the verified subset" }
+                  }
+                },
                 "copybook": { "type": ["string", "null"] },
                 "layout": { "$ref": "#/$defs/layout" }
               }

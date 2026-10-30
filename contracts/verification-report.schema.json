@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
+  "description": "v0.10 (additive): programs with keyed (INDEXED) files in the verified subset ksds-subset-1 also run on identically seeded keyed files, one per side, and the final contents of every keyed file are compared record by record in key order: runs.keyed, and one result per keyed file (outputDd `keyed:DD`, inputSource `keyed`). The claim is equivalence on GnuCOBOL's INDEXED file handler (Berkeley DB) for the subset, never IBM VSAM. v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
   "type": "object",
   "required": [
     "version",
@@ -57,7 +57,8 @@
               "files",
               "output",
               "stdout",
-              "database"
+              "database",
+              "keyed"
             ],
             "description": "How the input was generated. 'files': an output record of a multi-file run, whose inputs are whole generated files. 'output': a record of a program whose outputs do not map one to one to its inputs (aggregation, fan-out); compared by position in the output."
           },
@@ -179,6 +180,43 @@
             },
             "stderr": {
               "type": "string"
+            }
+          }
+        },
+        "keyed": {
+          "type": "object",
+          "description": "Additive (v0.10). The keyed (INDEXED) files the program ran against. The original ran on GnuCOBOL's real indexed-file handler; the converted program on the verifier's DioKsds stand-in that reproduces its observable behaviour for the subset. Equivalent on THIS handler for THESE operations on the inputs tried; not IBM VSAM.",
+          "required": ["engine", "engineVersion", "subset", "seededFrom", "files"],
+          "properties": {
+            "engine": { "type": "string", "description": "e.g. gnucobol-indexed (the original's handler)" },
+            "engineVersion": { "type": "string", "description": "cobc --version first line and the indexed handler, e.g. 'cobc (GnuCOBOL) 3.2.0; handler BDB'" },
+            "subset": { "type": "string", "description": "Version tag of the verified keyed-file subset" },
+            "seededFrom": { "type": "string", "description": "How the files were seeded, e.g. 'generated records (seed N)'" },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["dd", "recordsSeeded", "recordsOriginal", "recordsConverted", "match"],
+                "properties": {
+                  "dd": { "type": "string" },
+                  "keyField": { "type": "string" },
+                  "recordsSeeded": { "type": "integer" },
+                  "recordsOriginal": { "type": "integer" },
+                  "recordsConverted": { "type": "integer" },
+                  "match": { "type": "boolean" },
+                  "changedFromSeed": { "type": "object", "properties": { "original": { "type": "boolean" }, "converted": { "type": "boolean" } }, "description": "Whether each side left the file different from its seed; a program that writes where nothing changed on either side is not certified." },
+                  "firstMismatch": {
+                    "type": ["object", "null"],
+                    "properties": {
+                      "position": { "type": "integer", "description": "1-based position in key order" },
+                      "key": { "type": "string", "description": "Key of the first differing record (printable escape of the bytes)" },
+                      "kind": { "type": "string", "enum": ["value", "missing-in-converted", "extra-in-converted"] },
+                      "original": { "type": "string" },
+                      "converted": { "type": "string" }
+                    }
+                  }
+                }
+              }
             }
           }
         },
