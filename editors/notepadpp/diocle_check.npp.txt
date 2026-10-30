@@ -1,0 +1,8 @@
+// Diocle: compile-check the current COBOL file (free). NppExec script; NOT TESTED in Notepad++ (see README.md).
+// Edit the two paths below, then: Plugins > NppExec > Execute NppExec Script (or Advanced Options to add a menu item).
+NPP_SAVE
+set local DIOCLE_DIR = C:\Diocle\editors\notepadpp
+set local DIOCLE_PY = C:\Diocle\services\converter\.venv\Scripts\python.exe
+cd "$(CURRENT_DIRECTORY)"
+// the helper starts `python -m diocle_converter editor check FILE` itself with an argument list (no shell, no pipe)
+"$(DIOCLE_PY)" "$(DIOCLE_DIR)\diocle_summarize.py" --run check "$(FULL_CURRENT_PATH)" --python "$(DIOCLE_PY)"

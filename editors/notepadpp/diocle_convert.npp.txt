@@ -1,0 +1,15 @@
+// Diocle: convert the current COBOL file to Java and verify it. SPENDS YOUR OWN META KEY, capped by --max-usd.
+// NppExec script; NOT TESTED in Notepad++ (see README.md). Your COBOL and the copybooks it COPYs go to the Meta model
+// endpoint set in your .env. The converter enforces a hard 1.00 USD cap whatever you write below.
+NPP_SAVE
+set local DIOCLE_DIR = C:\Diocle\editors\notepadpp
+set local DIOCLE_PY = C:\Diocle\services\converter\.venv\Scripts\python.exe
+set local MAX_USD = 0.25
+// NppExec shows a confirmation box; Cancel stops here.
+inputbox "Convert $(FILE_NAME) with your own Meta key? Spends at most $(MAX_USD) USD (hard cap 1.00)." : "Diocle" : "yes"
+if "$(INPUT)" != "yes" then
+  echo Cancelled.
+  exit
+endif
+cd "$(CURRENT_DIRECTORY)"
+"$(DIOCLE_PY)" "$(DIOCLE_DIR)\diocle_summarize.py" --run convert "$(FULL_CURRENT_PATH)" --python "$(DIOCLE_PY)" --max-usd $(MAX_USD)
