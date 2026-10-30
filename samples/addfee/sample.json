@@ -1,0 +1,70 @@
+{
+  "name": "addfee",
+  "description": "SYNTHETIC. ADDFEE from samples/convert-anyway-repo, run through the analyzer. The fixed sample behind the public 'Convert a sample now' button.",
+  "program": "ADDFEE",
+  "source": "src/ADDFEE.cbl",
+  "modules": [],
+  "collation": "ebcdic",
+  "copybookDir": "copybooks",
+  "dd": {
+    "input": "ACCTIN",
+    "output": "ACCTOUT"
+  },
+  "javaConversion": {
+    "dir": "java-conversion",
+    "mainClass": "Addfee",
+    "origin": "none yet: translate with the converter's run command"
+  },
+  "layoutsNote": "Derived from the copybooks by services/analyzer.",
+  "layouts": {
+    "input": {
+      "record": "ACCT-IN-REC",
+      "fields": [
+        {
+          "name": "AI-ACCT-ID",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "AI-AMOUNT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": false
+        }
+      ],
+      "format": "line"
+    },
+    "output": {
+      "record": "ACCT-OUT-REC",
+      "fields": [
+        {
+          "name": "AO-ACCT-ID",
+          "kind": "alnum",
+          "length": 8
+        },
+        {
+          "name": "AO-AMOUNT",
+          "kind": "numeric",
+          "digits": 5,
+          "scale": 2,
+          "signed": false
+        },
+        {
+          "name": "AO-FEE",
+          "kind": "numeric",
+          "digits": 3,
+          "scale": 2,
+          "signed": false
+        }
+      ],
+      "format": "line"
+    }
+  },
+  "import": {
+    "repository": "samples/convert-anyway-repo",
+    "commit": null,
+    "path": "cobol/ADDFEE.cbl",
+    "job": null
+  }
+}
