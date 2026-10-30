@@ -228,6 +228,7 @@ When the Java differs from the COBOL, `python -m diocle_verifier minimize RUN_DI
 - Verified documentation covers single-file record programs only (multi-file, DISPLAY-only and I-O programs are skipped), checks only the examples a model wrote, and is not on the live engine yet.
 - The VS Code extension (`editors/vscode`) runs the local converter only (no engine mode, no Marketplace listing), needs a Diocle checkout for the converter, GnuCOBOL and a JDK, and converts one file at a time. It was exercised in a real VS Code extension host for `check` and `convert`; Cursor, VSCodium and Windsurf were not run.
 
+- The Muse Code plugin (`editors/muse-code`) works on paths inside a Diocle checkout and converts the bundled samples only; the build session never ran Muse Code against a model (no login available), so how the agent behaves with the skill, and whether Muse Code runs the MCP tools unattended, is untested.
 
 ## Run
 
@@ -369,6 +370,7 @@ See [CLAUDE.md](CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](docs
 ## Editors
 
 - **VS Code and forks** (Cursor, VSCodium, Windsurf): `editors/vscode` checks that a COBOL file compiles under GnuCOBOL (errors in the Problems panel) and converts and verifies it from the editor with your own Meta key on your machine, capped in dollars; results carry the same honest labels as the dashboard. See `editors/vscode/README.md`. Add `.diocle/` to your `.gitignore` (results are written there). Not published to a marketplace yet.
+- **Muse Code** (Meta's coding agent): `editors/muse-code`, a local plugin (stdio MCP server in standard-library Python, a skill and four slash commands): analyze, re-verify against GnuCOBOL, read runs, and a gated, capped `diocle_convert` that is off by default and uses your own key. Tested with Muse Code 1.4.14 on macOS: validation, install, approval and the server handshake (7 tools) were seen in the real binary; **a model-driven Muse Code run that calls the tools has not been recorded yet**. A local plugin, not an official Meta integration, not published. See `editors/muse-code/README.md`.
 - **Notepad++** (Windows): `editors/notepadpp`, a PythonScript plugin script (or NppExec scripts) around the same CLI: check with annotations on the reported lines, convert with a cost prompt and the same honest labels. Built on macOS: the logic and the CLI path are tested, **the Notepad++ API calls are untested**. See `editors/notepadpp/README.md`.
 
 ## License
