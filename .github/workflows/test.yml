@@ -32,7 +32,7 @@ jobs:
       # The verifier compiles with options only GnuCOBOL 3.2 knows (-fdefault-colseq=EBCDIC): the distribution package is older.
       - name: Cache GnuCOBOL 3.2
         id: gnucobol
-        uses: actions/cache@v4.2.3
+        uses: actions/cache/restore@v4.2.3
         with:
           path: ~/gnucobol
           key: gnucobol-3.2-ubuntu-24.04-v2-db
@@ -44,6 +44,13 @@ jobs:
           cd gnucobol-3.2
           ./configure -q --prefix="$HOME/gnucobol" --with-db --with-curses=no --without-xml2 --without-json
           make -s -j"$(nproc)" && make -s install
+      # Saved right after the build, not at the end of the job: a failing test must not throw the build away.
+      - name: Save the GnuCOBOL build to the cache
+        if: steps.gnucobol.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4.2.3
+        with:
+          path: ~/gnucobol
+          key: gnucobol-3.2-ubuntu-24.04-v2-db
       - name: Install runtime libraries (Berkeley DB for the cached build; SQLite headers for the EXEC SQL shim)
         run: sudo apt-get update -q && sudo apt-get install -y -q libdb5.3t64 libsqlite3-dev
       - name: Put GnuCOBOL on the path
