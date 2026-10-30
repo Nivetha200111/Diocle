@@ -56,7 +56,6 @@ def run_mutation(run_id: str) -> dict | None:
         proc = subprocess.run([str(python) if python.exists() else "python3", "-m", "diocle_verifier", "mutate", str(run_path)],
                               cwd=VERIFIER, capture_output=True, text=True, timeout=1000,
                               env={**os.environ, "DIOCLE_SANDBOX_WAIT": "20"})  # sandbox busy: say so, don't queue
-        _last_finished = time.time()
         report = get_mutation(run_id)
         if report is None or report.get("runId") != run_id:
             if "engine is busy" in proc.stderr:
@@ -64,4 +63,6 @@ def run_mutation(run_id: str) -> dict | None:
             raise RuntimeError("the verifier did not produce a mutation report")
         return report
     finally:
+        if "proc" in locals():
+            _last_finished = time.time()  # also after a timeout or crash, so retries cannot hammer the engine
         _lock.release()
