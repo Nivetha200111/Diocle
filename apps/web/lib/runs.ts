@@ -14,6 +14,30 @@ export type Efficiency = {
   costPer1kLinesUsd: number | null;
 };
 
+// contracts/run.schema.json `assurance` (convert-anyway mode). Absent on ordinary runs: read `certified`. Only "certified"
+// is certified; the others are never counted in the front-page "N certified".
+export type Assurance = "certified" | "certified-against-repaired-cobol" | "compiled-unverified" | "failed";
+
+export const ASSURANCE_BADGE: Record<Assurance, { label: string; tone: string }> = {
+  certified: { label: "CERTIFIED", tone: "green" },
+  "certified-against-repaired-cobol": { label: "VERIFIED AGAINST REPAIRED COBOL", tone: "amber" },
+  "compiled-unverified": { label: "COMPILED, NOT VERIFIED", tone: "amber" },
+  failed: { label: "FAILED", tone: "red" },
+};
+
+export type CobolRepair = {
+  method: "deterministic" | "model";
+  outcome: "compiles" | "still-fails" | "rejected" | "cap-reached";
+  diff: string;
+  diagnostics: string[];
+  fixes?: string[];
+  changedLines: number;
+  rounds?: number;
+  modelCalls?: number;
+  estimatedCostUsd?: number | null;
+  patchedFile?: string;
+};
+
 export type Lesson = { pattern: string; cobol: string; java: string };
 
 export type RunMemory = { enabled: boolean; used: number; learned: number; lessons: Lesson[] } | null;
@@ -32,6 +56,7 @@ export type RunListItem = {
   model: string | null;
   efficiency: Efficiency;
   memory: RunMemory;
+  assurance?: Assurance;
 };
 
 export type FieldDiff = { field: string; original: string; converted: string };
@@ -89,6 +114,9 @@ export type Run = {
   crosscheck?: Crosscheck | null;
   tiers?: Tiers | null;
   guard?: Guard | null;
+  assurance?: Assurance;
+  assuranceReason?: string | null;
+  cobolRepair?: CobolRepair | null;
 };
 
 // One logged model call. mode "hosted" is Muse Spark on the Meta Model API; "private" is Muse Spark Open on a partner host.

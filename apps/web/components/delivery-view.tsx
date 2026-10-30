@@ -5,6 +5,7 @@ import { ExternalLink, GitPullRequest, Plus, TriangleAlert } from "lucide-react"
 import { API_URL } from "@/lib/runs";
 import { CANONICAL, LINKS, useApiConfig } from "@/lib/config";
 import { Skeleton } from "./ui";
+import { AssuranceBadge } from "./assurance";
 import { fetchDeliveries, fetchDelivery, startDelivery, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
@@ -27,6 +28,12 @@ function ciState(d: Delivery): Led {
   return "busy";
 }
 
+// Convert-anyway deliveries: programs that are not certified are counted apart, never inside "certified".
+function uncertified(d: Delivery): string {
+  const other = d.programs.filter((p) => p.assurance && p.assurance !== "certified");
+  return other.length ? ` · ${other.length} not certified (${other.map((p) => p.assurance).join(", ")})` : "";
+}
+
 function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
   const order = ["analyzing", "converting", "delivering", "done"];
   const at = d.stage === "failed" ? -1 : order.indexOf(d.stage);
@@ -37,13 +44,13 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
   if (!d.target) {
     return [
       { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
-      { label: "2. Convert & certify", detail: `${certified}/${d.programs.filter((p) => p.status !== "skipped").length} certified`, led: led(1) },
+      { label: "2. Convert & certify", detail: `${certified}/${d.programs.filter((p) => p.status !== "skipped").length} certified${uncertified(d)}`, led: led(1) },
       { label: "3. Results", detail: d.stage === "done" ? "Java, diffs and traces in Live runs" : "waiting", led: d.stage === "done" ? "ok" : "off" },
     ];
   }
   return [
     { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
-    { label: "2. Convert & certify", detail: `${certified}/${d.programs.length} certified`, led: led(1) },
+    { label: "2. Convert & certify", detail: `${certified}/${d.programs.length} certified${uncertified(d)}`, led: led(1) },
     { label: "3. Open pull request", detail: d.pullRequest ? "opened" : "waiting", led: d.pullRequest ? "ok" : led(2) },
     { label: "4. CI re-verifies", detail: ci === "ok" ? "passed on fresh inputs" : ci === "bad" ? "failed" : ci === "busy" ? "running" : "waiting", led: ci },
   ];
@@ -54,7 +61,7 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
 function failureReason(d: Delivery, list: DeliveryListItem[]): string | null {
   if (d.stage !== "failed") return null;
   const tried = d.programs.filter((p) => p.status !== "skipped");
-  const refused = tried.filter((p) => p.status === "not-certified").map((p) => p.name);
+  const refused = tried.filter((p) => p.status === "not-certified" && p.assurance !== "compiled-unverified").map((p) => p.name);
   const later = list.find((o) => o.stage === "done" && o.legacy.repository === d.legacy.repository
     && o.target === d.target && o.startedAt > d.startedAt);
   const retried = later ? ` A later delivery of the same repository (${later.id}) completed.` : "";
@@ -116,7 +123,7 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
     <section className="panel dlv-program">
       <div className="panel-heading">
         <div>
-          <h2><span className={`led led-${programLed(p)}`} /> {p.name}</h2>
+          <h2><span className={`led led-${programLed(p)}`} /> {p.name}{p.assurance && p.assurance !== "certified" && <> <AssuranceBadge assurance={p.assurance} reason={p.reason} /></>}</h2>
           <p>
             {p.path ?? ""} · {p.status}{run?.stage && p.status === "converting" ? ` · ${run.stage}` : ""}{p.reason ? ` · ${p.reason}` : ""}
             {p.runId && <> · <a href={`#run=${p.runId}`}>Java, diff and trace</a></>}
@@ -324,10 +331,12 @@ export default function DeliveryView() {
             {"  →  "}
             {delivery.target
               ? <a href={delivery.target} target="_blank" rel="noreferrer">{repoName(delivery.target)}</a>
-              : "verified Java"}
+              : delivery.convertAnyway ? "Java (see each label)" : "verified Java"}
           </h2>
           <p>
-            {delivery.target ? "COBOL in, certified Java out as a pull request." : "COBOL in, Java verified against the original out."} Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
+            {delivery.convertAnyway
+              ? `Convert anyway: only programs labelled CERTIFIED were verified against the original. Model spend ${delivery.spentUsd == null ? "n/a" : `$${delivery.spentUsd.toFixed(4)}`} of $${(delivery.repoMaxUsd ?? 0).toFixed(2)} (REPO_MAX_USD).`
+              : delivery.target ? "COBOL in, certified Java out as a pull request." : "COBOL in, Java verified against the original out."} Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
             {delivery.error && delivery.stage !== "failed" ? ` · error: ${delivery.error}` : ""}
           </p>
           {failureReason(delivery, list) && <p className="dlv-reason">{failureReason(delivery, list)}</p>}

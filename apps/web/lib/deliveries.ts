@@ -1,5 +1,5 @@
 // Types and fetchers for deliveries served by services/api (contracts/delivery.schema.json).
-import { API_URL, type Efficiency, type RunEvent } from "./runs";
+import { API_URL, type Assurance, type Efficiency, type RunEvent } from "./runs";
 
 export type DeliveryStage = "analyzing" | "converting" | "delivering" | "done" | "failed";
 
@@ -8,6 +8,8 @@ export type DeliveryProgram = {
   path?: string;
   status: "queued" | "converting" | "certified" | "not-certified" | "skipped";
   reason?: string | null;
+  assurance?: Assurance | null; // convert-anyway deliveries; status stays "not-certified" for everything but "certified"
+  costUsd?: number | null;
   runId: string | null;
   run: {
     status: "running" | "certified" | "not-certified";
@@ -27,6 +29,9 @@ export type Delivery = {
   legacy: { repository: string; commit: string | null };
   target: string | null; // null: a visitor's import, results stay on the site
   public?: boolean;
+  convertAnyway?: boolean;
+  repoMaxUsd?: number | null;
+  spentUsd?: number | null;
   stage: DeliveryStage;
   startedAt: string;
   finishedAt: string | null;

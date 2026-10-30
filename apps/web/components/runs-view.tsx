@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
+import { API_URL, ASSURANCE_BADGE, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
+import { AssuranceBadge, AssuranceNote } from "./assurance";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 
@@ -371,7 +372,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
               <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
                 <td className="mono">{r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.command === "run" ? "translate" : "repair"}</td>
                 <td className="mono">{r.model ? shortModel(r.model) : "none yet"}</td>
-                <td>{isInterrupted(r) ? "interrupted (engine restarted)" : r.status === "running" ? "running…" : r.certified ? "certified" : "not certified"}{r.visitor ? " · visitor import" : ""}{SUPERSEDED[r.id] ? " · superseded" : ""}</td>
+                <td>{isInterrupted(r) ? "interrupted (engine restarted)" : r.status === "running" ? "running…" : r.certified ? "certified" : r.assurance ? ASSURANCE_BADGE[r.assurance].label.toLowerCase() : "not certified"}{r.visitor ? " · visitor import" : ""}{SUPERSEDED[r.id] ? " · superseded" : ""}</td>
                 {allColumns && <td className="mono">{memoryLabel(r.memory)}</td>}
                 <td className="mono">{r.efficiency.modelCalls}</td>
                 {allColumns && <>
@@ -458,10 +459,13 @@ function RunDetail({ run }: { run: Run }) {
   const steps = run.events.filter((e) => e.type === "agent-step");
   return (
     <>
+      {run.assurance && <AssuranceNote assurance={run.assurance} reason={run.assuranceReason} repair={run.cobolRepair} />}
       <div className="panel runs-header">
         <div>
           <div className="runs-badges">
-            <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>
+            {run.assurance && run.assurance !== "certified"
+              ? <AssuranceBadge assurance={run.assurance} reason={run.assuranceReason} />
+              : <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>}
             {isPrivateModel(run.model) && <PrivateModeBadge host={hostOf(run.model ?? "")} />}
             {run.guard?.blocked && <Badge tone="amber">Blocked by the guard</Badge>}
             {run.guard?.review?.verdict === "error" && <Badge tone="amber">Guard review unavailable</Badge>}

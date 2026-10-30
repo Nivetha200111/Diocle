@@ -138,6 +138,8 @@ function Evidence({ go }: { go: Go }) {
     fetchRuns().then(setRuns).catch(() => setRuns([]));
   }, []);
   const certified = runs?.filter((r) => r.certified).length ?? 0;
+  const repaired = runs?.filter((r) => r.assurance === "certified-against-repaired-cobol").length ?? 0;  // never inside "certified"
+  const unverified = runs?.filter((r) => r.assurance === "compiled-unverified").length ?? 0;
   return (
     <section className="panel">
       <div className="panel-heading">
@@ -151,6 +153,8 @@ function Evidence({ go }: { go: Go }) {
         <div><dt>Fresh inputs in its CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
         <div><dt>Differences</dt><dd className="mono">{CANONICAL.differences}</dd></div>
         <div><dt>All runs on this engine</dt><dd className="mono">{runs ? `${certified}/${runs.length}` : "…"}</dd></div>
+        {repaired > 0 && <div><dt>Verified against repaired COBOL (not certified)</dt><dd className="mono">{repaired}</dd></div>}
+        {unverified > 0 && <div><dt>Compiled, not verified</dt><dd className="mono">{unverified}</dd></div>}
       </dl>
       <p className="home-pr">
         <strong>{CANONICAL.programs.length}/{CANONICAL.programs.length}</strong> is the canonical delivery,
