@@ -258,3 +258,27 @@ def test_stdout_cut_at_the_capture_never_gives_a_false_refutation():
 def test_run_local_marks_a_truncated_stdout(monkeypatch):
     [r] = claims.run_original(SAMPLE, [{"id": "e1", "records": [TIE]}])
     assert r["stdoutTruncated"] is False
+
+
+# --- third review ----------------------------------------------------------------------------------------------
+
+def test_a_blank_only_expectation_is_weak_not_matched():
+    blank_out = fake_run(records=["          +000000001+0000095+00000036406FE"])
+    for blank in (" ", "   ", " ", "\t "):
+        got = claims.judge({"records": [{"OUT-ACCT-ID": blank}]}, blank_out, OUT)
+        assert got["status"] == "unchecked" and "weak expectation" in got["reason"], repr(blank)
+        assert claims.judge({"stdoutContains": blank}, fake_run(stdout="a \u00a0\t\u2003 b"), OUT)["status"] == "unchecked"
+    assert claims.judge({"records": [{"OUT-ACCT-ID": " ", "OUT-STATUS": "FE"}]}, blank_out, OUT)["status"] == "matched"
+
+
+def test_a_stdout_mismatch_says_it_was_compared_exactly():
+    got = claims.judge({"stdoutContains": "a  b"}, fake_run(stdout="a b"), OUT)
+    assert got["status"] == "differed" and "compared exactly" in got["mismatches"][0]["expected"]
+
+
+def test_an_unreadable_numeric_output_is_unchecked_not_differed():
+    garbled = fake_run(records=["TIEPOS    +00000000X+0000095+00000036406FE"])
+    got = claims.judge({"records": [{"OUT-INTEREST": "0.01"}]}, garbled, OUT)
+    assert got["status"] == "unchecked" and "not a plain number" in got["reason"]
+    mixed = claims.judge({"records": [{"OUT-INTEREST": "0.01", "OUT-STATUS": "ZZ"}]}, garbled, OUT)
+    assert mixed["status"] == "differed"  # a real mismatch elsewhere is still reported

@@ -183,7 +183,7 @@ def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
         return {"status": "unchecked", "actual": actual, "mismatches": [], "reason": (
             f"crashed (rc {run['returnCode']}): the program ended with return code {run['returnCode']} and the example "
             "does not expect that" + (f" (it printed: {err})" if err else ""))}
-    by_name, mismatches = {f.name: f for f in fields}, []
+    by_name, mismatches, unreadable = {f.name: f for f in fields}, [], []
     for i, want in enumerate(expected.get("records", []), 1):
         if i > count:
             mismatches.append({"what": f"record {i}", "expected": "a record", "actual": f"no such record: the program wrote {count}"})
@@ -192,6 +192,9 @@ def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
             continue  # beyond the records kept; expectations cover at most 5
         for name, value in want.items():
             got = records[i - 1][name]
+            if by_name[name].kind == "numeric" and not _NUMBER.fullmatch(got.strip()):
+                unreadable.append(f"record {i} {name}")
+                continue
             if not _same(by_name[name], value, got):
                 mismatches.append({"what": f"record {i} {name}", "expected": flat(value), "actual": flat(got)})
     if "outputRecordCount" in expected and expected["outputRecordCount"] != count:
@@ -201,19 +204,24 @@ def judge(expected: dict, run: dict, fields: list[Field]) -> dict:
         if run.get("stdoutTruncated"):
             truncated_miss = True  # the text may be in the part that was not captured: no verdict
         else:
-            mismatches.append({"what": "stdout", "expected": f"contains {flat(expected['stdoutContains'])!r}",
+            mismatches.append({"what": "stdout", "expected": f"contains {flat(expected['stdoutContains'])!r} (compared exactly, spacing included)",
                                "actual": flat(run["stdout"], 200)})
     if "returnCode" in expected and expected["returnCode"] != run["returnCode"]:
         mismatches.append({"what": "return code", "expected": str(expected["returnCode"]), "actual": str(run["returnCode"])})
     if mismatches:
         return {"status": "differed", "actual": actual, "mismatches": mismatches[:20], "reason": ""}
+    if unreadable:
+        return {"status": "unchecked", "actual": actual, "mismatches": [],
+                "reason": f"output is not a plain number at {', '.join(unreadable[:3])}: the value cannot be compared"}
     if truncated_miss:
         return {"status": "unchecked", "actual": actual, "mismatches": [],
                 "reason": f"output truncated at {CAPTURE_STDOUT // 1024} KB: the expected text was not in the captured part"}
-    strong = any(v for rec in expected.get("records", []) for v in rec.values()) or "stdoutContains" in expected
+    # a blank-only expectation (spaces, NBSP) compares nothing real: str.strip() drops all unicode whitespace
+    strong = (any(v.strip() for rec in expected.get("records", []) for v in rec.values())
+              or bool(str(expected.get("stdoutContains", "")).strip()))
     if not strong:
         return {"status": "unchecked", "actual": actual, "mismatches": [],
-                "reason": "weak expectation: it compares only a record count or return code, not an output field or stdout"}
+                "reason": "weak expectation: it compares only a record count, a return code or blank text, not an output field value or stdout text"}
     return {"status": "matched", "actual": actual, "mismatches": [], "reason": ""}
 
 

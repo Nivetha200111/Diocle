@@ -340,3 +340,14 @@ def test_the_displayed_expectation_is_flattened_while_the_judged_one_is_raw():
     doc = document(Program.load(SAMPLE), client([raw_answer([out(**{"OUT-ACCT-ID": "A  B"})])]), CAPS)
     shown = doc["claims"][0]["examples"][0]["expected"]["records"][0]["OUT-ACCT-ID"]
     assert shown == "A B"  # display only; the claim above was still judged on "A  B"
+
+
+def test_the_markdown_file_is_written_as_utf8_even_with_lone_surrogates(tmp_path, monkeypatch):
+    import diocle_converter.__main__ as cli
+    import diocle_converter.documenter as documenter
+
+    doc = documenter._empty("INTACCR", "m", "x\ud800y ☃")
+    monkeypatch.setattr(documenter, "document", lambda *a, **k: doc)
+    monkeypatch.setattr(cli, "ModelClient", lambda s: SimpleNamespace(calls=[], settings=_settings()))
+    result = cli._document(Program.load(SAMPLE), SimpleNamespace(calls=[]), _settings(), tmp_path, lambda e: None)
+    assert result is doc and (tmp_path / "behavior.md").read_text(encoding="utf-8").startswith("# Behaviour spec")

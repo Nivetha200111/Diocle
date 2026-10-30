@@ -596,7 +596,7 @@ def _document_inner(program, client, settings, run_dir, on_event):
            f"est. ${u.get('estimatedCostUsd')})" if u else "")})
     try:  # the files are a convenience: the result still goes into run.json if they cannot be written
         _atomic_write(run_dir / "behavior.json", result)
-        (run_dir / "behavior.md").write_text(to_markdown(result))
+        (run_dir / "behavior.md").write_text(to_markdown(result), encoding="utf-8", errors="replace")
     except Exception as e:
         on_event({"type": "behavior", "message": f"Verified documentation: could not write behavior files ({type(e).__name__})"})
     return result
