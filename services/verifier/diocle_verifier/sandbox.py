@@ -39,6 +39,9 @@ JOB_TIMEOUT = 300  # real jobs take seconds; a stuck or hostile job holds the sa
 COMPILE_JOB_TIMEOUT = 60  # a compile-only check (POST /compile) is cheap, so it holds the sandbox far shorter
 MAX_COMPILE_BUNDLE = 8 * 1024 * 1024  # a compile check takes the sample only (no Java)
 MAX_COMPILE_REPORT = 16 * 1024
+CLAIMS_JOB_TIMEOUT = 150  # one cobc build plus at most 60 short runs (claims.TOTAL_BUDGET caps the runs)
+MAX_CLAIMS_BUNDLE = 8 * 1024 * 1024
+MAX_CLAIMS_REPORT = 1024 * 1024
 JOB_UID = 65534  # nobody
 _job_lock = threading.Lock()
 
@@ -136,6 +139,32 @@ def remote_compile(sample_dir: Path, wait: float | None = None):
     return CompileCheck("fail", diagnostics=found)
 
 
+def remote_claims(sample_dir: Path, examples: list[dict]) -> list[dict]:
+    """Run the original COBOL on claim examples in the sandbox (diocle_verifier.claims.run_local there)."""
+    packed = pack(sample_dir, None)
+    if len(packed) > MAX_CLAIMS_BUNDLE:
+        raise ValueError("the sample is too large to check claims")
+    body = json.dumps({"bundle": base64.b64encode(packed).decode(), "examples": examples}).encode()
+    deadline = time.time() + float(os.environ.get("DIOCLE_SANDBOX_WAIT", "1800"))
+    while True:
+        req = urllib.request.Request(os.environ["DIOCLE_SANDBOX_URL"].rstrip("/") + "/claims", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=CLAIMS_JOB_TIMEOUT + 30) as resp:
+                answer = json.loads(resp.read(MAX_CLAIMS_REPORT))
+            break
+        except urllib.error.HTTPError as e:
+            detail = e.read(2000).decode(errors="replace")
+            if e.code != 503:
+                raise RuntimeError(f"sandbox: {detail[:500]}") from e
+            if time.time() > deadline:
+                raise Busy("the verification engine is busy; try again in a minute") from e
+            time.sleep(3)
+    if not isinstance(answer, list) or len(answer) != len(examples):
+        raise ValueError("the sandbox answered with something that is not a claims run")
+    return answer
+
+
 # --- server side (the sandbox container) ---------------------------------------------------------------------
 
 def _others() -> list[int]:
@@ -178,19 +207,27 @@ def _job_user() -> dict:
 
 
 def run_job(job: dict, kind: str = "verify") -> dict:
-    """kind "verify": the whole verification; kind "compile": compile the original only (shorter limits)."""
-    if kind not in ("verify", "compile"):
+    """kind "verify": the whole verification; kind "compile": compile the original only (shorter limits);
+    kind "claims": run the original on claim examples (diocle_verifier.claims)."""
+    if kind not in ("verify", "compile", "claims"):
         raise ValueError("unknown job kind")
     if not _job_lock.acquire(blocking=False):
         raise Busy("busy")
     compile_only = kind == "compile"
-    timeout = COMPILE_JOB_TIMEOUT if compile_only else JOB_TIMEOUT
-    max_report = MAX_COMPILE_REPORT if compile_only else MAX_REPORT
+    small = kind in ("compile", "claims")
+    timeout = {"compile": COMPILE_JOB_TIMEOUT, "claims": CLAIMS_JOB_TIMEOUT}.get(kind, JOB_TIMEOUT)
+    max_report = {"compile": MAX_COMPILE_REPORT, "claims": MAX_CLAIMS_REPORT}.get(kind, MAX_REPORT)
     try:
         data = base64.b64decode(job["bundle"], validate=True)
-        if len(data) > (MAX_COMPILE_BUNDLE if compile_only else MAX_BUNDLE):
+        if len(data) > (MAX_COMPILE_BUNDLE if small else MAX_BUNDLE):
             raise ValueError("bundle too large")
-        params = {"kind": kind, "bundle": job["bundle"]} if compile_only else {
+        examples = job.get("examples")
+        if kind == "claims" and not (isinstance(examples, list) and len(examples) <= 60 and all(
+                isinstance(e, dict) and isinstance(e.get("id"), str) and isinstance(e.get("records"), list)
+                and all(isinstance(r, str) for r in e["records"]) for e in examples)):
+            raise ValueError("examples must be a list of at most 60 {id, records}")
+        params = {"kind": kind, "bundle": job["bundle"]} if compile_only else {"kind": kind, "bundle": job["bundle"],
+                                                                              "examples": examples} if kind == "claims" else {
             "kind": kind, "seed": int(job.get("seed", 1026)), "randomCount": int(job.get("randomCount", 200)),
             "java": bool(job.get("java")), "extraCases": job.get("extraCases") or [], "bundle": job["bundle"]}
         proc = subprocess.Popen([sys.executable, "-m", "diocle_verifier.sandbox", "--job"], stdin=subprocess.PIPE,
@@ -240,6 +277,11 @@ def _job_main() -> int:
 
             sys.stdout.write(json.dumps(compile_local(work / "sample").to_json()))
             return 0
+        if params.get("kind") == "claims":
+            from .claims import run_local
+
+            sys.stdout.write(json.dumps(run_local(work / "sample", params["examples"])))
+            return 0
         cases = [Case(c["id"], c["source"], c["record"]) for c in params["extraCases"]]
         report = verify_sample(work / "sample", work / "java" if params["java"] else None, seed=params["seed"],
                                random_count=params["randomCount"], extra_cases=cases or None)
@@ -249,11 +291,11 @@ def _job_main() -> int:
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
-        if self.path not in ("/verify", "/compile"):
+        if self.path not in ("/verify", "/compile", "/claims"):
             return self._send(404, {"error": "not found"})
         kind = self.path[1:]
         length = int(self.headers.get("Content-Length", "0"))
-        if length > (MAX_COMPILE_BUNDLE * 2 if kind == "compile" else MAX_BUNDLE * 2):
+        if length > (MAX_COMPILE_BUNDLE * 2 if kind in ("compile", "claims") else MAX_BUNDLE * 2):
             return self._send(413, {"error": "job too large"})
         try:
             job = json.loads(self.rfile.read(length))
