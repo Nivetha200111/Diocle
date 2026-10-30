@@ -76,7 +76,7 @@ cat <<MSG
 
 Next: Muse Code reviews a third-party plugin's MCP server before it runs. Inspect and approve it yourself:
   $MUSE plugins inspect diocle
-  $MUSE plugins approve diocle
+  $MUSE plugins approve diocle:mcp_server:diocle
 Then start Muse Code in any project and try:  /diocle-analyze samples/interest-accrual
 Requirements for the verify tools: GnuCOBOL 3.2 (cobc), JDK 21, and a Diocle Python venv (see editors/muse-code/README.md).
 MSG

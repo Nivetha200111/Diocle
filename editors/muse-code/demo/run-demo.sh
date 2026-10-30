@@ -3,7 +3,7 @@
 # which this script never reads, and run 3 spends real Meta model money (about USD 0.02 to 0.05 for the conversion, plus the
 # agent's own tokens). Five headless runs in total; each is capped by --max-model-steps.
 #
-#   sh editors/muse-code/install.sh --allow-convert && muse plugins approve diocle     (once)
+#   sh editors/muse-code/install.sh --allow-convert && muse plugins approve diocle:mcp_server:diocle   (once)
 #   sh editors/muse-code/demo/run-demo.sh [1 2 3 4 5]       (default: all five)
 #   python3 editors/muse-code/demo/render_capture.py OUT.mp4 --max-seconds 40 editors/muse-code/transcripts/run-*.jsonl
 #

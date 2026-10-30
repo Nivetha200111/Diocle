@@ -26,6 +26,8 @@ requires review of a third-party plugin's MCP server; the script never approves 
 makes Muse Code ask for a new approval. If a Diocle venv exists at `services/*/.venv` the server uses it; otherwise set
 `DIOCLE_PYTHON`. `DIOCLE_REPO` overrides the checkout path.
 
+**Install is user-scope and changes your global Muse Code configuration** (plugin registry under your Muse data directory); `--uninstall` reverses it. The `allow-convert` marker is only as strong as Muse Code's own file-write permission: anything that can write that file (including the agent, if you grant it write access to your config directory) can turn convert on, so keep the agent's writes off `~/.config` and keep the converter's `--max-usd` cap in mind.
+
 ## What you get
 
 | Piece | What |
@@ -68,9 +70,9 @@ USD 0.047 with memory; a public run USD 0.0032 for another program); the Muse Co
 DIOCLE_PYTHON=services/converter/.venv/bin/python services/converter/.venv/bin/python -m pytest editors/muse-code/tests
 ```
 
-21 tests: JSON-RPC handshake, tools/resources/prompts lists, protocol errors, each tool (the analyzer and verifier tests run the real
+29 tests: JSON-RPC handshake, tools/resources/prompts lists, protocol errors, each tool (the analyzer and verifier tests run the real
 tools and need cobc and a JDK; they skip otherwise), path and symlink escape attempts, validation errors, convert disabled by
-default, cap and key-argument rejection, secret scrubbing, a local stub for the live-run tool.
+default, cap and key-argument rejection, secret scrubbing, type-confused and oversized messages (the server must not die), resource symlink confinement, refused redirects, process-group kill on timeout, install.sh's update path against a stub `muse`, a local stub for the live-run tool.
 
 ## What was tested with the real `muse` binary (Muse Code 1.4.14, macOS)
 

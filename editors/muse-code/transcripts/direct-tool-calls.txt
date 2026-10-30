@@ -1,3 +1,5 @@
+# DIRECT JSON-RPC to the Diocle MCP server (python3 plugin/mcp/server.py), NOT through Muse Code. Real tool output, no model involved.
+
 ### diocle_analyze {"path": "samples/interest-accrual"}  isError=False  0.1s
 {
   "programs": [
