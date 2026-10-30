@@ -1,6 +1,6 @@
 # Architecture
 
-A simple map of how Diocle fits together. Details per module are in the READMEs under `services/`, `apps/web` and `editors/vscode`.
+A simple map of how Diocle fits together. An editable draw.io version is in [`architecture-simple.drawio`](architecture-simple.drawio) (open it at app.diagrams.net or in the draw.io desktop app). Details per module are in the READMEs under `services/`, `apps/web` and `editors/vscode`.
 
 ```mermaid
 flowchart LR

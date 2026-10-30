@@ -1,0 +1,60 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="diocle-simple" name="Diocle architecture (simple)">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="g1" value="Where it is used" style="swimlane;startSize=28;rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="40" width="230" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="w" value="Web app (Vercel)&#xa;runs, mission replay,&#xa;evidence, import" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="g1">
+          <mxGeometry x="20" y="45" width="190" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e" value="VS Code extension&#xa;check + convert, local" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="g1">
+          <mxGeometry x="20" y="150" width="190" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="c" value="CLI&#xa;local, your own Meta key" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;" vertex="1" parent="g1">
+          <mxGeometry x="20" y="255" width="190" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="g2" value="Diocle engine (Vultr Mumbai)" style="swimlane;startSize=28;rounded=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="40" width="520" height="480" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="API&#xa;deliveries, runs, re-verify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="g2">
+          <mxGeometry x="30" y="50" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="an" value="Analyzer&#xa;parse, layouts, what is convertible" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="g2">
+          <mxGeometry x="30" y="160" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="cv" value="Converter agents (Meta models)&#xa;translator, repair, breaker,&#xa;cross-check, guard&#xa;(models propose, never certify)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="g2">
+          <mxGeometry x="30" y="275" width="220" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="vf" value="Verifier&#xa;GnuCOBOL original vs Java,&#xa;same inputs, byte for byte&#xa;(the only thing that certifies)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="g2">
+          <mxGeometry x="300" y="275" width="190" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="sb" value="Sandbox&#xa;no network, no secrets,&#xa;one job at a time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="g2">
+          <mxGeometry x="300" y="400" width="190" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="m" value="Meta Model API&#xa;Muse Spark tiers, Muse Wonder&#xa;Muse Spark Open (partner host)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="900" y="300" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="g" value="GitHub&#xa;repo import, pull request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="900" y="90" width="220" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="w" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="e" target="c"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="local run" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="c" target="an"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="api" target="an"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="an" target="cv"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="prompts / answers" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;startArrow=block;html=1;" edge="1" parent="1" source="cv" target="m"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="Java to check" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="cv" target="vf"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="runs inside" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;" edge="1" parent="1" source="vf" target="sb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="certificate, diffs, cost" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="vf" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="import / pull request" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;startArrow=block;html=1;" edge="1" parent="1" source="api" target="g"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
