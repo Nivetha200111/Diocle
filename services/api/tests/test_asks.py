@@ -276,6 +276,7 @@ STUB = textwrap.dedent('''
     import json, sys
     from pathlib import Path
     out = Path(sys.argv[sys.argv.index("--out") + 1])
+    Path(__file__).with_name("argv.json").write_text(json.dumps(sys.argv[1:]))
     out.mkdir(parents=True, exist_ok=True)
     mode = Path(__file__).with_name("mode.txt").read_text()
     tr = {"text": "What happens to the fee?", "model": "muse-voice-transcribe-1.0", "audioSeconds": 2.28, "costUsd": 0.000456,
@@ -321,6 +322,8 @@ def test_runner_records_real_stage_events_partials_and_the_result(client, tmp_pa
     job = run_stub(client, tmp_path, monkeypatch, "ok")
     check(job, "job")
     assert job["status"] == "done" and job["stage"] == "done" and job["result"]["decidedBy"] == "GnuCOBOL"
+    argv = json.loads((tmp_path / "stub" / "argv.json").read_text())
+    assert argv[argv.index("--clip") + 1] == "fee-overdrawn" and "--audio" in argv
     assert [e["message"] for e in job["events"]][1:4] == ["Heard: What happens to the fee?", "muse-spark writes claims",
                                                           "GnuCOBOL runs the original program on the examples"]
     assert job["partial"]["transcript"]["text"] == "What happens to the fee?" and job["partial"]["proposed"] == ["The fee is 2.25."]

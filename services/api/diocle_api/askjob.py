@@ -18,7 +18,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .asks import CLIPS_DIR, JOB_ID, MAX_USD, SAMPLE_DIRS, jobs_dir
+from .asks import CLIPS, CLIPS_DIR, JOB_ID, MAX_USD, SAMPLE_DIRS, jobs_dir
 from .runs import REPO_ROOT
 
 SERVICES = REPO_ROOT / "services"
@@ -75,7 +75,8 @@ def _partial(job: Job, out: Path) -> None:
 def run(job: Job, audio: Path) -> None:
     sample, clip = job.state["sample"], job.state.get("clip")
     out = job.path.parent / "out"
-    cmd = converter_cmd(["ask", str(SAMPLE_DIRS[sample]), "--audio", str(audio), "--max-usd", f"{MAX_USD:.6f}", "--out", str(out)])
+    cmd = converter_cmd(["ask", str(SAMPLE_DIRS[sample]), "--audio", str(audio), "--max-usd", f"{MAX_USD:.6f}", "--out", str(out),
+                           *(["--clip", clip] if clip in CLIPS else [])])
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
     env.pop("DIOCLE_CONVERT_ANYWAY", None)
     job.event(f"Starting: hard cap ${MAX_USD:.2f} for the whole question", "transcribing")

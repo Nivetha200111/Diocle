@@ -124,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     ask_p.add_argument("--text", help="the question as text (skips transcription)")
     ask_p.add_argument("--max-usd", type=float, default=0.02, help="hard dollar cap on the whole ask (default 0.02, at most 0.10)")
     ask_p.add_argument("--out", type=Path, help="write ask.json (and progress) here")
-    ask_p.add_argument("--clip", help=argparse.SUPPRESS)
+    ask_p.add_argument("--clip", choices=["fee-overdrawn", "waiver-tenure"], help=argparse.SUPPRESS)
     tr = sub.add_parser("transcribe", help="photo/scan of a COBOL listing to COBOL, gated by the compiler and a differential run")
     tr.add_argument("image", type=Path, help="PNG or JPEG, at most 2 MB")
     tr.add_argument("--out", type=Path, required=True, help="sample directory to write (src/*.cbl, transcription.json)")

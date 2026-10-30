@@ -337,3 +337,14 @@ def test_contract_rejects_a_result_that_lets_a_model_decide_or_breaks_a_cap():
                   {"transcript": {**result["transcript"], "text": "x" * 301}}, {"answer": {**result["answer"], "basis": "model-said-so"}}):
         with pytest.raises(jsonschema.ValidationError):
             check({**result, **patch})
+
+
+def test_cli_marks_a_bundled_clip_as_such(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(askmod, "ask", lambda program, **kw: seen.update(kw) or (_ for _ in ()).throw(voice.VoiceError("stop here")))
+    from diocle_converter.__main__ import main
+    clip = CLIPS / "fee-overdrawn.wav"
+    main(["ask", str(SAMPLE), "--audio", str(clip), "--clip", "fee-overdrawn"])
+    assert seen["source"] == "bundled-clip" and seen["clip"] == "fee-overdrawn"
+    main(["ask", str(SAMPLE), "--audio", str(clip)])
+    assert seen["source"] == "uploaded-clip" and seen["clip"] is None

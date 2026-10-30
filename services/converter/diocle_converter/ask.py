@@ -211,7 +211,7 @@ def run_cli(args) -> int:
         args.out.mkdir(parents=True, exist_ok=True)
     try:
         audio = args.audio.read_bytes() if args.audio else None
-        result = ask(program, question=args.text, audio=audio, source="uploaded-clip" if args.audio else "typed-text",
+        result = ask(program, question=args.text, audio=audio, source=("bundled-clip" if args.clip else "uploaded-clip") if args.audio else "typed-text",
                      clip=args.clip, max_usd=args.max_usd, emit=emit)
     except voice.VoiceError as e:
         print(f"stopped: {e}")
