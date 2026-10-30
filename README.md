@@ -14,6 +14,18 @@ core-banking migration locked close to two million customers out of their accoun
 down. AI makes the rewrite fast; it does not make it safe. The risk is silent: Java that compiles, runs and is wrong
 by a cent, or by the sign of zero on 30 inputs in a thousand. Diocle's job is to catch that before anyone ships it.
 
+## Who benefits
+Diocle is for the teams that inherit COBOL batch programs that move money and cannot afford a silent difference:
+- **Credit unions, co-op banks and small banks** whose core batch jobs (interest, fees, postings, reconciliation) are decades-old COBOL, with no budget for a team of mainframe experts to re-check every cent.
+- **Benefit, pension and insurance payment operators:** payments are computed by batch programs, and a wrong cent or a wrong sign repeated over millions of records lands on real people. The people who benefit from a verified migration are the ones those programs pay.
+- **Modernization teams and auditors:** they get a certificate they can re-run themselves (the target repository's CI repeats the check on fresh inputs) instead of a model's opinion.
+
+**What changes.** Today, equivalence is checked by hand or by sampling. Diocle runs the original and the Java on the same 1,000+ inputs per program, then lets a second agent attack the Java with inputs it designs, and refuses anything that differs. In our runs the model spend per certified program was about two cents at list prices (see the scoreboard on [/evidence](https://diocle.vercel.app/evidence)).
+
+**Usable today** (no claim of adoption: this is what exists): the live site and its two live buttons; one command that certifies a sample with your own Meta key (about 12 seconds with no key, about 2.5 minutes with one; see [Quickstart](#quickstart-one-command)); a VS Code extension and a Notepad++ script (the extension is built and packaged; Marketplace publishing is pending); delivery of a whole repository as a pull request into a new private repository, with CI that re-verifies each program ([Let Diocle create the target repository](#let-diocle-create-the-target-repository-local-or-admin-only)).
+
+**Honest limits.** Certified means "on the inputs tried", not proven for all inputs. Embedded SQL is verified on a SQLite stand-in for a named statement subset, never on real DB2. CICS and IMS are not supported.
+
 ## For judges: two minutes
 - **Live product:** [diocle.vercel.app](https://diocle.vercel.app). The front page shows CHQCLR's COBOL next to its
   certified Java; press **Try the sample**, and both programs run again on about 1,000 inputs from a seed chosen
@@ -23,13 +35,8 @@ by a cent, or by the sign of zero on 30 inputs in a thousand. Diocle's job is to
 - **Evidence, with links to every run:** [diocle.vercel.app/evidence](https://diocle.vercel.app/evidence),
   [docs/EVIDENCE.md](docs/EVIDENCE.md) (the canonical delivery, [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4),
   with its CI) and [docs/EVALUATION.md](docs/EVALUATION.md) (unseen programs, failures included).
-- **Built during the hackathon:** everything in this repository, from Oct 27, 2026; the history is in
-  [docs/BUILD_LOG.md](docs/BUILD_LOG.md) and the git log.
-- **Meta models:** Muse Spark (Meta Model API) as translator, repair agent and breaker agent; Muse Spark Open (open
-  weights, on a partner host: Fireworks for private mode, Baseten for the optional independent cross-check and guard
-  review). Diagram and per-role detail: [Which model does what](#which-model-does-what). No other model is used in the
-  product. The converter depends on the `openai` Python package only as an OpenAI-compatible HTTP client: its base URL
-  is the Meta Model API (`https://api.meta.ai/v1`) or the Muse Spark Open host, set in `.env`; no OpenAI model is called.
+- **Built during the hackathon (Oct 27 to Nov 4, 2026):** everything in this repository. The first commit is dated Oct 27, 2026 and nothing predates it: see the full [commit history](https://github.com/Nivetha200111/Diocle/commits/main) and [docs/BUILD_LOG.md](docs/BUILD_LOG.md). Not built here: GnuCOBOL (the original compiler we compare against), the Meta models, Remotion and Playwright (video tooling), the ElevenLabs synthetic narration (disclosed on the video's end card), and the public COBOL course repository we imported as test input (CC BY 4.0, credited on the Evidence page).
+- **Meta models:** Muse Spark (Meta Model API) as translator, repair agent and breaker; **Muse Wonder** reads a photographed or printed COBOL listing back into COBOL that is then verified against the original, and can act as the breaker agent; **Muse Spark Open** (open weights, on Fireworks) is the independent cross-checker, the guard agent's model review (it can only revoke a certification, never grant one) and the private mode. Diagram and per-role detail: [Which model does what](#which-model-does-what). No other model is used in the product. The converter depends on the `openai` Python package only as an OpenAI-compatible HTTP client: its base URL is the Meta Model API (`https://api.meta.ai/v1`) or the Muse Spark Open host, set in `.env`; no OpenAI model is called.
 - **Development tools:** the code was written with help from coding agents (Claude Code; see `.claude/` and the
   `Co-Authored-By` lines in the git log). They are development tooling only and are not part of the product.
 
