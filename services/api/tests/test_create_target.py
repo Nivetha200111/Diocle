@@ -364,6 +364,10 @@ def test_the_generated_workflow_builds_gnucobol_3_2_not_the_distribution_package
     assert "gnucobol-3.2.tar.xz" in wf and "ubuntu-24.04" in wf and "actions/cache@v4" in wf
     assert "apt-get install -y gnucobol" not in wf and "setup-python@v5" in wf
     assert "$HOME/gnucobol/bin" in wf and "LD_LIBRARY_PATH" in wf
+    assert "gnucobol-3.2-ubuntu-24.04-v2-db" in wf and "libgmp-dev libdb-dev" in wf and "--with-db" in wf and "--without-db" not in wf
+    # the runtime library is installed on every run, not only when the build cache misses
+    runtime = wf.index("libdb5.3t64")
+    assert wf.index("Build GnuCOBOL 3.2") < runtime and "if:" not in wf[wf.rindex("- name:", 0, runtime):runtime]
 
 
 # ---- whole-repository build gate in the delivery ---------------------------------------------------------------------------
