@@ -567,6 +567,8 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
             return str(repo)
         git = ["git", "-C", str(repo), "-c", "user.name=Diocle", "-c", "user.email=diocle@users.noreply.github.com"]
         _sh(git + ["add", "-A"])
+        if (repo / "build").is_dir():  # a target's own .gitignore (the Node template ignores build/) must not drop the report
+            _sh(git + ["add", "-f", "build"])
         models = sorted({c["agent"]["model"] or "unknown model" for _, c in delivered})
         extra = f" and {len([o for o in others if o['assurance'] != 'failed'])} NOT-certified program(s) under not-certified/" if others else ""
         _sh(git + ["commit", "-q", "-m", f"Deliver {len(delivered)} certified program(s){extra} from {report['source']['commit'][:12]}",
