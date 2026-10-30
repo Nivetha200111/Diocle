@@ -46,8 +46,3 @@ export function scoreboard(all: RunListItem[]): Scoreboard {
     costPer1kMedian: stat(finite(ok.map((r) => r.efficiency.costPer1kLinesUsd))),
   };
 }
-
-// The visitor's own assumption. Returns null unless both inputs are positive finite numbers.
-export function humanCost(hours: number, rate: number): number | null {
-  return Number.isFinite(hours) && Number.isFinite(rate) && hours > 0 && rate > 0 ? hours * rate : null;
-}

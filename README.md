@@ -40,7 +40,7 @@ Diocle is for the teams that inherit COBOL batch programs that move money and ca
 
 **What changes.** Equivalence is often checked by hand or by sampling. Diocle runs the original and the Java on the same 1,000+ inputs per program, then lets a second agent attack the Java with inputs it designs, and refuses anything that differs. In our runs the median model spend per certified program was about two cents at list prices (mean about five cents), raw model spend that excludes compute, hosting and human review (see the scoreboard on [/evidence](https://diocle.vercel.app/evidence)).
 
-**Usable today** (no claim of adoption: this is what exists): the live site and its two live buttons; one command that certifies a sample with your own Meta key (about 12 seconds with no key, about 2.5 minutes with one; see [Quickstart](#quickstart-one-command)); a VS Code extension and a Notepad++ script (the extension is built and packaged; Marketplace publishing is pending); delivery of a whole repository as a pull request into a new private repository, with CI that re-verifies each program ([Let Diocle create the target repository](#let-diocle-create-the-target-repository-local-or-admin-only)).
+**Usable today** (no claim of adoption: this is what exists): the live site and its two live buttons; one command that certifies a sample with your own Meta key (about 25 seconds with no key, about 2.5 minutes with one; see [Quickstart](#quickstart-one-command)); a VS Code extension and a Notepad++ script (the extension is built and packaged; Marketplace publishing is pending); delivery of a whole repository as a pull request into a new private repository, with CI that re-verifies each program ([Let Diocle create the target repository](#let-diocle-create-the-target-repository-local-or-admin-only)).
 
 **Honest limits.** Certified means "matched on the inputs tried", not proven equivalent for all inputs. Embedded SQL is verified on a SQLite stand-in for a named statement subset, never on real DB2. CICS and IMS are not supported.
 
@@ -243,7 +243,7 @@ It checks GnuCOBOL 3.2+, JDK 21+ and Python 3.11+ (with an install hint per OS),
 CERTIFIED line, the inputs behind it, model, tokens, estimated cost and where the Java and run record were written.
 Without a key it falls through to the no-key mode and says that no model was called. `QUICKSTART_MAX_USD` raises the
 cap (hard maximum $1.00); `--sample NAME` picks another sample (no-key mode needs a `certified-java/` folder, only
-`interest-accrual` has one). Measured on a Mac from a clean clone: no-key mode 12 s including the one-time venv (2 s to verify), key mode about 2.5
+`interest-accrual` has one). Measured on a Mac from a clean clone: no-key mode about 25 s including the one-time venv (re-measured Oct 30 on a clean checkout; 2 s of that is the verification, the rest is installing the environment and varies with your network), key mode about 2.5
 minutes (model time dominates) and about $0.003 for one INTACCR conversion; times vary with the model host. Linux is
 untested. No Docker image is provided for the quickstart.
 
