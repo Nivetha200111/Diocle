@@ -5,11 +5,14 @@ IBM's compiler accepts things GnuCOBOL -std=ibm rejects (for example PROGRAM-ID 
 1. deterministic_fixes(): mechanical edits that cannot change what the program does (listed below, each one proven safe).
 2. CobolRepairAgent: a bounded Meta-model loop with compile_cobol / patch_cobol tools.
 
-THE RULE (enforced in check_patch, stated in the README and in the model's prompt): the patched COBOL may differ from the
-original by at most COBOL_REPAIR_MAX_LINES lines (default 20) and at most COBOL_REPAIR_MAX_SHARE of its lines (default 10%);
-and in the PROCEDURE DIVISION a patch may only touch lines within DIAG_WINDOW (2) lines of a line the compiler reported.
-Nothing here decides that the patch is faithful: whoever reads the result must still confirm it ("certified against the
-repaired COBOL" is never plain "certified").
+THE RULE (enforced in check_patch, stated in the README and the model's prompt), in EVERY division: fixed-format files only (anything
+else, or no locatable PROCEDURE DIVISION, fails closed); a patch never adds or removes lines; it may only change a line the compiler
+reports in a fresh compile of the current text (compile_cobol is required after every applied patch); each changed line, compared with
+the original line, must be a single identifier correction (edit distance <= 3, no verb, clause word, number or literal), a missing
+period at the end of a line, or one added word from {TO, THEN, IS, DIVISION, SECTION}; a non-blank line never becomes blank; and the
+total stays within COBOL_REPAIR_MAX_LINES (20) and COBOL_REPAIR_MAX_SHARE (10%) of the lines. NOT enforced (it cannot be): that the
+corrected identifier is the one the author meant, so whoever reads the result must still confirm the patch.
+Nothing here decides that the patch is faithful: "certified against the repaired COBOL" is never plain "certified".
 
 The user's file is never overwritten: the patched text goes to a copy of the sample (<name>.repaired.cbl).
 """
@@ -28,7 +31,6 @@ from typing import Callable
 from .client import BudgetExceeded, ModelClient, usage_of
 from .prompts import COBOL_REPAIR
 
-DIAG_WINDOW = 2
 _DIAG_LINE = re.compile(r"^([\w.$-]+):(\d+): error")
 _NEXT_PARAGRAPH = re.compile(r"^\s*(ENVIRONMENT|DATA|PROCEDURE|AUTHOR|INSTALLATION|DATE-WRITTEN|DATE-COMPILED|SECURITY)\b")
 _PROGRAM_ID = re.compile(r"^(?P<lead>.{6}[ ]\s*PROGRAM-ID\.?\s+)(?P<name>[A-Za-z0-9][A-Za-z0-9-]*)(?P<tail>\s*)$")
@@ -48,8 +50,9 @@ class Limits:
             except ValueError:
                 return default
 
-        return cls(num("COBOL_REPAIR_MAX_LINES", 20, int), num("COBOL_REPAIR_MAX_SHARE", 0.10, float),
-                   num("COBOL_REPAIR_MAX_CALLS", 8, int))
+        # clamped: an environment typo cannot switch the rule off
+        return cls(max(1, min(50, num("COBOL_REPAIR_MAX_LINES", 20, int))), max(0.0, min(0.25, num("COBOL_REPAIR_MAX_SHARE", 0.10, float))),
+                   max(1, min(20, num("COBOL_REPAIR_MAX_CALLS", 8, int))))
 
 
 def deterministic_fixes(text: str) -> tuple[str, list[str]]:
@@ -69,7 +72,7 @@ def deterministic_fixes(text: str) -> tuple[str, list[str]]:
         nxt = next((l for l in lines[i + 1:] if l[6:7] not in ("*", "/") and l.strip()), "")
         if not _NEXT_PARAGRAPH.match(nxt[7:] if len(nxt) > 7 else nxt):
             continue
-        lines[i] = line.rstrip() + "."
+        lines[i] = line.rstrip() + "." + ("\r" if line.endswith("\r") else "")  # keeps CRLF files CRLF
         fixes.append(f"added the missing period after PROGRAM-ID {m.group('name')} (line {i + 1})")
         break
     return "\n".join(lines), fixes
@@ -93,28 +96,112 @@ def unified_diff(old: str, new: str, name: str) -> str:
                                         f"a/{name}", f"b/{name}"))
 
 
-def _procedure_start(lines: list[str]) -> int:
-    return next((i for i, l in enumerate(lines) if re.match(r"^.{6}[ ]\s*PROCEDURE\s+DIVISION\b", l)), len(lines))
+RESERVED = frozenset("""
+ACCEPT ADD ALTER CALL CANCEL CLOSE COMPUTE CONTINUE DELETE DISPLAY DIVIDE ELSE END-ADD END-CALL END-COMPUTE END-DELETE END-DIVIDE
+END-EVALUATE END-IF END-MULTIPLY END-PERFORM END-READ END-RETURN END-REWRITE END-SEARCH END-STRING END-SUBTRACT END-UNSTRING
+END-WRITE EVALUATE EXIT GO GOBACK IF INITIALIZE INSPECT MERGE MOVE MULTIPLY OPEN PERFORM READ RELEASE RETURN REWRITE SEARCH SET
+SORT START STOP STRING SUBTRACT UNSTRING WRITE WHEN NEXT SENTENCE NOT AND OR PIC PICTURE VALUE VALUES OCCURS REDEFINES COPY
+REPLACING SELECT ASSIGN FD SD COMP COMP-1 COMP-2 COMP-3 COMP-4 COMP-5 BINARY PACKED-DECIMAL USAGE DISPLAY SIGN LEADING TRAILING
+SEPARATE ORGANIZATION SEQUENTIAL INDEXED RELATIVE ACCESS RECORD KEY FILE STATUS DIVISION SECTION PROGRAM-ID THRU THROUGH UNTIL
+VARYING TIMES GIVING REMAINDER ROUNDED SIZE ERROR INTO FROM BY TO AT END INVALID
+""".split())
+INSERTABLE = frozenset({"TO", "THEN", "IS", "DIVISION", "SECTION"})  # the only words a patch may add: a compiler can ask for them
+_TOKEN = re.compile(r"'[^']*'|\"[^\"]*\"|[A-Za-z0-9][A-Za-z0-9-]*|\S")
+_IDENT = re.compile(r"[A-Za-z][A-Za-z0-9-]*\Z")
+MAX_IDENT_EDIT = 3  # an identifier substitution must look like a typo fix (edit distance), not a different variable's name
+
+
+def _levenshtein(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def fixed_format_problem(text: str) -> str | None:
+    """Why this file is not handled (None when it is plain fixed-format with a locatable PROCEDURE DIVISION). The patch rule is
+    column-based, so anything else fails CLOSED: free-format, tabs, or no PROCEDURE DIVISION found."""
+    if "\t" in text:
+        return "the file contains tab characters (not fixed-format)"
+    lines = text.split("\n")
+    if re.search(r">>\s*SOURCE\s+FORMAT\s+(IS\s+)?FREE", text, re.I):
+        return "the file is free-format"
+    if any(len(l.rstrip("\r")) > 6 and l[6] not in " *-/DdSs$" for l in lines):
+        return "the file is not fixed-format (column 7 holds something other than an indicator)"
+    if not any(l[6:7] not in ("*", "/") and re.match(r"^\s*PROCEDURE\s+DIVISION\b", l[7:], re.I) for l in lines if len(l) > 7):
+        return "no PROCEDURE DIVISION found in fixed-format columns"
+    return None
+
+
+def _tokens(line: str) -> list[str]:
+    return _TOKEN.findall(line[7:72])
+
+
+def _line_edit_problem(old: str, new: str) -> str | None:
+    """None when `new` is an allowed edit of `old` (one source line). Allowed, and nothing else:
+    (a) one identifier replaced by a similar identifier (edit distance <= MAX_IDENT_EDIT; neither a reserved word, a number or a literal);
+    (b) a period added at the end of the line;
+    (c) one of INSERTABLE words added.
+    The column 1-7 area (sequence, indicator) and anything after column 72 must not change; a non-blank line must stay non-blank."""
+    if not new.strip():
+        return "it blanks a non-blank line"
+    if old[:7] != new[:7] or old[72:] != new[72:]:
+        return "it changes the sequence/indicator columns or text past column 72"
+    ot, nt = _tokens(old), _tokens(new)
+    if nt == ot:
+        return None  # whitespace only
+    if nt == ot + ["."]:
+        return None  # (b)
+    if len(nt) == len(ot) + 1:  # (c)
+        extra = next((i for i in range(len(nt)) if nt[:i] + nt[i + 1:] == ot), None)
+        if extra is not None and nt[extra].upper() in INSERTABLE:
+            return None
+        return "it adds a word that is not one of " + ", ".join(sorted(INSERTABLE))
+    if len(nt) == len(ot):  # (a)
+        diff = [(o, n) for o, n in zip(ot, nt) if o != n]
+        if len(diff) == 1:
+            o, n = diff[0]
+            if not (_IDENT.match(o) and _IDENT.match(n)) or o.upper() in RESERVED or n.upper() in RESERVED:
+                return "the changed token is not an identifier (a literal, number, verb or clause word cannot be changed)"
+            if _levenshtein(o.upper(), n.upper()) > MAX_IDENT_EDIT:
+                return f"{o} -> {n} is not a small identifier correction (edit distance over {MAX_IDENT_EDIT})"
+            return None
+    return "the token-level change is not a single identifier correction, a missing period or a missing keyword"
 
 
 def check_patch(previous: str, candidate: str, original: str, diag_lines: list[int], limits: Limits) -> str | None:
-    """None when the patch obeys THE RULE, else the reason it is rejected (told to the model)."""
+    """None when the patch obeys THE RULE, else the reason it is rejected (told to the model).
+
+    THE RULE (every division, enforced here): the file must be fixed-format with a locatable PROCEDURE DIVISION (else fail closed);
+    the number of lines never changes (so line numbers, and the compiler's diagnostics, stay valid); a changed line must be a line
+    the compiler reported in its latest compile of the previous text (or, for a added period, the line just before one); each
+    changed line, compared with the ORIGINAL line, must be one of the allowed edits in _line_edit_problem; and the total change
+    stays within the size limits. NOT enforced (cannot be): that the corrected identifier is the one the author meant."""
+    why = fixed_format_problem(original) or fixed_format_problem(candidate)
+    if why:
+        return f"rejected: {why}; only fixed-format files are repaired"
+    old_lines, new_lines, orig_lines = previous.split("\n"), candidate.split("\n"), original.split("\n")
+    if not (len(old_lines) == len(new_lines) == len(orig_lines)):
+        return "rejected: a patch may not add or remove lines (line numbers must stay the compiler's)"
     total = changed_lines(original, candidate)
-    allowed = min(limits.max_lines, int(limits.max_share * max(1, len(original.split("\n")))))
+    allowed = min(limits.max_lines, int(limits.max_share * max(1, len(orig_lines))))
     if total > allowed:
         return (f"rejected: the patched file would differ from the original by {total} lines; at most {allowed} are allowed "
                 f"({limits.max_lines} lines or {int(limits.max_share * 100)}% of the file, whichever is smaller)")
-    prev_lines = previous.split("\n")
-    proc = _procedure_start(prev_lines)
-    ops = difflib.SequenceMatcher(None, prev_lines, candidate.split("\n"), autojunk=False).get_opcodes()
-    for tag, i1, i2, _, _ in ops:
-        if tag == "equal":
-            continue
-        touched = range(i1, max(i2, i1 + 1))  # an insertion touches the line it lands before
-        for idx in touched:
-            if idx >= proc and not any(abs((idx + 1) - d) <= DIAG_WINDOW for d in diag_lines):
-                return (f"rejected: line {idx + 1} is in the PROCEDURE DIVISION and not within {DIAG_WINDOW} lines of a line "
-                        f"the compiler reported ({sorted(set(diag_lines))}); only fix what the compiler reports")
+    reported = set(diag_lines)
+    for i, (o, n, g) in enumerate(zip(old_lines, new_lines, orig_lines), 1):
+        if o != n:
+            period_only = _tokens(n) == _tokens(o) + ["."]
+            if i not in reported and not (period_only and (i + 1) in reported):
+                return (f"rejected: line {i} is not a line the compiler reported ({sorted(reported)}); only lines the compiler "
+                        "currently reports may be changed (compile_cobol after every patch)")
+        if n != g:
+            why = _line_edit_problem(g, n)
+            if why:
+                return f"rejected: line {i}: {why}"
     return None
 
 
@@ -166,6 +253,7 @@ class CobolRepairAgent:
     on_event: Callable[[dict], None] = lambda event: None
     text: str = ""
     fixes: list[str] = field(default_factory=list)
+    needs_compile: bool = False  # a patch was applied and the compiler has not been asked since: its line list is stale
 
     def __post_init__(self) -> None:
         self.text = self.text or self.original
@@ -181,7 +269,9 @@ class CobolRepairAgent:
             return "\n".join(f"{n:>5}| {l}" for n, l in enumerate(self.text.split("\n"), 1))
         if name == "compile_cobol":
             ok, diags, sure = self.compile(self.text)
-            self.diagnostics = diags or self.diagnostics
+            if sure:
+                self.diagnostics = diags  # replaced, never merged: stale lines must not authorise an edit
+                self.needs_compile = False
             if ok:
                 return "compiles OK. Call finish."
             return ("diagnostics:\n" + "\n".join(diags)) if diags else "the compiler gave no answer; try again"
@@ -190,11 +280,14 @@ class CobolRepairAgent:
             count = self.text.count(old)
             if not old or count != 1:
                 return f"rejected: old_text must occur exactly once (found {count})"
+            if self.needs_compile:
+                return "rejected: compile_cobol first; the compiler's line list is stale after your last patch"
             candidate = self.text.replace(old, new, 1)
             why = check_patch(self.text, candidate, self.original, diagnostic_lines(self.diagnostics), self.limits)
             if why:
                 return why
             self.text = candidate
+            self.needs_compile = True
             self.fixes.append((args.get("rationale") or "patched").strip()[:200])
             return "applied. Now compile_cobol."
         raise ValueError(f"unknown tool {name!r}")

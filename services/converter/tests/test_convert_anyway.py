@@ -101,20 +101,107 @@ def test_model_repair_fixes_only_the_reported_line(tmp_path):
     assert "WS-FEES" not in (patched / "src" / "BADNAME.repaired.cbl").read_text()
 
 
-def test_patch_rules_size_and_diagnostic_window():
-    original = (REPO / "cobol" / "BADNAME.cbl").read_text()
-    lines = original.split("\n")
-    limits = Limits(max_lines=20, max_share=0.10)
-    # size: rewriting many lines is rejected even on a diagnostic line
-    big = "\n".join(lines[:30] + ["           DISPLAY 'X'"] * 8 + lines[38:])
-    assert "differ from the original by" in check_patch(original, big, original, [37], limits)
-    # PROCEDURE DIVISION: a change far from any diagnostic is rejected, near it is fine
-    far = original.replace("OPEN INPUT ACCT-IN", "OPEN INPUT  ACCT-IN")
-    near = original.replace("WS-FEES", "WS-FEE")
-    assert "PROCEDURE DIVISION" in check_patch(original, far, original, [37], limits)
-    assert check_patch(original, near, original, [37], limits) is None
-    # data division edits are allowed anywhere (still bounded by size)
-    assert check_patch(original, original.replace("PIC X VALUE 'N'", "PIC X  VALUE 'N'"), original, [37], limits) is None
+ORIG = (REPO / "cobol" / "BADNAME.cbl").read_text()
+LIM = Limits(max_lines=20, max_share=0.10)
+
+
+def edit(old, new, text=ORIG):
+    assert old in text
+    return text.replace(old, new, 1)
+
+
+def rejected(candidate, diag=(37,), previous=ORIG):
+    why = check_patch(previous, candidate, ORIG, list(diag), LIM)
+    assert why and why.startswith("rejected"), why
+    return why
+
+
+def test_legitimate_fixes_are_accepted():
+    assert check_patch(ORIG, edit("WS-FEES", "WS-FEE"), ORIG, [37], LIM) is None  # identifier typo on the reported line
+    noperiod = (REPO / "cobol" / "NOPERIOD.cbl").read_text()
+    fixed = edit("PROGRAM-ID. NOPERIOD", "PROGRAM-ID. NOPERIOD.", noperiod)
+    assert check_patch(noperiod, fixed, noperiod, [5], LIM) is None  # the period goes on the line before the reported one
+
+
+def test_deleting_or_neutralising_the_failing_statement_is_rejected():
+    lines = ORIG.split("\n")
+    assert "add or remove lines" in rejected("\n".join(lines[:36] + lines[37:]))  # the statement is gone
+    assert "blanks" in rejected(edit("               MOVE 50 TO WS-FEES", "                                    "))
+    assert "token" in rejected(edit("MOVE 50 TO WS-FEES", "CONTINUE        "))  # replaced by a no-op
+    assert "token" in rejected(edit("MOVE 50 TO WS-FEES", "MOVE 0 TO WS-FEE"))  # logic rewritten on the reported line
+    assert "not an identifier" in rejected(edit("MOVE 50 TO WS-FEES", "MOVE 99 TO WS-FEES"))  # a literal changed
+
+
+def test_edits_away_from_the_reported_line_are_rejected_in_every_division():
+    assert "not a line the compiler reported" in rejected(edit("WS-FEE                      PIC 9(3)V99", "WS-FEE                      PIC 9(9)V99"))
+    assert "not a line the compiler reported" in rejected(edit("VALUE 'N'", "VALUE 'Y'"))  # DATA DIVISION VALUE
+    assert "not a line the compiler reported" in rejected(edit("COPY ACCTIN", "COPY ACCTOT"))  # a COPY
+    assert "not a line the compiler reported" in rejected(edit("ORGANIZATION IS LINE SEQUENTIAL.\n           SELECT ACCT-OUT",
+                                                              "ORGANIZATION IS SEQUENTIAL.\n           SELECT ACCT-OUT"))
+    # real logic next to the diagnostic (inside the old +/-2 window) is not the reported line either
+    assert "not a line the compiler reported" in rejected(edit("AI-AMOUNT * 0.025", "AI-AMOUNT * 0.001"))
+    assert "not a line the compiler reported" in rejected(edit("IF WS-FEE > 50", "IF WS-FEE > 5000"))
+    # even ON a reported line, a PIC or VALUE change is not an allowed kind of edit
+    why = rejected(edit("PIC 9(3)V99", "PIC 9(9)V99"), diag=(21,))
+    assert "not an identifier" in why or "not a single" in why
+
+
+def test_edits_split_across_patches_cannot_drift():
+    first = edit("WS-FEES", "WS-FEEX")
+    assert check_patch(ORIG, first, ORIG, [37], LIM) is None
+    # a second patch on the same (still reported) line, judged against the ORIGINAL line, cannot walk away from it
+    assert "edit distance" in rejected(edit("WS-FEEX", "WS-TOTALS", first), previous=first)
+    # a patch on another line is refused because it was not reported
+    assert "not a line the compiler reported" in rejected(edit("IF WS-FEE > 50", "IF WS-FEE > 500", first), previous=first)
+
+
+def test_line_count_changes_are_rejected_so_diagnostics_cannot_go_stale():
+    assert "add or remove lines" in rejected(edit("           MOVE AI-ACCT-ID TO AO-ACCT-ID", "           MOVE 1 TO WS-FEE\n           MOVE AI-ACCT-ID TO AO-ACCT-ID"))
+
+
+def test_free_format_tab_and_headerless_files_fail_closed():
+    free = ">>SOURCE FORMAT FREE\n" + ORIG
+    tabbed = ORIG.replace("       0000-MAIN.", "\t0000-MAIN.")
+    for text in (free, tabbed):
+        why = check_patch(text, text.replace("WS-FEES", "WS-FEE"), text, [38], LIM)
+        assert why and "only fixed-format files" in why
+    no_proc = ORIG.replace("PROCEDURE DIVISION", "PROCEDURE  DIVIS")
+    assert "PROCEDURE DIVISION" in check_patch(no_proc, edit("WS-FEES", "WS-FEE", no_proc), no_proc, [37], LIM)
+    misaligned = "\n".join(l[1:] if l.startswith("       ") else l for l in ORIG.split("\n"))  # code shifted a column left
+    assert check_patch(misaligned, misaligned.replace("WS-FEES", "WS-FEE"), misaligned, [37], LIM)
+
+
+def test_size_limit_still_applies():
+    many = ORIG.replace("AO-", "AQ-").replace("AI-", "AJ-")  # each line is an allowed identifier edit; together they are too many
+    assert changed_lines(ORIG, many) > 4
+    assert "differ from the original by" in check_patch(ORIG, many, ORIG, list(range(1, 60)), LIM)
+
+
+@needs_cobc
+def test_agent_demands_a_compile_after_every_patch(tmp_path):
+    sample = make_sample(tmp_path, "BADNAME")
+    client = client_for(
+        tool_call("patch_cobol", old_text="MOVE 50 TO WS-FEES", new_text="MOVE 50 TO WS-FEEX", rationale="a"),
+        tool_call("patch_cobol", old_text="WS-FEEX", new_text="WS-FEE", rationale="b"),  # no compile in between
+        tool_call("finish", ok=False, summary="x"))
+    events = []
+    repair_original(sample, client, escalate=False, on_event=events.append, compile_check=cobc_check)
+    steps = [e["resultSummary"] for e in events if e.get("tool") == "patch_cobol"]
+    assert steps[0].startswith("applied") and "compile_cobol first" in steps[1]
+
+
+def test_limits_are_clamped(monkeypatch):
+    monkeypatch.setenv("COBOL_REPAIR_MAX_LINES", "100000")
+    monkeypatch.setenv("COBOL_REPAIR_MAX_SHARE", "0.99")
+    monkeypatch.setenv("COBOL_REPAIR_MAX_CALLS", "500")
+    got = Limits.from_env()
+    assert (got.max_lines, got.max_share, got.max_calls) == (50, 0.25, 20)
+
+
+def test_crlf_files_keep_their_line_endings():
+    text = (REPO / "cobol" / "NOPERIOD.cbl").read_text().replace("\n", "\r\n")
+    fixed, fixes = deterministic_fixes(text)
+    assert len(fixes) == 1 and "PROGRAM-ID. NOPERIOD.\r\n" in fixed and fixed.count("\r\n") == text.count("\r\n")
 
 
 @needs_cobc
