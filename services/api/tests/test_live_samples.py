@@ -53,6 +53,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DIOCLE_SANDBOX_URL", "http://sandbox.invalid:8100")
     for name in ("DIOCLE_PUBLIC_SAMPLES", "DIOCLE_PUBLIC_SAMPLES_BUDGET", "DIOCLE_PUBLIC_DAILY_USD"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DIOCLE_LIVE_COOLDOWN_SECONDS", "0")  # the cooldown has its own test
     monkeypatch.setattr(livesamples, "subprocess", SimpleNamespace(Popen=FakePopen, run=subprocess.run, STDOUT=subprocess.STDOUT))
     monkeypatch.setattr(livesamples, "_procs", {})
     monkeypatch.setattr(public, "_seen", {})
@@ -440,3 +441,22 @@ def test_job_and_printout_contract_invalid_examples():
     invalid({**job, "pid": 1}, "job")
     invalid({**job, "sample": "../x"}, "job")
     invalid({k: v for k, v in job.items() if k != "events"}, "job")
+
+
+def test_a_global_cooldown_spaces_out_live_starts(client, tmp_path, monkeypatch):
+    """One actor (even a spoofed visitor key) cannot hold the shared lock back to back: a minimum gap applies to everyone."""
+    monkeypatch.setenv("DIOCLE_LIVE_COOLDOWN_SECONDS", "90")
+    assert client.post("/samples/live", json={"sample": "addfee"}, headers=headers("1.1.1.1")).status_code == 202
+    finish_all(tmp_path)
+    r = client.post("/samples/live", json={"sample": "addfee"}, headers=headers("2.2.2.2"))  # a different visitor, still too soon
+    assert r.status_code == 429 and "rest between runs" in r.json()["detail"] and "seconds" in r.json()["detail"]
+    s = client.get("/config", headers=headers("3.3.3.3")).json()["publicImports"]["samples"]
+    assert not s["convert"]["available"] and "rest between runs" in s["convert"]["reason"]
+    monkeypatch.setenv("DIOCLE_LIVE_COOLDOWN_SECONDS", "0")
+    time.sleep(1.05)  # job ids carry the second
+    assert client.post("/samples/live", json={"sample": "addfee"}, headers=headers("2.2.2.2")).status_code == 202
+
+
+def test_a_budget_stop_in_the_guard_is_worded_as_skipped_not_failed():
+    from diocle_converter import guard
+    assert "review skipped" in open(guard.__file__).read()

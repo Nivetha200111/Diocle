@@ -56,13 +56,16 @@ export default function LiveSamples() {
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
     const tick = async () => {
       const id = watch;
       if (!id || stop) return;
       let again = true;
+      let delay = 1500;
       try {
         const j = await fetchJob(id);
         if (stop) return;
+        failures = 0;
         setJob(j);
         if (j.runId) {
           const r = await fetchRun(j.runId).catch(() => null);
@@ -70,9 +73,11 @@ export default function LiveSamples() {
         }
         if (j.status !== "running") { again = false; refresh(); }
       } catch {
-        if (!stop) { setError("The engine could not be reached just now; trying again."); }
+        failures += 1;
+        if (failures >= 8) { again = false; setError("The engine could not be reached; stopped checking. Reload the page to try again."); }
+        else if (!stop) { setError("The engine could not be reached just now; trying again."); delay = Math.min(15000, 1500 * 2 ** failures); }
       }
-      if (again && !stop) timer = setTimeout(tick, 1500);
+      if (again && !stop) timer = setTimeout(tick, delay);
     };
     timer = setTimeout(tick, 100);
     return () => { stop = true; if (timer) clearTimeout(timer); };

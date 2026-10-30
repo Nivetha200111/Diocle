@@ -193,6 +193,23 @@ def busy() -> str | None:
     return running_delivery() or running_job()
 
 
+def cooldown_seconds() -> int:
+    """Minimum gap between two live-sample starts, across all visitors (default 90 s). Stops one actor from holding the shared
+    one-job-at-a-time lock back to back all day; the per-day counts and the budget are the hard limits."""
+    try:
+        return max(0, min(600, int(os.environ.get("DIOCLE_LIVE_COOLDOWN_SECONDS", "90"))))
+    except ValueError:
+        return 90
+
+
+def cooldown_left() -> int:
+    jobs = read_jobs()
+    if not jobs:
+        return 0
+    newest = max(_stamp(j) for j in jobs)
+    return max(0, int(cooldown_seconds() - (time.time() - newest) + 0.999))
+
+
 def refusal(sample: str, visitor: str) -> Refused | None:
     """Why this sample may not start now, or None. The same function answers GET /config (the disabled reason on the button)
     and POST /samples/live, so the page can never offer what the engine would refuse."""
@@ -214,6 +231,10 @@ def refusal(sample: str, visitor: str) -> Refused | None:
     other = busy()
     if other:
         return Refused(409, "Another conversion is running on this server right now. Try again when it finishes.")
+    wait = cooldown_left()
+    if wait > 0:
+        return Refused(429, f"A live sample ran a moment ago; the buttons rest between runs so imports are not starved. "
+                            f"Try again in {wait} seconds.")
     return None
 
 

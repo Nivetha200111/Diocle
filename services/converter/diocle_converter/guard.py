@@ -425,8 +425,11 @@ class Guard:
             self.review_result = {"model": model, "verdict": verdict, "summary": summary[:1000],
                                   "findings": [f.as_dict() for f in findings]}
         except Exception as e:  # cap reached, API error after retries, or an answer with nothing usable in it
-            self.review_result = {"model": model, "verdict": "error", "summary": f"review failed: {describe_error(e)}",
-                                  "findings": []}
+            if type(e).__name__ == "BudgetExceeded":  # a cap, not a failure: say so (the verifier's result is unaffected)
+                summary = "review skipped: the run's dollar cap was reached before the model review could run (the verifier's result is unaffected)"
+            else:
+                summary = f"review failed: {describe_error(e)}"
+            self.review_result = {"model": model, "verdict": "error", "summary": summary, "findings": []}
         r = self.review_result
         self.on_event({"type": "guard", "blocked": r["verdict"] == "block",
                        "message": f"Guard review: {r['verdict'].upper()}" + (f" · {r['summary'][:300]}" if r["summary"] else "")})
