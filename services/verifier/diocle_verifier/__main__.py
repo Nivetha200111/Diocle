@@ -11,7 +11,68 @@ from pathlib import Path
 from .verify import passes, validate_report, verify_sample
 
 
+def _minimize_main(argv: list[str]) -> int:
+    """python -m diocle_verifier minimize RUN_DIR --case ID [--java-dir D] [--max-runs N] [--max-seconds S]"""
+    from .minimize import DEFAULT_MAX_RUNS, DEFAULT_MAX_SECONDS, minimize_run
+
+    parser = argparse.ArgumentParser(prog="diocle_verifier minimize", description=_minimize_main.__doc__)
+    parser.add_argument("run_dir", type=Path)
+    parser.add_argument("--case", required=True, help="a breaker input id or a verification-report inputId of that run")
+    parser.add_argument("--java-dir", type=Path, help="the Java that shows the discrepancy (default: RUN_DIR/java; a "
+                        "repaired run needs the pre-fix Java here)")
+    parser.add_argument("--sample-dir", type=Path)
+    parser.add_argument("--max-runs", type=int, default=DEFAULT_MAX_RUNS)
+    parser.add_argument("--max-seconds", type=float, default=DEFAULT_MAX_SECONDS)
+    parser.add_argument("--from-report", action="store_true",
+                        help="start from the whole input list of the run's verification report (a batch), not a lone breaker record")
+    parser.add_argument("--strict", action="store_true",
+                        help="also keep the exact differing values (no drift to a different manifestation)")
+    args = parser.parse_args(argv)
+    try:
+        r = minimize_run(args.run_dir, args.case, sample_dir=args.sample_dir, java_dir=args.java_dir,
+                         max_runs=args.max_runs, max_seconds=args.max_seconds, strict=args.strict, from_report=args.from_report)
+    except KeyError as e:
+        print(e.args[0], file=sys.stderr)
+        return 2
+    red = r["reduction"]
+    if r["status"] != "minimized":
+        print(f"{r['status'].upper()}: {r.get('reason', '')}  ({red['oracleRuns']} oracle runs)")
+        return 1
+    print(f"MINIMIZED {r['id']}: {red['recordsBefore']} -> {red['recordsAfter']} records, {red['bytesBefore']} -> "
+          f"{red['bytesAfter']} bytes, {red['oracleRuns']}/{red['maxOracleRuns']} oracle runs, {red['wallClockSeconds']} s, "
+          f"stopped by {red['stoppedBy']}; {r['discrepancy']['summary']}")
+    print(f"saved {args.run_dir}/reproducers/{r['id']}.json and {r['regression']['dir']}/")
+    return 0
+
+
+def _replay_main(argv: list[str]) -> int:
+    """python -m diocle_verifier replay CASE_DIR --java-dir DIR   (CASE_DIR may also be a run's regression/ folder)"""
+    from .minimize import replay, replay_all
+
+    parser = argparse.ArgumentParser(prog="diocle_verifier replay", description=_replay_main.__doc__)
+    parser.add_argument("case_dir", type=Path)
+    parser.add_argument("--java-dir", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if (args.case_dir / "case.json").is_file():
+        results = [replay(args.case_dir, args.java_dir)]
+    elif (args.case_dir / "regression").is_dir():
+        results = replay_all(args.case_dir, args.java_dir)
+    else:
+        results = [replay(d, args.java_dir) for d in sorted(args.case_dir.iterdir()) if (d / "case.json").is_file()]
+    for r in results:
+        print(f"{'PASS' if r['passed'] else 'FAIL'}  {r['id']}: {r['detail']}")
+    if not results:
+        print("no regression cases found", file=sys.stderr)
+        return 2
+    return 0 if all(r["passed"] for r in results) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["minimize"]:
+        return _minimize_main(argv[1:])
+    if argv[:1] == ["replay"]:
+        return _replay_main(argv[1:])
     parser = argparse.ArgumentParser(prog="diocle_verifier", description=__doc__)
     parser.add_argument("sample_dir", type=Path)
     parser.add_argument("--java-dir", type=Path, help="converted Java sources (default: the sample's javaConversion dir)")
