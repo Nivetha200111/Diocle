@@ -109,6 +109,8 @@ export type RunEvent = {
   message?: string;
 };
 
+import type { ReproducerSummary } from "./reproducer-view";
+
 export type Run = {
   id: string;
   visitor?: boolean;
@@ -137,6 +139,7 @@ export type Run = {
   efficiency: Efficiency;
   memory: RunMemory;
   breaker?: Breaker | null;
+  reproducers?: ReproducerSummary[] | null;  // run v0.18: present when the run reduced counterexamples (--minimize)
   crosscheck?: Crosscheck | null;
   behavior?: Behavior | null;
   tiers?: Tiers | null;
@@ -288,6 +291,13 @@ export type SqlSchema = {
   tables: { table: string; record: string; roundTrip: { records: number; identical: number; sources: string[] } }[];
   summary: { tables: number; records: number; identical: number; passed: boolean };
 };
+
+// contracts/minimal-reproducer.schema.json: read-only, produced without a model by services/verifier minimize.
+export type RunReproducers = { runId: string; reproducers: unknown[] };
+export type RegressionDownload = { runId: string; case: string; files: { name: string; base64: string }[]; replay: string };
+export const fetchRunReproducers = (id: string) => getJson<RunReproducers>(`/runs/${encodeURIComponent(id)}/reproducers`);
+export const fetchRegressionCase = (id: string, caseId: string) =>
+  getJson<RegressionDownload>(`/runs/${encodeURIComponent(id)}/reproducers/${encodeURIComponent(caseId)}/regression`);
 
 export const fetchRunSchema = (id: string) => getJson<SqlSchema>(`/runs/${encodeURIComponent(id)}/schema`);
 

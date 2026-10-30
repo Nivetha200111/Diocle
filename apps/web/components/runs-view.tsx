@@ -9,6 +9,7 @@ import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
 import { DatabasePanel } from "./database-panel";
+import { ReproducerPanel } from "./reproducer-panel";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
 const usd = (n: number | null) => (n === null ? "n/a" : `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`);
@@ -503,6 +504,7 @@ function RunDetail({ run }: { run: Run }) {
       </div>
 
       {run.breaker && <BreakerPanel b={run.breaker} />}
+      <ReproducerPanel runId={run.id} expected={!run.visitor && ((run.reproducers?.length ?? 0) > 0 || (run.breaker?.broke ?? 0) > 0)} />
       {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
       {run.behavior && <BehaviorPanel b={run.behavior} />}
       {run.after?.database && <DatabasePanel d={run.after.database} />}

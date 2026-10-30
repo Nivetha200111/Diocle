@@ -1201,3 +1201,16 @@ a.nav-item {
 .trap p { margin: 0 0 4px; overflow-wrap: anywhere; }
 .trap a { color: var(--w-navy); text-decoration: underline; }
 .trap-evidence { font-size: 12px; }
+
+/* Smallest reproducer card (components/reproducer-panel.tsx) */
+.repro-card { padding: 10px 12px; display: grid; gap: 8px; background: #ffffc0; box-shadow: var(--w-in); color: #000; margin: 8px 0; }
+.repro-card h3 { font-size: 13px; overflow-wrap: anywhere; }
+.repro-card h4 { font-size: 12.5px; margin-top: 4px; }
+.repro-card p { margin: 0; font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.repro-small { font-size: 11.5px; color: #303030; }
+.repro-pre { margin: 4px 0 0; padding: 6px 8px; background: #fff; box-shadow: var(--w-in); font-size: 12px; overflow-x: auto; white-space: pre; }
+.repro-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; }
+.repro-sides > div { min-width: 0; }
+.repro-explain { padding: 6px 8px; border: 1px dashed #808080; }
+.repro-regress { display: grid; gap: 6px; }
+.repro-card .data-table td, .repro-card .data-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
