@@ -306,3 +306,33 @@ export const schemaFile = (s: SqlSchema): SourceFile => ({
 export const isInterrupted = (r: Pick<RunListItem, "status" | "createdAt" | "efficiency">, now = Date.now()) =>
   r.status === "interrupted" || (r.status === "running" && r.efficiency.modelCalls === 0 && !!r.createdAt
     && now - Date.parse(r.createdAt) > 24 * 3600 * 1000);
+
+// contracts/mutation-report.schema.json v0.1: seeded faults vs the inputs that certified this Java. Deterministic, no model.
+export type Mutant = {
+  id: string; operator: string; location: { file: string; line: number }; original?: string; mutated?: string;
+  description: string; outcome: "killed" | "survived" | "not-compiled" | "equivalent-suspected" | "timeout" | "error";
+  killedBy?: string | null; augmentedOutcome?: "killed" | "survived"; augmentedKilledBy?: string | null; note?: string;
+};
+export type MutationReport = {
+  version: string; runId?: string | null; program?: string | null; status: "ok" | "unsupported" | "baseline-failed"; reason?: string | null;
+  seed: number; inputs: { initial: number };
+  counts: { generated: number; run: number; killed: number; survived: number; notCompiled: number; equivalentSuspected: number;
+            timeout: number; error: number; notRun: number; score: number | null };
+  mutants: Mutant[];
+  augmented: { extraInputs: number; survivorsRerun: number; extraKills: number; stillSurviving?: number };
+  seconds?: number; notes: string[];
+};
+
+export const fetchMutation = async (id: string): Promise<MutationReport | null> => {
+  const response = await fetch(`${API_URL}/runs/${encodeURIComponent(id)}/mutation`, { cache: "no-store" });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json() as Promise<MutationReport>;
+};
+
+export async function runMutation(id: string): Promise<MutationReport> {
+  const response = await fetch(`${API_URL}/runs/${encodeURIComponent(id)}/mutation`, { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail ?? `HTTP ${response.status}`);
+  return data as MutationReport;
+}
