@@ -8,7 +8,8 @@ export const SAMPLE_COBOL: SourceFile[] = [
   { path: "copybooks/CLRREC.cpy", text: "      * SYNTHETIC - written for the Diocle evaluation (unseen programs).\n      * Fictional company. Not derived from any real system.\n       01  CL-REC.\n           05  CL-ACCT                 PIC X(10).\n           05  CL-NUMBER               PIC 9(8).\n           05  CL-DEBIT                PIC S9(7)V99\n                                       SIGN LEADING SEPARATE.\n           05  CL-FEE                  PIC 9(3)V99.\n           05  CL-CODE                 PIC XX.\n" },
 ];
 
-// Recorded result of the sample run, shown with a notice if the engine cannot be reached.
+// Recorded result of the sample run (strings as the verifier emits them; CL-FEE is the returned-cheque fee, see
+// explainDiff in components/home-view.tsx), shown with a notice if the engine cannot be reached.
 export const SAMPLE_RECORDED = {
   broke: ["CL-FEE: original 20.00 converted 0.00", "CL-DEBIT: original -121.23 converted 0.00"],
   tried: 24,

@@ -67,7 +67,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </div>
         <ol className="home-list">
           <li>Muse Spark translated it; the Java passed 1,004 of 1,004 <Term tip={GLOSSARY["held-out"]}>held-out</Term> inputs.</li>
-          <li>The breaker agent (also Muse Spark) designed 24 inputs. Two broke it: a fee of <span className="mono">20.00</span> in COBOL vs <span className="mono">0.00</span> in Java, and a debit of <span className="mono">-121.23</span> vs <span className="mono">0.00</span>.</li>
+          <li>The breaker agent (also Muse Spark) designed 24 inputs. Two broke it. First, a returned-cheque (NSF) fee: a bounced cheque should cost a <span className="mono">20.00</span> fee (the base fee doubled; the COBOL has no currency code, so it is in the account&apos;s currency). The COBOL charged <span className="mono">20.00</span>; the AI-written Java charged <span className="mono">0.00</span>. Second, a debit of <span className="mono">-121.23</span> in COBOL vs <span className="mono">0.00</span> in Java.</li>
           <li>The repair agent fixed both; the Java re-certified on 1,006 fresh held-out inputs.</li>
           <li>Both inputs carry malformed numeric data, so this shows agreement with GnuCOBOL&apos;s handling of bad data, not proven IBM behaviour.</li>
         </ol>
