@@ -6,6 +6,7 @@ import { API_URL, ASSURANCE_BADGE, callCostUsd, fetchRun, fetchRunSchema, fetchR
 import { AssuranceBadge, AssuranceNote } from "./assurance";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
+import { BehaviorPanel } from "./behavior-panel";
 
 const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
 const usd = (n: number | null) => (n === null ? "n/a" : `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`);
@@ -146,6 +147,7 @@ const ROLES: [string, string, string][] = [
   ["repair", "Repair agent", "reads failures, patches, compiles, re-tests"],
   ["breaker", "Breaker agent", "designs inputs to break certified Java"],
   ["crosscheck", "Independent check", "a second, open-weight model hunts for a divergence"],
+  ["document", "Documenter", "writes claims about the COBOL; GnuCOBOL checks them"],
   ["guard", "Guard agent", "reviews the final Java for leaks and test gaming; can revoke certification"],
 ];
 
@@ -498,6 +500,7 @@ function RunDetail({ run }: { run: Run }) {
 
       {run.breaker && <BreakerPanel b={run.breaker} />}
       {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
+      {run.behavior && <BehaviorPanel b={run.behavior} />}
       {run.tiers?.enabled && <TiersPanel t={run.tiers} />}
 
       {run.guard && <GuardPanel g={run.guard} />}

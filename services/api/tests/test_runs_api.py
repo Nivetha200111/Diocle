@@ -421,6 +421,26 @@ def test_crosscheck_result_is_passed_through_and_matches_the_contract(client, tm
     jsonschema.validate(client.get("/runs/demo-20261028-124509").json(), CONTRACT)
 
 
+def test_behavior_claims_are_passed_through_and_match_the_contracts(client, tmp_path):
+    path = tmp_path / "demo-20261028-124509" / "run.json"
+    run = json.loads(path.read_text())
+    assert client.get("/runs/demo-20261028-124509").json()["behavior"] is None  # old runs stay valid
+    behavior = {"version": "0.1", "program": "INTACCR", "model": "muse-spark-1.3-contributor", "checkedWith": "GnuCOBOL -std=ibm",
+                "summary": {"claims": 1, "confirmed": 0, "refuted": 1, "unchecked": 0, "examplesRun": 1},
+                "claims": [{"id": "C1", "statement": "A tie rounds toward zero.", "status": "refuted", "examples": [{
+                    "id": "C1-E1", "inputs": [{"ACCT-ID": "X"}], "expected": {"records": [{"OUT-INTEREST": "0.00"}]},
+                    "status": "differed", "actual": {"records": [{"OUT-INTEREST": "0.01"}], "outputRecordCount": 1},
+                    "mismatches": [{"what": "record 1 OUT-INTEREST", "expected": "0.00", "actual": "0.01"}]}]}]}
+    jsonschema.validate(behavior, json.loads((CONTRACT_DIR / "behavior-claims.schema.json").read_text()))
+    run["behavior"] = behavior
+    path.write_text(json.dumps(run))
+    with (tmp_path / "demo-20261028-124509" / "events.jsonl").open("a") as f:
+        f.write(json.dumps({"type": "behavior", "message": "Verified documentation: 0 of 1 claims confirmed"}) + "\n")
+    body = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(body, CONTRACT)
+    assert body["behavior"]["claims"][0]["status"] == "refuted" and body["events"][-1]["type"] == "behavior"
+
+
 def test_run_detail_carries_the_guard_result(client, tmp_path):
     run_json = tmp_path / "demo-20261028-124509" / "run.json"
     run = json.loads(run_json.read_text())

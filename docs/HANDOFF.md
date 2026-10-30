@@ -6,7 +6,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## Convert anyway (Oct 30, branch `convert-anyway` on origin/main 59c9ff9, local, NOT pushed or deployed)
 - **What:** opt-in mode (`--convert-anyway` or `DIOCLE_CONVERT_ANYWAY=1`; admin or local CLI only) so no program is refused. Contracts first:
-  run v0.13 (`assurance`, `assuranceReason`, `cobolRepair`), delivery v0.4 (`convertAnyway`, `repoMaxUsd`, `spentUsd`, per-program `assurance`/`costUsd`).
+  run v0.14 (`assurance`, `assuranceReason`, `cobolRepair`), delivery v0.4 (`convertAnyway`, `repoMaxUsd`, `spentUsd`, per-program `assurance`/`costUsd`).
   Labels: `certified` | `certified-against-repaired-cobol` | `compiled-unverified` | `failed`; only the first sets `certified: true`, so every
   existing "N certified" count is unchanged and the web shows the others as their own badges/counts.
 - **How:** analyzer `--convert-anyway` writes a non-certifiable sample (`convertAnyway.reason`, missing copybooks). Converter: refused programs are
@@ -31,6 +31,31 @@ This repository is public: never write secrets, passcodes, personal details or e
   ($0.0011): the Java has an `AccountsAdapter` interface labelled `// ADAPTER REQUIRED`, a default implementation that throws, the SELECT kept as a comment, and compiled with javac on the first try; never run.
   Not exercised for real: the compile-fix rounds (the Java compiled first time), the `failed` label, the REPO_MAX_USD skip (unit tests only), the PR path, a model repair rejected by the size rule (unit tests only).
 
+
+## Verified documentation (Oct 30, branch `verified-docs`, local, NOT pushed or deployed; contracts `behavior-claims` v0.1, run v0.13)
+- **What:** a Muse Spark model writes a plain-English behaviour spec of a COBOL program as claims (one sentence + 1-3 examples: input
+  field values and expected output field values). The verifier runs the ORIGINAL COBOL (GnuCOBOL -std=ibm, sandbox `POST /claims` when
+  `DIOCLE_SANDBOX_URL` is set) on every example: claim `confirmed` (all examples matched), `refuted` (actual value kept) or `unchecked`
+  (invalid for the layout via the breaker's `explain`, or the program did not run). The model never decides. Wording: "confirmed on
+  the examples tried", never "proven": it means the examples' stated expectations held on GnuCOBOL; the claim's sentence is not
+  machine-checked, numbers compare by value, and an example is unchecked after a non-zero exit or when it compares only a count or
+  return code. Single-file record programs only.
+- **Code:** `services/verifier/diocle_verifier/claims.py` (+ sandbox kind `claims`), `services/converter/diocle_converter/documenter.py`,
+  CLI `run|repair ... --document` and `document SAMPLE`, run.json `behavior`, `behavior.json`/`behavior.md`; API passes `behavior`
+  through; web `components/behavior-panel.tsx` (badges, expected vs actual, Markdown download). Caps: `DOC_MAX_CALLS` 2,
+  `DOC_MAX_USD` 0.10 (worst case of a call checked up front; unpriced model refused), `DOC_MAX_OUTPUT_TOKENS` 9000 (NEVER exercised: the real run used 6000 and hit it once; 9000 was not re-run), `DOC_MODEL_*` optional.
+  Never fails a run (any problem becomes `skipped`/`unchecked`).
+- **Run it:** `cd services/converter && .venv/bin/python -m diocle_converter run ../../samples/interest-accrual --document --no-memory`
+  (or `document ../../samples/interest-accrual` for the spec alone, about a third of a cent).
+- **Real run (INTACCR, runs/interest-accrual-20261030-075737, local only):** certified 1027/1027; spec: 9 claims, 9 confirmed, 0 refuted,
+  0 unchecked, 17 examples run; 2 documenter calls (the first hit the then 6000-token output cap mid-JSON and was unusable, the retry
+  worked; cap raised to 9000), 7,425 in / 10,192 out tokens, about $0.0028 (whole run $0.0086). No refuted claim this time; that
+  shows the model's claims held on the examples it chose, not that the spec is complete.
+- The stored real run above was judged by the first version of the rules (before the non-zero-exit and weak-expectation rules, the null-for-unstated schema and the Markdown escaping); it was not re-run (no new model calls). Its 9/9 stands as judged then.
+- **Deploy notes (second review):** the model's JSON schema uses nullable types (`["integer","null"]` in `response_format`, not strict); that form has NEVER reached the real Meta API (the stored real run used the earlier -1 sentinel schema), so make one `document` run after deploy and read the result. A claims job holds the sandbox's single job lock for up to 180 s (CLAIMS_JOB_TIMEOUT; typically a 60 s compile cap plus runs bounded at 90 s) and `/verify` and `/compile` wait behind it; a caller that finds it busy waits only `DIOCLE_CLAIMS_WAIT` (60 s) and then leaves the examples unchecked. Judging is on the raw expected values (flattening is display only); numbers must be plain decimals; a crash or truncated stdout gives unchecked, never refuted.
+- **Owner steps:** engine redeploy AND sandbox image rebuild (new `/claims` endpoint; not exercised in a real container, only the in-process
+  handler), seed the run folder to the server volume, then check the Behaviour spec panel on that run.
+- **Not done:** multi-file / DISPLAY-only / I-O programs; the checked-in samples have no stored spec yet.
 
 ## Compile pre-check for visitor imports (Oct 30, branch `worktree-agent-aeaa1ad23cf3a94b1`, local, NOT pushed or deployed)
 - `diocle_verifier.precheck.compile_original` + sandbox `POST /compile` (contract `contracts/compile-check.schema.json` v0.1):

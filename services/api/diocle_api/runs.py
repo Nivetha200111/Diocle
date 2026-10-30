@@ -74,7 +74,7 @@ def is_visitor(path: Path, run: dict) -> bool:
 
 def _agents_model(calls: list[dict]) -> str | None:
     """The model the run's agents used; the guard and the cross-check use their own models and do not define the run's mode."""
-    return next((c["model"] for c in calls if c.get("role") not in ("guard", "crosscheck")), None)
+    return next((c["model"] for c in calls if c.get("role") not in ("guard", "crosscheck", "document")), None)
 
 
 def _sample_dir(run: dict) -> Path:
@@ -289,6 +289,7 @@ def get_run(run_id: str) -> dict | None:
         "memory": run.get("memory"),
         "breaker": run.get("breaker"),
         "crosscheck": run.get("crosscheck"),
+        "behavior": run.get("behavior"),
         "tiers": run.get("tiers"),
         "guard": run.get("guard"),
         "swarm": run.get("swarm", False),
