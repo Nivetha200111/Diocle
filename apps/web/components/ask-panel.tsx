@@ -69,7 +69,14 @@ export default function AskPanel() {
       if (again && !stop) timer = setTimeout(tick, delay);
     };
     timer = setTimeout(tick, 100);
-    return () => { stop = true; if (timer) clearTimeout(timer); };
+    // A hidden or covered tab has its timers throttled; when it comes back, check the job now instead of waiting.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || stop || !watch) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(tick, 0);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { stop = true; if (timer) clearTimeout(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, [refresh, watch]);
 
   const s = status && status !== "unreachable" ? status : null;
