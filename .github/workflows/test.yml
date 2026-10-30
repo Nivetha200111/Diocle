@@ -1,7 +1,6 @@
 # Runs every test suite (analyzer, verifier, converter, api) with the real toolchain: GnuCOBOL 3.2, JDK 21 and the pinned
 # SQLite JDBC jar. Same command as on a laptop: `sh scripts/test.sh`. No secrets are used and none are needed: the model
-# client is a test double in the suites. UNVERIFIED until its first run on GitHub (it was written and syntax-checked
-# offline). The GnuCOBOL build mirrors reverify_workflow in services/api/diocle_api/deliver.py; the first run builds it
+# client is a test double in the suites. Green on GitHub since Oct 30 (run 41104349476). The GnuCOBOL build mirrors reverify_workflow in services/api/diocle_api/deliver.py; the first run builds it
 # (a few minutes), later runs restore it from the cache.
 name: test
 on:
