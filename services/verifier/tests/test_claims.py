@@ -264,7 +264,7 @@ def test_run_local_marks_a_truncated_stdout(monkeypatch):
 
 def test_a_blank_only_expectation_is_weak_not_matched():
     blank_out = fake_run(records=["          +000000001+0000095+00000036406FE"])
-    for blank in (" ", "   ", " ", "\t "):
+    for blank in (" ", "   ", "\u00a0", "\u2003"):
         got = claims.judge({"records": [{"OUT-ACCT-ID": blank}]}, blank_out, OUT)
         assert got["status"] == "unchecked" and "weak expectation" in got["reason"], repr(blank)
         assert claims.judge({"stdoutContains": blank}, fake_run(stdout=f"a{blank}b"), OUT)["status"] == "unchecked"
