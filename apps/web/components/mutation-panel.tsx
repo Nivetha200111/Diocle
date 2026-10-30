@@ -34,7 +34,19 @@ export function MutationPanel({ run }: { run: Run }) {
           setBusy(true);
           setError("");
           try {
-            setReport(await runMutation(run.id));
+            // The POST is synchronous and can outlive a proxy timeout: on failure, look for the stored report a while.
+            try {
+              setReport(await runMutation(run.id));
+            } catch (e) {
+              let found: MutationReport | null = null;
+              for (let i = 0; i < 12 && !found; i++) {
+                await new Promise((r) => setTimeout(r, 5000));
+                const latest = await fetchMutation(run.id).catch(() => null);
+                if (latest && latest.runId === run.id && (!report || latest.seconds !== report.seconds)) found = latest;
+              }
+              if (found) setReport(found);
+              else throw e;
+            }
           } catch (e) {
             setError((e as Error).message);
           } finally {
@@ -51,12 +63,18 @@ export function MutationPanel({ run }: { run: Run }) {
         <div className="mutation">
           <p className="reverify-result ok">
             Initial inputs ({report.inputs.initial.toLocaleString("en-US")}) detected {detected} of {scored} seeded faults
+            {c.timeout > 0 && ` (of which ${c.timeout} timed out)`}
             {c.score !== null && ` (${Math.round(c.score * 100)}%)`}; extra inputs detected {report.augmented.extraKills} more
             ({report.augmented.extraInputs} extra inputs); {c.survived} survived the initial inputs
             ({report.augmented.stillSurviving ?? c.survived} still survive after the extra inputs);
             {" "}{c.notCompiled} did not compile; {c.equivalentSuspected} suspected equivalent
             {c.notRun > 0 && `; ${c.notRun} not run (time limit)`}
             {c.error > 0 && `; ${c.error} harness errors`}.
+          </p>
+          <p className="mutation-note">
+            Inputs: {report.inputs.seedSource === "default"
+              ? "this run recorded no certification seed, so a default seed was used (same kind of inputs, not the same ones)."
+              : "generated from the run's certification seed."}
           </p>
           <p className="mutation-note">
             A survivor is a coverage question, not automatically a defect: no input exercised the difference, or the change is harmless. This is not a confidence score.
