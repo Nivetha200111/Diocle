@@ -151,3 +151,20 @@ def test_old_report_without_sql_is_still_valid():
     r = analyze(ROOT / "samples" / "display-report")
     assert "sql" not in r["programs"][0]
     validate_report(r)
+
+
+@pytest.mark.parametrize("text", ["exec sql commit end-exec", "Exec Sql Commit End-Exec"])
+def test_lowercase_and_mixed_case_exec_sql_is_seen(tmp_path, text):
+    p = report(tmp_path, f"           {text}\n")
+    assert p["sql"]["statements"][-1]["kind"] == "commit" and p["convertible"]
+
+
+def test_lowercase_exec_sql_refusal_is_exact(tmp_path):
+    p = report(tmp_path, "           exec sql\n               prepare s1 from :ws-id\n           end-exec\n")
+    assert not p["convertible"] and "dynamic SQL (PREPARE)" in p["notConvertibleReason"]
+
+
+@pytest.mark.parametrize("kind", ["cics", "CiCs", "dli", "DLI"])
+def test_other_exec_kinds_are_refused_in_any_case(tmp_path, kind):
+    p = report(tmp_path, f"           exec {kind} return end-exec\n", ws="")
+    assert not p["convertible"] and "out of scope" in p["notConvertibleReason"]

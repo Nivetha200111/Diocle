@@ -249,7 +249,7 @@ def parse_program(text: str) -> ProgramInfo:
     for m in re.finditer(r"\bSELECT\s+([A-Z0-9-]+)(.*?)(?=\bSELECT\s|\bDATA\s+DIVISION\b|$)", code):
         org = re.search(r"\bORGANIZATION\s+(?:IS\s+)?(LINE\s+SEQUENTIAL|RECORD\s+SEQUENTIAL|SEQUENTIAL|INDEXED|RELATIVE)", m.group(2))
         organizations[m.group(1)] = re.sub(r"\s+", " ", org.group(1)) if org else "SEQUENTIAL"
-    exec_blocks = sorted(set(re.findall(r"\bEXEC\s+(SQL|CICS|DLI|SQLIMS)\b", code)))
+    exec_blocks = sorted(set(m.upper() for m in re.findall(r"\bEXEC\s+(SQL|CICS|DLI|SQLIMS)\b", code, re.I)))
     directions: dict[str, str] = {}
     tokens = re.findall(r"[A-Z0-9][A-Z0-9-]*|[^\sA-Z0-9]", code)
     modes: dict[str, set[str]] = {}

@@ -26,9 +26,9 @@ from .cobol import _PIC, _entries, _expand, _usage, source_lines
 
 SUBSET_VERSION = "db2-subset-1"
 
-_START = re.compile(r"\bEXEC\s+SQL\b")
-_END = re.compile(r"\bEND-EXEC\b")
-_TOKEN = re.compile(r"'(?:[^']|'')*'|:[A-Z][A-Z0-9-]*|[0-9]+(?:\.[0-9]+)?|[A-Z_][A-Z0-9_#@$]*|<>|<=|>=|\|\||[(),.=<>+\-*/]|\S")
+_START = re.compile(r"\bEXEC\s+SQL\b", re.I)
+_END = re.compile(r"\bEND-EXEC\b", re.I)
+_TOKEN = re.compile(r"'(?:[^']|'')*'|:[A-Z][A-Z0-9-]*|[0-9]+(?:\.[0-9]+)?|[A-Z_][A-Z0-9_#@$]*|<>|<=|>=|\|\||[(),.=<>+\-*/]|\S", re.I)
 _TYPE_NAMES = {"CHAR": "CHAR", "CHARACTER": "CHAR", "VARCHAR": "VARCHAR", "SMALLINT": "SMALLINT", "INTEGER": "INTEGER",
                "INT": "INTEGER", "BIGINT": "BIGINT", "DECIMAL": "DECIMAL", "DEC": "DECIMAL", "NUMERIC": "DECIMAL"}
 _INT_DIGITS = {"SMALLINT": 5, "INTEGER": 10, "BIGINT": 18}
@@ -745,7 +745,7 @@ def analyze_sql(text: str, copybooks: dict[str, tuple[str, str]], ddl_tables: li
     tables = [ctx.tables[t] for t in touched if t in ctx.tables]
     if refusal is None:
         plain = " ".join(c for _, c in source_lines(expanded) if not _START.search(c))
-        bad = re.search(r"\b(SQLSTATE|SQLERRM|SQLERRMC|SQLWARN\d?)\b", re.sub(r"EXEC\s+SQL.*?END-EXEC", " ", plain))
+        bad = re.search(r"\b(SQLSTATE|SQLERRM|SQLERRMC|SQLWARN\d?)\b", re.sub(r"EXEC\s+SQL.*?END-EXEC", " ", plain, flags=re.I), flags=re.I)
         if bad:
             refusal = (f"{bad.group(1)} is read by the program but the stand-in engine does not set it (only SQLCODE and "
                        "SQLERRD(3) are modelled)")

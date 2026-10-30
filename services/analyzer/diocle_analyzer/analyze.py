@@ -375,7 +375,8 @@ def _sample_sql(program: dict, inputs: list[dict]) -> dict:
             if st["kind"] != "declare-table":
                 kinds.setdefault(t, set()).add(st["kind"])
     insert_only = {t: 0 for t, k in kinds.items() if k == {"insert"}}  # nothing reads it: seeded empty, no key collisions
-    return {"subset": SUBSET_VERSION, "tables": facts["tables"], "keyLinks": links,
+    writes = any(st["kind"] in ("insert", "update", "delete") for st in facts["statements"])
+    return {"subset": SUBSET_VERSION, "tables": facts["tables"], "keyLinks": links, "writes": writes,
             **({"seedRows": insert_only} if insert_only else {})}
 
 
