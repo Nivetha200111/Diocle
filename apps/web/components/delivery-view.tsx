@@ -319,7 +319,8 @@ export default function DeliveryView() {
   useEffect(() => {
     const load = () => fetchDeliveries().then((items) => {
       setList(items);
-      setSelected((current) => current ?? items[0]?.id ?? null);
+      // open on the newest delivery that finished with a pull request, else the newest that finished (failed ones stay in the selector)
+      setSelected((current) => current ?? items.find((d) => d.stage === "done" && d.pullRequest)?.id ?? items.find((d) => d.stage === "done")?.id ?? items[0]?.id ?? null);
     }).catch(() => setError("unreachable"));
     load();
     const t = setInterval(load, 5000);
