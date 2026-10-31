@@ -21,6 +21,7 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 |---|---|
 | [BUILD_LOG.md](BUILD_LOG.md) | Readable summary of what was built, day by day, and what went wrong. |
 | [HANDOFF.md](HANDOFF.md) | Internal working log kept between sessions. Not a user guide; dated entries may be superseded by later ones. |
+| [NEXT_SESSION_SCALING.md](NEXT_SESSION_SCALING.md) | A plan for making the engine scale, with a prompt for a new session. Planned only; nothing in it is built. |
 | [HACKATHON_RULES.md](HACKATHON_RULES.md) | Summary of the hackathon rules we are working to. |
 | [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md) | What the owner must fill in or confirm before submitting. |
 | [DEMO_PLAN.md](DEMO_PLAN.md) | Working plan for the demo video; a plan, not a description of the final video. |
