@@ -7,11 +7,11 @@
 | Area | Today | Where |
 |---|---|---|
 | Verification sandbox | one job at a time, one container, no network, no secrets | `services/verifier/diocle_verifier/sandbox.py` (`_job_lock`), `docs/ARCHITECTURE.md` |
-| API concurrency | in-process threads and module-level locks (re-verify, schema, public samples, deliveries); a few `ThreadPoolExecutor` pools for repository deliveries | `services/api/diocle_api/` (`reverify.py`, `schema.py`, `public.py`, `deliveries.py`, `deliver.py`) |
+| API concurrency | in-process threads; module-level `threading.Lock`s in `reverify.py`, `schema.py`, `public.py` and `deliveries.py`; one `ThreadPoolExecutor` (`deliver.py`) for parallel repository deliveries | `services/api/diocle_api/` (`reverify.py`, `schema.py`, `public.py`, `deliveries.py`, `deliver.py`) |
 | Run storage | files under `runs/` on the API host; run list read from disk | `services/api/README.md` (`GET /runs`) |
 | Deployment | one Vultr VM, Docker Compose, Caddy, a single API and a single sandbox container | `deploy/` |
 | Cost control | per-run caps, a shared public-sample budget, per-visitor and cooldown limits, a kill switch | `deploy/diocle.env.example`, `services/api/diocle_api/livesamples.py` |
-| Model calls | Meta Model API and one partner host for Spark Open, with per-loop caps and token logging | `services/converter` |
+| Model calls | Meta Model API, and a partner host for Spark Open (Baseten, Fireworks or Modal, set in `.env`), with per-loop caps and token logging | `services/converter` |
 
 ## Goal
 
