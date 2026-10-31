@@ -10,6 +10,10 @@ Demo video (3 min): LINK_TO_BE_ADDED_BEFORE_SUBMISSION
 
 Diocle is a verification layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark translates COBOL to Java and repairs it; the original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, exit code and display line must match, including on 1,000 held-out inputs the agent never saw. A model never certifies; the comparison does. Built for the Meta Global AI Developer Hackathon (Indie track). All programs and data are synthetic.
 
+## Why I built this
+
+I have worked on a COBOL modernization project at a global finance company. Reviewing the translated code by hand took so much effort that it drained the project's timeline. AI can now write the Java quickly, but someone still has to decide whether it is right, and a wrong cent repeats on every account (TSB's 2018 migration is the public example, see below). I built the check I wished that project had: run the original and the Java on the same inputs and compare every byte. No code or data from that work is in this repository; every program here is synthetic and written during the hackathon.
+
 ## The measured finding (15 synthetic programs, one model; [docs/MEASUREMENT.md](docs/MEASUREMENT.md))
 
 - **4 of 10 attackable translations that passed 1,000 held-out inputs were still wrong when attacked** (CHQCLR, DAYCTRL, INTACCR, TXNPOST; n = 10 programs, one fresh translation each, the breaker agent's inputs checked against GnuCOBOL). Passing the test is not the same as being right.
