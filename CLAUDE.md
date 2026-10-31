@@ -33,8 +33,10 @@ Diocle modernizes legacy COBOL for finance orgs: upload COBOL + copybooks, analy
 - **docs/samples**: synthetic only; docs match what is actually implemented.
 
 ## Current priority (Oct 29 to Nov 1): dependencies, more versatile conversion
-The owner's goal for the last days before submission. Work on the Mac (GnuCOBOL 3.2 + JDK 21 are there; the Windows
-work laptop cannot compile or deploy). First: `deploy/update-engine.sh` (the engine needs it for `GET /runs/{id}/schema`).
+> **Superseded Oct 31, 2026:** the product is under a hard feature lock until the submission and judging window ends (fixes with a reviewer pass, docs, the video and submission chores only). The list below is the historical build order; see `docs/HANDOFF.md` for the current state.
+
+The owner's goal for the last days before submission. Work on a machine with GnuCOBOL 3.2 and JDK 21 (a second machine without them
+cannot compile or deploy). First: `deploy/update-engine.sh` (the engine needs it for `GET /runs/{id}/schema`).
 
 Where dependencies stand (from the code): copybooks (incl. COPY REPLACING) drive layouts and verification; static
 CALLs are followed transitively, translated together and linked into one GnuCOBOL executable; SELECT/FD/OPEN plus JCL
@@ -54,7 +56,7 @@ contract first (rule 2), with tests, README "Not supported yet" updated, and a r
 2. **Whole JCL job end to end (~1 day).** From `jcl.py` steps: convert every COBOL step, emulate SORT steps
    (SORT FIELDS=), generate one Java pipeline that runs the steps in order through the same DD-to-file wiring, run the
    whole job both ways and compare every final dataset. Show it as one certificate per job.
-3. **Copybook to SQL schema: DONE Oct 29 on the Windows laptop** (`diocle_verifier.sqlschema`, `GET /runs/{id}/schema`,
+3. **Copybook to SQL schema: DONE Oct 29** (`diocle_verifier.sqlschema`, `GET /runs/{id}/schema`,
    schema.sql tab next to the Java; needs an engine deploy to show live). Original brief: DDL from the analyzer's layouts (packed and zoned
    decimals to DECIMAL(p,s), REDEFINES and OCCURS stated explicitly), proven by a round trip: load generated records
    into SQLite and write them back byte-identical. Fulfils the project goal above.

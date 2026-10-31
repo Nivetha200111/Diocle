@@ -18,6 +18,7 @@ Counts below are from the public run list (`GET https://diocle.vercel.app/api/ru
 
 | Model | Status |
 |---|---|
+| Muse Spark 1.1 and 1.2 | Available on the owner's key. The product's default is `muse-spark-1.3-contributor` (set by `META_MODEL_ID`); no result in this repository is claimed for the older versions. |
 | Muse Image | Not used. It was removed from the video plan; the code and docs do not call it. |
 | SAM 3.1 | Not used. |
 | Muse Glimmer | Not used. A local Glimmer experiment was tried and dropped during development ([HANDOFF.md](HANDOFF.md)); no code for it remains in the product. |

@@ -44,6 +44,10 @@ pinned verifier. **CI passed on fresh inputs:** ACCTMTCH 1601/1601, DAYCTRL 1017
 INTACCR 1019/1019, PKDPOST 1037/1037, TXNPOST 1024/1024, stdout matching for each
 ([run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870)).
 
+## Test suites (Oct 31, 2026)
+
+Full offline suites, run with `sh scripts/test.sh` from a clean clone of `main` at `585bdf8` on a Mac (GnuCOBOL 3.2, JDK 21), no model calls, 16:55 to 17:00 IST: analyzer 144 passed; verifier 261 passed (3 min 11 s); converter 296 passed; api 217 passed, 1 skipped (the skip is the INTACCR run-record API test). Exit status 0. The same suites on GitHub Actions for the commit before it (`661776a`, the first commit after the Oct 31 history rewrite): [run 41192056281](https://github.com/Nivetha200111/Diocle/actions/runs/41192056281), green. In CI the converter suite shows 295 passed and 1 skipped, because one test uses macOS `sandbox-exec` and only runs on a Mac. A test run shows the suites pass on those inputs; it is not a proof of correctness.
+
 ## Unseen programs (frozen evaluation)
 [docs/EVALUATION.md](EVALUATION.md): first run 2 of 4 certified (the old comparator rejected aggregation and
 fan-out); re-run with the corrected verifier and fix memory off: **4 of 4 certified, about $0.11**, each passing
