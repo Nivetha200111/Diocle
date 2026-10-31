@@ -18,3 +18,7 @@ markers = ["toolchain: needs GnuCOBOL (cobc), a JDK or the SQLite JDBC jar; dese
 
 [tool.setuptools]
 packages = ["diocle_verifier"]
+
+[tool.setuptools.package-data]
+# Non-editable installs (the delivery CI's `pip install services/verifier`) must carry the stand-in sources.
+diocle_verifier = ["standins/*.cbl"]

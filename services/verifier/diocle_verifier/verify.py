@@ -14,6 +14,7 @@ from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import is_multi, verify_multi
 from .runners import CLOCK, Run, read_records, run_cobol, run_java, write_records
+from .standin import stand_ins_run
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
 
@@ -81,6 +82,7 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
             "clock": CLOCK,
             "collation": meta.get("collation", "ascii"),
             "golden": golden_report,
+            **stand_ins_run(sample_dir, meta),
         },
     }
 

@@ -106,6 +106,13 @@ def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: 
     return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
 
 
+def _stand_ins(source: Path, modules: list[Path] | None, workdir: Path) -> list[str]:
+    """Diocle's stated stand-ins (standin.py) for runtime routines the program calls but no source defines."""
+    from .standin import stand_in_sources
+
+    return [str(p) for p in stand_in_sources([source, *(modules or [])], workdir)]
+
+
 def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: Path, workdir: Path,
               out_format: tuple[str, int] = ("line", 0), modules: list[Path] | None = None,
               collation: str = "ascii") -> Run:
@@ -114,7 +121,7 @@ def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: 
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
     build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
-                   *(str(m) for m in modules or [])])
+                   *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir)])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
     return _run_program([str(exe)], dd, input_path, workdir, "original", out_format)
@@ -138,7 +145,7 @@ def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[P
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
     build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
-                   *(str(m) for m in modules or [])], timeout=timeout)
+                   *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir)], timeout=timeout)
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
     return [str(exe)], None
