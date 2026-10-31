@@ -67,3 +67,20 @@ def test_copy_inside_a_data_name_is_not_a_copy_statement(tmp_path):
     assert copies == {"PFXREC", "WSCOUNT"}
     assert p["convertible"], p["notConvertibleReason"]
     assert p["files"][0]["layout"]["fields"][0]["name"] == "MSG-ID"  # COPY REPLACING still applied
+
+
+def test_copy_at_the_end_of_an_underscore_name_is_not_a_copy_statement():
+    code = "\n".join([
+        "       IDENTIFICATION DIVISION.",
+        "       PROGRAM-ID. USCOPY.",
+        "       DATA DIVISION.",
+        "       WORKING-STORAGE SECTION.",
+        "       COPY WSCOUNT.",
+        "       01  MY_COPY      PIC X.",
+        "       PROCEDURE DIVISION.",
+        "           MOVE 'A' TO MY_COPY",
+        "           PERFORM X.",
+        "       X.",
+        "           STOP RUN.",
+    ])
+    assert parse_program(code).copybooks == ["WSCOUNT"]  # not PERFORM (from MY_COPY PERFORM)

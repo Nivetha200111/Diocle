@@ -14,7 +14,7 @@ _PIC = re.compile(r"\bPIC(?:TURE)?\s+(?:IS\s+)?(\S+)")
 _SIGN_LEADING_SEPARATE = re.compile(r"\bSIGN\s+(?:IS\s+)?LEADING\s+SEPARATE\b")
 _VALUES = re.compile(r"'([^']*)'")
 # COPY as a statement: not the tail of a data name (INITIALIZE REQUEST-MSG-COPY REPLACING ...) or of a literal.
-_COPY_WORD = r"(?<![A-Z0-9'\"-])COPY"
+_COPY_WORD = r"(?<![A-Z0-9_'\"-])COPY"
 
 
 def source_lines(text: str) -> list[tuple[int, str]]:

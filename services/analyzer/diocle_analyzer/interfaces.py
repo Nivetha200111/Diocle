@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from .cobol import _REPLACING, _TOKEN, _VERBS, _entries, apply_replacing, parse_copybook, parse_program, source_lines
 
 RUNTIME_ROUTINE = re.compile(r"^(CEE|ILB|CBL_|C\$|SYSTEM$|DFH|DSN|MQ|CBLTDLI|PLITDLI|ASMTDLI)")
-_COPY = re.compile(r"(?<![A-Z0-9'\"-])COPY\s+([A-Z0-9-]+)(?:\s+REPLACING\s+(.*?))?\s*\.(?=\s|$)")  # a statement, not X-COPY
+_COPY = re.compile(r"(?<![A-Z0-9_'\"-])COPY\s+([A-Z0-9-]+)(?:\s+REPLACING\s+(.*?))?\s*\.(?=\s|$)")  # a statement, not X-COPY
 
 
 @dataclass
