@@ -16,7 +16,7 @@ visitor ── https://your-domain ──► Vercel (site) ── /api/* ──�
 7. **Site on Vercel**: import the GitHub repository, set the root directory to `apps/web`, and add these environment variables:
    `NEXT_PUBLIC_DIOCLE_HOSTED=1`, `NEXT_PUBLIC_DIOCLE_API_URL=/api`, `DIOCLE_API_ORIGIN=https://api.your-domain`.
 8. **Domain on Vercel**: add `your-domain` to the project; Vercel shows the DNS record to create at your registrar.
-9. **Check**: open `https://your-domain`, open Live runs, press *Re-verify on a fresh seed*.
+9. **Check**: open `https://your-domain`, open Run history (`/runs`), press *Re-verify on a fresh seed*.
 
 **Without buying a domain**: use the free `your-project.vercel.app` address for the site, and `SERVER-IP-WITH-DASHES.sslip.io` (for example `65-20-92-159.sslip.io`) as the engine's address in steps 4, 5 and 7. sslip.io resolves that name to the IP, so Caddy still obtains an HTTPS certificate and no DNS records are needed. Put `DIOCLE_API_DOMAIN=...` in `deploy/.env` on the server so restarts keep it.
 
@@ -59,7 +59,7 @@ visitor ── https ──► Caddy (site, /api proxy) ──► API container 
    Fill in the Meta key(s), a long random `DIOCLE_ADMIN_TOKEN` (`openssl rand -hex 24`), `DIOCLE_WEB_ORIGINS=https://your-domain`, and `GH_TOKEN`: a **fine-grained** GitHub token limited to the target repositories, with Contents and Pull requests set to read and write. Never commit `diocle.env`.
 6. **Start**: `DIOCLE_DOMAIN=your-domain docker compose up -d --build`. The first build compiles GnuCOBOL and takes several minutes; Caddy then obtains the HTTPS certificate.
 7. **Load the sample estate's runs** (from your Mac): `deploy/seed-runs.sh root@SERVER_IP`. Only runs certified under the current verifier are copied.
-8. **Check**: open `https://your-domain`, open Live runs, press *Re-verify on a fresh seed* on a certified run.
+8. **Check**: open `https://your-domain`, open Run history (`/runs`), press *Re-verify on a fresh seed* on a certified run.
 
 `deploy/aws/` holds equivalent scripts for AWS Lightsail, if that is the provider you use.
 

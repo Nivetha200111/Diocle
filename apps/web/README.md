@@ -1,10 +1,14 @@
-# Diocle frontend preview
+# Diocle web
 
-A Next.js workspace for Diocle. **Live runs** shows real repair runs served by `services/api`. Every other view is still a mock with synthetic data and no backend.
+The Next.js dashboard for Diocle. One sidebar on every page, in three groups. Pages backed by the engine (`services/api`) show real data only:
 
-## Live runs (real data)
+- **Start here:** Home (`/`), Try it live (`/try`: the two capped live buttons and the voice question), Import a repository (`/delivery`).
+- **Watch:** Current run (`/now`: whatever the engine runs right now, read from `GET /config` `publicImports.samples.busy`), Agent replay (`/mission`: one recorded run, step by step; nothing live).
+- **Proof:** Run history (`/runs`: each saved run with before/after pass rates, the agent trace, failing cases, the Java diff and token cost), Evidence (`/evidence`), Bug of the day (`/bugs`).
 
-Start the API (see `services/api/README.md`), then open **Live runs**. The page reads `NEXT_PUBLIC_DIOCLE_API_URL` (default `http://localhost:8000`) and shows each saved run: before/after pass rates, the agent's tool trace, the failing cases, the Java diff, and token cost.
+Old `/mission#live` and `/mission#ask` links redirect to `/try`. In local builds (not `NEXT_PUBLIC_DIOCLE_HOSTED=1`) the sidebar also shows the original preview views, labelled mock data.
+
+Start the API (see `services/api/README.md`), then run the app. It reads `NEXT_PUBLIC_DIOCLE_API_URL` (default `http://localhost:8000`); the hosted site uses `/api`, rewritten to `DIOCLE_API_ORIGIN`.
 
 ## Theme
 
