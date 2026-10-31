@@ -13,6 +13,8 @@ from .keyed import keyed_files
 _PIC = re.compile(r"\bPIC(?:TURE)?\s+(?:IS\s+)?(\S+)")
 _SIGN_LEADING_SEPARATE = re.compile(r"\bSIGN\s+(?:IS\s+)?LEADING\s+SEPARATE\b")
 _VALUES = re.compile(r"'([^']*)'")
+# COPY as a statement: not the tail of a data name (INITIALIZE REQUEST-MSG-COPY REPLACING ...) or of a literal.
+_COPY_WORD = r"(?<![A-Z0-9'\"-])COPY"
 
 
 def source_lines(text: str) -> list[tuple[int, str]]:
@@ -242,7 +244,7 @@ def parse_program(text: str) -> ProgramInfo:
     inline_records: dict[str, int] = {}
     fd_inline: dict[str, str] = {}
     for m in re.finditer(r"\bFD\s+([A-Z0-9-]+)(.*?)(?=\bFD\s|\bWORKING-STORAGE\b|\bLINKAGE\b|\bPROCEDURE\b|$)", code):
-        copy = re.search(r"\bCOPY\s+([A-Z0-9-]+)(?:\s+REPLACING\s+(.*?)\.(?:\s|$))?", m.group(2))
+        copy = re.search(_COPY_WORD + r"\s+([A-Z0-9-]+)(?:\s+REPLACING\s+(.*?)\.(?:\s|$))?", m.group(2))
         fd_copybooks[m.group(1)] = copy.group(1) if copy else None
         if copy and copy.group(2):
             replacing[m.group(1)] = _REPLACING.findall(copy.group(2))
@@ -257,7 +259,7 @@ def parse_program(text: str) -> ProgramInfo:
         organizations[m.group(1).upper()] = re.sub(r"\s+", " ", org.group(1)).upper() if org else "SEQUENTIAL"
     file_control_problem = None
     control = re.search(r"\bFILE-CONTROL\b(.*?)(?=\bDATA\s+DIVISION\b|$)", code, re.I | re.S)
-    if control and re.search(r"\bCOPY\b", control.group(1), re.I):
+    if control and re.search(_COPY_WORD + r"(?![A-Z0-9-])", control.group(1), re.I):
         file_control_problem = "FILE-CONTROL contains a COPY: SELECT clauses from a copybook are not analysed"
     elif len(re.findall(r"\bORGANIZATION\s+(?:IS\s+)?(?:INDEXED|RELATIVE)\b", code, re.I)) > sum(
             1 for o in organizations.values() if o in ("INDEXED", "RELATIVE")):
@@ -292,7 +294,7 @@ def parse_program(text: str) -> ProgramInfo:
                     directions[word] = direction
                 elif word not in sort_files:
                     break
-    copybooks = list(dict.fromkeys(re.findall(r"\bCOPY\s+([A-Z0-9-]+)", code)))
+    copybooks = list(dict.fromkeys(re.findall(_COPY_WORD + r"\s+([A-Z0-9-]+)", code)))
     calls = list(dict.fromkeys(re.findall(r"\bCALL\s+['\"]([A-Z0-9-]+)['\"]", code)))
     dynamic_calls = sorted(set(re.findall(r"(?<![A-Z0-9-])CALL\s+([A-Z][A-Z0-9-]*)(?![A-Z0-9-])", code)))
     procedure = _tokens(code)
@@ -365,7 +367,7 @@ def _definition(code: str, identifier: str) -> tuple[str | None, bool, int | Non
                   and not re.search(rf"\bREDEFINES\s+{name}(?![A-Z0-9-])", code)
                   and not re.search(rf"\bRENAMES\s+{name}(?![A-Z0-9-])", code)  # a level-66 alias can assign it
                   and not re.match(r"\s*88\s", code[m.end():])  # SET condition TO TRUE changes it unseen
-                  and not re.search(r"\bCOPY\s", code[start : end if end != -1 else len(code)]))
+                  and not re.search(_COPY_WORD + r"\s", code[start : end if end != -1 else len(code)]))
     value = re.search(r"""\bVALUE\s+(?:IS\s+)?('[^']*'|"[^"]*")""", body)
     return (_literal(value.group(1)) if value else None), elementary, _pic_width(body)
 
