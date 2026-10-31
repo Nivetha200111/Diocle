@@ -41,7 +41,7 @@ def translate(program: Program, client: ModelClient, workspace: Workspace, anywa
         user += f"\n\n=== NOT FOUND (copybooks missing from the repository): {', '.join(missing)} ==="
     system = (TRANSLATOR_ANYWAY.format(reason=reason, io=program.io_text(), main_class=program.main_class) if reason
               else TRANSLATOR.format(io=program.io_text(), main_class=program.main_class) + (TRANSLATOR_SQL if program.sql else "")
-              + (TRANSLATOR_KSDS if program.ksds else "")
+              + (TRANSLATOR_KSDS if program.ksds else "") + program.stand_in_text()
               + (domain_hint if not reason else ""))  # EXPERIMENTAL hint: only on the verified path
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     choice = client.chat(role="translator", round=0, messages=messages, response_format=_response_format(program.main_class))
