@@ -1,8 +1,7 @@
-import "./mission.css";
-import MissionControl from "@/components/mission-control";
+import Workspace from "@/components/workspace";
 
-export const metadata = { title: "Mission control: Diocle" };
+export const metadata = { title: "Agent replay: Diocle" };
 
 export default function MissionPage() {
-  return <MissionControl />;
+  return <Workspace initialView="Agent replay" />;
 }

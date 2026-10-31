@@ -52,7 +52,7 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
     return [
       { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
       { label: "2. Convert & certify", detail: `${certified}/${d.programs.filter((p) => p.status !== "skipped").length} certified${uncertified(d)}`, led: led(1) },
-      { label: "3. Results", detail: d.stage === "done" ? "Java, diffs and traces in Live runs" : "waiting", led: d.stage === "done" ? "ok" : "off" },
+      { label: "3. Results", detail: d.stage === "done" ? "Java, diffs and traces in Run history" : "waiting", led: d.stage === "done" ? "ok" : "off" },
     ];
   }
   return [

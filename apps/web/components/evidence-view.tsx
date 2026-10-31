@@ -157,7 +157,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
             {certified}/{kept.length} counts every run this engine has kept, including failed attempts (two of them
             evaluation runs the old verifier rejected){interrupted ? `, ${interrupted} interrupted by an engine restart` : ""} and
             superseded runs. The {CANONICAL.programs.length}/{CANONICAL.programs.length} above is one delivery.
-            Every certified run (except visitor imports) can be re-verified by anyone in Live runs.
+            Every certified run (except visitor imports) can be re-verified by anyone in Run history.
           </p>
         </section>
       )}

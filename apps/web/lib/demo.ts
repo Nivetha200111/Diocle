@@ -8,6 +8,10 @@ export type View =
   | "Verification"
   | "Reports"
   | "Live runs"
+  | "Try it live"
+  | "Current run"
+  | "Agent replay"
+  | "Bug of the day"
   | "Delivery"
   | "Evidence"
   | "Settings";

@@ -4793,3 +4793,34 @@ main {
 .dlv-note { font-size: 11px; color: var(--muted); }
 .dlv-error { font-size: 12px; color: #a03020; }
 .sidebar { overflow-y: auto; }
+
+/* --- site clarity (Nov 1): grouped navigation, Current run, Try it live, Start here --- */
+.nav-live { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #fff; background: #c00000; padding: 1px 6px; border-radius: 3px; }
+.now-live-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #e00000; margin-right: 6px; vertical-align: middle; animation: now-pulse 1.2s ease-in-out infinite; }
+@keyframes now-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .now-live-dot { animation: none; } }
+.running-now { display: inline-flex; align-items: center; gap: 2px; font-weight: 700; border: 2px solid #c00000; background: #fff4f4; color: #8a0000; padding: 4px 10px; cursor: pointer; }
+.now-view { display: grid; gap: 16px; }
+.now-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; padding: 12px; }
+.now-step { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 2px solid #808080; background: #fff; }
+.now-step strong { display: block; }
+.now-step span { font-size: 13px; }
+.now-table { width: calc(100% - 24px); margin: 0 12px 12px; border-collapse: collapse; background: #fff; }
+.now-table th, .now-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #c0c0c0; font-size: 13px; }
+.now-reason { color: #555; }
+.now-events { margin: 12px 24px; display: grid; gap: 4px; font-size: 14px; }
+.now-more, .now-last { padding: 0 12px 12px; }
+.now-starts, .home-start-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; padding: 12px; }
+.now-start, .home-start-card { display: grid; gap: 6px; text-align: left; padding: 14px; border: 2px solid #000080; background: #fff; color: #000; text-decoration: none; cursor: pointer; font: inherit; }
+.now-start strong, .home-start-card strong { font-size: 16px; color: #000080; }
+.now-start span, .home-start-card span { font-size: 13px; line-height: 1.4; }
+.now-start:hover, .home-start-card:hover, .now-start:focus-visible, .home-start-card:focus-visible { background: #ffffe0; outline: 2px solid #000080; }
+.try-live { display: grid; gap: 16px; }
+.try-next { padding: 4px 2px; }
+.mc-embedded { display: grid; gap: 12px; }
+@media (max-width: 700px) {
+  .topbar-actions .topbar-link { display: none; } /* Source is also in the sidebar; the header must not scroll sideways on a phone */
+  .topbar-actions { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  .running-now { padding: 3px 6px; font-size: 12px; }
+}
+.now-banner { margin: 0; padding: 8px 12px; background: #fff4f4; border: 2px solid #c00000; color: #400000; }
