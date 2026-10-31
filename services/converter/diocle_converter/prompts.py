@@ -100,6 +100,20 @@ support class (do not rewrite or copy it; it is compiled in). Rules:
   not check a status, neither do you.
 """
 
+TRANSLATOR_CEE3ABD = """\
+
+CALL 'CEE3ABD' (abnormal termination). On the mainframe this is IBM Language Environment's abend service. Here the
+original is built with Diocle's stand-in for it (not IBM's), and the Java must behave exactly like that stand-in:
+- At the CALL the run ends: nothing after the CALL executes (no later statement, paragraph, CLOSE or normal-end step).
+- Before ending: flush stdout (everything DISPLAYed so far stays; nothing more goes to stdout) and close every file that
+  is open, so records already written stay exactly as written (an output file opened but not yet written stays empty).
+  Then print `CEE3ABD abend code <n>` to System.err (<n> = the value of the first argument, e.g. 999) and call
+  System.exit(16).
+- The exit code 16, stdout and the output files are compared; stderr is not. Never let an exception escape (a stack
+  trace and a different exit code would not match), and do not model the second (timing) argument.
+- Translate it as one private method (e.g. `abend(int code)`) called where the COBOL CALLs CEE3ABD.
+"""
+
 REPAIR = """\
 You are Diocle's repair agent. A Java translation of a COBOL program fails differential testing against the
 original compiled with GnuCOBOL. The COBOL program's behaviour is the source of truth, including its quirks.

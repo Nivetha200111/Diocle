@@ -141,6 +141,14 @@ no file, that its DISPLAY output and exit code are the whole result. No new mode
 shapes (rule 10); the repair agent sees the one `stdout` result like any failing case. The breaker and cross-check
 skip them (they need exactly one input and one output file).
 
+## CALL 'CEE3ABD' (abnormal end)
+
+When the program (or a module it CALLs) calls CEE3ABD, `Program.stand_ins` holds it (detected with the verifier's own
+`standin.stand_ins_for`, so the prompt and the build always agree) and the translator's system prompt and the repair
+agent's first message add `TRANSLATOR_CEE3ABD`: the run ends at the CALL; flush stdout, close every open file (records
+written so far stay), print `CEE3ABD abend code <n>` to stderr and `System.exit(16)`. This mirrors Diocle's stand-in
+(services/verifier/README.md, "CEE3ABD"), not IBM Language Environment. No model call or limit was added.
+
 ## Run
 ```sh
 cd services/converter

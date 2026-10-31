@@ -129,6 +129,39 @@ wired into the `diocle_verifier` CLI or `verify_sample()`'s auto-dispatch; call 
   legacy checkout.
 - **Not done:** `verify_job` still compares output files only, so the analyzer keeps such programs out of JCL jobs.
 
+## CALL 'CEE3ABD': Diocle's stated stand-in for IBM LE abnormal termination (report v0.11, `runs.standIns`)
+
+Many batch programs end their `9999-ABEND` paragraph with `CALL 'CEE3ABD' USING ABCODE, TIMING` (IBM Language
+Environment). GnuCOBOL has no such routine, so the verifier links a stand-in of its own,
+[`diocle_verifier/standins/CEE3ABD.cbl`](diocle_verifier/standins/CEE3ABD.cbl), into the build of the original. Its
+behaviour, defined once:
+
+- the run ends at the CALL with **exit code 16**;
+- files still open are closed as at `STOP RUN`, so records already written are kept; DISPLAY output so far is kept;
+- `CEE3ABD abend code <n>` goes to stderr (`<n>` the first argument, no leading zeros), next to libcob's own
+  "implicit CLOSE" warnings. The second argument (timing) is ignored.
+
+Why exit code 16 and why stderr: the verifier already judges a run on its exit code, stdout and files, and never on
+stderr (libcob writes warnings there). A fixed 16 is the conventional "severe error" return code and fits in a process
+exit status; an abend code such as 999 does not. So a Java that skips the abend, carries on, or exits with another code
+fails on the exit code or on the output, and the message is there for a person. The Java must do the same (the
+converter's prompt says so): flush stdout, close open files, print the message to stderr, `System.exit(16)`.
+
+On z/OS a real abend has no return code (the job shows `U0999`) and buffered output records may be lost; that is not
+modelled. The claim is "verified against GnuCOBOL with Diocle's CEE3ABD stand-in", never "IBM LE verified", and
+the verification report of a program built with it says so in `runs.standIns` (routine, exit code, note). The
+JCL job report (`jobs[].runs`, built by `jobs.py`) links the stand-in the same way but does not carry `standIns`:
+its contract has no such field. The API's run record, the equivalence report, the pull request text and the
+dashboard do not show it yet.
+
+Linking (`standin.py`): every cobc build path (single file, multi-file, keyed, EXEC SQL, mutation, claims, minimize,
+transcription) appends the stand-in when the source or a module contains the literal `'CEE3ABD'` and no source defines
+a program of that name (a repository's own CEE3ABD wins). It is copied into the job's work directory first, so the
+read-only sandbox works, and it is package data, so the delivery CI's non-editable `pip install services/verifier`
+re-verifies with it. Proof: `tests/test_cee3abd_standin.py` (synthetic ACCTCHK: normal path certified; blank-id and
+open-failure abends end with 16 and keep the records written so far; a Java that exits 0 there is not certified; the
+same through the sandbox server and `reverify`).
+
 ## Programs with EXEC SQL, on a stand-in database (report v0.9, subset `db2-subset-1`)
 
 **What is verified.** The COBOL with embedded SQL and the Java (JDBC) start from the SAME seeded database state plus the

@@ -21,6 +21,7 @@ class Program:
     sql: dict | None = None  # sample.json `sql` (tables, subset): the program has EXEC SQL in the verified subset
     ksds: dict | None = None  # sample.json `ksds` (subset, keyLinks): the program uses keyed (INDEXED) files in the verified subset
     keyed: list[dict] = field(default_factory=list)  # [{dd, direction, keyed, recordLength}] for those files
+    stand_ins: tuple[str, ...] = ()  # runtime routines verified against Diocle's stated stand-in (CEE3ABD)
 
     @classmethod
     def load(cls, sample_dir: Path) -> "Program":
@@ -44,9 +45,14 @@ class Program:
 
             keyed = [{"dd": f["dd"], "direction": f["direction"], "keyed": f["keyed"],
                       "recordLength": record_length(load_fields(f["layout"]))} for f in meta["files"] if f.get("keyed")]
+        stand_ins: tuple[str, ...] = ()
+        if not anyway:  # the same detection the verifier links the stand-ins by, so prompt and build always agree
+            from diocle_verifier.standin import stand_ins_for
+
+            stand_ins = tuple(stand_ins_for([sample_dir / meta["source"], *(sample_dir / m for m in meta.get("modules", []))]))
         return cls(sample_dir, meta["program"], (sample_dir / meta["source"]).read_text(), copybooks, dd,
                    meta["javaConversion"]["mainClass"], modules, files, anyway, None if anyway else meta.get("sql"),
-                   None if anyway else meta.get("ksds"), keyed)
+                   None if anyway else meta.get("ksds"), keyed, stand_ins)
 
     def io_text(self) -> str:
         if self.anyway:
@@ -77,6 +83,12 @@ class Program:
                      "code) are the whole result and are compared byte for byte, so print exactly what each DISPLAY "
                      "prints (including numeric edited items and the newline) and nothing else on stdout.")
         return text
+
+    def stand_in_text(self) -> str:
+        """What the Java must do where the COBOL CALLs a routine the verifier replaces with a stated stand-in."""
+        from .prompts import TRANSLATOR_CEE3ABD
+
+        return TRANSLATOR_CEE3ABD if "CEE3ABD" in self.stand_ins else ""
 
     def as_text(self) -> str:
         parts = [f"=== {self.name}.cbl ===\n{self.cobol}"]
