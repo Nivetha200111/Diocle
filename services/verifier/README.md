@@ -149,7 +149,10 @@ converter's prompt says so): flush stdout, close open files, print the message t
 
 On z/OS a real abend has no return code (the job shows `U0999`) and buffered output records may be lost; that is not
 modelled. The claim is "verified against GnuCOBOL with Diocle's CEE3ABD stand-in", never "IBM LE verified", and
-every report built with it says so in `runs.standIns` (routine, exit code, note).
+the verification report of a program built with it says so in `runs.standIns` (routine, exit code, note). The
+JCL job report (`jobs[].runs`, built by `jobs.py`) links the stand-in the same way but does not carry `standIns`:
+its contract has no such field. The API's run record, the equivalence report, the pull request text and the
+dashboard do not show it yet.
 
 Linking (`standin.py`): every cobc build path (single file, multi-file, keyed, EXEC SQL, mutation, claims, minimize,
 transcription) appends the stand-in when the source or a module contains the literal `'CEE3ABD'` and no source defines
