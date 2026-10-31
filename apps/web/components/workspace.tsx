@@ -4,6 +4,10 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react
 import {
   Activity,
   Monitor,
+  Zap,
+  Radio,
+  Workflow,
+  Bug,
   CodeXml,
   GitPullRequest,
   ArrowDownToLine,
@@ -59,21 +63,35 @@ import RunsView from "./runs-view";
 import DeliveryView, { NewDeliveryButton } from "./delivery-view";
 import EvidenceView from "./evidence-view";
 import HomeView from "./home-view";
+import NowView from "./now-view";
+import LiveSamples from "./live-samples";
+import AskPanel from "./ask-panel";
+import MissionControl from "./mission-control";
+import BugsView from "./bugs-view";
+import { fetchSamplesStatus } from "@/lib/live";
 import { HOSTED, LINKS } from "@/lib/config";
 
 // Views backed by real runs and deliveries come first; the rest is the original mock, labelled as such.
-const realViews = ["Home", "Delivery", "Live runs", "Evidence"];
+const realViews = ["Home", "Try it live", "Delivery", "Current run", "Agent replay", "Live runs", "Evidence", "Bug of the day"];
+
+// What each view is called on screen (internal names stay stable for links and code).
+export const LABELS: Partial<Record<View, string>> = { Delivery: "Import a repository", "Live runs": "Run history" };
+const label = (v: View) => LABELS[v] ?? v;
 
 // Each real view has its own address, so a link opens the page it names.
-const PATHS: Partial<Record<View, string>> = { Home: "/", Delivery: "/delivery", "Live runs": "/runs", Evidence: "/evidence" };
+const PATHS: Partial<Record<View, string>> = { Home: "/", "Try it live": "/try", Delivery: "/delivery", "Current run": "/now", "Agent replay": "/mission", "Live runs": "/runs", Evidence: "/evidence", "Bug of the day": "/bugs" };
 const viewForPath = (path: string) =>
   (Object.entries(PATHS).find(([, p]) => p === (path.replace(/\/+$/, "") || "/"))?.[0] as View | undefined);
 
 const allNav = [
-  { name: "Home", icon: Monitor },
-  { name: "Delivery", icon: GitPullRequest },
-  { name: "Live runs", icon: Activity },
-  { name: "Evidence", icon: CircleCheck },
+  { name: "Home", icon: Monitor, group: "START HERE" },
+  { name: "Try it live", icon: Zap, group: "START HERE" },
+  { name: "Delivery", icon: GitPullRequest, group: "START HERE" },
+  { name: "Current run", icon: Radio, group: "WATCH" },
+  { name: "Agent replay", icon: Workflow, group: "WATCH" },
+  { name: "Live runs", icon: Activity, group: "PROOF" },
+  { name: "Evidence", icon: CircleCheck, group: "PROOF" },
+  { name: "Bug of the day", icon: Bug, group: "PROOF" },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Migrations", icon: FolderGit2 },
   { name: "Dependency graph", icon: Network },
@@ -94,9 +112,13 @@ const descriptions: Record<View, string> = {
   Conversions: "COBOL next to its Java, copybooks next to their SQL tables.",
   Verification: "Original and converted program run on the same inputs; every output field compared.",
   Reports: "Per-migration summaries you can download as JSON.",
-  "Live runs": "Real agent runs: what broke, what the agent did, and the proof.",
+  "Live runs": "Every recorded run: what broke, what the agents did, and the proof. Pick one to see its trace and re-verify it.",
+  "Try it live": "Real Meta model calls on fixed, bundled synthetic samples, capped in dollars. Each one runs once, live, and is checked by GnuCOBOL.",
+  "Current run": "Whatever the engine is doing right now: an import, a live button, or a spoken question.",
+  "Agent replay": "One recorded run replayed step by step: the six roles working as a team. Nothing here is live and no model is called.",
+  "Bug of the day": "Real mistakes in AI-written Java that running the original COBOL side by side exposed, each read from a stored run.",
   Home: "",
-  Delivery: "A legacy GitHub repository migrated live: analyze, convert, certify, open a pull request, re-verify in CI.",
+  Delivery: "Paste a public GitHub repository with COBOL: Diocle analyzes it, converts each program it can, and certifies it against the original.",
   Evidence: "What Diocle has shown so far, with a link to check each claim. Failures and corrections included.",
   Settings: "Workspace name and model configuration.",
 };
@@ -703,6 +725,15 @@ function VerificationView({ onReport }: { onReport: () => void }) {
 
 export default function Workspace({ initialView = "Home" }: { initialView?: View }) {
   const [view, setView] = useState<View>(initialView);
+  // What the engine is running right now (any job), polled for the "Running now" indicator in the header and the sidebar.
+  const [busyId, setBusyId] = useState<string | null>(null);
+  useEffect(() => {
+    let stop = false;
+    const poll = () => fetchSamplesStatus().then((st) => { if (!stop) setBusyId(st?.busy ?? null); }).catch(() => undefined);
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => { stop = true; clearInterval(t); };
+  }, []);
   const [migrations, setMigrations] = useState<Migration[]>(initialMigrations);
   const [modal, setModal] = useState<
     "new" | "search" | "activity" | "help" | "profile" | null
@@ -737,6 +768,13 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
   useEffect(() => {
     // "#run=<id>" links (from a delivery's program cards, docs/EVIDENCE.md) open that run in Live runs.
     const follow = () => {
+      // The live buttons moved from Mission control to Try it live: old /mission#live and /mission#ask links still land on them.
+      if (window.location.pathname.replace(/\/+$/, "") === "/mission" && ["#live", "#ask"].includes(window.location.hash)) {
+        window.history.replaceState(null, "", `/try${window.location.hash}`);
+        setView("Try it live");
+        setTimeout(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView(), 300);
+        return;
+      }
       if (!window.location.hash.startsWith("#run=")) return;
       setView("Live runs");
       if (window.location.pathname !== PATHS["Live runs"]) {
@@ -905,10 +943,10 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
             </div>
           )}
         </div>}
-        <div className="nav-label">REAL RUNS</div>
         <nav aria-label="Main navigation">
           {nav.map((item, i) => (
             <Fragment key={item.name}>
+            {"group" in item && (i === 0 || (nav[i - 1] as { group?: string }).group !== item.group) && <div className="nav-label">{item.group}</div>}
             {i === realViews.length && <div className="nav-label nav-label-mock">PREVIEW · MOCK DATA</div>}
             <button
               onClick={() => navigate(item.name)}
@@ -916,7 +954,8 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
               aria-current={view === item.name ? "page" : undefined}
             >
               <item.icon size={18} />
-              <span>{item.name}</span>
+              <span>{label(item.name as View)}</span>
+              {item.name === "Current run" && busyId && <span className="nav-live" title="Something is running now">LIVE</span>}
               {"count" in item && (
                 <span className="nav-count">
                   {Math.max(0, item.count - resolved.length)}
@@ -989,12 +1028,15 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
             </button>
             <button type="button" className="breadcrumb-workspace link-button" onClick={() => navigate("Home")}>Diocle</button>
             <ChevronRight size={13} />
-            <span>{view}</span>
+            <span>{label(view)}</span>
           </div>
           <div className="topbar-actions">
+            {busyId && view !== "Current run" && (
+              <button type="button" className="running-now" onClick={() => navigate("Current run")} title={busyId}>
+                <span className="now-live-dot" aria-hidden="true" /> Running now · watch it
+              </button>
+            )}
             <MetaBadge />
-            <a className="topbar-link" href="/mission">Mission control</a>
-            <a className="topbar-link" href="/bugs">Bug of the day</a>
             {(HOSTED || realViews.includes(view)) && (
               <a className="topbar-link" href={LINKS.diocle} target="_blank" rel="noreferrer">
                 <CodeXml size={15} /> Source
@@ -1086,21 +1128,21 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
                 <span className="green-dot" /> {realViews.includes(view) ? "DIOCLE · OPERATIONS CONSOLE" : "DESIGN PREVIEW · MOCK DATA"}
               </div>
               <h1>
-                {view === "Overview" ? "Make room for what’s next." : view}
+                {view === "Overview" ? "Make room for what’s next." : label(view)}
               </h1>
               <p>{descriptions[view]}</p>
             </div>
-            {realViews.includes(view) ? (
+            {["Delivery", "Current run", "Live runs"].includes(view) ? (
               <NewDeliveryButton onClick={() => {
                 navigate("Delivery");
                 setTimeout(() => document.getElementById("new-delivery")?.scrollIntoView({ behavior: "smooth" }), 50);
               }} />
-            ) : (
+            ) : !realViews.includes(view) ? (
               <button className="button primary" onClick={() => setModal("new")}>
                 <Plus size={17} />
                 New migration (mock)
               </button>
-            )}
+            ) : null}
           </div>}
 
           {view === "Home" && <HomeView go={(v) => navigate(v)} />}
@@ -1502,6 +1544,32 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
           {view === "Delivery" && (
             <div className="view-content">
               <DeliveryView />
+            </div>
+          )}
+
+          {view === "Try it live" && (
+            <div className="view-content try-live">
+              <LiveSamples />
+              <AskPanel />
+              <p className="try-next">While a button runs it also shows on <button type="button" className="link-button" onClick={() => navigate("Current run")}>Current run</button>. To see a whole repository converted, use <button type="button" className="link-button" onClick={() => navigate("Delivery")}>Import a repository</button>.</p>
+            </div>
+          )}
+
+          {view === "Current run" && (
+            <div className="view-content">
+              <NowView />
+            </div>
+          )}
+
+          {view === "Agent replay" && (
+            <div className="view-content">
+              <MissionControl embedded />
+            </div>
+          )}
+
+          {view === "Bug of the day" && (
+            <div className="view-content">
+              <BugsView embedded />
             </div>
           )}
 

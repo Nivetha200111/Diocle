@@ -38,7 +38,7 @@ function Card({ r }: { r: Resolved }) {
 
 type State = { phase: "loading" } | { phase: "failed" } | { phase: "ok"; shown: Resolved[]; unconfirmed: number };
 
-export default function BugsView() {
+export default function BugsView({ embedded = false }: { embedded?: boolean }) {
   const [state, setState] = useState<State>({ phase: "loading" });
   useEffect(() => {
     let alive = true;
@@ -57,20 +57,9 @@ export default function BugsView() {
     return () => { alive = false; };
   }, []);
 
-  return (
-    <div className="mc-page">
-      <header className="mc-top">
-        <a href="/" aria-label="Diocle home"><Brand /></a>
-        <nav aria-label="Main navigation" className="mc-nav">
-          <a href="/">Home</a>
-          <a href="/runs">Live runs</a>
-          <a href="/evidence">Evidence</a>
-          <a href="/mission">Mission control</a>
-          <a href="/bugs" aria-current="page">Bug of the day</a>
-        </nav>
-      </header>
-      <main className="mc-main">
-        <h1>Bug of the day</h1>
+  const body = (
+    <>
+        {!embedded && <h1>Bug of the day</h1>}
         <p className="mc-lede">
           Real mistakes in AI-written Java that the original COBOL, run side by side, exposed. Each card is read from a stored run on the
           Diocle engine; a card that the run record no longer confirms is not shown. These were caught on the inputs tried, which is not
@@ -112,7 +101,21 @@ export default function BugsView() {
             ))}
           </ul>
         </section>
-      </main>
+          </>
+  );
+  if (embedded) return <div className="mc-embedded">{body}</div>;
+  return (
+    <div className="mc-page">
+      <header className="mc-top">
+        <a href="/" aria-label="Diocle home"><Brand /></a>
+        <nav aria-label="Main navigation" className="mc-nav">
+          <a href="/">Home</a>
+          <a href="/try">Try it live</a>
+          <a href="/runs">Run history</a>
+          <a href="/evidence">Evidence</a>
+        </nav>
+      </header>
+      <main className="mc-main">{body}</main>
     </div>
   );
 }

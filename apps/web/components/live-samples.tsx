@@ -1,6 +1,6 @@
 "use client";
 
-// The two public live buttons on Mission control. Nothing here is replayed or invented: every line shown comes from the job
+// The two public live buttons on the Try it live page (/try). Nothing here is replayed or invented: every line shown comes from the job
 // record or the run record the engine returns while the work happens. The visitor sends a sample name and nothing else.
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "./ui";

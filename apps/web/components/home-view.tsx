@@ -8,7 +8,7 @@ import { SAMPLE_COBOL, SAMPLE_RECORDED } from "@/lib/sample";
 import { SourcePane } from "./runs-view";
 import { Term } from "./ui";
 
-type Go = (view: "Delivery" | "Live runs" | "Evidence") => void;
+type Go = (view: "Delivery" | "Live runs" | "Evidence" | "Try it live" | "Current run") => void;
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 
@@ -121,8 +121,8 @@ function SampleHero({ go }: { go: Go }) {
           window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
           go("Live runs");
         }}>Open the full run</button>
-        <a className="button secondary" href="/mission#live">Try it live: convert a sample now</a>
-        <a className="button secondary" href="/mission">Watch the agents work (replay)</a>
+        <a className="button secondary" href="/try">Try it live: convert a sample now</a>
+        <a className="button secondary" href="/mission">Agent replay: watch the agents work</a>
         <a className="button secondary" href="/bugs">Bug of the day</a>
         <a className="button secondary" href="/evidence">Cost and speed scoreboard</a>
         <span className="sample-note">
@@ -239,6 +239,24 @@ export default function HomeView({ go }: { go: Go }) {
             &ldquo;Certified&rdquo; here means <strong>matched on the tested inputs, not proven equivalent</strong>
             {" "}(<a href={LINKS.certified} target="_blank" rel="noreferrer">definition and limits</a>). Synthetic programs only; GnuCOBOL, SQLite and Berkeley DB stand in for z/OS COBOL, DB2 and VSAM.
           </p>
+        </div>
+      </section>
+
+      <section className="panel home-start" aria-label="Start here">
+        <div className="panel-heading"><div><h2>Start here</h2><p>Four ways in. Everything links to real runs on the live engine.</p></div></div>
+        <div className="home-start-grid">
+          <button type="button" className="home-start-card" onClick={() => go("Try it live")}>
+            <strong>1. Try it live</strong><span>One click: Muse Spark converts a sample, Muse Wonder reads a printout, or ask a program a question out loud. GnuCOBOL checks each answer.</span>
+          </button>
+          <button type="button" className="home-start-card" onClick={() => go("Delivery")}>
+            <strong>2. Import a repository</strong><span>Paste a public GitHub link with COBOL. Diocle analyzes it, converts each program it can and certifies it against the original.</span>
+          </button>
+          <button type="button" className="home-start-card" onClick={() => go("Current run")}>
+            <strong>3. Watch what is running</strong><span>Whatever the engine is doing right now, stage by stage.</span>
+          </button>
+          <button type="button" className="home-start-card" onClick={() => go("Evidence")}>
+            <strong>4. Check the proof</strong><span>Every run, every cost and every refusal, with a link to verify each claim yourself.</span>
+          </button>
         </div>
       </section>
 

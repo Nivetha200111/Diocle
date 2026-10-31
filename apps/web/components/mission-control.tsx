@@ -19,7 +19,7 @@ const usd = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
 const num = (n: number) => n.toLocaleString("en-US");
 const when = (s: string | null) => (s ? s.replace("T", " ") : "date not recorded");
 
-export default function MissionControl() {
+export default function MissionControl({ embedded = false }: { embedded?: boolean }) {
   const [list, setList] = useState<RunListItem[] | null>(null);
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [failed, setFailed] = useState(false);
@@ -48,19 +48,9 @@ export default function MissionControl() {
   const run = runs[runId] ?? (loaded && options.length ? runs[options[0].id] : undefined);
   const notFound = loaded && !!run && run.id !== runId ? runId : null;
 
-  return (
-    <div className="mc-page">
-      <header className="mc-top">
-        <a href="/" aria-label="Diocle home"><Brand /></a>
-        <nav aria-label="Main navigation" className="mc-nav">
-          <a href="/">Home</a>
-          <a href="/runs">Live runs</a>
-          <a href="/evidence">Evidence</a>
-          <a href="/mission" aria-current="page">Mission control</a>
-          <a href="/bugs">Bug of the day</a>
-        </nav>
-      </header>
-      <main className="mc-main">
+  const body = (
+    <>
+        {!embedded && <>
         <h1>Mission control</h1>
         <p className="mc-lede">
           The agents of one recorded run, working as a team. Only the verifier (GnuCOBOL against the Java, on the same inputs)
@@ -68,8 +58,10 @@ export default function MissionControl() {
         </p>
         <LiveSamples />
         <AskPanel />
-        <h2 className="mc-replay-h">Replay of a recorded run</h2>
-        <p className="mc-note">Everything below this line is a replay of a run that was recorded earlier. It is not live and calls no model.</p>
+        </>}
+        {embedded && <p className="mc-note">Looking for the live buttons (convert a sample, read a printout, ask by voice)? They are on <a href="/try">Try it live</a>. Only the verifier (GnuCOBOL against the Java, on the same inputs) can certify anything; the models propose.</p>}
+        {!embedded && <h2 className="mc-replay-h">Replay of a recorded run</h2>}
+        {!embedded && <p className="mc-note">Everything below this line is a replay of a run that was recorded earlier. It is not live and calls no model.</p>}
         {failed && (
           <section className="panel mc-empty" role="alert">
             <h2>The engine could not be reached</h2>
@@ -83,7 +75,21 @@ export default function MissionControl() {
         )}
         {notFound && <p className="mc-note mc-notfound" role="status">Run <code>{notFound}</code> was not found (or has no breaker, cross-check or tier data), so the newest run that has is shown.</p>}
         {run && <Replay key={run.id} run={run} options={options} pick={(id) => { setRunId(id); window.history.replaceState(null, "", `?run=${encodeURIComponent(id)}`); }} />}
-      </main>
+    </>
+  );
+  if (embedded) return <div className="mc-embedded">{body}</div>;
+  return (
+    <div className="mc-page">
+      <header className="mc-top">
+        <a href="/" aria-label="Diocle home"><Brand /></a>
+        <nav aria-label="Main navigation" className="mc-nav">
+          <a href="/">Home</a>
+          <a href="/try">Try it live</a>
+          <a href="/runs">Run history</a>
+          <a href="/evidence">Evidence</a>
+        </nav>
+      </header>
+      <main className="mc-main">{body}</main>
     </div>
   );
 }
