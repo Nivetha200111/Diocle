@@ -50,7 +50,7 @@ translator prompt and verifier were later fixed in response to other findings, a
   (`MODEL_TIER_*` empty), no escalation. Default caps (60 calls/run, 20/round, 3 rounds, 3 attack rounds, 1 breaker cycle).
 - Guard: **policy only** (`GUARD_MODEL_API_KEY` empty, so the guard model review does not run).
 - Fix memory: **off** (`--no-memory`); it is neither read nor written.
-- Verifier: this repository at the base commit `1b17381`; GnuCOBOL 3.2 `-std=ibm`-style settings as the verifier sets them, JDK 21.
+- Verifier: this repository at the base commit `9d0033e`; GnuCOBOL 3.2 `-std=ibm`-style settings as the verifier sets them, JDK 21.
 
 ## Metrics
 **(a) First try, "Muse Spark alone".** For each program, K = 3 independent first translations. A first translation is
@@ -166,5 +166,5 @@ What this does and does not show:
    certified after one repair round and 21 model calls.
 3. **Sharding.** To save time the work ran in three parallel shards and was merged (`--shard I/N`, `--merge`); this does
    not change what each unit did.
-4. **Base commit.** The plan named base commit `1b17381`; the units ran in a worktree at that commit plus the eval scripts in this branch. Later changes to `main` (keyed files, mutation testing, minimization, voice question) are not in the measured code.
+4. **Base commit.** The plan named base commit `9d0033e`; the units ran in a worktree at that commit plus the eval scripts in this branch. Later changes to `main` (keyed files, mutation testing, minimization, voice question) are not in the measured code.
 5. **No re-runs for a better result.** Apart from item 2, no unit was repeated.

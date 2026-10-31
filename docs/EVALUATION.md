@@ -37,7 +37,7 @@ that aggregates (BRNCHSUM) or fans out (LOANAMRT) writes a different number of r
 output was reported as "extra output record" or "no original output record". The same review found that numeric
 fields were compared by value, so `+00` and `-00` counted as equal.
 
-The comparator now compares the whole output sequence by position, byte for byte (commit `d08064e`). Checking the
+The comparator now compares the whole output sequence by position, byte for byte (commit `3837795`). Checking the
 **final Java each run left behind** with the corrected comparator, on fresh seeds, no model involved:
 
 | Program | Seed 9001 | Seed 9002 | stdout | exit code |
@@ -58,7 +58,7 @@ The stricter byte comparison also found a real defect in earlier work: the INTAC
 writes `+000000000` on about 3% of inputs. See the README's correction.
 
 ## Re-run with the corrected verifier (tag `eval-freeze-2`, memory off)
-The same four programs, the same protocol, run again after the comparator fix (`eval-freeze-2`, commit `3bcccfb`),
+The same four programs, the same protocol, run again after the comparator fix (`eval-freeze-2`, commit `e346847`),
 with fix memory **off** (a cold start: the first run had taught memory a lesson from CHQCLR, an evaluation program).
 Raw results: [`eval/results-eval-freeze-2.json`](../eval/results-eval-freeze-2.json).
 
