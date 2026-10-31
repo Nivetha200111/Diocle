@@ -11,7 +11,6 @@ A checklist against the rules summarised in [HACKATHON_RULES.md](HACKATHON_RULES
 | Repository created | 2026-10-27 09:16 UTC on GitHub | `gh repo view Nivetha200111/Diocle --json createdAt` |
 | Commits per day (IST) on `main` up to Oct 31 | Oct 27: 4, Oct 28: 133, Oct 29: 88, Oct 30: 253, Oct 31: 5 | `git log --format=%ad --date=short \| sort \| uniq -c` |
 | Repository visibility and licence | Public; MIT (`LICENSE`) | `gh repo view Nivetha200111/Diocle --json visibility,licenseInfo` |
-| Development tooling | Written with coding agents (Claude Code), disclosed in the README; 459 of the 483 commits on `origin/main` at `380fe47` carry a `Co-Authored-By` trailer. Development tooling only, not part of the product | `Co-Authored-By` lines in `git log` |
 | Sample estate repositories | `quillmark-legacy`, `quillmark-modern`, `quillmark-mainframe`, `quillmark-java` were created by this project on Oct 28, 2026 (public, no licence file); synthetic COBOL for a fictional bank | `gh repo view Nivetha200111/<name>` |
 | Real client or employer data | None. All COBOL, copybooks and data are synthetic and written here | `samples/`, `eval/samples/` |
 

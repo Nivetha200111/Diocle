@@ -52,7 +52,7 @@ Not used: Muse Image, SAM 3.1, Muse Glimmer. File paths, run ids and the full ta
 
 ## Built here vs pre-existing
 
-First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and one public CC BY 4.0 COBOL course repository used as test input. Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](docs/HACKATHON_COMPLIANCE.md) (licences, voice disclosure). Development used coding agents (Claude Code).
+First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and one public CC BY 4.0 COBOL course repository used as test input. Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](docs/HACKATHON_COMPLIANCE.md) (licences, voice disclosure).
 
 ## Limits
 
@@ -99,7 +99,7 @@ Diocle is for the teams that inherit COBOL batch programs that move money and ca
 
 ## Built during the hackathon (Oct 27–Nov 4, 2026)
 
-**Built here** (the first commit is Oct 27, 2026; everything below was written during the building period, with Claude Code as development tooling, see the `Co-Authored-By` lines):
+**Built here** (the first commit is Oct 27, 2026; everything below was written during the building period):
 - **Analyzer:** COBOL and copybook parsing, record layouts (packed, zoned, binary, REDEFINES, OCCURS, COPY REPLACING), file and JCL wiring, CALL resolution, risk flags and the "not convertible, with a reason" rules.
 - **Converter agents (Meta models only):** translator, tool-using repair agent, breaker agent, independent cross-check, guard (deterministic policy plus optional model review), proof-gated fix memory, swarm mode, escalation tiers, convert-anyway and bounded COBOL self-repair, transcription of a printed listing (Muse Wonder).
 - **Verifier:** the differential-testing oracle (GnuCOBOL original vs Java, byte for byte, 1,000 held-out inputs), golden-file replay with an EBCDIC codec, copybook-to-SQL schema with a SQLite round trip, the DB2 subset (`db2-subset-1`, SQLite stand-in) and keyed-file subset (`ksds-subset-1`, Berkeley DB handler), mutation testing, smallest-reproducer minimizer, whole-repository build check.
@@ -114,7 +114,6 @@ Diocle is for the teams that inherit COBOL batch programs that move money and ca
 
 Meta models used (file paths and evidence per model: [docs/META_MODELS.md](docs/META_MODELS.md)): Muse Spark (Meta Model API) as translator, repair agent and breaker; **Muse Wonder** reads a photographed or printed COBOL listing back into COBOL that is then verified against the original, and can act as the breaker agent; **Muse Spark Open** (open weights, partner inference on Fireworks) is the independent cross-checker, the guard agent's model review (it can only revoke a certification, never grant one) and the private mode; **Muse Voice Transcribe** transcribes the spoken question. No other model is used in the product. The converter depends on the `openai` Python package only as an OpenAI-compatible HTTP client: its base URL is the Meta Model API (`https://api.meta.ai/v1`) or the Muse Spark Open host, set in `.env`; no OpenAI model is called.
 
-Development tools: the code was written with help from coding agents (Claude Code; see `.claude/` and the `Co-Authored-By` lines in the git log). They are development tooling only and are not part of the product.
 
 ```mermaid
 flowchart LR

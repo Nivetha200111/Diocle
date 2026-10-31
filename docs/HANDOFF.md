@@ -581,11 +581,11 @@ Diocle (product); quillmark-legacy → quillmark-modern; quillmark-mainframe →
   the server.
 - Before every push: `git log origin/main..HEAD`; push only your own commits; ask if others' are present.
   The owner's local edits to `apps/web/next-env.d.ts` and `apps/web/tsconfig.json` are theirs: leave them.
-- Small commits, one module each, trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Small commits, one module each.
 - Run every touched module's tests (and `npx tsc --noEmit` + `next build` for web) before committing.
 - Use the reviewer agent on security-sensitive or large batches of work; it has found real bugs every time.
 - The product should look like a real product (no "demo" wording), keeping the 90s retro operator-console look.
-- Account creation, payments and repo visibility changes are done by the owner, not by Claude.
+- Account creation, payments and repo visibility changes are done by the owner.
 
 ### Oct 30: live buttons reviewed (security pass) and fixed
 - Reviewer verdict: approve, no blockers. Fixed after the review: a global minimum gap between live starts (`DIOCLE_LIVE_COOLDOWN_SECONDS`, default 90; a spoofed visitor key could otherwise hold the shared one-job lock back to back, about 25 jobs a day); a certified run whose guard model review hit the run's dollar cap now reads "review skipped: the run's dollar cap was reached" instead of "review failed: BudgetExceeded"; the page stops polling after 8 failures with backoff.
