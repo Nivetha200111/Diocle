@@ -729,10 +729,12 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
   const [busyId, setBusyId] = useState<string | null>(null);
   useEffect(() => {
     let stop = false;
-    const poll = () => fetchSamplesStatus().then((st) => { if (!stop) setBusyId(st?.busy ?? null); }).catch(() => undefined);
+    // Every 15 s, and not at all while the tab is hidden: each call goes through the /api rewrite to the engine.
+    const poll = () => { if (!document.hidden) fetchSamplesStatus().then((st) => { if (!stop) setBusyId(st?.busy ?? null); }).catch(() => undefined); };
     poll();
-    const t = setInterval(poll, 5000);
-    return () => { stop = true; clearInterval(t); };
+    const t = setInterval(poll, 15000);
+    document.addEventListener("visibilitychange", poll);
+    return () => { stop = true; clearInterval(t); document.removeEventListener("visibilitychange", poll); };
   }, []);
   const [migrations, setMigrations] = useState<Migration[]>(initialMigrations);
   const [modal, setModal] = useState<

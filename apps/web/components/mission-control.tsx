@@ -65,7 +65,7 @@ export default function MissionControl({ embedded = false }: { embedded?: boolea
         {failed && (
           <section className="panel mc-empty" role="alert">
             <h2>The engine could not be reached</h2>
-            <p>Mission control replays runs stored on the Diocle engine and has nothing to show without them. No sample is faked in its place. Try again later, or read the recorded runs in the repository docs.</p>
+            <p>{embedded ? "Agent replay" : "Mission control"} replays runs stored on the Diocle engine and has nothing to show without them. No sample is faked in its place. Try again later, or read the recorded runs in the repository docs.</p>
           </section>
         )}
         {!failed && !list && <p className="mc-note" role="status">Loading recorded runs…</p>}
