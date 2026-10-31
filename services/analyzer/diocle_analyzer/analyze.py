@@ -12,6 +12,7 @@ import re
 
 from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
 from .risks import find_risks
+from .standins import stand_ins_used
 from .keyed import SUBSET_VERSION as KEYED_SUBSET, key_problem
 from .sqlsubset import SUBSET_VERSION, SqlFacts, analyze_sql, parse_ddl
 
@@ -138,6 +139,7 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
             })
         sql = analyze_sql(text, sql_members, ddl_tables) if "SQL" in info.exec_blocks else None
         reason = _not_convertible(files, info.copybooks, copybooks, info, program_ids, sql)
+        stand_ins = stand_ins_used(info.calls + [c for m in modules for c in parsed[root / m].calls], program_ids)
         includes = sql.includes if sql else []
         programs.append({
             "name": info.name,
@@ -148,6 +150,7 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
             "modules": modules,
             "job": step.member if step else None,
             **({"resolvedCalls": info.resolved_calls} if info.resolved_calls else {}),
+            **({"standIns": stand_ins} if stand_ins else {}),
             **({"sql": sql.as_dict()} if sql else {}),
             "files": [{k: v for k, v in f.items() if k != "unsupported"} for f in files],
             **({"displayOnly": True} if _display_only(reason, files) and info.stdout_display else {}),
@@ -293,7 +296,7 @@ def _not_convertible(files: list[dict], used: list[str], available: dict[str, Pa
                     + (sql.refusal if sql else "not understood"))
     if info.dynamic_calls:
         return f"dynamic CALL through {', '.join(info.dynamic_calls)}: the called program is only known at run time"
-    unknown = [c for c in info.calls if c not in program_ids]
+    unknown = [c for c in info.calls if c not in program_ids and not stand_ins_used([c], program_ids)]
     if unknown:
         return f"CALLs program(s) not in the repository: {', '.join(unknown)}"
     for name in info.keyed:
@@ -473,6 +476,7 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                            for f in inputs + updated + outputs],
                  **shared_keys(inputs)}),
         **({"displayOnly": True} if program.get("displayOnly") else {}),
+        **({"standIns": program["standIns"]} if program.get("standIns") else {}),
         **({"sql": _sample_sql(program, inputs)} if program.get("sql") else {}),
         **({"ksds": _sample_ksds(program, inputs)} if any(f.get("keyed") for f in program["files"]) else {}),
         "import": {"repository": report["source"]["location"], "commit": report["source"].get("commit"),

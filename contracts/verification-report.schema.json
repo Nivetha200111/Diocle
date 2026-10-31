@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "v0.10 (additive): programs with keyed (INDEXED) files in the verified subset ksds-subset-1 also run on identically seeded keyed files, one per side, and the final contents of every keyed file are compared record by record in key order: runs.keyed, and one result per keyed file (outputDd `keyed:DD`, inputSource `keyed`). The claim is equivalence on GnuCOBOL's INDEXED file handler (Berkeley DB) for the subset, never IBM VSAM. v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
+  "description": "v0.11 (additive): `runs.standIns`, the runtime routines (CEE3ABD, abnormal termination) the original was linked with Diocle's stated stand-in for; the claim is equivalence on GnuCOBOL with that stand-in (exit code 16 at the CALL, output so far kept), never IBM Language Environment. v0.10 (additive): programs with keyed (INDEXED) files in the verified subset ksds-subset-1 also run on identically seeded keyed files, one per side, and the final contents of every keyed file are compared record by record in key order: runs.keyed, and one result per keyed file (outputDd `keyed:DD`, inputSource `keyed`). The claim is equivalence on GnuCOBOL's INDEXED file handler (Berkeley DB) for the subset, never IBM VSAM. v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
   "type": "object",
   "required": [
     "version",
@@ -306,6 +306,20 @@
         },
         "stdoutMatch": {
           "type": "boolean"
+        },
+        "standIns": {
+          "type": "array",
+          "description": "Additive (v0.11). Runtime routines the original was built with Diocle's own stated stand-in for (linked because the program calls them and no source defines them). The equivalence claim is against GnuCOBOL with these stand-ins, never IBM Language Environment. Absent when none.",
+          "items": {
+            "type": "object",
+            "required": ["routine", "exitCode", "note"],
+            "properties": {
+              "routine": { "type": "string", "enum": ["CEE3ABD"] },
+              "exitCode": { "type": "integer", "description": "The exit code the stand-in ends the run with (CEE3ABD: 16)." },
+              "note": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
         },
         "stdoutCompared": {
           "type": "boolean",

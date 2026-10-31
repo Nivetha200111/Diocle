@@ -131,6 +131,7 @@ class RepairAgent:
             {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
              + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
              + (f"{self.program.support_text()}\n\n" if (self.program.sql or self.program.ksds) else "")
+             + (f"{self.program.stand_in_text().strip()}\n\n" if self.program.stand_ins else "")
              + f"Current Java workspace:\n{java}\n\nCurrent differential test result:\n{initial}"},
         ]
         return self._rounds(self.client.settings.max_rounds)

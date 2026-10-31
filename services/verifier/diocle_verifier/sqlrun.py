@@ -7,7 +7,7 @@ import re
 import shutil
 from pathlib import Path
 
-from .runners import IBM_FLAGS, Run, _exec
+from .runners import IBM_FLAGS, Run, _exec, _stand_ins
 from .sqlpre import SUPPORT, PrecompileError, precompile
 
 JDBC_NAMES = ("sqlite-jdbc.jar",)
@@ -41,7 +41,7 @@ def build_cobol_sql(source: Path, copybook_dir: Path, workdir: Path, tables: lis
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
     build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe),
                    str(src / "program.cob"), str(src / "dio_stmts.c"), str(src / "dioshim.c"),
-                   *(str(m) for m in modules or []), "-lsqlite3"], timeout=timeout)
+                   *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir), "-lsqlite3"], timeout=timeout)
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
     return [str(exe)], None
