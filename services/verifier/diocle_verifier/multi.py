@@ -17,6 +17,7 @@ from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import Field, format_record, load_fields, parse_record, record_format, record_length
 from .runners import CLOCK, Run, build_cobol, build_java, read_records, run_files, write_records
+from .standin import stand_ins_run
 
 
 def file_specs(meta: dict) -> list[dict]:
@@ -221,6 +222,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             **({"stdoutCompared": True} if stdout_only else {}),
             **({"database": db_report} if db_report else {}),
             **({"keyed": keyed_report} if keyed_report else {}),
+            **stand_ins_run(sample_dir, meta),
             "files": {"inputs": {s["dd"]: len(data[s["dd"]]) for s in inputs},
                       **({"updated": {s["dd"]: {"seeded": len(data[s["dd"]]),
                                                 "original": len(original.output_files.get(s["dd"], [])),
