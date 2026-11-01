@@ -102,6 +102,11 @@ export function originalWroteNothing(v: Verification): boolean {
   return v.passed === 0 && v.failingExamples.some((e) => /original program wrote 0 records/.test(e.diff));
 }
 
+/** "1 program", "3 programs". */
+export function plural(n: number, word: string): string {
+  return `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+}
+
 export function caseCount(v: { passed: number; total: number }): string {
   return v.total > 0 ? `${v.passed.toLocaleString()}/${v.total.toLocaleString()}` : "none compared";
 }
