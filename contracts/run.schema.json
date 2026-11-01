@@ -582,6 +582,11 @@
         "stdoutMatch": {
           "type": "boolean"
         },
+        "standIns": {
+          "type": "array",
+          "description": "Additive. Copied from verification-report.json runs.standIns: runtime routines the original was linked with Diocle's stated stand-in for.",
+          "items": { "type": "object" }
+        },
         "database": {
           "type": "object",
           "description": "Additive (v0.15). Copied unchanged from verification-report.json runs.database (verification-report v0.9; shape defined there). Present only for programs verified against a database.",
