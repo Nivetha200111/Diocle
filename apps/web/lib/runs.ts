@@ -123,7 +123,7 @@ export function countTile(v: Verification | null | undefined, opts: { error?: st
   const pct = Math.round((v.passed / v.total) * 1000) / 10;
   return {
     value: `${pct}%`,
-    note: `${caseCount(v)} ${opts.heldOut ? "cases the agent never saw" : "cases matched"}`
+    note: `${caseCount(v)} ${opts.heldOut ? "output records, inputs the agent never saw" : "output records matched"}`
       + (originalWroteNothing(v) ? " · the original COBOL wrote no records" : "")
       + (v.stdoutMatch ? "" : " · stdout differs"),
   };

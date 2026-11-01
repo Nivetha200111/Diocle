@@ -42,6 +42,21 @@ No delivery, no repository creation, no admin endpoint and no upload was used.
 | 29 | Engine is the latest code | SSH `git log -1` on `/opt/diocle` | 22:20 | pass | `e93f2f7`, 2026-10-30 21:19 IST |
 | 30 | VS Code extension, Notepad++ script, MCP server | local tools | | not checked | not part of the live site |
 
+## Addendum: judge path re-walked Nov 1, 2026, 19:00 to 20:00 IST (read this for current state; the table above is the Oct 30 check)
+
+Against the live site and engine, and a local build of branch `release-candidate` pointed at the live engine, in real Chromium at 1366x800 and 390x844 (Playwright; the Chrome extension was not available).
+
+| Check | Result | Notes |
+|---|---|---|
+| Live routes `/`, `/evidence`, `/try`, `/runs`, `/bugs`, `/now`, `/delivery`, `/mission` | 200 | No horizontal page overflow at either width; no console errors or page errors on the walked pages |
+| `POST /api/runs/chqclr-20261028-214355/reverify`, API and "Try the sample" button | pass | 1,004 of 1,004 output records, new seeds each time, about 1.9 s, no model |
+| Public ask, clip `fee-overdrawn` | pass | Transcript exact; answer from claims GnuCOBOL confirmed; about 24 s |
+| Public ask, clip `waiver-tenure` | **pass with a defect** | Transcript "It's a free wave for an account with a tenure" (spoken: "Is the fee waived for an account with a ten-year tenure?"). The claims and answer were still about the waiver and confirmed by GnuCOBOL. Re-record suggested. The two asks cost $0.0016 and $0.0015 at list and estimated prices, $0.0031 in all, within the $0.01-per-ask cap |
+| Public budget | ok | $1.19 of the $2.00 daily pool before the asks, caps as published |
+| `sh scripts/quickstart.sh --no-key` | pass | 1,027 of 1,027. It re-checks stored Java; no model conversion happens |
+
+Not re-checked: live buttons "Convert a sample" and "Read a printout" (they spend the public pool and were not needed), deliveries, the engine with the fixed generator (not deployed yet; `release-candidate` changes verifier, certificate and PR text as well as web copy).
+
 ## Summary
 
 - **Pass: 25** (rows 1 to 13, 15, 16 and 20 to 29; row 12 passes for the route only).

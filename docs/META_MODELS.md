@@ -4,6 +4,12 @@ Every model call in the product goes to a Meta model: Muse Spark through the Met
 
 Counts below are from the public run list (`GET https://diocle.vercel.app/api/runs`, read Oct 31, 2026: 36 runs; 34 on Muse Spark, 1 on Muse Spark Open, 1 with no model recorded). Costs are estimates from list prices.
 
+## Who decides what
+
+Translator writes Java. Repair agent uses tools to address mismatches the comparison observed. Breaker designs targeted inputs after the ordinary check passes. Deterministic execution (GnuCOBOL and the JVM, byte comparison) decides whether outputs match; no model does. Not every run uses every model or agent: each run page lists its logged calls. Roles below with thin evidence (cross-check, guard review) are not counted as established reliability improvements.
+
+**One concrete input that changed an outcome:** in run `chqclr-20261028-214355`, Muse Spark as breaker designed `RACCT00000200000008NS 1000YYYYYYYYYYYYYY`, giving the reason "Fee with leading space is zero in Java but may be nonzero in COBOL." Run through both: COBOL on GnuCOBOL fee `20.00`, Java `0.00`. Certification was withdrawn until the repair agent fixed it. The record is malformed; see [SHOWCASE_CHQCLR.md](SHOWCASE_CHQCLR.md).
+
 ## Models used
 
 | Model (ID) | Role in Diocle | Where in the code | Evidence | Evidence strength |

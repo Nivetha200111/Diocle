@@ -23,7 +23,7 @@
 
 **2 of 4 certified, for about $0.31 in total.**
 
-CHQCLR is the clearest case for the breaker: the Java had passed 1,000 held-out inputs, then two designed records
+(Nov 1 note: CHQCLR's held-out records then had zero amounts, a generator gap since fixed, and the two breaking records are malformed: [SHOWCASE_CHQCLR.md](SHOWCASE_CHQCLR.md).) CHQCLR is the clearest case for the breaker: the Java had passed 1,000 held-out inputs, then two designed records
 broke it (fee 20.00 vs 0.00; debit -121.23 vs 0.00). The repair agent fixed both and the program re-certified.
 Both records carry malformed numeric content (a leading space; letters in a numeric field), so this shows the
 Java now agrees with **GnuCOBOL's** handling of bad data, not that it matches IBM Enterprise COBOL.

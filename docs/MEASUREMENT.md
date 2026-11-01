@@ -5,7 +5,8 @@
 
 ## Summary (read this first; details and caveats below)
 
-- **Lead finding: 4 of 10 attackable translations that passed 1,000 held-out inputs were still wrong when attacked** (n = 10 programs, one fresh translation each; the breaker agent's designed inputs, each checked against GnuCOBOL). Programs: CHQCLR, DAYCTRL, INTACCR, TXNPOST.
+- **Lead finding: 4 of 10 attackable translations that passed 1,000 held-out inputs then differed from the original when attacked** (n = 10 programs, one fresh translation each; the breaker agent's designed inputs, each checked against GnuCOBOL). Programs: CHQCLR, DAYCTRL, INTACCR, TXNPOST.
+- **Read with the Nov 1 review below ("Review of the headline, Nov 1"):** what kind of differences these are, what "1,000 inputs" counts, and a weakness in CHQCLR's generated records. The results below are as recorded; nothing has been re-run or changed.
 - **Context, with its denominators.** First translations passed 1,000 held-out inputs in **37 of 45 attempts** (82%; this counts attempts: 3 per program x 15 programs). **All 15 programs passed at least once in three tries** (this counts programs). Full Diocle runs certified **14 of 15 programs** (this counts programs, one run each). 37/45 counts attempts and 14/15 counts programs, so they are not an apples-to-apples "model alone vs Diocle" comparison; by program, at least one first try passed for every program. The attack arm is a separate sample of fresh translations: do not merge it with the others.
 - **CHQCLR was not certified in the controlled run** (breaker broke 12 of 24; one repair cycle did not fix it within the caps).
 - **CHQCLR, certified or not?** Both statements are true and come from different runs with different settings. The live site shows CHQCLR as certified from its Oct 28 frozen-evaluation run (fix memory on, 8 earlier lessons used): the breaker broke 2 of 24 designed inputs, the repair agent fixed them, and it re-certified on 1,006 fresh inputs (run `chqclr-20261028-214355`). In the Oct 30 controlled measurement (fix memory off, policy-only guard, default caps; run `chqclr-20261030-163002`) the breaker broke 12 of 24 and one repair cycle did not fix it within the caps, so that run is not certified. In the memory-off re-run of the frozen evaluation (`eval-freeze-2`, run `chqclr-20261028-234854`) CHQCLR was certified after the breaker broke 6 inputs and the repair agent fixed them. We did not isolate which setting mattered; three runs of one program do not make a rate.
@@ -168,3 +169,24 @@ What this does and does not show:
    not change what each unit did.
 4. **Base commit.** The plan named base commit `9d0033e`; the units ran in a worktree at that commit plus the eval scripts in this branch. Later changes to `main` (keyed files, mutation testing, minimization, voice question) are not in the measured code.
 5. **No re-runs for a better result.** Apart from item 2, no unit was repeated.
+
+## Review of the headline, Nov 1, 2026 (appended; the results above are unchanged)
+
+An audit of the raw artifacts behind the headline, with no new model call. The attack arm's files store each program's counts and the breaker's stated reason for its first break, not the breaking records, so its causes below are the model's stated reasons, consistent with the records stored in the main arm's and other runs of the same programs.
+
+**What the four differences are.**
+
+| Program | Breaker's stated reason for the first break (attack arm) | Kind | Same value? |
+|---|---|---|---|
+| CHQCLR | "Embedded dot in CQ-AMOUNT is mapped to 0 by Java but parsed differently by COBOL DISPLAY numeric." | Malformed numeric field; the result is GnuCOBOL's handling of bad data | No: amounts differ |
+| INTACCR | "Interest of exactly -10000000 overflows to negative-zero." | Well-formed but extreme input, exact overflow boundary | Yes: same value, different sign byte |
+| DAYCTRL | "Exact -10000000.00 interest overflows to zero, Java loses negative sign but COBOL preserves it." | Same | Yes |
+| TXNPOST | "Fee result -1000000000.00 overflows S9(9)V99 to -0 in COBOL but Java fit returns +0." | Same | Yes |
+
+Across all stored runs, local and live, there are 40 distinct breaker counterexamples: 26 on malformed numeric fields (25 CHQCLR, 1 HTDORMSW) and 14 negative zero (INTACCR 9, DAYCTRL 2, TXNPOST 2, PKDPOST 1). **None is a wrong amount on a well-formed record.** So "still wrong" meant "differs byte for byte from the original under GnuCOBOL". Value errors on well-formed records exist in first translations (INTACCR's balance 369589314.78 vs 9589314.78; TXNPOST's charge 15.00 vs 13.34) and the ordinary checks catch those.
+
+**What "1,000 held-out inputs" counts.** One check is one run of each program on one generated file: the requested 1,000 random records plus layout boundaries and fixtures. `heldOutTotal` counts output records compared, 766 to 2,031 here, and 1 for the display-only TXNLIST. It is not 1,000 independent tests.
+
+**CHQCLR's held-out check was weak.** Its record is a type byte plus a 39-byte body shared by two REDEFINES views. The generator filled that body with a placeholder, so all 1,004 records had zero amounts and fees and gave 3 to 5 distinct output records; every other program's output records are varied. CHQCLR's 3 of 3 first-try passes and its place in the 10 passed therefore say little about its arithmetic, and the Java from those trials was not stored, so this cannot be re-run. The generator was fixed on Nov 1 (commit "Verifier: generated records fill a REDEFINES body"). The stored Java from the Oct 28 runs and from this measurement's not-certified run all matched on 1,000 well-formed records with real values ([SHOWCASE_CHQCLR.md](SHOWCASE_CHQCLR.md)), so in that run the remaining disagreement is on malformed data.
+
+**The headline is kept, with this scope:** 4 of 10 is what was recorded, and it still shows that passing a large generated check did not surface these differences. Dropping CHQCLR for its weak check would give 3 of 9, all negative zero; both are stated rather than choosing one.

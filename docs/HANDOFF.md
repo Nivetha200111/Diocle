@@ -9,7 +9,29 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The submitted video,
 > v12 (https://youtu.be/EsKndaZ6d2E), uses only the owner's own recorded voice; no synthetic voice is in it.
 
-## START HERE: Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST)
+## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)
+
+**Branch `release-candidate`, on top of `785bf3f`, NOT pushed and NOT deployed until the owner says so.** Pushing to `main` deploys the site; the verifier change also needs `deploy/update-engine.sh` from the Mac.
+
+**What it changes** (fixes, wording and evidence only; feature lock respected):
+- **CI fix.** The bundled-clip test in `services/converter/tests/test_ask.py` kept a 100 KB / 4 s limit from the old synthetic clips (`dca3d7d` moved only the API copy). It now judges the two named clips by `validate_wav`, wholeness and audibility, and fails on a missing, stray, truncated or silent clip. `main` is red on GitHub until this is pushed.
+- **Verifier fix.** The record generator fills a REDEFINES body through its views on the single-file path. Before, CHQCLR's "1,004 inputs" had zero amounts. Layouts without such a body get byte-identical records.
+- **Reports.** certificate `scope` and PR "What this shows" (GnuCOBOL not IBM, stand-ins, attack and guard status), run `verification.standIns`, and a run-page table of which checks ran. A skipped check says so.
+- **Copy.** Home, Evidence, Bug wall, README, MEASUREMENT (dated review appended; recorded results unchanged). "Still wrong", "proves" and "wrong cent" replaced by what was measured.
+- **New docs.** `SHOWCASE_CHQCLR.md`, `EVALUATION_PACKET.md`, `SUBMISSION_TEXT.md`; `eval/audit_chqclr.py` and its results; `demo/candidate-v13/`.
+
+**Findings to keep in mind when writing anything:**
+- All 40 distinct stored breaks are malformed numeric data (26) or negative zero at overflow (14). None is a wrong amount on a well-formed record. Do not write "wrong cent" about the breaker.
+- A count like 1,004 is output records from one run of each program on one generated file.
+- The showcased certified CHQCLR Java still differs on a malformed blank return (`R` + 39 spaces).
+- The bundled clip `waiver-tenure.wav` mistranscribes on the real speech model; `fee-overdrawn.wav` is exact. Re-record if convenient.
+- This Mac has JDK 27 and no JDK 21; local suites ran on it, CI runs JDK 21.
+
+**Video.** Submitted v12 is unchanged. Candidate: `~/Downloads/diocle-candidate-v13.mp4` (172.3 s), edit list and optional pickups in `demo/candidate-v13/README.md`. The owner chooses; if v13 is used, upload it and update README line 1.
+
+**Owner decisions:** push to `main` (then wait for CI on that exact commit); deploy the engine; pick the video; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
+
+## Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST; superseded where the section above differs)
 
 The owner continues on Windows, without the Mac (no GnuCOBOL, JDK 21, SSH key, video sources or local Claude memory there). This section is the whole context a new session needs; the dated sections below are history.
 

@@ -112,7 +112,7 @@ const descriptions: Record<View, string> = {
   Conversions: "COBOL next to its Java, copybooks next to their SQL tables.",
   Verification: "Original and converted program run on the same inputs; every output field compared.",
   Reports: "Per-migration summaries you can download as JSON.",
-  "Live runs": "Every recorded run: what broke, what the agents did, and the proof. Pick one to see its trace and re-verify it.",
+  "Live runs": "Every recorded run: what broke, what the agents did, and the evidence. Pick one to see its trace and re-verify it.",
   "Try it live": "Real Meta model calls on fixed, bundled synthetic samples, capped in dollars. Each one runs once, live, and is checked by GnuCOBOL.",
   "Current run": "Whatever the engine is doing right now: an import, a live button, or a spoken question.",
   "Agent replay": "One recorded run replayed step by step: the six roles working as a team. Nothing here is live and no model is called.",

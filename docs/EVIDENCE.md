@@ -51,7 +51,7 @@ Full offline suites, run with `sh scripts/test.sh` from a clean clone of `main` 
 ## Unseen programs (frozen evaluation)
 [docs/EVALUATION.md](EVALUATION.md): first run 2 of 4 certified (the old comparator rejected aggregation and
 fan-out); re-run with the corrected verifier and fix memory off: **4 of 4 certified, about $0.11**, each passing
-five fresh seeds. CHQCLR is where the breaker agent broke code that had passed 1,000 held-out inputs.
+five fresh seeds. CHQCLR is where the breaker agent made code differ that had matched on 1,000 held-out generated records (on malformed numeric fields; its held-out records were weak for this program: [SHOWCASE_CHQCLR.md](SHOWCASE_CHQCLR.md)).
 
 **CHQCLR, certified or not?** Both statements are true and come from different runs with different settings. The live site shows CHQCLR as certified from its Oct 28 frozen-evaluation run (fix memory on, 8 earlier lessons used): the breaker broke 2 of 24 designed inputs, the repair agent fixed them, and it re-certified on 1,006 fresh inputs (run `chqclr-20261028-214355`). In the Oct 30 controlled measurement (fix memory off, policy-only guard, default caps; run `chqclr-20261030-163002`) the breaker broke 12 of 24 and one repair cycle did not fix it within the caps, so that run is not certified. In the memory-off re-run of the frozen evaluation (`eval-freeze-2`, run `chqclr-20261028-234854`) CHQCLR was certified after the breaker broke 6 inputs and the repair agent fixed them. We did not isolate which setting mattered; three runs of one program do not make a rate.
 
