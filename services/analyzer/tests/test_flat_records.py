@@ -173,3 +173,20 @@ def test_sources_docs_and_non_ascii_files_are_never_data(tmp_path):
     layout = next(f for f in p["files"] if f["direction"] == "input")["layout"]
     used = {c["why"].split(" of ")[1].split(" in ")[0] for c in repo_fixtures(tmp_path, layout)}
     assert used == {"seq/members.dat"}
+
+
+def test_nested_copybooks_travel_with_the_program(tmp_path):
+    out_dir, tmp_path = tmp_path / "out", tmp_path / "repo"
+    tmp_path.mkdir()
+    text = FLAT.replace("       WORKING-STORAGE SECTION.\n", "       WORKING-STORAGE SECTION.\n       COPY NESTA.\n")
+    (tmp_path / "FLATP.cbl").write_text(text)
+    (tmp_path / "NESTA.cpy").write_text("       COPY NESTB.\n")
+    (tmp_path / "NESTB.cpy").write_text("       01  WS-B PIC X.\n")
+    report = analyze(tmp_path)
+    p = next(p for p in report["programs"] if p["name"] == "FLATP")
+    assert p["copybooks"] == ["NESTA", "NESTB"] and p["convertible"]
+    sample = write_sample(tmp_path, report, p, out_dir)
+    assert sorted(f.name for f in (sample / "copybooks").iterdir()) == ["NESTA.cpy", "NESTB.cpy"]
+    (tmp_path / "NESTB.cpy").unlink()
+    p = next(p for p in analyze(tmp_path)["programs"] if p["name"] == "FLATP")
+    assert not p["convertible"] and "NESTB" in p["notConvertibleReason"]
