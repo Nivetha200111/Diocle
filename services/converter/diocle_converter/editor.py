@@ -66,6 +66,14 @@ def _ibm_flags() -> list[str]:
         return ["-fbinary-truncate", "-fpretty-display"]
 
 
+def _format_flags(source: Path) -> list[str]:
+    try:
+        from diocle_verifier.runners import format_flags
+        return format_flags(source)
+    except ImportError:
+        return []
+
+
 def _search_dirs(source: Path, copybooks: list[str]) -> list[Path]:
     dirs = [source.parent, *(Path(c).resolve() for c in copybooks)]
     seen, out = set(), []
@@ -83,7 +91,7 @@ def check(path: str, copybooks: list[str]) -> dict:
     if not shutil.which("cobc"):
         return _fail("check", path, "GnuCOBOL (cobc) is not installed or not on PATH")
     with tempfile.TemporaryDirectory(prefix="diocle-editor-") as tmp:
-        cmd = ["cobc", "-x", "-std=ibm", *_ibm_flags(), *(a for d in _search_dirs(source.resolve(), copybooks) for a in ("-I", str(d))),
+        cmd = ["cobc", "-x", "-std=ibm", *_ibm_flags(), *_format_flags(source.resolve()), *(a for d in _search_dirs(source.resolve(), copybooks) for a in ("-I", str(d))),
                "-o", str(Path(tmp) / "out"), str(source.resolve())]
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=COMPILE_TIMEOUT, cwd=tmp, errors="replace")

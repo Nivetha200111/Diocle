@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -78,6 +79,20 @@ def _exec(cmd: list[str], *, env: dict[str, str] | None = None, cwd: Path | None
 # their PIC digits) and DISPLAY of binary items showing their PIC digits, not the full binary width.
 IBM_FLAGS = ["-fbinary-truncate", "-fpretty-display"]
 
+_FREE_DIRECTIVE = re.compile(r"^\s*(?:>>\s*SOURCE\s+(?:FORMAT\s+)?(?:IS\s+)?FREE|\$\s*SET\s+SOURCEFORMAT\s*\(?[\"']?FREE)", re.I)
+
+
+def format_flags(source: Path) -> list[str]:
+    """["-free"] when the source opens with >>SOURCE FORMAT FREE (or $SET SOURCEFORMAT"FREE"): -std=ibm reads fixed
+    format, where a directive in column 1 is sequence-area text and code past column 72 is cut off."""
+    try:
+        with source.open(errors="replace") as f:
+            first = next((line for line in f if line.strip()), "")
+    except OSError:
+        return []
+    return ["-free"] if _FREE_DIRECTIVE.match(first) else []
+
+
 # Both sides see the same "now": GnuCOBOL through COB_CURRENT_DATE, Java through DIOCLE_CLOCK (ISO-8601, UTC).
 CLOCK = "2000-02-29T13:45:10.00Z"
 CLOCK_ENV = {"COB_CURRENT_DATE": "2000/02/29 13:45:10.00", "DIOCLE_CLOCK": CLOCK, "TZ": "UTC"}
@@ -120,7 +135,7 @@ def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: 
     collation "ebcdic" compares and sorts alphanumeric data in mainframe (EBCDIC) order."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
+    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *format_flags(source), *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
                    *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir)])
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
@@ -144,7 +159,7 @@ def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[P
     """Compile once; returns (command to run, None) or (None, failed Run)."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
+    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *format_flags(source), *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
                    *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir)], timeout=timeout)
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
