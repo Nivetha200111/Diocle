@@ -8,19 +8,20 @@ Demo video (3 min): LINK_TO_BE_ADDED_BEFORE_SUBMISSION
 
 **AI writes the code. Diocle checks it against the original before anyone has to trust it.**
 
-Diocle is a verification layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark translates COBOL to Java and repairs it; the original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, exit code and display line must match, including on 1,000 held-out inputs the agent never saw. A model never certifies; the comparison does. Built for the Meta Global AI Developer Hackathon (Indie track). All programs and data are synthetic.
+Diocle is a verification layer for AI-written code where a wrong cent costs money, starting with COBOL batch programs. Meta's Muse Spark translates COBOL to Java and repairs it; the original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, exit code and display line must match, including on 1,000 held-out inputs the agent never saw. A model never certifies; the comparison does. Built for the Meta Global AI Developer Hackathon (Indie track, problem statement **Build for Your World**). All programs and data are synthetic.
 
 ## Why I built this
 
 I have worked on a COBOL modernization project at a global finance company. Reviewing the translated code by hand took so much effort that it drained the project's timeline. AI can now write the Java quickly, but someone still has to decide whether it is right, and a wrong cent repeats on every account (TSB's 2018 migration is the public example, see below). I built the check I wished that project had: run the original and the Java on the same inputs and compare every byte. No code or data from that work is in this repository; every program here is synthetic and written during the hackathon.
 
+**Who it's for.** The modernization lead or systems integrator moving a bank's, credit union's or payment operator's nightly COBOL batch (interest, fees, postings) to Java. **The pain:** proving the Java does what the COBOL did, today by hand review or sampling, which eats the timeline. **The risk:** a wrong cent that repeats on every account. Diocle replaces the review with a check anyone can re-run. More in [Who benefits](#who-benefits).
+
 ## The measured finding (15 synthetic programs, one model; [docs/MEASUREMENT.md](docs/MEASUREMENT.md))
 
-- **4 of 10 attackable translations that passed 1,000 held-out inputs were still wrong when attacked** (CHQCLR, DAYCTRL, INTACCR, TXNPOST; n = 10 programs, one fresh translation each, the breaker agent's inputs checked against GnuCOBOL). Passing the test is not the same as being right.
-- Context, with its denominators: Muse Spark's first translation passed 1,000 held-out inputs in **37 of 45 attempts** (82%; counts attempts, 3 per program x 15 programs), and **all 15 programs passed at least once in three tries** (counts programs). Full Diocle runs certified **14 of 15 programs** (counts programs, one run each). These count different things: read them as context, not as "model alone vs Diocle".
-- **CHQCLR was not certified in the controlled run** (fix memory off, policy-only guard, default caps), yet it shows as certified on the live site because of an earlier run with fix memory on: [CHQCLR: certified or not?](#chqclr-certified-or-not)
+- **4 of 10 translations that passed 1,000 held-out tests were still wrong.** Muse Spark's Java for CHQCLR, DAYCTRL, INTACCR and TXNPOST matched the original on 1,000 inputs it never saw; Diocle's breaker then designed inputs where each one's output differs from the original (checked against GnuCOBOL). A gate of 1,000 held-out tests would have shipped all four; Diocle certifies only Java that also survives the attack. (n = 10 attackable programs, one fresh translation each.)
+  - Context, with its denominators: Muse Spark's first translation passed 1,000 held-out inputs in **37 of 45 attempts** (82%; 3 per program x 15 programs), and **all 15 programs passed at least once in three tries**. Full Diocle runs certified **14 of 15 programs** (one run each). These count different things: read them as context, not as "model alone vs Diocle".
 - About **$0.69** of raw model spend for the whole measurement at list prices (excludes compute, hosting and human review; no comparison with human cost is made).
-- Small sample, one model, synthetic programs; the per-program table, caveats and deviations are in the measurement document.
+- Small sample, one model, synthetic programs; the per-program table, caveats and deviations are in the measurement document. CHQCLR's runs disagree (certified on the live site with fix memory on, not certified in the controlled run): [CHQCLR: certified or not?](#chqclr-certified-or-not)
 
 ## Judge path: three clicks
 
@@ -28,7 +29,7 @@ I have worked on a COBOL modernization project at a global finance company. Revi
 2. Open the [CHQCLR run trace](https://diocle.vercel.app/#run=chqclr-20261028-214355): the Java passed 1,004 held-out inputs, then the breaker found 2 of 24 designed inputs that broke it (fee 20.00 vs 0.00), the repair agent fixed it, and it re-certified on 1,006 fresh inputs.
 3. Open [Evidence](https://diocle.vercel.app/evidence) for every run and the cost scoreboard, then [docs/CLAIMS_TO_EVIDENCE.md](docs/CLAIMS_TO_EVIDENCE.md) to check each headline claim in under a minute. Optional: the two live buttons on [Try it live](https://diocle.vercel.app/try) (capped, no input accepted).
 
-As of Oct 31, 2026 the public run list has 36 runs, 29 certified (26 excluding 3 labelled live sample runs); median model spend per certified run about 2 cents ($0.0179), mean about 6 cents ($0.0587).
+As of Oct 31, 2026 the public run list had 36 runs (40 on Nov 1; it grows as visitors use the live buttons), 29 certified (26 excluding 3 labelled live sample runs); median model spend per certified run about 2 cents ($0.0179), mean about 6 cents ($0.0587).
 
 ## Run it yourself in 5 minutes
 
@@ -41,6 +42,14 @@ sh scripts/quickstart.sh --no-key     # no key, no model call: re-verifies a che
 ```
 
 Measured on a Mac from a clean checkout on Oct 30: about 23 s, 1,027 of 1,027 inputs (most of that is the one-time environment setup). With your own Meta key, see [Quickstart](#quickstart-one-command) (about 2.5 minutes, a few cents). `make test` runs all four suites; CI runs them on every push.
+
+## How the agents work
+
+- **Translator** (Muse Spark) writes the Java. It never certifies anything.
+- **Repair agent** (Muse Spark) works with 7 tools: run the differential test, read the COBOL, read/patch/compile the Java, finish ([repair.py:32](services/converter/diocle_converter/repair.py#L32)). Each round is certified only on held-out inputs from a seed it has not seen ([repair.py:153](services/converter/diocle_converter/repair.py#L153)); lessons it proves are shared with other agents in the same run ([repair.py:181](services/converter/diocle_converter/repair.py#L181)); opt-in escalation to a stronger model tier under its own call and dollar cap ([config.py:77](services/converter/diocle_converter/config.py#L77)).
+- **Breaker** (Muse Spark, or Muse Wonder) attacks Java that already passed: up to three rounds of designed inputs, each round run through GnuCOBOL and the Java; if every input matched, the next round is told to attack a different behaviour ([breaker.py:132](services/converter/diocle_converter/breaker.py#L132)). A break sends the Java back to the repair agent.
+- **Cross-checker and guard** (Muse Spark Open, open weights): a second model, on its own partner host and key, attacks the certified Java with its own inputs (opt-in, [crosscheck.py](services/converter/diocle_converter/crosscheck.py)), and the guard reviews the final Java and can revoke a certification, never grant one ([guard.py](services/converter/diocle_converter/guard.py)).
+- **The judge is not a model.** Only the byte-for-byte comparison with the original compiled by GnuCOBOL certifies.
 
 ## Where Meta models are used
 
@@ -60,6 +69,7 @@ First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct
 
 ## Limits
 
+- **Scope: nightly batch, mainly over sequential files**, the jobs that post interest, fees and transactions. Anything Diocle cannot verify (for example EXEC CICS, dynamic CALL) is refused with a reason, never guessed; see [Not supported yet](#not-supported-yet).
 - **Synthetic programs only**, for a fictional bank. Nothing is real client code or data.
 - **Stand-ins, not the real platforms.** GnuCOBOL 3.2 stands in for z/OS Enterprise COBOL, Berkeley DB for VSAM, SQLite for DB2, and Diocle's own small COBOL routine for IBM Language Environment's `CEE3ABD` abend service. Passing against a stand-in is not passing on the real thing.
 - **"Certified" means matched on the tested inputs, not proven equivalent** ([what that means](#what-certified-means-and-does-not)). The tested inputs are PIC boundaries, seeded random values, model-designed attack inputs and 1,000 held-out inputs the translating agent never saw.
