@@ -194,3 +194,16 @@ Across every run folder on the author's machine and the public run list on Nov 1
 **LDGRWRT and "12 can be attacked".** The table above counts 12 attackable, but LDGRWRT has no single input layout, so the breaker could not have attacked it (its full run shows 0 tried). It failed the held-out check in the attack arm, so it was never in the 10, and 4 of 10 is unaffected.
 
 **The headline is kept, with this scope:** 4 of 10 is what was recorded, and it still shows that passing a large generated check did not surface these differences. Dropping CHQCLR for its weak check would give 3 of 9, all negative zero; both are stated rather than choosing one.
+
+## Re-measurement plan, Nov 2, 2026 (written and committed before any call of this run)
+
+**Why.** The first attack arm ran with two flaws found on Nov 1: CHQCLR's generated records were placeholders, and the attack compared output records only. This measures the same thing with both fixed. It is reported beside the first result; it does not replace it.
+
+- **Corpus:** the same 15 synthetic programs, in `eval/headline.py`.
+- **Arm:** one fresh first translation per program (translator alone, no repair, no memory), then the same breaker, up to 3 rounds, on programs it can attack. Same model (`muse-spark-1.3-contributor`), policy-only guard, no tiers.
+- **Held-out check:** 1,000 random records from seed 8802, not used before. **Fixes in effect:** REDEFINES bodies filled; display output and exit code compared in the attack.
+- **Budget and stop:** a hard stop at $0.30. Programs not reached are listed as not run.
+- **Outcome, fixed now:** among translations that pass the held-out check and can be attacked, how many differ under attack. Each difference is classed from its stored input and diff as: malformed input; negative zero, same value; a different value in an output record on a well-formed input; or display output only.
+- **Rules:** no re-run for a better result. One re-run only after an infrastructure failure, logged. All exclusions and failures stay in the file. The number is reported whichever way it goes, and it is not a defect-detection rate: n is small, one model, synthetic programs.
+- **Kept this time:** every attempt and all Java (`eval/results-attack-rerun.json`, `eval/attack-rerun-java/`).
+
