@@ -14,7 +14,7 @@ Diocle is a verification layer for AI-written code where a wrong cent costs mone
 
 I have worked on a COBOL modernization project at a global finance company. Reviewing the translated code by hand took so much effort that it drained the project's timeline. AI can now write the Java quickly, but someone still has to decide whether it is right, and a wrong cent repeats on every account (TSB's 2018 migration is the public example, see below). I built the check I wished that project had: run the original and the Java on the same inputs and compare every byte. No code or data from that work is in this repository; every program here is synthetic and written during the hackathon.
 
-**Who it's for.** The modernization lead or systems integrator moving a bank's, credit union's or payment operator's nightly COBOL batch (interest, fees, postings) to Java. **The pain:** proving the Java does what the COBOL did, today by hand review or sampling, which eats the timeline. **The risk:** a wrong cent that repeats on every account. Diocle replaces the review with a check anyone can re-run. **Why now:** when IBM's shares fell 13.2% in a day over AI COBOL translation (Feb 2026), IBM's own answer was that "translating COBOL is the easy part"; Diocle does the hard part, proving the translation right. More in [Why it matters](#why-it-matters) and [Who benefits](#who-benefits).
+**Who it's for.** The modernization lead or systems integrator moving a bank's, credit union's or payment operator's nightly COBOL batch (interest, fees, postings) to Java. **The pain:** proving the Java does what the COBOL did, today by hand review or sampling, which eats the timeline. **The risk:** a wrong cent that repeats on every account. Diocle replaces the review with a check anyone can re-run. **Why now:** when IBM's shares fell 13.2% in a day over AI COBOL translation (Feb 2026), an IBM spokesperson's answer was that "translating COBOL is the easy part"; Diocle does the hard part, proving the translation right. More in [Why it matters](#why-it-matters) and [Who benefits](#who-benefits).
 
 ## The measured finding (15 synthetic programs, one model; [docs/MEASUREMENT.md](docs/MEASUREMENT.md))
 
@@ -29,7 +29,7 @@ I have worked on a COBOL modernization project at a global finance company. Revi
 2. Open the [CHQCLR run trace](https://diocle.vercel.app/#run=chqclr-20261028-214355): the Java passed 1,004 held-out inputs, then the breaker found 2 of 24 designed inputs that broke it (fee 20.00 vs 0.00), the repair agent fixed it, and it re-certified on 1,006 fresh inputs.
 3. Open [Evidence](https://diocle.vercel.app/evidence) for every run and the cost scoreboard, then [docs/CLAIMS_TO_EVIDENCE.md](docs/CLAIMS_TO_EVIDENCE.md) to check each headline claim in under a minute. Optional: the two live buttons on [Try it live](https://diocle.vercel.app/try) (capped, no input accepted).
 
-As of Oct 31, 2026 the public run list had 36 runs (40 on Nov 1; it grows as visitors use the live buttons), 29 certified (26 excluding 3 labelled live sample runs); median model spend per certified run about 2 cents ($0.0179), mean about 6 cents ($0.0587).
+As of Oct 31, 2026 the public run list had 36 runs (it has grown since with live-button and delivery runs; the current list is on [Run history](https://diocle.vercel.app/runs)), 29 certified (26 excluding 3 labelled live sample runs); median model spend per certified run about 2 cents ($0.0179), mean about 6 cents ($0.0587).
 
 ## Run it yourself in 5 minutes
 
@@ -65,7 +65,7 @@ Not used: Muse Image, SAM 3.1, Muse Glimmer. File paths, run ids and the full ta
 
 ## Built here vs pre-existing
 
-First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and one public CC BY 4.0 COBOL course repository used as test input. Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](docs/HACKATHON_COMPLIANCE.md) (licences, voice disclosure).
+First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and two public COBOL repositories used as test input (the Open Mainframe Project course, CC BY 4.0; AWS CardDemo, Apache-2.0). Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](docs/HACKATHON_COMPLIANCE.md) (licences, voice disclosure).
 
 ## Limits
 
@@ -89,7 +89,7 @@ Both statements are true and come from different runs with different settings. T
 ## Why it matters
 
 In February 2026, after Anthropic said AI could modernize COBOL, IBM's shares fell 13.2% in a day, their steepest drop since 2000
-([Reuters via The Star](https://www.thestar.com.my/tech/tech-news/2026/02/24/ibm-posts-steepest-daily-drop-since-2000-after-anthropic-says-ai-can-modernize-cobol)). IBM's answer was that "translating COBOL is the easy part"
+([Reuters via The Star](https://www.thestar.com.my/tech/tech-news/2026/02/24/ibm-posts-steepest-daily-drop-since-2000-after-anthropic-says-ai-can-modernize-cobol)). an IBM spokesperson answered that "translating COBOL is the easy part"
 ([VentureBeat](https://venturebeat.com/technology/ibms-usd40b-stock-wipeout-is-built-on-a-misconception-translating-cobol-isnt)). The hard part is proving the translation does what the original did. COBOL still handles
 about 95% of US ATM transactions (a widely repeated figure from 2017 Reuters reporting), and a wrong migration is expensive: TSB's 2018
 core-banking migration locked nearly two million customers out of their accounts, cost the bank £330 million, and brought a £48.65 million
@@ -126,7 +126,7 @@ Diocle is for the teams that inherit COBOL batch programs that move money and ca
 - **Extensions and tooling:** MCP server, VS Code extension, Notepad++ script, quickstart script, evaluation and measurement harnesses.
 - **Samples and docs:** all synthetic COBOL samples and the evaluation programs.
 
-**Already existed and is used, not built here:** GnuCOBOL 3.2 (the compiler we compare against), the JDK, Berkeley DB and SQLite, the Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Spark Open, Muse Voice Transcribe), Fireworks and Baseten hosting for Muse Spark Open, Next.js, React, FastAPI, Docker and Caddy, Vercel and Vultr hosting, GitHub and GitHub Actions, Remotion and Playwright (video tooling), the ElevenLabs synthetic voiceover (disclosed on the video's end card), macOS `say` (the voice-question clips), and the public COBOL course repository imported as test input (CC BY 4.0, credited on the Evidence page).
+**Already existed and is used, not built here:** GnuCOBOL 3.2 (the compiler we compare against), the JDK, Berkeley DB and SQLite, the Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Spark Open, Muse Voice Transcribe), Fireworks and Baseten hosting for Muse Spark Open, Next.js, React, FastAPI, Docker and Caddy, Vercel and Vultr hosting, GitHub and GitHub Actions, Remotion, Playwright, ffmpeg and whisper.cpp (video tooling only), and two public COBOL repositories imported through the live import button as test input, not vendored: the Open Mainframe Project course (CC BY 4.0, credited on the Evidence page) and AWS CardDemo (Apache-2.0). The demo video's narration is the author's own recorded voice.
 
 ## Which model does what
 
@@ -157,8 +157,7 @@ flowchart LR
 | Private mode | Muse Spark Open replaces Muse Spark in all three agent roles | Partner host | Same loop on open weights. The one live run (n=1) used partner inference on Fireworks, so it did not keep code on hardware you own; running the open weights on your own hardware is possible but was not tested here. |
 | **Verifier** | none, it is GnuCOBOL and a byte-for-byte comparison | Sandbox (no network, no credentials) | **The only thing that certifies.** |
 
-The guard's deterministic policy runs on every run. Its model review is configured on the live engine, but in all three public live sample runs it was skipped by the run's $0.02 dollar cap (the run record says so), so no completed review appears in the public run list; there the policy and the verifier decide. The narration of the demo video is a synthetic voice from a non-Meta
-service; Meta's speech model on the API (`muse-voice-transcribe-1.0`) transcribes speech and does not speak.
+The guard's deterministic policy runs on every run. Its model review is configured on the live engine, but in all three public live sample runs it was skipped by the run's $0.02 dollar cap (the run record says so), so no completed review appears in the public run list; there the policy and the verifier decide. The narration of the demo video is the author's own recorded voice; Meta's speech model on the API (`muse-voice-transcribe-1.0`) transcribes speech and does not speak.
 
 ## What "certified" means, and does not
 
