@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 from . import REPORT_VERSION
-from .cobol import apply_replacing, parse_copybook, parse_program
+from .cobol import _COPY_WORD, apply_replacing, parse_copybook, parse_program, source_lines
 import re
 
 from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
@@ -71,6 +71,23 @@ def classify(root: Path) -> tuple[list[Path], dict[str, Path], list[Path]]:
         else:
             other.setdefault(path.stem.upper(), path)
     return programs, other, jcl
+
+
+def nested_copybooks(names: list[str], copybooks: dict[str, Path]) -> list[str]:
+    """names plus every copybook they COPY in turn (HTNEST copying HTSTATUS and HTERROR), in first-seen order,
+    so the sample carries all of them and a missing nested member is reported like a missing direct one."""
+    out, todo = list(dict.fromkeys(names)), list(dict.fromkeys(names))
+    while todo:
+        member = todo.pop(0)
+        if member not in copybooks:
+            continue
+        text = copybooks[member].read_text(errors="replace")
+        code = " ".join(c.strip() for _, c in source_lines(text))
+        for nested in re.findall(_COPY_WORD + r"\s+([A-Z0-9-]+)", code):
+            if nested not in out:
+                out.append(nested)
+                todo.append(nested)
+    return out
 
 
 def analyze(root: Path, *, kind: str = "directory", location: str | None = None, commit: str | None = None) -> dict:
@@ -139,15 +156,17 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                 **({"unsupported": layout.unsupported} if layout and layout.unsupported else {}),
             })
         sql = analyze_sql(text, sql_members, ddl_tables) if "SQL" in info.exec_blocks else None
-        reason = _not_convertible(files, info.copybooks, copybooks, info, program_ids, sql)
+        used = nested_copybooks(info.copybooks, copybooks)
+        module_copybooks = nested_copybooks(module_copybooks, copybooks)
+        reason = _not_convertible(files, used, copybooks, info, program_ids, sql)
         stand_ins = stand_ins_used(info.calls + [c for m in modules for c in parsed[root / m].calls], program_ids)
         includes = sql.includes if sql else []
         programs.append({
             "name": info.name,
             "path": path.relative_to(root).as_posix(),
-            "copybooks": list(dict.fromkeys(info.copybooks + module_copybooks + includes)),
+            "copybooks": list(dict.fromkeys(used + module_copybooks + includes)),
             "copybookPaths": {c: copybooks[c].relative_to(root).as_posix()
-                              for c in dict.fromkeys(info.copybooks + module_copybooks + includes) if c in copybooks},
+                              for c in dict.fromkeys(used + module_copybooks + includes) if c in copybooks},
             "modules": modules,
             "job": step.member if step else None,
             **({"resolvedCalls": info.resolved_calls} if info.resolved_calls else {}),
