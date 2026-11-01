@@ -16,7 +16,8 @@ from pathlib import Path
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import Field, format_record, load_fields, parse_record, record_format, record_length
-from .runners import CLOCK, Run, build_cobol, build_java, read_records, run_files, write_records
+from .runners import (CLOCK, FAIL_CLOSED, Run, build_cobol, build_java, guard_after, guard_before, original_sources,
+                      read_records, run_files, write_records)
 from .standin import stand_ins_run
 
 
@@ -156,7 +157,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                                       {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
             tamper += [f"the converted program changed {Path(p).name}" for p, h in before.items()
                        if not Path(p).is_file() or sha(Path(p)) != h]
-            for stray in ("original", "original.db", "sqlpre"):
+            for stray in ("original", "original.db", "sqlpre", *(f"original-{dd}.out" for dd in out_spec)):
                 if (work / stray).exists():
                     tamper.append(f"the converted program created {stray}")
             if tamper:
@@ -173,14 +174,23 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                 plan, meta, sample_dir, java_dir, work, paths, out_spec, seeds, [s["dd"] for s in inputs],
                 [s["dd"] for s in updated], collation, seed)
         else:
-            cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
-                                              [sample_dir / m for m in meta.get("modules", [])], collation)
-            java_cmd, converted = build_java(java_dir, meta["javaConversion"]["mainClass"], work)
-            if cobol_cmd:
-                original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+            # As above: the Java runs first in its own directory, before the original's outputs exist (and before the
+            # COBOL executable exists); what the original reads is hashed before and checked after.
+            jrun = work / "jrun"
+            jrun.mkdir()
+            java_cmd, converted = build_java(java_dir, meta["javaConversion"]["mainClass"], jrun)
+            snapshot = guard_before([*paths.values(), *seeds.values(), *original_sources(sample_dir, meta)], work)
             if java_cmd:
-                converted = run_files(java_cmd, paths, out_spec, work, "converted",
+                converted = run_files(java_cmd, paths, out_spec, jrun, "converted",
                                       {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
+            tamper = guard_after(snapshot, work)
+            if tamper:
+                original = Run(False, None, "", FAIL_CLOSED + "; ".join(tamper))
+            else:
+                cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                                  [sample_dir / m for m in meta.get("modules", [])], collation)
+                if cobol_cmd:
+                    original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
         db_results, db_report = [], None
         if sql and original.compiled and converted.compiled:
             from . import sqldb

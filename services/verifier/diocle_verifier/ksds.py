@@ -361,7 +361,8 @@ def run_both(plan: Plan, meta: dict, sample_dir: Path, java_dir: Path, work: Pat
     if java_cmd:
         converted = run_files(java_cmd, paths, out_spec, jrun, "converted", jenv, seeds=seeds)
     tamper = [f"the converted program changed {Path(p).name}" for p, h in before.items() if not Path(p).is_file() or _sha(Path(p)) != h]
-    for stray in ["original", "ksds-tools", *[f"{dd}.kf" for dd in dds], *[f"{dd}.final" for dd in dds]]:
+    for stray in ["original", "ksds-tools", *[f"{dd}.kf" for dd in dds], *[f"{dd}.final" for dd in dds],
+                  *[f"original-{dd}.out" for dd in out_spec]]:
         if (work / stray).exists():
             tamper.append(f"the converted program created {stray}")
     if handler is None:
