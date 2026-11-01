@@ -558,7 +558,7 @@ function RunDetail({ run }: { run: Run }) {
               <p>
                 {!run.before || run.before.total === 0
                   ? (originalDidNotCompile(run.error) ? "The original COBOL did not compile, so the starting Java could not be compared with it."
-                    : run.before ? "No test case was compared: neither program wrote output." : "No verification of the starting Java was recorded for this run.")
+                    : run.before ? "No test case was compared: the starting Java did not build, or neither program wrote output." : "No verification of the starting Java was recorded for this run.")
                   : run.before.failed === 0
                     ? `The starting Java already matched GnuCOBOL on all ${run.before.total} test inputs, so no repair was needed.`
                     : originalWroteNothing(run.before)
