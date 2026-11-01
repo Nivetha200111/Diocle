@@ -68,3 +68,33 @@ def test_free_format_program_with_long_lines_compiles_and_runs(tmp_path):
     run = run_cobol(source, tmp_path, {"input": "INDD", "output": "OUTDD"}, tmp_path / "in.txt", work)
     assert run.compiled, run.stderr
     assert [r.rstrip() for r in run.output_lines] == ["ACCEPTED", "REJECTED"]
+
+
+def test_free_main_links_a_fixed_module_and_the_fixed_cee3abd_stand_in(tmp_path):
+    import shutil
+
+    import pytest
+
+    from diocle_verifier.runners import build_cobol
+    if not shutil.which("cobc"):
+        pytest.skip("GnuCOBOL not installed")
+    (tmp_path / "MAINF.cbl").write_text(""">>SOURCE FORMAT FREE
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. MAINF.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-N PIC S9(9) COMP-5 VALUE 16.
+       PROCEDURE DIVISION.
+           CALL "SUBF"
+           IF WS-N = 0 CALL "CEE3ABD" USING WS-N WS-N END-CALL END-IF
+           DISPLAY "MAIN DONE" STOP RUN.
+""")
+    fixed = ["000100 IDENTIFICATION DIVISION.", "000200 PROGRAM-ID. SUBF.", "000300* a fixed-format comment line",
+             "000400 PROCEDURE DIVISION.", '000500     DISPLAY "SUB RAN" GOBACK.']
+    (tmp_path / "SUBF.cbl").write_text("".join(line.ljust(72) + f"SUBF{i:04d}\n" for i, line in enumerate(fixed, 1)))
+    work = tmp_path / "work"
+    work.mkdir()
+    cmd, failed = build_cobol(tmp_path / "MAINF.cbl", tmp_path, work, modules=[tmp_path / "SUBF.cbl"])
+    assert cmd is not None, failed.stderr
+    from diocle_verifier.runners import _exec
+    assert _exec(cmd).stdout.split() == ["SUB", "RAN", "MAIN", "DONE"]
