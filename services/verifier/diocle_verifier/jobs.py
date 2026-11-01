@@ -290,6 +290,7 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
         # in work_o; the original's seeded inputs and sources are hashed before and checked after, and nothing new
         # may appear in work_o, so a pipeline that found work_o could neither read nor plant an answer.
         snapshot = guard_before([*sorted(p for p in work_o.rglob("*") if p.is_file()),
+                                 sample_dir / "sample.json",  # _run_original reads it again after the Java ran
                                  *original_sources(sample_dir, meta)], work_o)
         converted = _run_converted(pipeline, work_c, collation)
         tamper = guard_after(snapshot, work_o)
