@@ -33,7 +33,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
   const final = run?.after ? `${run.after.passed.toLocaleString()}/${run.after.total.toLocaleString()}` : `${SAMPLE_RECORDED.finalHeldOut.toLocaleString()}/${SAMPLE_RECORDED.finalHeldOut.toLocaleString()}`;
   const frames = [
     { tone: "bad", head: "BREAKER AGENT", text: explainDiff(broke[0]) },
-    { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} designed inputs made it differ · patched, compiled, re-tested` },
+    { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} attack inputs (replays included) made it differ · patched, compiled, re-tested` },
     { tone: "ok", head: "CERTIFIED", text: `${final} output records matched on held-out generated inputs; matched on the inputs tried, not proven equivalent` },
   ];
   const [at, setAt] = useState(0);
@@ -125,7 +125,7 @@ function SampleHero({ go }: { go: Go }) {
         <a className="button secondary" href="/bugs">Bug of the day</a>
         <span className="sample-note">
           Runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java once each on a file of about
-          1,000 well-formed records from a seed chosen now, and compares every output byte. A re-check of stored Java: no model runs. Takes a few seconds.
+          1,000 valid records from a seed chosen now, and compares every output byte. A re-check of stored Java: no model runs. Takes a few seconds.
         </span>
       </div>
       {error && <p className="dlv-error sample-error">{error}</p>}
@@ -164,9 +164,9 @@ function Evidence({ go }: { go: Go }) {
         {" "}{usd(CANONICAL.modelSpendUsd)} of model spend for the six conversions (estimated from list prices).
         {" "}A larger one, from a second synthetic estate:{" "}
         <a href="https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2" target="_blank" rel="noreferrer">harbor-trust-mainframe-java#2</a>,
-        {" "}19 programs certified and re-verified by its{" "}
+        {" "}19 programs. Read its{" "}
         <a href="https://github.com/Nivetha200111/harbor-trust-mainframe-java/actions/runs/41301995356" target="_blank" rel="noreferrer">CI run</a>
-        {" "}on 18,019 fresh inputs.
+        {" "}with care: for its 14 single-file programs the generated records are one placeholder line, so those programs were really exercised by the repository&apos;s 400 sample records during conversion, which CI does not have.
         {" "}<strong>{runs ? `${certified}/${runs.length}` : "…"}</strong> counts every run this engine has kept,
         including failed and interrupted attempts. <button type="button" className="link-button" onClick={() => go("Evidence")}>All evidence</button>
       </p>
@@ -210,14 +210,6 @@ function WhatIsCobol() {
 }
 
 
-const HARBOR = {
-  pr: "harbor-trust-mainframe-java#2",
-  url: "https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2",
-  ci: "https://github.com/Nivetha200111/harbor-trust-mainframe-java/actions/runs/41301995356",
-  programs: 19,
-  freshInputs: 18019,  // 18 programs x 1,001 inputs + HTDBDEF (display only) x 1, all PASS in that CI run
-};
-
 const PIPELINE: [string, string, string][] = [
   ["Translate", "Muse Spark, as translator", "writes the Java from the COBOL; it never certifies"],
   ["Compare", "GnuCOBOL, no model", "runs the original and the Java on 1,000+ generated records; every output byte must match"],
@@ -246,7 +238,7 @@ function Pitch({ go }: { go: Go }) {
       </div>
       <div className="pitch-top">
         <div className="pitch-claim">
-          <h1>Ten AI translations of COBOL passed a 1,000-record test. An attacking model made four of them differ from the original.</h1>
+          <h1>Ten attackable AI translations of COBOL passed a 1,000-record test. A model made four of them differ from the original.</h1>
           <p className="pitch-sub">Diocle compares the Java with the original under GnuCOBOL, attacks translations that pass, repairs what differs and saves evidence anyone can re-run. It is testing on stated inputs, not a formal proof.</p>
           <div className="pitch-actions">
             <button type="button" className="button primary" onClick={() => go("Try it live")}>▶ Try it live</button>
@@ -270,9 +262,9 @@ function Pitch({ go }: { go: Go }) {
         ])}
       </ol>
       <dl className="pitch-numbers">
-        <div><dd className="mono">4 of 10</dd><dt>attackable translations that passed then differed under attack: 1 on malformed numbers, 3 on a negative-zero sign byte at overflow (15 synthetic programs, one model)</dt></div>
-        <div><dd className="mono">{HARBOR.programs}</dd><dt>programs certified and delivered in one pull request, <a href={HARBOR.url} target="_blank" rel="noreferrer">{HARBOR.pr}</a></dt></div>
-        <div><dd className="mono">0</dd><dt>differences on {HARBOR.freshInputs.toLocaleString()} fresh output records in <a href={HARBOR.ci} target="_blank" rel="noreferrer">its CI run</a></dt></div>
+        <div><dd className="mono">4 of 10</dd><dt>attackable translations that passed then differed under attack; by the breaker&apos;s stated reasons, 1 on malformed numbers, 3 on a negative-zero sign byte at overflow (15 synthetic programs, one model)</dt></div>
+        <div><dd className="mono">{CANONICAL.programs.length}</dd><dt>programs certified and delivered in one pull request, <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a></dt></div>
+        <div><dd className="mono">0</dd><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in <a href={LINKS.evidenceCi} target="_blank" rel="noreferrer">its CI run</a></dt></div>
       </dl>
       <div className="pitch-multi">
         <button type="button" className="pitch-card" onClick={() => go("Try it live")}>
@@ -313,8 +305,8 @@ export default function HomeView({ go }: { go: Go }) {
         <p className="home-pr">
           In a separate attack run (one fresh translation per program), the breaker&apos;s designed inputs made four of the ten
           attackable translations that passed the check differ from the original: CHQCLR on malformed numeric fields, and DAYCTRL, INTACCR
-          and TXNPOST on the sign of a zero at an overflow boundary (same value, different bytes). No stored break is a wrong amount on a
-          well-formed record; those come from the ordinary checks. Three of those four had passed all three first-try trials. The three figures count
+          and TXNPOST on the sign of a zero at an overflow boundary (same value, different bytes), by the breaker&apos;s stated reasons. No stored record-level break is a wrong amount on a
+          well-formed record; value errors on well-formed records showed up in first translations and in one private-mode run&apos;s printed total. Until Nov 1 the attack compared output records only, so a surviving translation was not checked on its display output under attack. Three of those four had passed all three first-try trials. The three figures count
           different things, so they are not a &ldquo;model alone vs Diocle&rdquo; score. One program, CHQCLR, was not certified in that run. Small sample, one model, synthetic
           programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>.
         </p>

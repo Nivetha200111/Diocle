@@ -11,7 +11,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)
 
-**Branch `release-candidate`, on top of `785bf3f`, NOT pushed and NOT deployed until the owner says so.** Pushing to `main` deploys the site; the verifier change also needs `deploy/update-engine.sh` from the Mac.
+**Branch `release-candidate`, on top of `785bf3f`; the owner approved pushing and deploying on Nov 1, after a reviewer pass.** Pushing to `main` deploys the site; the verifier, breaker and delivery changes also need `deploy/update-engine.sh` from the Mac.
 
 **What it changes** (fixes, wording and evidence only; feature lock respected):
 - **CI fix.** The bundled-clip test in `services/converter/tests/test_ask.py` kept a 100 KB / 4 s limit from the old synthetic clips (`dca3d7d` moved only the API copy). It now judges the two named clips by `validate_wav`, wholeness and audibility, and fails on a missing, stray, truncated or silent clip. `main` is red on GitHub until this is pushed.
@@ -21,7 +21,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **New docs.** `SHOWCASE_CHQCLR.md`, `EVALUATION_PACKET.md`, `SUBMISSION_TEXT.md`; `eval/audit_chqclr.py` and its results; `demo/candidate-v13/`.
 
 **Findings to keep in mind when writing anything:**
-- All 40 distinct stored breaks are malformed numeric data (26) or negative zero at overflow (14). None is a wrong amount on a well-formed record. Do not write "wrong cent" about the breaker.
+- 54 distinct stored breaks: 30 malformed, 15 negative zero, 9 from a round with no Java output (`eval/results-stored-breaks-20261101.json`). None shows a wrong amount on a well-formed record. Do not write "wrong cent" about the breaker.
+- The attack compared output records only until this branch; a stored private-mode CHQCLR Java prints a wrong total on a valid return. "Survived" in stored runs is about output records.
+- Flat text records (Harbor's 14 single-file programs) get one placeholder output whatever the seed. Do not quote Harbor's 18,019 CI records as if they exercised those programs; Home now leads with quillmark-modern#4 (6,719).
 - A count like 1,004 is output records from one run of each program on one generated file.
 - The showcased certified CHQCLR Java still differs on a malformed blank return (`R` + 39 spaces).
 - The bundled clip `waiver-tenure.wav` mistranscribes on the real speech model; `fee-overdrawn.wav` is exact. Re-record if convenient.
@@ -29,9 +31,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **Mutation re-test (CHQCLR, same 40 faults, 35 compile):** stored inputs 14, fixed generator 20, all sets together 26; 9 undetected look value-preserving or unreachable on fixed-length files. See `docs/SHOWCASE_CHQCLR.md`.
 
-**Video.** Submitted v12 is unchanged. Candidate: `~/Downloads/diocle-candidate-v13.mp4` (172.3 s), edit list and optional pickups in `demo/candidate-v13/README.md`. The owner chooses; if v13 is used, upload it and update README line 1.
+**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (172.3 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. The owner uploads v13; then update README line 1.
 
-**Owner decisions:** push to `main` (then wait for CI on that exact commit); deploy the engine; pick the video; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
+**Owner steps:** upload v13; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
 
 ## Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST; superseded where the section above differs)
 

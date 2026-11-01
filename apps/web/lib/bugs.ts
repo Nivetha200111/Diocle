@@ -72,7 +72,7 @@ function startingFailure(field: string, original: string, java: string): (run: R
 export const CARDS: CardSpec[] = [
   {
     key: "chqclr-fee", title: "Returned-cheque fee came out as 0.00", program: "CHQCLR", runId: "chqclr-20261028-214355",
-    why: "On this record the COBOL charges a fee and the Java drops it. The fee field is malformed (a space in a PIC 9 field), the kind of dirty data an old feed can hold; the generated records are always well-formed, so no number of them could have shown this.",
+    why: "On this record the COBOL charges a fee and the Java drops it. The fee field is malformed (a space in a PIC 9 field), the kind of dirty data an old feed can hold; the generated records carry no deliberately bad data, so no number of them could have shown this.",
     caveat: "Malformed input, designed by the breaker: not an ordinary transaction. The result is GnuCOBOL's handling of bad data; IBM Enterprise COBOL was not tested and may behave differently or stop. The COBOL states no currency, so none is shown.",
     repo: { original: "20.00", java: "0.00", field: "CL-FEE", role: "breaker", model: "muse-spark-1.3-contributor", round: "breaker attack round 1", costUsd: 0.017605, costNote: "est., list prices" },
     source: { label: "docs/EVALUATION.md", href: `${DOCS}/EVALUATION.md` },

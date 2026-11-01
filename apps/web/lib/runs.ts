@@ -241,6 +241,7 @@ export type Breaker = {
   repairCycles: number;
   fixed: boolean;
   counterexamples: { input: string; why: string; diff: string }[];
+  skipped?: string;
 };
 
 // contracts/run.schema.json crosscheck: Muse Spark Open independently looks for inputs where the Java differs. Its opinion

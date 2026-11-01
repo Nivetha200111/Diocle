@@ -1,6 +1,6 @@
 # Demo candidate v13
 
-A separately named candidate, `~/Downloads/diocle-candidate-v13.mp4` (172.3 s, 1080p), made only from the submitted v12 picture and the owner's recorded narration. v12 (`~/Downloads/diocle-final-v12.mp4`, https://youtu.be/EsKndaZ6d2E) and the recordings are untouched. No voice was synthesized and no footage invented. Whether to replace the submitted link is the owner's decision.
+The owner chose this over v12 on Nov 1. A separately named cut, `~/Downloads/diocle-candidate-v13.mp4` (172.3 s, 1080p), made only from the submitted v12 picture and the owner's recorded narration. v12 (`~/Downloads/diocle-final-v12.mp4`, currently at https://youtu.be/EsKndaZ6d2E) and the recordings are untouched. No voice was synthesized and no footage invented. The owner uploads it.
 
 Rebuild: `CHROME=<chromium> node overlays.mjs OUT_DIR <dir with playwright>`, then `python3 build.py V12.mp4 OUT_DIR OUT.mp4`. Checked with `demo/final/gates.sh` from the `video-draft-7` branch and at 854x480: the one silence and freeze are the deliberate 4 s hold on the limits card.
 
@@ -14,7 +14,7 @@ Rebuild: `CHROME=<chromium> node overlays.mjs OUT_DIR <dir with playwright>`, th
 | 98.3-112.8 | Three breaks shown, no note; stamp "WRONG" | Caption: letters where numbers belong, malformed, IBM not tested; stamp "DIFFERS" | Same |
 | 112.8-119.0 | "passed again on a thousand fresh inputs" | Caption: those records had zero amounts; generator fixed Nov 1; this Java matched 1,000 well-formed records | CHQCLR's check was weak |
 | 124.2-129.9 | Spoken: "re-runs the proof" | Caption: the same comparison, pinned verifier, shares its assumptions, not a formal proof | The word stays spoken unless the pickup below is used |
-| 146.2-156.5 | Measured panel (old copy on screen: "still wrong") | Caption: 1 malformed + 3 negative zero; different denominators; CHQCLR certified or not | Footage is the earlier page; the caption states the scope |
+| 146.2-156.5 | Measured panel (old copy on screen: "still wrong") | Caption: by the breaker's stated reasons, 1 malformed + 3 negative zero; different denominators; CHQCLR certified or not | Footage is the earlier page; the caption states the scope |
 | 156.6-164.2 | Spoken: "Banks, credit unions and pension payers can leave COBOL with proof instead of faith, for cents a program." | Cut; replaced by a limits card (held 4 s with no voice) under "Open Meta models can run on a host you choose." | The broadest overclaim in the video |
 | 174.0-177.6 | End card | Adds the no-key command, says it re-checks stored Java | A direct invitation that is accurate |
 
