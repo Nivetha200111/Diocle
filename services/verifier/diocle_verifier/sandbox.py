@@ -361,9 +361,11 @@ def run_job(job: dict, kind: str = "verify") -> dict:
             proc.stdin.write(json.dumps(params).encode())
             proc.stdin.close()
             err = []
-            threading.Thread(target=lambda: err.append(proc.stderr.read(64 * 1024)), daemon=True).start()
+            reader = threading.Thread(target=lambda: err.append(proc.stderr.read(64 * 1024)), daemon=True)
+            reader.start()
             out = proc.stdout.read(max_report + 1)
             proc.wait()
+            reader.join(2)  # a failure's message arrives on this thread; bounded, a detached child may hold stderr open
         finally:
             timer.cancel()
         if proc.returncode != 0 or len(out) > max_report:
