@@ -259,7 +259,7 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
             <p className="mc-cert-line" role="status">
               <span className={`mc-light ${lastCert.cert!.passed ? "ok" : "bad"}`} aria-hidden="true" />
               {lastCert.cert!.result}
-              {done && final ? <strong> Final: {num(final.passed)} of {num(final.total)} inputs match, stdout {final.stdoutMatch ? "matches" : "differs"}; {statusWord(run)}. {run.assurance === "certified-against-repaired-cobol" ? "Compared against the PATCHED COBOL, not the original; a person must confirm the patch." : "Certified on the inputs tried; not a proof of equivalence."}</strong> : null}
+              {done && final ? <strong> Final: {final.total > 0 ? `${num(final.passed)} of ${num(final.total)} inputs match, stdout ${final.stdoutMatch ? "matches" : "differs"}` : "no inputs were compared"}; {statusWord(run)}. {!run.certified ? "" : run.assurance === "certified-against-repaired-cobol" ? "Compared against the PATCHED COBOL, not the original; a person must confirm the patch." : "Certified on the inputs tried; not a proof of equivalence."}</strong> : null}
             </p>
           ) : <p className="mc-note">Not yet reached in the replay.</p>}
           {certs.length > 1 && <p className="mc-note">{certs.length} certification rounds so far; the last one counts.</p>}
