@@ -11,7 +11,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)
 
-**Branch `release-candidate`, on top of `785bf3f`; the owner approved pushing and deploying on Nov 1, after a reviewer pass.** Pushing to `main` deploys the site; the verifier, breaker and delivery changes also need `deploy/update-engine.sh` from the Mac.
+**Live state: `main`, site and engine on `debd697` or later (pushed and deployed Nov 1 evening, owner approved; GitHub CI green on `debd697`).** Engine deploys stay with the owner (a session safeguard blocks them): `sh deploy/update-engine.sh` from the Mac. Only docs have changed since, so no further deploy is needed. Live check: LIVE_CHECK.md addendum.
 
 **What it changes** (fixes, wording and evidence only; feature lock respected):
 - **CI fix.** The bundled-clip test in `services/converter/tests/test_ask.py` kept a 100 KB / 4 s limit from the old synthetic clips (`dca3d7d` moved only the API copy). It now judges the two named clips by `validate_wav`, wholeness and audibility, and fails on a missing, stray, truncated or silent clip. `main` is red on GitHub until this is pushed.
@@ -33,7 +33,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (172.3 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. The owner uploads v13; then update README line 1.
 
-**Owner steps:** upload v13; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
+**Owner steps:** upload v13, then README line 1 and the docs naming the old link get the new one; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
 
 ## Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST; superseded where the section above differs)
 
