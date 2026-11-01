@@ -1,4 +1,4 @@
-Demo video (3 min): LINK_TO_BE_ADDED_BEFORE_SUBMISSION
+**Demo video (3 min): https://youtu.be/EsKndaZ6d2E**
 
 <p align="center"><img src="docs/assets/logo.svg" alt="Diocle logo" width="96" height="96"></p>
 

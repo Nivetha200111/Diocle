@@ -2,7 +2,7 @@
 
 Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Oct 31, 2026: all boxes open.
 
-- [ ] **Demo video link.** Replace `LINK_TO_BE_ADDED_BEFORE_SUBMISSION` in the first line of [README.md](../README.md) with the link to the 3-minute video, and check the link opens when logged out.
+- [x] **Demo video link.** https://youtu.be/EsKndaZ6d2E is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 1 through YouTube's public oEmbed endpoint).
 - [ ] **X post link.** Post the demo on X and add the post link to the submission form (Most Viral and Community Vote need it).
 - [ ] **Repository is public** and the default branch shows the latest commit (visibility was `PUBLIC` on Oct 31; recheck at submission).
 - [ ] **Meta Model API credits claimed** before Nov 4, 9 PM ET (the claim form is in the official participant guide), and a spend limit set.
