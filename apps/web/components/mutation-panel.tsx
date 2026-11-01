@@ -62,12 +62,14 @@ export function MutationPanel({ run }: { run: Run }) {
       {report && c && report.status === "ok" && (
         <div className="mutation">
           <p className="reverify-result ok">
-            The {report.inputs.initial.toLocaleString("en-US")} inputs that certified the Java caught {detected} of {scored} seeded faults
+            {report.inputs.seedSource === "certification"
+              ? `The ${report.inputs.initial.toLocaleString("en-US")} inputs that certified the Java`
+              : `${report.inputs.initial.toLocaleString("en-US")} generated inputs`} caught {detected} of {scored} seeded faults
             {c.timeout > 0 && ` (of which ${c.timeout} timed out)`}
             {c.score !== null && ` (${Math.round(c.score * 100)}%)`}; {c.survived} went unnoticed.
-            {" "}{report.augmented.survivorsRerun > 0
+            {c.survived > 0 && <>{" "}{report.augmented.survivorsRerun > 0
               ? `Extra inputs caught ${report.augmented.extraKills} more (${report.augmented.extraInputs} extra inputs); ${report.augmented.stillSurviving ?? c.survived} still unnoticed after them.`
-              : "No extra inputs were tried on them."}
+              : "No extra inputs were tried on them."}</>}
             {" "}{c.notCompiled} did not compile; {c.equivalentSuspected} suspected equivalent
             {c.notRun > 0 && `; ${c.notRun} not run (time limit)`}
             {c.error > 0 && `; ${c.error} harness errors`}.

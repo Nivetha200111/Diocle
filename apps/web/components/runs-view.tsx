@@ -614,7 +614,7 @@ export default function RunsView() {
   const [showList, setShowList] = useState(false);
 
   useEffect(() => {
-    const fromHash = () => (window.location.hash.startsWith("#run=") ? decodeURIComponent(window.location.hash.slice(5)) : null);
+    const fromHash = () => (window.location.hash.startsWith("#run=") ? decodeURIComponent(window.location.hash.slice(5)) || null : null);
     setLinked(fromHash() !== null);
     fetchRuns()
       .then((items) => {
