@@ -111,3 +111,65 @@ def test_free_format_lines_are_read_whole():
     assert 1 not in lines and 3 not in lines
     assert lines[4].strip() == "PROGRAM-ID. FREEP."
     assert lines[5].rstrip().endswith("END-IF")  # past column 72: fixed format would cut it off
+
+
+# --- review fixes: literals and comments one line at a time ------------------------------------------------
+
+CALLER = """       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CALLR.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-PGM PIC X(8).
+       01  WS-MSG PIC X(80) VALUE 'THIS LONG MESSAGE CONTINUES ON
+      -    'TO THE NEXT LINE'.
+       PROCEDURE DIVISION.
+           MOVE "X" TO WS-PGM *> don't remove
+           ACCEPT WS-PGM
+           CALL WS-PGM
+           STOP RUN.
+"""
+
+
+def test_an_unbalanced_quote_never_hides_a_later_dynamic_call():
+    assert parse_program(CALLER).dynamic_calls == ["WS-PGM"]
+    free = ">>SOURCE FORMAT FREE\n" + CALLER.replace("      -    'TO THE NEXT LINE'.", "      'TO THE NEXT LINE'.")
+    assert parse_program(free).dynamic_calls == ["WS-PGM"]
+
+
+def test_free_format_comment_is_cut_after_a_closed_literal_but_not_inside_one():
+    from diocle_analyzer.cobol import source_lines
+    lines = dict(source_lines('>>SOURCE FORMAT FREE\n       DISPLAY "X" *> CALL WS-PGM\n       DISPLAY "A *> B".\n'))
+    assert lines[2].strip() == 'DISPLAY "X"' and lines[3].strip() == 'DISPLAY "A *> B".'
+
+
+def test_free_format_code_past_column_72_is_not_reported_as_cut(tmp_path):
+    from diocle_analyzer.risks import _source_findings
+    long = "           DISPLAY '" + "ABCDEFGHIJ" * 7 + "'"  # text across columns 72-73
+    assert len(long) > 72
+    assert _source_findings("P", ">>SOURCE FORMAT FREE\n" + long + "\n") == []
+    assert _source_findings("P", long + "\n")  # fixed format: still flagged
+
+
+# --- review fixes: which files are data ---------------------------------------------------------------------
+
+def test_the_file_the_jcl_dataset_names_is_preferred(tmp_path):
+    from diocle_analyzer.analyze import _names_dataset
+    assert _names_dataset("HT.SYNTH.LOANIN", "app/data/loans.dat") and _names_dataset("HT.SYNTH.ACCTIN", "accounts.dat")
+    assert _names_dataset("HT.SYNTH.FXIN", "fx-rates.dat") and not _names_dataset("HT.SYNTH.LOANIN", "accounts.dat")
+    assert not _names_dataset(None, "loans.dat") and not _names_dataset("&&SORTED", "sorted.dat")
+    _, p = _flat(tmp_path, {"data/loans.dat": "L" * 20 + "\n", "data/accounts.dat": "A" * 20 + "\n"})
+    layout = next(f for f in p["files"] if f["direction"] == "input")["layout"]
+    assert {c["record"][0] for c in repo_fixtures(tmp_path, layout, "HT.SYNTH.LOANIN")} == {"L"}
+    assert {c["record"][0] for c in repo_fixtures(tmp_path, layout, "HT.SYNTH.POSTIN")} == {"L", "A"}  # no match: all
+
+
+def test_sources_docs_and_non_ascii_files_are_never_data(tmp_path):
+    member = "".join(f"{i:06d} MOVE A TO B.  \n"[:20].ljust(20) + "\n" for i in range(3))  # 20-wide, looks like data
+    cobol_member = "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. OTHER.\n"
+    copybook = "       01  R.\n           05 A PIC X(9).\n"
+    _, p = _flat(tmp_path, {"QMK.COBOL/OTHER": cobol_member, "QMK.COPY/RECA": copybook.ljust(20),
+                            "LICENSE": "Y" * 20 + "\n", "notes/euro.dat": "PRICE €" + "Z" * 13 + "\n",
+                            "seq/members.dat": member, ".hidden/x.dat": "H" * 20 + "\n"})
+    layout = next(f for f in p["files"] if f["direction"] == "input")["layout"]
+    used = {c["why"].split(" of ")[1].split(" in ")[0] for c in repo_fixtures(tmp_path, layout)}
+    assert used == {"seq/members.dat"}

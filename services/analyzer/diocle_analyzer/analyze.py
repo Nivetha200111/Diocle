@@ -435,32 +435,69 @@ def _sample_ksds(program: dict, inputs: list[dict]) -> dict:
 
 REPO_FIXTURE_MAX = 400  # records per program taken from the repository's own data files
 _SOURCE_SUFFIXES = COBOL_SUFFIXES | COPYBOOK_SUFFIXES | JCL_SUFFIXES | {".md", ".json", ".yml", ".yaml", ".xml", ".py", ".sql",
-                                                                       ".sh", ".bms", ".mac", ".asm", ".out"}
+                                                                       ".sh", ".bms", ".mac", ".asm", ".out", ".html"}
+_NOT_DATA_DIRS = {"expected", "output", "outputs", "out", "golden", "results", "reports", "node_modules", "build", "target"}
+_NOT_DATA_NAMES = re.compile(r"^(?:LICEN[CS]E|NOTICE|COPYING|README|CHANGELOG|CONTRIBUTING|MAKEFILE|DOCKERFILE)\b", re.I)
+_COPYBOOK_LINE = re.compile(r"^\s*(?:\d{6}.)?\s*\d\d\s+[A-Z0-9-]+.*\bPIC(?:TURE)?\b", re.I | re.M)
+_data_cache: dict[Path, list[tuple[str, list[tuple[int, str]]]]] = {}
 
 
-def repo_fixtures(root: Path, layout: dict) -> list[dict]:
+def _data_files(root: Path) -> list[tuple[str, list[tuple[int, str]]]]:
+    """Every text data file in the tree as (path, [(line number, line)]), read once per tree. Not data: COBOL,
+    copybooks and JCL (by extension or, for extension-less members, by content), docs, output folders, anything
+    with a line that is not printable ASCII (the verifier writes records as Latin-1 bytes; EBCDIC and packed
+    files are binary and fail the text sniff)."""
+    root = root.resolve()
+    if root in _data_cache:
+        return _data_cache[root]
+    programs, _, jcl = classify(root)
+    sources = set(programs) | set(jcl)
+    found = []
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.parts):
+        rel = path.relative_to(root)
+        if (path.suffix.lower() in _SOURCE_SUFFIXES or path in sources or _NOT_DATA_NAMES.match(path.name)
+                or any(part.lower() in _NOT_DATA_DIRS or part.startswith(".") for part in rel.parts[:-1])
+                or path.stat().st_size > 4_000_000):
+            continue
+        text = _text(path)
+        if text is None or _COPYBOOK_LINE.search(text):
+            continue
+        lines = [(n, line.rstrip("\r")) for n, line in enumerate(text.split("\n"), 1) if line.rstrip("\r").strip()]
+        if lines and all(line.isascii() and line.isprintable() for _, line in lines):
+            found.append((rel.as_posix(), lines))
+    _data_cache[root] = found
+    return found
+
+
+def _names_dataset(dsn: str | None, rel: str) -> bool:
+    """HT.SYNTH.LOANIN names loans.dat, ACCTIN names accounts.dat: the last qualifier without its IN/INPUT/FILE
+    ending, as letters in order inside the file name, starting with the same letter."""
+    if not dsn:
+        return False
+    core = re.sub(r"(?:INPUT|IN|FILE|DATA)$", "", dsn.split(".")[-1].upper()) or dsn.split(".")[-1].upper()
+    stem = re.sub(r"[^a-z0-9]", "", Path(rel).stem.lower())
+    if not core.isalpha() or not stem or stem[0] != core[0].lower():
+        return False
+    it = iter(stem)
+    return all(ch in it for ch in core.lower())
+
+
+def repo_fixtures(root: Path, layout: dict, dsn: str | None = None) -> list[dict]:
     """Seed records for a flat line-sequential input (01 IN-RECORD PIC X(n), sliced by reference modification).
 
     Generated inputs for one n-byte alphanumeric field are filler that real programs reject on the first byte, so
-    the verifier would mostly exercise the reject path. Instead, every text data file in the repository whose
-    lines all fit the record (at most n characters, at least one exactly n) contributes evenly spaced records, up
-    to REPO_FIXTURE_MAX in all. They are run through both the COBOL and the Java like any other input; each case
-    names the file and line it came from. Structured layouts keep the generated inputs only."""
+    the verifier would mostly exercise the reject path. Instead, the repository's own data files whose lines all
+    fit the record (at most n characters, at least one exactly n) contribute evenly spaced records, up to
+    REPO_FIXTURE_MAX: the files the JCL dataset name points to when any match (HT.SYNTH.LOANIN: loans.dat), else
+    every fitting file. Both the COBOL and the Java run them like any other input; each case names the file and
+    line it came from. Structured layouts keep the generated inputs only."""
     fields = layout.get("fields") or []
     if layout.get("format") != "line" or len(fields) != 1 or fields[0]["kind"] != "alnum":
         return []
     width = fields[0]["length"]
-    found: list[tuple[str, list[tuple[int, str]]]] = []
-    for path in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.parts):
-        if path.suffix.lower() in _SOURCE_SUFFIXES or path.stat().st_size > 4_000_000 or any(
-                part.lower() in ("expected", "output", "outputs") for part in path.relative_to(root).parts[:-1]):
-            continue
-        text = _text(path)
-        if text is None:
-            continue
-        lines = [(n, line.rstrip("\r")) for n, line in enumerate(text.split("\n"), 1) if line.rstrip("\r").strip()]
-        if lines and all(len(line) <= width for _, line in lines) and any(len(line) == width for _, line in lines):
-            found.append((path.relative_to(root).as_posix(), lines))
+    found = [(rel, lines) for rel, lines in _data_files(root)
+             if all(len(line) <= width for _, line in lines) and any(len(line) == width for _, line in lines)]
+    found = [f for f in found if _names_dataset(dsn, f[0])] or found
     if not found:
         return []
     per_file = max(1, REPO_FIXTURE_MAX // len(found))
@@ -515,9 +552,12 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                             **({"keyed": f["keyed"]} if f.get("keyed") else {})}
                            for f in inputs + updated + outputs],
                  **shared_keys(inputs)}),
-        **({"fixtureCases": seeds} if single and (seeds := repo_fixtures(root, by_direction["input"]["layout"])) else {}),
-        **({"fixtureFiles": multi_seeds} if not single and (multi_seeds := {
-            f["dd"]: [c["record"] for c in cases] for f in inputs if (cases := repo_fixtures(root, f["layout"]))}) else {}),
+        **({"fixtureCases": seeds} if single and (seeds := repo_fixtures(root, by_direction["input"]["layout"], by_direction["input"].get("dsn"))) else {}),
+        **({"fixtureFiles": {dd: [c["record"] for c in cases] for dd, cases in multi_seeds.items()},
+            "fixtureFileOrigins": {dd: sorted({c["why"].split(" of ", 1)[1].removesuffix(" in the imported repository")
+                                               for c in cases}) for dd, cases in multi_seeds.items()}}
+           if not single and (multi_seeds := {f["dd"]: cases for f in inputs
+                                              if (cases := repo_fixtures(root, f["layout"], f.get("dsn")))}) else {}),
         **({"displayOnly": True} if program.get("displayOnly") else {}),
         **({"standIns": program["standIns"]} if program.get("standIns") else {}),
         **({"sql": _sample_sql(program, inputs)} if program.get("sql") else {}),
