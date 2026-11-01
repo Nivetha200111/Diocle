@@ -93,13 +93,29 @@ def format_flags(source: Path) -> list[str]:
     return ["-free"] if _FREE_DIRECTIVE.match(first) else []
 
 
+_ASSIGN_WORD = re.compile(r"\bASSIGN\s+(?:TO\s+)?([A-Z0-9][A-Z0-9-]*-[A-Z0-9-]*[A-Z0-9])\b", re.I)
+
+
+def assign_flags(source: Path) -> list[str]:
+    """Full-name file assignment for ASSIGN TO INPUT-FILE. Under -std=ibm GnuCOBOL reads a hyphenated ASSIGN name
+    as label-name (INPUT-FILE opens DD "FILE", so INPUT-FILE and OUTPUT-FILE collide), while the analyzer, the JCL
+    and the Java all use the whole name as the DD name (DD_INPUT-FILE). With a hyphenated, unquoted ASSIGN name the
+    program is compiled to look the whole name up, so both sides open the same files; names without a hyphen keep
+    the IBM rule."""
+    try:
+        text = source.read_text(errors="replace")
+    except OSError:
+        return []
+    return ["-fassign-clause=dynamic", "-fimplicit-assign-dynamic-var"] if _ASSIGN_WORD.search(text) else []
+
+
 def build_executable(exe: Path, main: Path, others: list[Path], flags: list[str], workdir: Path,
                      timeout: int = 120) -> subprocess.CompletedProcess:
-    """cobc -x the entry program with its CALLed modules and stand-ins. One command when every file has the same
-    source format (as before); otherwise each file is compiled to an object with its own format flag and then
-    linked, because -free on the command line would apply to a fixed-format module too."""
+    """cobc -x the entry program with its CALLed modules and stand-ins. One command when every file needs the same
+    per-file flags (source format, ASSIGN naming), as before; otherwise each file is compiled to an object with its
+    own flags and then linked, because -free on the command line would apply to a fixed-format module too."""
     files = [main, *others]
-    formats = [format_flags(f) for f in files]
+    formats = [format_flags(f) + assign_flags(f) for f in files]
     if all(f == formats[0] for f in formats):
         return _exec(["cobc", "-x", "-std=ibm", *flags, *formats[0], "-o", str(exe), *map(str, files)], timeout=timeout)
     objects = workdir / "objects"
