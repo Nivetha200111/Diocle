@@ -1318,28 +1318,27 @@ a.nav-item {
 .pitch-pipeline {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr);
+  align-items: stretch;
   margin: 16px 24px 0;
   padding: 0;
 }
-.pitch-pipeline li {
-  position: relative;
+.pitch-step {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 22px 12px 14px;
+  padding: 12px 14px;
   background: #fff;
   box-shadow: var(--w-out);
 }
-.pitch-pipeline li:not(:last-child)::after {
-  content: "\25B6";
-  position: absolute;
-  right: -9px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-  font-size: 16px;
+/* a solid block arrow between the steps, in the title-bar navy */
+.pitch-arrow {
+  align-self: center;
+  justify-self: center;
+  width: 26px;
+  height: 30px;
+  background: var(--w-navy);
+  clip-path: polygon(0 32%, 50% 32%, 50% 0, 100% 50%, 50% 100%, 50% 68%, 0 68%);
 }
 .pitch-pipeline b {
   font-family: var(--w-pixel);
@@ -1435,11 +1434,12 @@ a.nav-item {
     grid-template-columns: minmax(0, 1fr);
   }
   .pitch-pipeline {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
-  .pitch-pipeline li::after {
-    display: none;
+  .pitch-arrow {
+    transform: rotate(90deg);
+    height: 22px;
   }
 }
 @media (max-width: 760px) {

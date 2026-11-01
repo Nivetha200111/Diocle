@@ -267,9 +267,10 @@ function Pitch({ go }: { go: Go }) {
         </figure>
       </div>
       <ol className="pitch-pipeline">
-        {PIPELINE.map(([step, who, what], i) => (
-          <li key={step}><b>{i + 1}. {step}</b><em>{who}</em><span>{what}</span></li>
-        ))}
+        {PIPELINE.map(([step, who, what], i) => [
+          i > 0 && <li key={`${step}-arrow`} className="pitch-arrow" aria-hidden="true" />,
+          <li key={step} className="pitch-step"><b>{i + 1}. {step}</b><em>{who}</em><span>{what}</span></li>,
+        ])}
       </ol>
       <dl className="pitch-numbers">
         <div><dd className="mono">4 of 10</dd><dt>AI translations that passed 1,000 tests were still wrong when attacked</dt></div>
