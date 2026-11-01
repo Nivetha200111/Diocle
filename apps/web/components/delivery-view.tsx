@@ -196,6 +196,14 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
               : "Paste any public GitHub repository with COBOL. Muse Spark converts each program to Java; Diocle runs both against GnuCOBOL and repairs until they agree."}
           </p>
         </div>
+        {open && (
+          <div className="tabs" role="tablist" aria-label="Kind of import">
+            <button type="button" role="tab" aria-selected={!asAdmin} className={!asAdmin ? "active" : ""}
+                    onClick={() => { setAsAdmin(false); setConfirming(false); }}>Convert only</button>
+            <button type="button" role="tab" aria-selected={asAdmin} className={asAdmin ? "active" : ""}
+                    onClick={() => setAsAdmin(true)}>Convert + pull request (passcode)</button>
+          </div>
+        )}
       </div>
       <form
         className="dlv-form"
@@ -292,7 +300,6 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
           <p className="dlv-note">
             Uses Meta Muse Spark within the caps in <span className="mono">.env</span> (calls per run, programs per delivery, parallel agents).
             Only allowed GitHub owners; one delivery at a time.
-            {open && <> <button type="button" className="link-button" onClick={() => setAsAdmin(false)}>Back to import</button></>}
           </p>
         ) : (
           <p className="dlv-note">
@@ -300,7 +307,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
             Imported code is compiled and run in an isolated sandbox with no network and no credentials.
             Results stay here; nothing is pushed to your repository.
             {limits && !limits.budgetLeft && <strong> The conversion budget for the last 24 hours is used up; try again later.</strong>}
-            {" "}<button type="button" className="link-button" onClick={() => setAsAdmin(true)}>Deliver as a pull request (passcode)</button>
+            {" "}To get the Java as a pull request in a new or existing repository, use <button type="button" className="link-button" onClick={() => setAsAdmin(true)}>Convert + pull request</button>.
           </p>
         )}
         {error && <p className="dlv-error">{error}</p>}
