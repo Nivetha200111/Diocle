@@ -1,0 +1,289 @@
+{
+ "date": "2026-11-01",
+ "protocol": "python -m diocle_converter run SAMPLE --no-memory --breaker --max-usd CAP (private mode: MODEL_MODE=private, cap $0.25; cross-check runs: hosted Muse Spark plus --crosscheck, cap $0.15). One run per program, local machine (GnuCOBOL 3.2, JDK 21), not on the public run list.",
+ "runs": [
+  {
+   "runId": "chqclr-20261101-142844",
+   "program": "CHQCLR",
+   "models": [
+    "accounts/fireworks/models/muse-spark-open"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": false,
+   "status": "not-certified",
+   "certificationRounds": [
+    {
+     "round": 1,
+     "passed": 1004,
+     "total": 1006,
+     "certified": false
+    }
+   ],
+   "modelCallsByRole": {
+    "breaker": 3,
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.23269,
+   "breaker": {
+    "rounds": 3,
+    "tried": 14,
+    "broke": 2,
+    "repairCycles": 1,
+    "fixed": false,
+    "counterexamples": [
+     {
+      "input": "CACCT00000100000001+1 000000020240101   ",
+      "why": "Amount field has embedded space at 2nd integer digit. COBOL keeps positional weight (space=0 => 1000000.00) so CL-DEBIT is -1000000.00, Java strips space and concatenates digits to 100000.00 so CL-DEBIT and NET and CL-REC differ",
+      "diff": "CL-DEBIT: original -1000000.00 converted -100000.00"
+     },
+     {
+      "input": "RACCT00000200000002NS1 000              ",
+      "why": "Fee field 9(3)V99 has embedded space at 10s position. COBOL treats space as 0 at weight 10 => 100.00 doubled to 200.00, Java concatenates to 10.00 doubled to 20.00 => CL-FEE file field and WS-TOTAL differ",
+      "diff": "CL-FEE: original 200.00 converted 20.00"
+     }
+    ]
+   },
+   "crosscheck": null,
+   "guardReview": null
+  },
+  {
+   "runId": "daily-control-20261101-150847",
+   "program": "DAYCTRL",
+   "models": [
+    "accounts/fireworks/models/muse-spark-open"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "certificationRounds": [
+    {
+     "round": 1,
+     "passed": 1022,
+     "total": 1022,
+     "certified": true
+    }
+   ],
+   "modelCallsByRole": {
+    "breaker": 3,
+    "repair": 5,
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.2152,
+   "breaker": {
+    "rounds": 3,
+    "tried": 17,
+    "broke": 0,
+    "repairCycles": 0,
+    "fixed": false,
+    "counterexamples": []
+   },
+   "crosscheck": null,
+   "guardReview": {
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "verdict": "error",
+    "summary": "review skipped: the run's dollar cap was reached before the model review could run (the verifier's result is unaffected)"
+   }
+  },
+  {
+   "runId": "txn-posting-20261101-151838",
+   "program": "TXNPOST",
+   "models": [
+    "accounts/fireworks/models/muse-spark-open"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": false,
+   "status": "not-certified",
+   "certificationRounds": [
+    {
+     "round": 1,
+     "passed": 0,
+     "total": 0,
+     "certified": false
+    }
+   ],
+   "modelCallsByRole": {
+    "breaker": 2,
+    "repair": 11,
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.184731,
+   "breaker": {
+    "rounds": 2,
+    "tried": 24,
+    "broke": 2,
+    "repairCycles": 1,
+    "fixed": false,
+    "counterexamples": [
+     {
+      "input": "OVERNEG01F+000000001-9999999999900000",
+      "why": "Fee -999999999.99-0.01 = -1000000000.00 overflows to negative zero - tests sign of zero after overflow truncation.",
+      "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+     },
+     {
+      "input": "OVERINT02I-000000006-9999999999900000",
+      "why": "Negative interest credit -0.01 on min balance overflows to -000000000.00 - tests negative direction overflow with ROUNDED.",
+      "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+     }
+    ]
+   },
+   "crosscheck": null,
+   "guardReview": null
+  },
+  {
+   "runId": "fxconv-20261101-155535",
+   "program": "FXCONV",
+   "models": [
+    "accounts/fireworks/models/muse-spark-open"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "certificationRounds": [
+    {
+     "round": 1,
+     "passed": 1015,
+     "total": 1016,
+     "certified": false
+    },
+    {
+     "round": 2,
+     "passed": 1016,
+     "total": 1016,
+     "certified": true
+    }
+   ],
+   "modelCallsByRole": {
+    "breaker": 2,
+    "repair": 10,
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.219017,
+   "breaker": {
+    "rounds": 2,
+    "tried": 20,
+    "broke": 0,
+    "repairCycles": 0,
+    "fixed": false,
+    "counterexamples": []
+   },
+   "crosscheck": null,
+   "guardReview": {
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "verdict": "error",
+    "summary": "review skipped: the run's dollar cap was reached before the model review could run (the verifier's result is unaffected)"
+   }
+  },
+  {
+   "runId": "interest-accrual-20261101-160419",
+   "program": "INTACCR",
+   "models": [
+    "accounts/fireworks/models/muse-spark-open",
+    "meta-models/muse-spark-open-1026",
+    "muse-spark-1.3-contributor"
+   ],
+   "mode": [
+    "hosted",
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "certificationRounds": [
+    {
+     "round": 1,
+     "passed": 1029,
+     "total": 1029,
+     "certified": true
+    }
+   ],
+   "modelCallsByRole": {
+    "breaker": 4,
+    "crosscheck": 1,
+    "guard": 1,
+    "repair": 9,
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.067066,
+   "breaker": {
+    "rounds": 4,
+    "tried": 46,
+    "broke": 2,
+    "repairCycles": 1,
+    "fixed": true,
+    "counterexamples": [
+     {
+      "input": "WRAP10M000-0010000000099500365P",
+      "why": "Exact -10000000.00 interest wraps to zero testing sign preservation on overflow.",
+      "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+     },
+     {
+      "input": "WRAP20M000-0020000000099500365P",
+      "why": "Exact -20000000.00 interest wraps to zero testing double overflow sign.",
+      "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+     }
+    ]
+   },
+   "crosscheck": {
+    "model": "meta-models/muse-spark-open-1026",
+    "casesProposed": 12,
+    "casesValid": 14,
+    "mismatches": 0
+   },
+   "guardReview": {
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "verdict": "pass",
+    "summary": "Java only accesses file paths from DD_ACCTIN and DD_INTOUT, uses no network, process, reflection, native, or other environment variables, creates no background threads, and contains no encoded/obfuscated or input-specific gaming logic beyond COMP-3 overflow wrapping. Behavior matches allowed I/O (DD_* files, stdout, exit code)."
+   }
+  },
+  {
+   "runId": "chqclr-20261101-162541",
+   "program": "CHQCLR",
+   "models": [
+    "accounts/fireworks/models/muse-spark-open",
+    "meta-models/muse-spark-open-1026",
+    "muse-spark-1.3-contributor"
+   ],
+   "mode": [
+    "hosted",
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "certificationRounds": [],
+   "modelCallsByRole": {
+    "breaker": 3,
+    "crosscheck": 1,
+    "guard": 1,
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.052799,
+   "breaker": {
+    "rounds": 3,
+    "tried": 13,
+    "broke": 0,
+    "repairCycles": 0,
+    "fixed": false,
+    "counterexamples": []
+   },
+   "crosscheck": {
+    "model": "meta-models/muse-spark-open-1026",
+    "casesProposed": 12,
+    "casesValid": 12,
+    "mismatches": 0
+   },
+   "guardReview": {
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "verdict": "pass",
+    "summary": ""
+   }
+  }
+ ],
+ "totalEstimatedCostUsd": 0.9715
+}

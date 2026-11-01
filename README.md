@@ -56,7 +56,7 @@ Measured on a Mac from a clean checkout on Oct 30: about 23 s, 1,027 of 1,027 in
 | Model | Role | Evidence strength |
 |---|---|---|
 | Muse Spark (`muse-spark-1.3-contributor`) | Translator, repair agent, breaker | 34 of 36 public runs; the measurement above |
-| Muse Spark Open (open weights, partner inference on Fireworks) | Private mode, cross-check, guard review | n=1 public run (INTACCR certified); not in the headline measurement |
+| Muse Spark Open (open weights, partner inference on Fireworks and Baseten) | Private mode, cross-check, guard review | n=1 public run (INTACCR certified) plus 6 local runs on Nov 1: on CHQCLR and TXNPOST its own Java passed 1,000 held-out inputs and its own breaker broke it; DAYCTRL and FXCONV certified ([results](eval/results-open-weights-20261101.json)); not in the headline measurement |
 | Muse Wonder | Read a printout; opt-in breaker tier | n=1 per use |
 | Muse Voice Transcribe | Spoken question about a program | One live public ask |
 | Muse Code | Local plugin for the agent | Five recorded runs, prompts named the tools |
