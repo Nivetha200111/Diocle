@@ -92,6 +92,36 @@ export type Verification = {
   failingExamples: { inputId: string; inputSource?: string; diff: string; fieldDiffs?: FieldDiff[] }[];
 };
 
+// What a before/after count can honestly say. A percentage only when cases ran: 0/0 is "nothing compared",
+// not 0% (the original did not compile, or neither program wrote anything to compare).
+export function originalDidNotCompile(error?: string | null): boolean {
+  return /(?:does|did) not compile/i.test(error ?? "") && /original/i.test(error ?? "");
+}
+
+export function originalWroteNothing(v: Verification): boolean {
+  return v.passed === 0 && v.failingExamples.some((e) => /original program wrote 0 records/.test(e.diff));
+}
+
+export function caseCount(v: { passed: number; total: number }): string {
+  return v.total > 0 ? `${v.passed.toLocaleString()}/${v.total.toLocaleString()}` : "none ran";
+}
+
+export function countTile(v: Verification | null | undefined, opts: { error?: string | null; heldOut?: boolean }):
+  { value: string; note: string } {
+  if (!v || v.total === 0) {
+    if (originalDidNotCompile(opts.error)) return { value: "—", note: "the original COBOL did not compile, so nothing ran" };
+    if (!v) return { value: "n/a", note: opts.heldOut ? "no certification" : "not recorded" };
+    return { value: "—", note: "no cases compared: neither program wrote output to compare" };
+  }
+  const pct = Math.round((v.passed / v.total) * 1000) / 10;
+  return {
+    value: `${pct}%`,
+    note: `${caseCount(v)} ${opts.heldOut ? "cases the agent never saw" : "cases matched"}`
+      + (originalWroteNothing(v) ? " · the original COBOL wrote no records" : "")
+      + (v.stdoutMatch ? "" : " · stdout differs"),
+  };
+}
+
 export type RunEvent = {
   type: "agent-step" | "certification" | "budget" | "memory" | "stage" | "breaker" | "crosscheck" | "guard" | "behavior";
   stage?: string;
