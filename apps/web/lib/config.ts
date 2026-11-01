@@ -50,7 +50,7 @@ export const SUPERSEDED: Record<string, string> = {
 // What a stored run's own counts cannot tell a reader. Shown on the run; the record is unchanged.
 export const RUN_NOTES: Record<string, string> = {
   "chqclr-20261028-214355":
-    "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees and few distinct outputs (found and fixed Nov 1, 2026). The real values here came from the breaker's designed inputs. A later free audit of this Java on 1,000 well-formed cheques and returns with real amounts: all matched (docs/SHOWCASE_CHQCLR.md).",
+    "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees and few distinct outputs (found and fixed Nov 1, 2026). The real values here came from the breaker's designed inputs. A later free audit of this Java on 1,000 well-formed cheques and returns with real amounts: all matched. It also found a malformed record this Java still gets different from the COBOL, a return with a blank body, which no attack tried: certified means on the inputs tried (docs/SHOWCASE_CHQCLR.md).",
   "chqclr-20261028-234854":
     "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees (found and fixed Nov 1, 2026; docs/SHOWCASE_CHQCLR.md).",
 };

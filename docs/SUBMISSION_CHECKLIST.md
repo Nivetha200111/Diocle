@@ -1,6 +1,10 @@
 # Before submission
 
-Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Oct 31, 2026: all boxes open.
+Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Nov 1, 2026: open boxes below. Draft text to paste: [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md).
+
+- [ ] **Choose the video.** v12 is at the submitted link; the corrected candidate is `~/Downloads/diocle-candidate-v13.mp4` ([what changed and optional pickups](../demo/candidate-v13/README.md)). If v13 is used, upload it and update README line 1.
+- [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
+- [ ] **Engine deploy** (`deploy/update-engine.sh`, needs the Mac) so the live re-verify uses the fixed record generator; then press Try the sample once.
 
 - [x] **Demo video link.** https://youtu.be/EsKndaZ6d2E is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 1 through YouTube's public oEmbed endpoint).
 - [ ] **X post link.** Post the demo on X and add the post link to the submission form (Most Viral and Community Vote need it).

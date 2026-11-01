@@ -1,12 +1,14 @@
 # docs
 
 Index of the documents in this folder. Start with the [root README](../README.md); the pages below back up its claims.
-Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last reviewed Oct 31, 2026.
+Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last reviewed Nov 1, 2026.
 
 ## For judges and reviewers
 | Document | What it is |
 |---|---|
 | [MEASUREMENT.md](MEASUREMENT.md) | The headline measurement: plan committed before any model call, results, deviations. Raw data in `eval/`. |
+| [SHOWCASE_CHQCLR.md](SHOWCASE_CHQCLR.md) | One run end to end: the mismatch, the repair, the re-check, what can be reproduced, and an audit of the evidence itself. |
+| [EVALUATION_PACKET.md](EVALUATION_PACKET.md) | A short packet for a prospective user. No outside evaluation has happened yet. |
 | [EVIDENCE.md](EVIDENCE.md) | Runs, deliveries and CI results with links to the live traces. |
 | [EVALUATION.md](EVALUATION.md) | The frozen evaluation on four unseen programs, failures included. |
 | [LIVE_CHECK.md](LIVE_CHECK.md) | Which README claims were exercised on the live site on Oct 30, 2026, and which were not. |
@@ -23,6 +25,7 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 | [HANDOFF.md](HANDOFF.md) | Internal working log kept between sessions. Not a user guide; dated entries may be superseded by later ones. |
 | [NEXT_SESSION_SCALING.md](NEXT_SESSION_SCALING.md) | A plan for making the engine scale, with a prompt for a new session. Planned only; nothing in it is built. |
 | [HACKATHON_RULES.md](HACKATHON_RULES.md) | Summary of the hackathon rules we are working to. |
+| [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md) | Draft submission text. |
 | [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md) | What the owner must fill in or confirm before submitting. |
 | [DEMO_PLAN.md](DEMO_PLAN.md) | Working plan for the demo video; a plan, not a description of the final video. |
 | [DEPLOY.md](DEPLOY.md) | How the site and engine are deployed. |
