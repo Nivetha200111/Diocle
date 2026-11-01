@@ -108,7 +108,8 @@ def test_a_sample_and_a_clip_that_do_not_belong_together_are_refused(client):
     assert r.status_code == 400 and FakePopen.calls == []
 
 
-def test_the_public_path_has_no_upload_surface(client):
+def test_with_the_kill_switch_the_public_path_has_no_upload_surface(client, monkeypatch):
+    monkeypatch.setenv("DIOCLE_PUBLIC_UPLOADS", "0")
     r = client.post("/asks", content=b"RIFF....WAVE", headers={**headers(), "content-type": "audio/wav"})
     assert r.status_code == 422 and FakePopen.calls == []
     assert upload(client, wav(1.0), headers=headers()).status_code == 403 and FakePopen.calls == []
@@ -161,7 +162,7 @@ def test_per_visitor_per_day_and_the_status_shows_it(client, tmp_path):
     assert s["visitorLeft"] == 0 and s["available"] is False and "5 questions" in s["reason"]
     check(s, "status")
     other = client.get("/config", headers=headers("8.8.8.8")).json()["publicImports"]["asks"]
-    assert other["visitorLeft"] == 5 and other["available"] is True and other["reason"] is None and other["uploadsAllowed"] is False
+    assert other["visitorLeft"] == 5 and other["available"] is True and other["reason"] is None and other["uploadsAllowed"] is True
 
 
 def test_per_day_overall(client, tmp_path):
@@ -210,6 +211,7 @@ def test_cooldown_between_asks(client, tmp_path, monkeypatch):
 # ---- the upload path: admin or local only, validated by bytes ---------------------------------------------------
 
 def test_upload_refused_without_the_passcode_and_in_hosted_mode(client, monkeypatch):
+    monkeypatch.setenv("DIOCLE_PUBLIC_UPLOADS", "0")
     assert upload(client, wav(1.0)).status_code == 403  # the test client is not the loopback address
     monkeypatch.setenv("DIOCLE_HOSTED", "1")  # hosted and no token configured: nothing may start
     assert upload(client, wav(1.0)).status_code == 403
@@ -237,7 +239,9 @@ def test_upload_with_the_passcode_starts_a_job_on_the_stored_clip(client, tmp_pa
 def test_upload_on_a_local_engine_needs_the_loopback_address(tmp_path, monkeypatch, client):
     local = TestClient(app, client=("127.0.0.1", 50000))
     assert upload(local, wav(1.0)).status_code == 202
+    monkeypatch.setenv("DIOCLE_PUBLIC_UPLOADS", "0")
     assert upload(local, wav(1.0), headers={"x-forwarded-for": "5.5.5.5"}).status_code == 403  # behind a proxy: not local
+    monkeypatch.delenv("DIOCLE_PUBLIC_UPLOADS")
     assert local.get("/config").json()["publicImports"]["asks"]["uploadsAllowed"] is True
 
 
@@ -347,3 +351,98 @@ def test_the_runner_refuses_an_audio_path_outside_the_bundled_clips_and_the_job_
     assert askjob.main([job_id, str(tmp_path / "x.wav")]) == 2
     assert askjob.main(["ask-bad", "x"]) == 2
     assert client.get(f"/asks/{job_id}").json()["status"] == "failed"
+
+
+# ---- a visitor's own recorded question: capped, validated, private ------------------------------------------------------
+
+def public_upload(client, audio, visitor="203.0.113.50", sample="interest-accrual"):
+    return upload(client, audio, sample=sample, headers=headers(visitor))
+
+
+def test_a_visitor_can_ask_with_a_recording_and_only_they_can_read_the_result(client):
+    started = public_upload(client, wav(1.0))
+    assert started.status_code == 202
+    body = started.json()
+    check(body, "started")
+    assert body["key"] and FakePopen.calls
+    job_dir = asks.jobs_dir() / body["id"]
+    assert (job_dir / "upload.wav").exists()
+    record = json.loads((job_dir / "job.json").read_text())
+    record.update(status="done", finishedAt=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                  result={"transcript": {"text": "private words"}, "costs": {"totalUsd": 0.002}}, events=[{"at": "t", "message": "private"}])
+    (job_dir / "job.json").write_text(json.dumps(record))
+    stranger = client.get(f"/asks/{body['id']}")
+    assert stranger.status_code == 200 and stranger.json()["result"] is None and stranger.json()["events"] == []
+    assert "private" not in stranger.text and body["key"] not in stranger.text
+    wrong = client.get(f"/asks/{body['id']}", headers={"X-Diocle-View": "guess"})
+    assert wrong.json()["result"] is None
+    owner = client.get(f"/asks/{body['id']}", headers={"X-Diocle-View": body["key"]})
+    assert owner.json()["result"]["transcript"]["text"] == "private words"
+
+
+def test_a_recorded_result_leaves_the_disk_after_an_hour_but_its_cost_stays(client):
+    body = public_upload(client, wav(1.0)).json()
+    path = asks.jobs_dir() / body["id"] / "job.json"
+    record = json.loads(path.read_text())
+    old = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(timespec="seconds")
+    record.update(status="done", finishedAt=old, result={"transcript": {"text": "private words"}, "costs": {"totalUsd": 0.002}})
+    path.write_text(json.dumps(record))
+    owner = client.get(f"/asks/{body['id']}", headers={"X-Diocle-View": body["key"]})
+    assert owner.json()["result"] is None
+    kept = json.loads(path.read_text())
+    assert "private words" not in path.read_text() and kept["result"]["costs"]["totalUsd"] == 0.002
+
+
+def test_recorded_questions_have_their_own_caps(client, monkeypatch):
+    monkeypatch.setenv("DIOCLE_ASK_COOLDOWN_SECONDS", "0")
+    for _ in range(asks.UPLOAD_PER_VISITOR):
+        r = public_upload(client, wav(1.0))
+        assert r.status_code == 202
+        path = asks.jobs_dir() / r.json()["id"] / "job.json"
+        record = json.loads(path.read_text())
+        record.update(status="done", finishedAt=datetime.now(timezone.utc).isoformat(timespec="seconds"), result={"costs": {"totalUsd": 0.001}})
+        path.write_text(json.dumps(record))
+    over = public_upload(client, wav(1.0))
+    assert over.status_code == 429 and "recorded questions" in over.json()["detail"]
+    assert client.post("/asks", json=GOOD, headers=headers("203.0.113.50")).status_code == 202  # the bundled clips still work
+
+
+@pytest.mark.parametrize("name,data", [("renamed executable", b"MZ" + b"\x00" * 3000), ("mp3", b"ID3\x03" + b"\x00" * 3000),
+                                       ("too long", wav(15.0)), ("stereo", wav(1.0, channels=2)), ("empty", b"")])
+def test_a_bad_recording_is_refused_and_starts_nothing(client, name, data):
+    FakePopen.calls.clear()
+    r = public_upload(client, data)
+    assert r.status_code == 400 and FakePopen.calls == []
+    left = client.get("/config", headers=headers("203.0.113.50")).json()["publicImports"]["asks"]["uploadVisitorLeft"]
+    assert left == asks.UPLOAD_PER_VISITOR  # a refused clip does not use up the visitor's allowance
+
+
+def test_an_oversize_recording_is_refused_unread_and_a_full_visitor_before_the_body(client, monkeypatch):
+    big = client.post("/asks/upload", content=b"x" * 1_000_001, headers={**headers("203.0.113.50"), "content-type": "application/json"})
+    assert big.status_code == 413
+    monkeypatch.setattr(asks, "upload_refusal", lambda visitor: livesamples.Refused(429, "used up"))
+    assert client.post("/asks/upload", content=b"not even json", headers=headers("203.0.113.50")).status_code == 429
+
+
+def test_the_kill_switch_stops_public_recordings_but_not_the_bundled_clips(client, monkeypatch):
+    monkeypatch.setenv("DIOCLE_PUBLIC_UPLOADS", "0")
+    assert public_upload(client, wav(1.0)).status_code == 403
+    assert client.post("/asks", json=GOOD, headers=headers("203.0.113.50")).status_code == 202
+
+
+def test_a_clip_and_working_files_leave_the_disk_when_the_job_ends(tmp_path, monkeypatch):
+    from diocle_api import askjob
+
+    class J:
+        path = tmp_path / "job.json"
+        state = {"viewKey": "k"}
+    (tmp_path / "out").mkdir()
+    (tmp_path / "out" / "ask.json").write_text("{}")
+    for name in ("upload.wav", "job.log"):
+        (tmp_path / name).write_text("x")
+    askjob._forget_upload(J)
+    assert sorted(p.name for p in tmp_path.iterdir()) == []
+    J.state = {}  # a bundled clip's job keeps its log
+    (tmp_path / "job.log").write_text("x")
+    askjob._forget_upload(J)
+    assert (tmp_path / "job.log").exists()

@@ -31,7 +31,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("DIOCLE_WEB_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002").split(","),
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-Diocle-Admin"],
+    allow_headers=["Content-Type", "X-Diocle-Admin", "X-Diocle-View"],
 )
 
 
@@ -304,9 +304,41 @@ def start_live_sample(request: LiveSampleRequest, http: Request) -> dict:
         raise HTTPException(status_code=e.status, detail=e.message)
 
 
+class LiveUploadRequest(BaseModel):
+    """contracts/live-sample.schema.json $defs.uploadRequest."""
+    model_config = ConfigDict(extra="forbid")
+    imageBase64: str
+
+
+@app.post("/samples/live/upload", status_code=202)
+async def start_live_upload(http: Request) -> dict:
+    """Read a visitor's own image with the printout path. The caps are checked BEFORE the body is read, and a body over the size
+    limit is refused unread, so a visitor cannot make the engine hold a large upload."""
+    visitor = _visitor(http)
+    why = livesamples.upload_refusal(visitor)
+    if why:
+        raise HTTPException(status_code=why.status, detail=why.message)
+    try:
+        declared = int(http.headers.get("content-length", "-1"))
+    except ValueError:
+        declared = -1
+    if declared < 0 or declared > 2_900_000:
+        raise HTTPException(status_code=413, detail="the request is too large (images are at most 2 MB)")
+    try:
+        data = base64.b64decode(LiveUploadRequest.model_validate_json(await http.body()).imageBase64, validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(status_code=400, detail="the request is not a base64 image")
+    try:
+        with start_lock:
+            job_id, key = livesamples.start_upload(data, visitor)
+        return {"id": job_id, "key": key}
+    except livesamples.Refused as e:
+        raise HTTPException(status_code=e.status, detail=e.message)
+
+
 @app.get("/samples/live/{job_id}")
-def live_sample(job_id: str) -> dict:
-    job = livesamples.get_job(job_id)
+def live_sample(job_id: str, x_diocle_view: str | None = Header(default=None)) -> dict:
+    job = livesamples.get_job(job_id, x_diocle_view)
     if job is None:
         raise HTTPException(status_code=404, detail="job not found")
     return job
@@ -349,12 +381,17 @@ def start_ask(request: AskRequest, http: Request) -> dict:
 
 @app.post("/asks/upload", status_code=202)
 async def start_ask_upload(http: Request, x_diocle_admin: str | None = Header(default=None)) -> dict:
-    """Ask with a recorded or uploaded clip: local or admin only (never a public visitor). The gate runs BEFORE the body is
-    read, and a body over 1 MB is refused unread, so a visitor cannot make the engine hold a large upload."""
-    if not _upload_ok(http, x_diocle_admin):
+    """Ask with a recorded clip. Local or admin callers are not counted against the visitor caps; a public visitor is, under its
+    own lower caps. Every gate runs BEFORE the body is read, and a body over 1 MB is refused unread, so a visitor cannot make the
+    engine hold a large upload."""
+    trusted = _upload_ok(http, x_diocle_admin)
+    visitor = _visitor(http)
+    if not trusted:
         if x_diocle_admin and not _admin_ok(x_diocle_admin):
             raise HTTPException(status_code=403, detail="wrong passcode")
-        raise HTTPException(status_code=403, detail="asking with your own audio needs the admin passcode, or this machine's local engine")
+        why = asks.upload_refusal(visitor)
+        if why:
+            raise HTTPException(status_code=why.status, detail=why.message)
     try:
         declared = int(http.headers.get("content-length", "-1"))
     except ValueError:
@@ -368,7 +405,10 @@ async def start_ask_upload(http: Request, x_diocle_admin: str | None = Header(de
         raise HTTPException(status_code=400, detail="the request is not a sample name and base64 audio")
     try:
         with start_lock:
-            return {"id": asks.start_upload(request.sample, wav)}
+            if trusted:
+                return {"id": asks.start_upload(request.sample, wav)}
+            job_id, key = asks.start_public_upload(request.sample, wav, visitor)
+            return {"id": job_id, "key": key}
     except livesamples.Refused as e:
         raise HTTPException(status_code=e.status, detail=e.message)
 
@@ -382,8 +422,8 @@ def ask_clip(name: Literal["fee-overdrawn", "waiver-tenure"]):
 
 
 @app.get("/asks/{job_id}")
-def ask_job(job_id: str) -> dict:
-    job = asks.get_job(job_id)
+def ask_job(job_id: str, x_diocle_view: str | None = Header(default=None)) -> dict:
+    job = asks.get_job(job_id, x_diocle_view)
     if job is None:
         raise HTTPException(status_code=404, detail="job not found")
     return job

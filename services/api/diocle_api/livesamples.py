@@ -14,20 +14,27 @@ Job records live in runs/live-samples/<id>/job.json; the 24-hour windows are rea
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import re
+import secrets
 import signal
+import struct
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import public
 from .runs import runs_dir
 
 JOB_ID = re.compile(r"^live-[0-9]{8}-[0-9]{6}-[a-z]+$")
+UPLOAD_BUCKET = "live:upload"
+UPLOAD_MAX_USD, UPLOAD_PER_VISITOR, UPLOAD_PER_DAY = 0.10, 1, 3
+MAX_IMAGE_BYTES, MAX_IMAGE_SIDE = 2 * 1024 * 1024, 2400
+PRIVATE_SECONDS = 3600
 MAX_JOB_SECONDS = 30 * 60
 
 # The only things a start can mean. `kind` names the runner in samplejob.py; the numbers are hard caps (they can be lowered
@@ -221,14 +228,19 @@ def refusal(sample: str, visitor: str) -> Refused | None:
     if public.visitor_left(f"live:{sample}", visitor, cfg["perVisitor"]) <= 0:
         return Refused(429, f"You have used your {cfg['perVisitor']} {cfg['label']} for today "
                             f"(limit per visitor per day: {cfg['perVisitor']}).")
-    used = len([j for j in _last_day(read_jobs()) if j["sample"] == sample])
+    used = len([j for j in _last_day(read_jobs()) if j["sample"] == sample and not j.get("upload")])
     if used >= cfg["perDay"]:
         return Refused(429, f"All {cfg['perDay']} {cfg['label']} for today have been used "
                             f"(limit per day across all visitors: {cfg['perDay']}); the count resets after 24 hours.")
+    return _shared_refusal(cfg["maxUsd"])
+
+
+def _shared_refusal(max_usd: float) -> Refused | None:
+    """The budget, one-at-a-time and cooldown rules every live job obeys."""
     total = spent()
-    if total + cfg["maxUsd"] > budget_usd():
+    if total + max_usd > budget_usd():
         return Refused(429, f"The two live buttons have used their ${budget_usd():.2f} model budget for the last 24 hours.")
-    if public.spent_today() + cfg["maxUsd"] > public.limits()["dailyBudgetUsd"]:
+    if public.spent_today() + max_usd > public.limits()["dailyBudgetUsd"]:
         return Refused(429, "The public daily model budget is used up for the last 24 hours; try again later.")
     other = busy()
     if other:
@@ -238,6 +250,58 @@ def refusal(sample: str, visitor: str) -> Refused | None:
         return Refused(429, f"A live sample ran a moment ago; the buttons rest between runs so imports are not starved. "
                             f"Try again in {wait} seconds.")
     return None
+
+
+def uploads_enabled() -> bool:
+    """Visitors' own images and microphone clips. Kill switch: DIOCLE_PUBLIC_UPLOADS=0; the live buttons' switch also stops them."""
+    return os.environ.get("DIOCLE_PUBLIC_UPLOADS", "1") != "0" and switched_on()
+
+
+def image_problem(data: bytes) -> str | None:
+    """Why these bytes are not an acceptable image, judged by the bytes alone: PNG or JPEG, small enough, and not so large in
+    pixels that a model call could cost more than the job's cap."""
+    if len(data) > MAX_IMAGE_BYTES:
+        return f"the image is larger than {MAX_IMAGE_BYTES // (1024 * 1024)} MB"
+    size = None
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR" and len(data) >= 24:
+        size = struct.unpack(">II", data[16:24])
+    elif data[:3] == b"\xff\xd8\xff":
+        pos = 2
+        while pos + 9 < len(data) and data[pos] == 0xFF:
+            marker, length = data[pos + 1], struct.unpack(">H", data[pos + 2:pos + 4])[0]
+            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+                height, width = struct.unpack(">HH", data[pos + 5:pos + 9])
+                size = (width, height)
+                break
+            pos += 2 + length
+    if size is None:
+        return "the file is not a complete PNG or JPEG image"
+    if not (0 < size[0] <= MAX_IMAGE_SIDE and 0 < size[1] <= MAX_IMAGE_SIDE):
+        return f"the image must be at most {MAX_IMAGE_SIDE} pixels on each side"
+    return None
+
+
+def upload_refusal(visitor: str) -> Refused | None:
+    """Why this visitor may not send an image now, or None. Runs before the body is read, and answers GET /config."""
+    if not uploads_enabled():
+        return Refused(403, "Reading your own image is switched off on this server.")
+    if public.visitor_left(UPLOAD_BUCKET, visitor, UPLOAD_PER_VISITOR) <= 0:
+        return Refused(429, f"You have used your {UPLOAD_PER_VISITOR} image read for today (limit per visitor per day: {UPLOAD_PER_VISITOR}).")
+    if _uploads_today() >= UPLOAD_PER_DAY:
+        return Refused(429, f"All {UPLOAD_PER_DAY} image reads for today have been used (limit per day across all visitors: "
+                            f"{UPLOAD_PER_DAY}); the count resets after 24 hours.")
+    return _shared_refusal(UPLOAD_MAX_USD)
+
+
+def _uploads_today() -> int:
+    return len([j for j in _last_day(read_jobs()) if j.get("upload")])
+
+
+def upload_status(visitor: str) -> dict:
+    why = upload_refusal(visitor)
+    return {"enabled": uploads_enabled(), "maxUsd": UPLOAD_MAX_USD, "perVisitorPerDay": UPLOAD_PER_VISITOR, "perDay": UPLOAD_PER_DAY,
+            "usedToday": _uploads_today(), "visitorLeft": public.visitor_left(UPLOAD_BUCKET, visitor, UPLOAD_PER_VISITOR),
+            "available": why is None, "reason": why.message if why else None, "maxBytes": MAX_IMAGE_BYTES}
 
 
 def status(visitor: str) -> dict:
@@ -252,7 +316,7 @@ def status(visitor: str) -> dict:
             "visitorLeft": public.visitor_left(f"live:{name}", visitor, cfg["perVisitor"]),
             "available": why is None, "reason": why.message if why else None}
     return {"enabled": switched_on(), "budgetUsd": budget_usd(), "spentTodayUsd": total if total != float("inf") else None,
-            "busy": busy() if switched_on() else None, **buttons}
+            "busy": busy() if switched_on() else None, "upload": upload_status(visitor), **buttons}
 
 
 def start(sample: str, visitor: str) -> str:
@@ -270,10 +334,59 @@ def start(sample: str, visitor: str) -> str:
         public.visitor_hit(f"live:{sample}", visitor, SAMPLES[sample]["perVisitor"])
     except PermissionError as e:
         raise Refused(429, str(e)) from e
+    return _launch(_new_job(job_id, sample, SAMPLES[sample]["maxUsd"]), kind)
+
+
+def start_upload(data: bytes, visitor: str) -> tuple[str, str]:
+    """Admit and start a read of the visitor's own image: the same printout path and sandbox as the bundled image. The caller
+    holds deliveries.start_lock. Returns the job id and the key that alone can read its result."""
+    why = upload_refusal(visitor)
+    if why:
+        raise why
+    problem = image_problem(data)
+    if problem:
+        raise Refused(400, problem)
+    job_id = f"live-{datetime.now().strftime('%Y%m%d-%H%M%S')}-printout"
+    if (jobs_dir() / job_id).exists():
+        raise Refused(409, "another job started this second; try again")
+    try:
+        public.visitor_hit(UPLOAD_BUCKET, visitor, UPLOAD_PER_VISITOR)
+    except PermissionError as e:
+        raise Refused(429, str(e)) from e
+    job = _new_job(job_id, "loyalty-waiver-printout", UPLOAD_MAX_USD)
+    key = secrets.token_urlsafe(24)
+    job.update(upload=True, viewKey=key, uploadImage="upload.png" if data[:1] == b"\x89" else "upload.jpg")
+    path = jobs_dir() / job_id / job["uploadImage"]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return _launch(job, "printout"), key
+
+
+def _new_job(job_id: str, sample: str, max_usd: float) -> dict:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    job = {"version": "0.1", "id": job_id, "sample": sample, "status": "running", "stage": "starting", "startedAt": now,
-           "finishedAt": None, "error": None, "maxUsd": SAMPLES[sample]["maxUsd"], "events": [], "runId": None,
-           "printout": None}
+    return {"version": "0.1", "id": job_id, "sample": sample, "status": "running", "stage": "starting", "startedAt": now,
+            "finishedAt": None, "error": None, "maxUsd": max_usd, "events": [], "runId": None, "printout": None}
+
+
+def may_read(job: dict, key: str | None) -> bool:
+    """A public upload's result belongs to whoever sent it. Other jobs are open to anyone."""
+    stored = job.get("viewKey")
+    return not stored or (isinstance(key, str) and hmac.compare_digest(stored, key))
+
+
+def private_is_old(job: dict) -> bool:
+    """A finished upload keeps its result for PRIVATE_SECONDS, long enough for the visitor to read it."""
+    finished = job.get("finishedAt")
+    if job.get("status") == "running" or not job.get("viewKey") or not finished:
+        return False
+    try:
+        return datetime.now(timezone.utc) - datetime.fromisoformat(finished) > timedelta(seconds=PRIVATE_SECONDS)
+    except ValueError:
+        return True
+
+
+def _launch(job: dict, kind: str) -> str:
+    job_id = job["id"]
     _write(job)
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
     for name in ("GH_TOKEN", "DIOCLE_CONVERT_ANYWAY", "DIOCLE_ADMIN_TOKEN"):
@@ -291,8 +404,9 @@ def start(sample: str, visitor: str) -> str:
 _VIEW = ("version", "id", "sample", "status", "stage", "startedAt", "finishedAt", "error", "maxUsd", "events", "runId", "printout")
 
 
-def get_job(job_id: str) -> dict | None:
-    """live-sample.schema.json $defs.job (the process id and anything else internal are left out)."""
+def get_job(job_id: str, key: str | None = None) -> dict | None:
+    """live-sample.schema.json $defs.job (the process id and anything else internal are left out). An upload's result is
+    shown only with its key, and is removed from disk an hour after the job ends; the spend record stays."""
     if not JOB_ID.match(job_id):
         return None
     try:
@@ -305,4 +419,11 @@ def get_job(job_id: str) -> dict | None:
             job = json.loads((jobs_dir() / job_id / "job.json").read_text())
         except (OSError, ValueError):
             return None
-    return {k: job.get(k) for k in _VIEW}
+    if private_is_old(job) and (job.get("printout") or {}).get("source"):
+        job["printout"]["source"] = None
+        job["events"] = []
+        _write(job)
+    view = {k: job.get(k) for k in _VIEW}
+    if not may_read(job, key):
+        view.update(events=[], printout=None, runId=None)
+    return view

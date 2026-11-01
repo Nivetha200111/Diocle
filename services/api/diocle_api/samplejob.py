@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -150,12 +151,14 @@ def reduce_transcription(rec: dict, source: str | None) -> dict:
 def run_printout(job: Job) -> None:
     cap = SAMPLES["loyalty-waiver-printout"]["maxUsd"]
     out = job.path.parent / "out"
-    cmd = converter_cmd(["transcribe", str(PRINTOUT_IMAGE), "--out", str(out), "--against", str(PRINTOUT_ORIGINAL), "--sandbox"])
+    upload = job.state.get("uploadImage")  # a name the server chose, in the job's own folder; the bytes were judged at the door
+    image = job.path.parent / upload if upload else PRINTOUT_IMAGE
+    cmd = converter_cmd(["transcribe", str(image), "--out", str(out), "--against", str(PRINTOUT_ORIGINAL), "--sandbox"])
     # The bundled image is about 1.5k input tokens (measured). The pre-flight worst case is 4000 input + 4000 output tokens
     # at Muse Wonder's list prices = $0.096 <= the $0.10 cap; max_tokens stays a hard bound on what a call can bill.
     env = {**os.environ, "PYTHONUNBUFFERED": "1", "VISION_MAX_USD": f"{cap:.6f}", "VISION_MAX_OUTPUT_TOKENS": "4000",
            "VISION_INPUT_TOKENS_ESTIMATE": "4000"}
-    job.event(f"Sending the bundled printout image to the vision model (hard cap ${cap:.2f})", "reading")
+    job.event(f"Sending {'your' if upload else 'the bundled printout'} image to the vision model (hard cap ${cap:.2f})", "reading")
     proc = subprocess.Popen(cmd, cwd=SERVICES / "converter", text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             env=env, errors="replace")
     timer = _watch(proc, RUN_SECONDS)
@@ -184,6 +187,16 @@ def run_printout(job: Job) -> None:
     job.finish("done", None, "done")
 
 
+def _forget_upload(job: Job) -> None:
+    """A visitor's image and what was made from it leave the disk when the job ends; only the record stays (livesamples.get_job
+    removes its transcription an hour later)."""
+    if job.state.get("upload"):
+        shutil.rmtree(job.path.parent / "out", ignore_errors=True)
+        for name in (job.state.get("uploadImage"), "job.log"):
+            if name:
+                (job.path.parent / name).unlink(missing_ok=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if len(argv) != 2 or not JOB_ID.match(argv[0]) or argv[1] not in ("convert", "printout") or not argv[0].endswith("-" + argv[1]):
@@ -196,6 +209,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"samplejob failed: {type(e).__name__}", file=sys.stderr, flush=True)
         job.finish("failed", "the job stopped unexpectedly", "failed")
         return 1
+    finally:
+        _forget_upload(job)
     return 0
 
 

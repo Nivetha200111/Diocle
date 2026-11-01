@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -111,6 +112,15 @@ def run(job: Job, audio: Path) -> None:
     job.finish("done")
 
 
+def _forget_upload(job: Job) -> None:
+    """A public clip and its working files leave the disk when the job ends; only the record stays (asks.get_job removes its
+    transcript and claims an hour later). Bundled clips and local or admin uploads are not touched."""
+    if job.state.get("viewKey"):
+        for name in ("upload.wav", "job.log"):
+            (job.path.parent / name).unlink(missing_ok=True)
+        shutil.rmtree(job.path.parent / "out", ignore_errors=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if len(argv) != 2 or not JOB_ID.match(argv[0]):
@@ -128,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"askjob failed: {type(e).__name__}", file=sys.stderr, flush=True)
         job.finish("failed", "the job stopped unexpectedly")
         return 1
+    finally:
+        _forget_upload(job)
     return 0
 
 

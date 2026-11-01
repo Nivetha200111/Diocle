@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/live-sample.schema.json",
   "title": "Live sample",
-  "description": "v0.1. The two public \"try it live\" buttons: a visitor presses a button, Diocle runs ONE fixed bundled synthetic sample through a real Meta model call and verifies the result. The request carries nothing but the name of a sample from a fixed list; no visitor text ever reaches a model, a command line, a path or the sandbox. $defs.request is the body of POST /samples/live, $defs.job is the answer of GET /samples/live/{id}, $defs.status is the `publicImports.samples` object of GET /config. Strings in these shapes are fixed phrases or values the engine computed; provider messages are never echoed.",
+  "description": "v0.1, plus additive upload fields (Nov 2026): `uploadRequest`, `started.key`, `status.upload`. A visitor may also send one image, read by the same path; its result is shown only to whoever holds `key`. The two public \"try it live\" buttons: a visitor presses a button, Diocle runs ONE fixed bundled synthetic sample through a real Meta model call and verifies the result. The request carries nothing but the name of a sample from a fixed list; no visitor text ever reaches a model, a command line, a path or the sandbox. $defs.request is the body of POST /samples/live, $defs.job is the answer of GET /samples/live/{id}, $defs.status is the `publicImports.samples` object of GET /config. Strings in these shapes are fixed phrases or values the engine computed; provider messages are never echoed.",
   "$defs": {
     "sampleName": {
       "type": "string",
@@ -19,7 +19,28 @@
       "type": "object",
       "required": ["id"],
       "additionalProperties": false,
-      "properties": { "id": { "type": "string", "pattern": "^live-[0-9]{8}-[0-9]{6}-[a-z]+$" } }
+      "properties": {
+        "id": { "type": "string", "pattern": "^live-[0-9]{8}-[0-9]{6}-[a-z]+$" },
+        "key": { "type": "string", "description": "Uploaded images only: send it back as X-Diocle-View to read the job's result. Without it the job shows status only." }
+      }
+    },
+    "uploadRequest": {
+      "type": "object",
+      "description": "POST /samples/live/upload. One PNG or JPEG, judged by its bytes: at most 2 MB and 2400 pixels on a side.",
+      "required": ["imageBase64"],
+      "additionalProperties": false,
+      "properties": { "imageBase64": { "type": "string" } }
+    },
+    "uploadStatus": {
+      "type": "object",
+      "required": ["enabled", "maxUsd", "perVisitorPerDay", "perDay", "usedToday", "visitorLeft", "available", "reason", "maxBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "description": "False when DIOCLE_PUBLIC_UPLOADS=0" },
+        "maxUsd": { "type": "number" }, "perVisitorPerDay": { "type": "integer" }, "perDay": { "type": "integer" },
+        "usedToday": { "type": "integer" }, "visitorLeft": { "type": "integer" },
+        "available": { "type": "boolean" }, "reason": { "type": ["string", "null"] }, "maxBytes": { "type": "integer" }
+      }
     },
     "event": {
       "type": "object",
@@ -121,6 +142,7 @@
         "enabled": { "type": "boolean", "description": "False when DIOCLE_PUBLIC_SAMPLES=0, or the public sandbox is not configured" },
         "budgetUsd": { "type": "number", "description": "DIOCLE_PUBLIC_SAMPLES_BUDGET: the most both buttons together may spend in 24 hours, drawn from the public daily budget" },
         "spentTodayUsd": { "type": ["number", "null"], "description": "Estimated spend of both buttons in the last 24 hours (null: a model without a price, fails closed)" },
+        "upload": { "$ref": "#/$defs/uploadStatus" },
         "busy": { "type": ["string", "null"], "description": "Id of the delivery or live sample that holds the one-at-a-time lock, else null" },
         "convert": { "$ref": "#/$defs/buttonStatus" },
         "printout": { "$ref": "#/$defs/buttonStatus" }

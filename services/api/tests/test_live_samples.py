@@ -5,7 +5,9 @@ converter and prints/writes what the real one does; the real converter, models a
 real run recorded in docs/HANDOFF.md, not here.
 """
 
+import base64
 import json
+import struct
 import subprocess
 import sys
 import textwrap
@@ -460,3 +462,107 @@ def test_a_global_cooldown_spaces_out_live_starts(client, tmp_path, monkeypatch)
 def test_a_budget_stop_in_the_guard_is_worded_as_skipped_not_failed():
     from diocle_converter import guard
     assert "review skipped" in open(guard.__file__).read()
+
+
+# ---- a visitor's own image: capped, judged by its bytes, private ---------------------------------------------------------
+
+def png(width=800, height=600):
+    return b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + struct.pack(">II", width, height) + b"\x08\x02\x00\x00\x00" + b"\x00" * 2000
+
+
+def jpeg(width=800, height=600):
+    app0 = b"\xff\xe0" + struct.pack(">H", 16) + b"\x00" * 14
+    sof = b"\xff\xc2" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", height, width) + b"\x00" * 10
+    return b"\xff\xd8" + app0 + sof + b"\x00" * 2000
+
+
+def send(client, data, who="203.0.113.60"):
+    return client.post("/samples/live/upload", json={"imageBase64": base64.b64encode(data).decode()}, headers=headers(who))
+
+
+def test_a_visitor_can_send_an_image_and_only_they_can_read_the_result(client, tmp_path):
+    r = send(client, png())
+    assert r.status_code == 202
+    body = r.json()
+    assert body["key"] and FakePopen.calls[-1][0][-2:] == [body["id"], "printout"]  # server-made id and kind: nothing else on argv
+    root = livesamples.jobs_dir() / body["id"]
+    assert (root / "upload.png").read_bytes().startswith(b"\x89PNG")
+    job = json.loads((root / "job.json").read_text())
+    job.update(status="done", finishedAt=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               printout={"source": "PRIVATE COBOL", "usage": {"estimatedCostUsd": 0.05}}, events=[{"at": "t", "message": "private"}])
+    (root / "job.json").write_text(json.dumps(job))
+    other = client.get(f"/samples/live/{body['id']}")
+    assert other.status_code == 200 and other.json()["printout"] is None and "PRIVATE" not in other.text and body["key"] not in other.text
+    assert client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": "guess"}).json()["printout"] is None
+    owner = client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": body["key"]})
+    assert owner.json()["printout"]["source"] == "PRIVATE COBOL"
+
+
+def test_a_transcription_leaves_the_disk_after_an_hour_but_its_cost_still_counts(client):
+    body = send(client, jpeg()).json()
+    path = livesamples.jobs_dir() / body["id"] / "job.json"
+    job = json.loads(path.read_text())
+    job.update(status="done", finishedAt=(datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(timespec="seconds"),
+               printout={"source": "PRIVATE COBOL", "usage": {"estimatedCostUsd": 0.05}})
+    path.write_text(json.dumps(job))
+    assert client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": body["key"]}).json()["printout"]["source"] is None
+    assert "PRIVATE" not in path.read_text() and livesamples.printout_spent() == pytest.approx(0.05)
+
+
+@pytest.mark.parametrize("name,data,phrase", [
+    ("renamed executable", b"MZ" + b"\x00" * 3000, "PNG or JPEG"), ("svg", b"<svg xmlns='x'></svg>" + b" " * 3000, "PNG or JPEG"),
+    ("empty", b"", "PNG or JPEG"), ("truncated png", b"\x89PNG\r\n\x1a\n", "PNG or JPEG"), ("truncated jpeg", b"\xff\xd8\xff", "PNG or JPEG"),
+    ("huge png", png(5000, 600), "pixels"), ("huge jpeg", jpeg(600, 9000), "pixels"), ("zero size", png(0, 0), "pixels"),
+    ("too many bytes", png() + b"\x00" * (2 * 1024 * 1024), "larger than")])
+def test_a_bad_image_is_refused_and_starts_nothing(client, name, data, phrase):
+    r = send(client, data)
+    assert r.status_code == 400 and phrase in r.json()["detail"] and FakePopen.calls == [], name
+    assert client.get("/config", headers=headers("203.0.113.60")).json()["publicImports"]["samples"]["upload"]["visitorLeft"] == 1
+
+
+def test_an_oversize_body_is_refused_unread_and_bad_requests_say_so(client):
+    head = {**headers("203.0.113.60"), "content-type": "application/json"}
+    assert client.post("/samples/live/upload", content=b"x" * 2_900_001, headers=head).status_code == 413
+    assert client.post("/samples/live/upload", json={"imageBase64": "not base64!"}, headers=headers("203.0.113.60")).status_code == 400
+    assert client.post("/samples/live/upload", json={"imageBase64": "", "path": "/etc/passwd"}, headers=headers("203.0.113.60")).status_code == 400
+
+
+def test_image_caps_per_visitor_per_day_and_the_budget(client, tmp_path, monkeypatch):
+    assert send(client, png()).status_code == 202
+    finish_all(tmp_path, cost=0.05)
+    r = send(client, png())
+    assert r.status_code == 429 and "per visitor" in r.json()["detail"]
+    for n, who in enumerate(("203.0.113.61", "203.0.113.62")):
+        time.sleep(1.05)
+        assert send(client, png(), who).status_code == 202
+        finish_all(tmp_path, cost=0.05)
+    time.sleep(1.05)
+    r = send(client, png(), "203.0.113.63")
+    assert r.status_code == 429 and "per day" in r.json()["detail"]
+    assert livesamples.upload_status("203.0.113.63")["available"] is False
+    monkeypatch.setenv("DIOCLE_PUBLIC_SAMPLES_BUDGET", "0.01")
+    assert livesamples.upload_refusal("203.0.113.64").status == 429
+
+
+def test_a_full_visitor_is_refused_before_the_body_is_read(client, monkeypatch):
+    monkeypatch.setattr(livesamples, "upload_refusal", lambda visitor: livesamples.Refused(429, "used up"))
+    assert client.post("/samples/live/upload", content=b"not even json", headers=headers("203.0.113.60")).status_code == 429
+
+
+def test_the_kill_switch_stops_images_but_not_the_bundled_buttons(client, monkeypatch):
+    monkeypatch.setenv("DIOCLE_PUBLIC_UPLOADS", "0")
+    assert send(client, png()).status_code == 403 and FakePopen.calls == []
+    assert client.post("/samples/live", json={"sample": "loyalty-waiver-printout"}, headers=headers()).status_code == 202
+
+
+def test_an_image_and_what_was_made_from_it_leave_the_disk_when_the_job_ends(tmp_path, monkeypatch):
+    class J:
+        path = tmp_path / "job.json"
+        state = {"upload": True, "uploadImage": "upload.png"}
+    (tmp_path / "out").mkdir()
+    (tmp_path / "out" / "x.cbl").write_text("x")
+    for name in ("upload.png", "job.log"):
+        (tmp_path / name).write_text("x")
+    samplejob._forget_upload(J)
+    assert list(tmp_path.iterdir()) == []
+

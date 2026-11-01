@@ -4,6 +4,9 @@ PUBLIC path: a visitor names one bundled sample and one bundled clip from fixed 
 visitor sends reaches a model, a path, a command line or the sandbox except those two enum values. The bundled clips are
 the author's recorded WAV files in voice_clips/. LOCAL/ADMIN path (start_upload): one uploaded WAV, validated by its bytes (16 kHz
 mono 16-bit PCM, at most 10 s and 500 KB) before anything is written; gated in app.py like createTarget and convert-anyway.
+PUBLIC RECORDED path (start_public_upload): the same validation, about one of the same two samples, with its own lower caps. The
+transcript stays untrusted data. Its result is shown only with the key returned at the start, the clip leaves the disk when the
+job ends, and the transcript and claims an hour later. Kill switch: DIOCLE_PUBLIC_UPLOADS=0.
 
 Caps (rule 10, set by the owner's code, never by a request): $0.01 per ask, 5 asks per visitor per day, 30 per day overall,
 one job at a time across asks, the live buttons, imports and deliveries, and the spend counts against the same
@@ -33,6 +36,7 @@ MAX_JOB_SECONDS = 5 * 60
 CLIPS_DIR = Path(__file__).resolve().parent / "voice_clips"
 MAX_USD, PER_VISITOR, PER_DAY = 0.01, 5, 30
 BUCKET = "ask"
+UPLOAD_BUCKET, UPLOAD_PER_VISITOR, UPLOAD_PER_DAY = "ask:upload", 2, 15
 
 # (sample, spoken question): the only things a public start can mean.
 CLIPS = {
@@ -189,12 +193,37 @@ def _shared_refusal() -> Refused | None:
     return None
 
 
+def upload_refusal(visitor: str) -> Refused | None:
+    """Why this visitor may not send a recorded clip now, or None. Runs before the body is read, and answers GET /config."""
+    if not livesamples.uploads_enabled():
+        return Refused(403, "Asking with your own voice is switched off on this server.")
+    if not voice_configured():
+        return Refused(403, "Voice transcription is not configured on this server.")
+    if public.visitor_left(UPLOAD_BUCKET, visitor, UPLOAD_PER_VISITOR) <= 0:
+        return Refused(429, f"You have used your {UPLOAD_PER_VISITOR} recorded questions for today (limit per visitor per day: {UPLOAD_PER_VISITOR}).")
+    if _uploads_today() >= UPLOAD_PER_DAY:
+        return Refused(429, f"All {UPLOAD_PER_DAY} recorded questions for today have been used (limit per day across all visitors: "
+                            f"{UPLOAD_PER_DAY}); the count resets after 24 hours.")
+    if len(_last_day(read_jobs())) >= PER_DAY:
+        return Refused(429, f"All {PER_DAY} questions for today have been used (limit per day across all visitors: {PER_DAY}); "
+                            "the count resets after 24 hours.")
+    return _shared_refusal()
+
+
+def _uploads_today() -> int:
+    return len([j for j in _last_day(read_jobs()) if j.get("viewKey")])
+
+
 def status(visitor: str, may_upload: bool) -> dict:
     """voice-question $defs.status, for GET /config."""
     why = refusal(visitor)
+    upload_why = upload_refusal(visitor)
     return {"enabled": switched_on(), "available": why is None, "reason": why.message if why else None, "maxUsd": MAX_USD,
             "perVisitorPerDay": PER_VISITOR, "perDay": PER_DAY, "usedToday": len(_last_day(read_jobs())),
-            "visitorLeft": public.visitor_left(BUCKET, visitor, PER_VISITOR), "uploadsAllowed": bool(may_upload) and voice_configured(),
+            "visitorLeft": public.visitor_left(BUCKET, visitor, PER_VISITOR), "uploadPerVisitorPerDay": UPLOAD_PER_VISITOR, "uploadPerDay": UPLOAD_PER_DAY, "uploadUsedToday": _uploads_today(),
+            "uploadVisitorLeft": public.visitor_left(UPLOAD_BUCKET, visitor, UPLOAD_PER_VISITOR),
+            "uploadReason": upload_why.message if upload_why else None,
+            "uploadsAllowed": bool(may_upload or livesamples.uploads_enabled()) and voice_configured(),
             "clips": [{"clip": name, "sample": c["sample"], "question": c["question"],
                        "seconds": round(max(0, (CLIPS_DIR / f"{name}.wav").stat().st_size - 44) / 32000, 1)} for name, c in CLIPS.items()]}
 
@@ -263,11 +292,38 @@ def start_upload(sample: str, wav: bytes) -> str:
     return _launch(job, path)
 
 
+def start_public_upload(sample: str, wav: bytes, visitor: str) -> tuple[str, str]:
+    """Admit and start a visitor's recorded question. The caller holds deliveries.start_lock. Returns the job id and the key
+    that alone can read its result."""
+    if sample not in SAMPLES:
+        raise Refused(400, "unknown sample")
+    why = upload_refusal(visitor)
+    if why:
+        raise why
+    voice = _voice()
+    try:
+        voice.validate_wav(wav)
+    except voice.VoiceError as e:
+        raise Refused(400, str(e)) from None
+    try:
+        public.visitor_hit(UPLOAD_BUCKET, visitor, UPLOAD_PER_VISITOR)
+    except PermissionError as e:
+        raise Refused(429, str(e)) from e
+    job = _new_job(sample, None, Path())
+    key = secrets.token_urlsafe(24)
+    job.update(upload=True, viewKey=key)
+    path = jobs_dir() / job["id"] / "upload.wav"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(wav)
+    return _launch(job, path), key
+
+
 _VIEW = ("version", "id", "sample", "clip", "status", "stage", "startedAt", "finishedAt", "error", "events", "result", "partial")
 
 
-def get_job(job_id: str) -> dict | None:
-    """voice-question $defs.job (the process id and anything else internal are left out)."""
+def get_job(job_id: str, key: str | None = None) -> dict | None:
+    """voice-question $defs.job (the process id and anything else internal are left out). A public recorded question's result
+    is shown only with its key, and leaves the disk an hour after the job ends; its cost stays for the budget."""
     if not JOB_ID.match(job_id):
         return None
     try:
@@ -280,4 +336,12 @@ def get_job(job_id: str) -> dict | None:
             job = json.loads((jobs_dir() / job_id / "job.json").read_text())
         except (OSError, ValueError):
             return None
-    return {k: job.get(k) for k in _VIEW}
+    if livesamples.private_is_old(job) and (job.get("result") or {}).get("transcript") is not None:
+        job.update(result={"costs": (job.get("result") or {}).get("costs")}, partial=None, events=[])
+        _write(job)
+    view = {k: job.get(k) for k in _VIEW}
+    if not livesamples.may_read(job, key):
+        view.update(events=[], result=None, partial=None)
+    elif view.get("result") and "transcript" not in view["result"]:
+        view["result"] = None
+    return view
