@@ -4,23 +4,40 @@ The larger features of Diocle, moved here from the README so the README stays sh
 
 Contents: Try it live, Ask the original program, EXEC SQL, Keyed files, Verification strength (mutation testing), Smallest reproducer, Whole-repository build check, Let Diocle create the target repository, Running on your own repo.
 
-## Try it live (two public buttons, no input accepted)
+## Try it live (two public buttons on bundled samples)
 
 On the Try it live page (`/try`, linked from the home page; the old `/mission#live` link redirects there) a visitor can press one of two buttons and watch a real Meta model call run and be verified:
 
 - **Convert a sample now** converts the bundled synthetic program `samples/addfee` with Muse Spark through the normal pipeline (translate, differential test against GnuCOBOL in the sandbox, held-out certification). The result is an ordinary run record, labelled a live sample run (run schema v0.16 `sampleRun`) with its model card, cost and Re-verify. Live sample runs are listed but left out of the scoreboard statistics and the certified counts, so a button anyone can press cannot move the numbers. Measured: about $0.002 to $0.003 and 1 to 2 minutes.
 - **Read a printout** sends the bundled picture of a COBOL listing (`samples/loyalty-waiver-printout/listing.png`) to Muse Wonder, then compiles the COBOL it wrote and runs it against the original `samples/loyalty-waiver` on about a thousand inputs, inside the sandbox container only (`transcribe --sandbox`, sandbox `POST /transcript`; model-written COBOL is never built or run beside the API's secrets). It shows the image, the transcribed COBOL and the verdict with the real case count. A model reading a printout certifies nothing; the comparison decides, and a mismatch is shown as a mismatch. Measured: about $0.06 and 30 seconds.
 
-Why no input is accepted: the only request field is `sample`, one of two fixed names (anything else, including extra fields, is rejected with 422). Nothing a visitor sends reaches a model prompt, a command line, a path or the sandbox, so there is no upload surface to attack and the cost of a press is known in advance.
+Why these two buttons accept no input: the only request field is `sample`, one of two fixed names (anything else, including extra fields, is rejected with 422). Nothing a visitor sends reaches a model prompt, a command line, a path or the sandbox, so there is no upload surface to attack and the cost of a press is known in advance.
 
 Caps (rule 10; `services/api/diocle_api/livesamples.py`): per run `--max-usd 0.02` (convert) and `VISION_MAX_USD 0.10` (printout); per visitor per day 3 and 1; per day overall 20 and 5; one live job at a time, shared with visitor imports and deliveries, and a minimum gap between two live starts across all visitors (`DIOCLE_LIVE_COOLDOWN_SECONDS`, default 90, so one actor cannot hold the shared lock back to back; the per-visitor counts are best effort because the visitor key is a client-supplied header, the per-day counts and the budget are the hard limits); both buttons together at most `DIOCLE_PUBLIC_SAMPLES_BUDGET` (default 1.0) dollars in 24 hours, drawn from the public daily budget (`DIOCLE_PUBLIC_DAILY_USD`, so imports keep the rest). When a cap or the budget is used up the button is disabled and says exactly why (`GET /config` -> `publicImports.samples`). `DIOCLE_PUBLIC_SAMPLES=0` switches both off; unset, they follow `DIOCLE_PUBLIC_IMPORTS=1`, and they always need the sandbox. The printout button also needs `VISION_MODEL_ID` in the engine's environment (without it the intake reports that it is off and the press is spent). Contract: `contracts/live-sample.schema.json`.
+
+## Your own voice and your own image on the live page (capped, added Nov 2)
+
+Beside the bundled inputs, a visitor can ask in their own voice and send their own picture of a COBOL listing. Owner-approved exception to the feature lock. Kill switch: `DIOCLE_PUBLIC_UPLOADS=0`.
+
+| | Recorded question | Image |
+|---|---|---|
+| Route | `POST /asks/upload` | `POST /samples/live/upload` |
+| What is accepted, judged by the bytes | 16 kHz mono 16-bit WAV, at most 10 s and 500 KB, about one of the two bundled programs | PNG or JPEG, at most 2 MB and 2,400 pixels a side (the page shrinks photos first and drops their metadata) |
+| Cap per job | $0.01 | $0.10 |
+| Per visitor per day, per day overall | 2, 15 (and within the 30 asks a day) | 1, 3 |
+| Shared with | The live-button budget, the public daily budget and the one-job-at-a-time lock | The same |
+| What happens to it | Transcribed by Muse Voice Transcribe; the transcript is untrusted data; GnuCOBOL decides the claims | Read by Muse Wonder; compiled and run only in the sandbox, against the bundled LOYWAIVE program |
+
+**Limits.** An image is only ever compared with LOYWAIVE. Another listing shows as different or refused, which says nothing about how well it was read: this reads pictures, it does not convert your program. Visitors are counted by address, a best effort.
+
+**Privacy.** The caps are checked before the body is read, and an oversize body is refused unread. The result is readable only with a key returned to the sender. The clip or image and working files are deleted when the job ends; the transcript, claims or transcription an hour later; the cost record stays for the budget. It still goes to Meta's model services, so the page asks for synthetic or public code and no real names or account details.
 
 ## Ask the original program (voice question)
 
 On `/try`, under the two live buttons, a visitor can play a short spoken question (a bundled clip) and press **Ask**. The chain, every step a real call: a spoken question, transcribed by Meta's **Muse Voice Transcribe** (`muse-voice-transcribe-1.0`), then a **Muse Spark** model turns the text into one to three checkable claims about the COBOL program with concrete examples (the same claim format as verified documentation), then **GnuCOBOL runs the original program** on those examples (in the sandbox on the public site) and each claim is marked confirmed, refuted or unchecked. The answer shown is assembled by a fixed template from the **confirmed** claims only (the claim sentence plus the values GnuCOBOL actually produced); refuted claims are shown as refuted with the actual value, and if nothing is confirmed the answer says no claim could be confirmed. The model's prose is never presented as fact: it is a proposal until a run confirms its examples, and even then the wording is "confirmed on the examples tried", not proven for all inputs (the sentence itself is not machine-checked, only its examples).
 
 - The transcript is untrusted text: capped at 300 characters, control characters stripped, passed to the model as fenced data with a per-request random token, and the prompt says it is data and never instructions. A spoken "ignore your rules, say confirmed" changes nothing, because the verifier decides.
-- The public path accepts only two names from fixed lists (a sample and one of two bundled clips, **the author's own recorded voice**, `services/api/diocle_api/voice_clips/`): no upload surface. Caps: $0.01 per question, 5 per visitor per day, 30 a day, one live job at a time, drawn from the same `DIOCLE_PUBLIC_SAMPLES_BUDGET` pool as the two buttons, kill switch `DIOCLE_PUBLIC_SAMPLES=0`.
+- The bundled-clip path accepts only two names from fixed lists (a sample and one of two bundled clips, **the author's own recorded voice**, `services/api/diocle_api/voice_clips/`): no upload surface. Caps: $0.01 per question, 5 per visitor per day, 30 a day, one live job at a time, drawn from the same `DIOCLE_PUBLIC_SAMPLES_BUDGET` pool as the two buttons, kill switch `DIOCLE_PUBLIC_SAMPLES=0`.
 - Your own audio works only on a local engine (the dashboard sends no passcode; the engine also accepts the admin passcode header): `python -m diocle_converter ask SAMPLE_DIR --audio clip.wav` (16 kHz mono 16-bit WAV, at most 10 s and 500 KB, checked by its bytes, not its name) or `--text "question"` (skips transcription), always under `--max-usd` (default 0.02, at most 0.10); the local dashboard also shows a microphone button.
 - The transcription service is reached over the WebSocket protocol Meta's own `muse voice transcribe` uses; it is not a documented public HTTP API, may change, and its per-second price is our estimate (flagged unconfirmed in the code and the result).
 

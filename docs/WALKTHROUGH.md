@@ -18,7 +18,7 @@ The original on GnuCOBOL and the stored Java, one run each, on about 1,000 gener
 
 ## 3. Try it live: two capped buttons
 
-**Convert a sample now** (Muse Spark translates one bundled program, cap $0.02) and **Read a printout** (Muse Wonder reads one bundled listing, cap $0.10). No free text. *Live; the buttons were not pressed for this picture.*
+**Convert a sample now** (Muse Spark translates one bundled program, cap $0.02) and **Read a printout** (Muse Wonder reads one bundled listing, cap $0.10). No free text. Since Nov 2 the page also reads your own image and takes a question in your own voice, under [their own caps](FEATURES.md#your-own-voice-and-your-own-image-on-the-live-page-capped-added-nov-2); this picture was taken before that. *Live; the buttons were not pressed for this picture.*
 
 ![Try it live](walkthrough/03-try-it-live.jpg)
 

@@ -33,6 +33,8 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **CardDemo:** `CBCUS01C` (AWS, Apache-2.0, `59cc6c2fd7eb`) certified locally, $0.0112; README section and `eval/results-carddemo-20261101.json`. Thin on purpose in what it claims: 5 of 40 seeded faults detected; breaker, cross-check and delivery not run. No CardDemo code is committed; the run and sample are in git-ignored `runs/`.
 
+**Your own voice and image (Nov 2, owner approved, an exception to the lock):** capped uploads on `/try`; caps and privacy in FEATURES.md; kill switch `DIOCLE_PUBLIC_UPLOADS=0`. New public surface: read `services/api/diocle_api/livesamples.py` (`image_problem`, `upload_refusal`, `may_read`) before changing it.
+
 **Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. Uploaded by the owner: https://youtu.be/ZkujXuDwNSM, linked on README line 1.
 
 **Owner steps:** change the YouTube title (it still says "proves"); submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
