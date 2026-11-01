@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 from . import REPORT_VERSION
-from .cobol import _COPY_WORD, apply_replacing, parse_copybook, parse_program, source_lines
+from .cobol import _COPY_WORD, apply_replacing, parse_copybook, parse_program, scan_line, source_lines
 import re
 
 from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
@@ -82,7 +82,7 @@ def nested_copybooks(names: list[str], copybooks: dict[str, Path]) -> list[str]:
         if member not in copybooks:
             continue
         text = copybooks[member].read_text(errors="replace")
-        code = " ".join(c.strip() for _, c in source_lines(text))
+        code = " ".join(scan_line(c)[1].strip() for _, c in source_lines(text))  # VALUE 'COPY FAILED' is no COPY
         for nested in re.findall(_COPY_WORD + r"\s+([A-Z0-9-]+)", code):
             if nested not in out:
                 out.append(nested)
