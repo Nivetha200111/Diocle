@@ -1,5 +1,6 @@
 "use client";
 
+import { KNOWN_DIFFERENCE } from "@/lib/config";
 import { MessageSquareText } from "lucide-react";
 import { hostOf, originalDidNotCompile, originalWroteNothing, type ModelCall, type Run } from "@/lib/runs";
 
@@ -76,6 +77,9 @@ export function checkLines(run: Run): CheckLine[] {
       label: `${n(after.passed)} of ${n(after.total)}`,
       detail: `Output records compared${after.stdoutMatch ? "; display output also matched" : "; display output DIFFERED"}. Generated records carry no deliberately bad data, and a flat text record gets placeholders.`,
     });
+  }
+  if (KNOWN_DIFFERENCE[run.id]) {
+    lines.push({ check: "Known difference, found later", state: "failed", label: "yes", detail: `After this run, on ${KNOWN_DIFFERENCE[run.id]}` });
   }
   const b = run.breaker;
   if (!b || !(b.tried > 0)) {

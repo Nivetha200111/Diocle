@@ -17,7 +17,7 @@ export const LINKS = {
   showcase: "https://github.com/Nivetha200111/Diocle/blob/main/docs/SHOWCASE_CHQCLR.md",
   vscode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/vscode",
   museCode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/muse-code",
-  certified: "https://github.com/Nivetha200111/Diocle#what-certified-means-and-does-not",
+  certified: "https://github.com/Nivetha200111/Diocle/blob/main/docs/DETAILS.md#what-certified-means-and-does-not",
   buildLog: "https://github.com/Nivetha200111/Diocle/blob/main/docs/BUILD_LOG.md",
 };
 
@@ -53,6 +53,11 @@ export const RUN_NOTES: Record<string, string> = {
     "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees and few distinct outputs (found and fixed Nov 1, 2026). The real values here came from the breaker's designed inputs. A later free audit of this Java on 1,000 valid records, 906 of them cheques and returns with real amounts: all matched. It also found a malformed record this Java still gets different from the COBOL, a return with a blank body, which no attack tried: certified means on the inputs tried (docs/SHOWCASE_CHQCLR.md).",
   "chqclr-20261028-234854":
     "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees (found and fixed Nov 1, 2026; docs/SHOWCASE_CHQCLR.md).",
+};
+
+// Certified runs whose Java is now known to differ from the original on some input. The run's own record is unchanged.
+export const KNOWN_DIFFERENCE: Record<string, string> = {
+  "chqclr-20261028-214355": "a return with a blank body (malformed): the COBOL writes the fee as spaces, this Java as zeros. No attack tried it; an audit found it on Nov 1, 2026.",
 };
 
 const FLAT_RECORD_NOTE = "Read this count with care: this program reads one flat 160-byte text record, so generated records are placeholders that take its reject path (1,000 of them give one distinct output). What exercised it here was 400 records taken from the repository's data files and, where it ran, the breaker. The target repository's CI has only the generated records.";

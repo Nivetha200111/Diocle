@@ -39,7 +39,7 @@ export const TRAPS: Trap[] = [
     how: "The original is compiled with cobc -std=ibm, IBM's TRUNC(STD) and DISPLAY defaults, and EBCDIC collating order (-fdefault-colseq=EBCDIC). Honest limit: where GnuCOBOL still differs from IBM (intermediate precision, NUMPROC, hex floats) and no captured mainframe output exists, the equivalence report does not cover it. The generated GitHub Actions re-verify workflow builds GnuCOBOL 3.2 from source because the Ubuntu package rejected the EBCDIC flag.",
     evidence: [
       { kind: "doc", href: `${DOCS}/services/verifier/README.md`, label: "services/verifier/README.md" },
-      { kind: "doc", href: `${DOCS}/README.md#not-supported-yet`, label: "README: Not supported yet" },
+      { kind: "doc", href: `${DOCS}/docs/DETAILS.md#not-supported-yet`, label: "README: Not supported yet" },
     ],
   },
   {
@@ -72,7 +72,7 @@ export const TRAPS: Trap[] = [
     what: "CICS, IMS (DLI), keyed (INDEXED/RELATIVE) files, EXEC SQL outside the subset, dynamic CALLs whose target is not a literal, CALLs to programs not in the repository, and missing IBM copybooks.",
     how: "The analyzer reports the program as not convertible with the exact reason, and no model money is spent on it. A public sample, CardDemo, analysed locally: 0 of 44 programs convertible (missing IBM copybooks, calls to CEE3ABD and CEEDAYS, dynamic CALLs, CICS, DLI, SQL). Nothing is guessed.",
     evidence: [
-      { kind: "doc", href: `${DOCS}/README.md#not-supported-yet`, label: "README: Not supported yet" },
+      { kind: "doc", href: `${DOCS}/docs/DETAILS.md#not-supported-yet`, label: "README: Not supported yet" },
       { kind: "doc", href: `${DOCS}/docs/HANDOFF.md`, label: "docs/HANDOFF.md (CardDemo screening)" },
     ],
     note: "Documented in the repository; no live run on this site.",

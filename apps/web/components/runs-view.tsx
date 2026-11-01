@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
 import { API_URL, ASSURANCE_BADGE, callCostUsd, countTile, originalDidNotCompile, originalWroteNothing, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { AssuranceBadge, AssuranceNote } from "./assurance";
-import { runNote, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
+import { KNOWN_DIFFERENCE, runNote, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
@@ -377,7 +377,7 @@ function EfficiencyTable({ runs, selected, onSelect }: {
               <tr key={r.id} className={r.id === selected ? "selected" : ""} onClick={() => onSelect(r.id)}>
                 <td className="mono">{r.program} · {r.createdAt?.slice(5, 16).replace("T", " ")} · {r.command === "run" ? "translate" : "repair"}</td>
                 <td className="mono">{r.model ? shortModel(r.model) : "none yet"}</td>
-                <td>{isInterrupted(r) ? "interrupted (engine restarted)" : r.status === "running" ? "running…" : r.certified ? "certified" : r.assurance ? ASSURANCE_BADGE[r.assurance].label.toLowerCase() : "not certified"}{r.visitor ? " · visitor import" : ""}{SUPERSEDED[r.id] ? " · superseded" : ""}</td>
+                <td>{isInterrupted(r) ? "interrupted (engine restarted)" : r.status === "running" ? "running…" : r.certified ? (KNOWN_DIFFERENCE[r.id] ? "certified · known difference" : "certified") : r.assurance ? ASSURANCE_BADGE[r.assurance].label.toLowerCase() : "not certified"}{r.visitor ? " · visitor import" : ""}{SUPERSEDED[r.id] ? " · superseded" : ""}</td>
                 {allColumns && <td className="mono">{memoryLabel(r.memory)}</td>}
                 <td className="mono">{r.efficiency.modelCalls}</td>
                 {allColumns && <>
@@ -472,10 +472,11 @@ function RunDetail({ run }: { run: Run }) {
               ? <AssuranceBadge assurance={run.assurance} reason={run.assuranceReason} />
               : <Badge tone={run.certified ? "green" : "amber"}>{run.certified ? "Certified" : "Not certified"}</Badge>}
             {isPrivateModel(run.model) && <PrivateModeBadge host={hostOf(run.model ?? "")} />}
+            {KNOWN_DIFFERENCE[run.id] && <Badge tone="amber">Known difference found later</Badge>}
             {run.guard?.blocked && <Badge tone="amber">Blocked by the guard</Badge>}
             {run.guard?.review?.verdict === "error" && <Badge tone="amber">Guard review unavailable</Badge>}
           </div>
-          <p><small>&ldquo;Certified&rdquo; means matched on the tested inputs, not proven equivalent.</small></p>
+          <p><small>&ldquo;Certified&rdquo; means matched on the tested inputs, not proven equivalent.{KNOWN_DIFFERENCE[run.id] ? <> <strong>This Java still differs on {KNOWN_DIFFERENCE[run.id]}</strong></> : null}</small></p>
           <h2>{run.program} · {run.command === "repair"
             ? (steps.length ? "Bring-your-own conversion, repaired" : "Bring-your-own conversion, verified")
             : (steps.length ? "Translated, verified and repaired" : "Translated and verified (no repair needed)")}</h2>

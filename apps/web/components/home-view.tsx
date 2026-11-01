@@ -34,7 +34,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
   const frames = [
     { tone: "bad", head: "BREAKER AGENT", text: explainDiff(broke[0]) },
     { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} attack inputs (replays included) made it differ · patched, compiled, re-tested` },
-    { tone: "ok", head: "CERTIFIED", text: `${final} output records matched on held-out generated inputs; matched on the inputs tried, not proven equivalent` },
+    { tone: "ok", head: "CERTIFIED", text: `${final} output records matched on held-out generated inputs. Matched on the inputs tried, not proven equivalent: an audit later found a malformed record where this Java still differs` },
   ];
   const [at, setAt] = useState(0);
   useEffect(() => {
@@ -48,7 +48,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
         <strong>{check.allMatch ? "RE-VERIFIED NOW" : "DIFFERENCE FOUND"}</strong>
         <span>
           seed {check.seed} · {check.passed.toLocaleString()}/{check.total.toLocaleString()} output records match ·
-          stdout {check.stdoutMatch ? "matches" : "differs"} · byte for byte · {check.seconds}s · no model involved
+          stdout {check.stdoutMatch ? "matches" : "differs"} · byte for byte · {check.seconds}s · no model involved · on these records; a malformed blank return is known to differ
           {check.firstMismatch ? ` · first difference: ${check.firstMismatch}` : ""}
         </span>
       </div>
@@ -309,7 +309,7 @@ export default function HomeView({ go }: { go: Go }) {
           and TXNPOST on the sign of a zero at an overflow boundary (same value, different bytes), by the breaker&apos;s stated reasons. No stored record-level break is a wrong amount on a
           well-formed record; value errors on well-formed records showed up in first translations and in one private-mode run&apos;s printed total. Until Nov 1 the attack compared output records only, so a surviving translation was not checked on its display output under attack. Three of those four had passed all three first-try trials. The three figures count
           different things, so they are not a &ldquo;model alone vs Diocle&rdquo; score. One program, CHQCLR, was not certified in that run. Small sample, one model, synthetic
-          programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>.
+          programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>. Re-measured Nov 2 with two flaws in our own check fixed: 4 of 10 again, the same four programs. This is not a defect-detection rate.
         </p>
       </section>
 
