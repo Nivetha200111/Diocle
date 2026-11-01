@@ -6,6 +6,30 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
+## START HERE: Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST)
+
+The owner continues on Windows, without the Mac (no GnuCOBOL, JDK 21, SSH key, video sources or local Claude memory there). This section is the whole context a new session needs; the dated sections below are history.
+
+**Where it stands (all checked Nov 1 evening)**
+- Code: everything is on `main` (99ffcae or later). No local-only code work exists. The only unpushed branch is `video-draft-7` (the video pipeline, needs the Mac and ~15 GB of recordings).
+- Site: https://diocle.vercel.app, auto-deployed by Vercel on every push to `main` (about 1 minute). The home page's first screen is the CHQCLR catch (COBOL 20.00, AI-written Java 0.00), the four steps and three numbers. The retro theme stays (the owner's decision).
+- Engine: Vultr, on `main` 99ffcae via `deploy/update-engine.sh` (Nov 1, 17:35). The public caps are restored: 3 programs, 1,500 lines, $2/day. It has no `GH_TOKEN`, so the live site converts but does not open pull requests. That is fine for judging; the evidence pull requests exist.
+- Evidence pull requests: quillmark-modern#4 (6 programs, CI on 6,719 fresh inputs) and harbor-trust-mainframe-java#2 (19 programs from a second synthetic estate, CI run 41301995356, 18 x 1,001 + 1 = 18,019 fresh inputs, 0 differences).
+- Video: v9 (`diocle-final-v9.mp4`, 177.6 s, 1080p) is final unless the owner re-cuts. It was recorded before the home redesign; the 20.00 vs 0.00 moment matches the site.
+- Judges' rubric: Impact 30%, Meta tooling 25%, Demo 25%, Technical 20%. Four judge agents scored about 7/10 before the Nov 1 fixes.
+
+**What works from Windows**
+- Anything in `apps/web` and the docs. Clone, `cd apps/web && npm ci && npm run build` (Node 22), push to `main`, and Vercel deploys it. Point a local build at the live engine with `DIOCLE_API_ORIGIN=https://65-20-92-159.sslip.io` and `NEXT_PUBLIC_DIOCLE_API_URL=/api`.
+- The analyzer, api and converter test suites run with Python 3.11+. The verifier tests and real conversions need GnuCOBOL 3.2 and JDK 21, so leave verifier changes alone or use WSL.
+- Not from Windows: engine deploys and server changes (the SSH key stays on the Mac), and new paid runs (keys are in the Mac's `.env`; none are needed).
+
+**Ranked to-do for Nov 2-3 (feature lock: fixes, docs, video and submission only)**
+1. Upload v9 (unlisted YouTube) and replace `LINK_TO_BE_ADDED_BEFORE_SUBMISSION` on README line 1.
+2. Draft the submission text from the README's first paragraph, the 4-of-10 finding and the two evidence pull requests. Submit on the hackathon page before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). Aim for Nov 3.
+3. Walk the judge path cold, on desktop and phone (README "Judge path: three clicks"), and fix wording or layout only.
+4. Optional polish, web only and in the same style: Evidence and Try it live are the next densest pages.
+5. Do not start new features or engine changes, and do not raise any limit or add paid services without the owner (CLAUDE.md rule 10).
+
 ## Nov 1, afternoon: rubric review, verifier oracle fix deployed, open-weights runs, video v7
 - **Rubric review:** four read-only judge agents, one per hackathon criterion (Impact 6, Meta tooling 7, Technical 7.5, Demo 7). README now leads with the problem statement (Build for Your World), the 4-of-10 finding in plain words, who it is for, and a five-line "How the agents work" block with code links (the breaker is described as a multi-round attacker, it makes no tool calls).
 - **Verifier oracle leak (fixed, reviewed, deployed):** the converted Java ran in the directory where the original had just written its output, so a Java that copied `original.out` was certified (reproduced). Now the Java runs first in its own directory on the single-file, multi-file, DISPLAY-only and job paths, what the original reads is hashed, and new files fail closed (merge `f94bb92`; reviewer pass; 940 tests green). Engine deployed at `fb2b419`; CHQCLR live reverify 1,004/1,004 after the deploy. Stated limits in `services/verifier/README.md`: alphanumeric fields without 88-levels get fixed placeholder values and generated inputs are always well-formed (S0C7 class not exercised); a detached process is not stopped.
