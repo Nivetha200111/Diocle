@@ -4,7 +4,7 @@ Things only the owner can fill in or confirm. Nothing here is done by the build 
 
 - [ ] **Upload v13.** `~/Downloads/diocle-candidate-v13.mp4` ([what changed and optional pickups](../demo/candidate-v13/README.md)), then update README line 1 and the box below.
 - [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
-- [ ] **Engine deploy** (`deploy/update-engine.sh`, needs the Mac) so the live re-verify uses the fixed record generator; then press Try the sample once.
+- [x] **Engine deploy.** On `debd697`, Nov 1; Try the sample pressed afterwards: 1,004 of 1,004.
 
 - [x] **Demo video link.** https://youtu.be/EsKndaZ6d2E is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 1 through YouTube's public oEmbed endpoint).
 - [ ] **X post link.** Post the demo on X and add the post link to the submission form (Most Viral and Community Vote need it).

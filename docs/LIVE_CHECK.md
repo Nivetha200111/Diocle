@@ -55,7 +55,9 @@ Against the live site and engine, and a local build of branch `release-candidate
 | Public budget | ok | $1.19 of the $2.00 daily pool before the asks, caps as published |
 | `sh scripts/quickstart.sh --no-key` | pass | 1,027 of 1,027. It re-checks stored Java; no model conversion happens |
 
-Not re-checked: live buttons "Convert a sample" and "Read a printout" (they spend the public pool and were not needed), deliveries, the engine with the fixed generator (not deployed yet; `release-candidate` changes verifier, certificate and PR text as well as web copy).
+**After the engine deploy at `debd697` (Nov 1, about 20:55 IST, GitHub CI green on that commit):** site and engine both on that commit, health ok, caps as published ($2.00 a day, 3 programs, 1,500 lines). Free re-verifies on new seeds: CHQCLR 1,004 of 1,004, INTACCR 1,027 of 1,027, DB2 subset on SQLite 1,371 of 1,371; **Try the sample** in Chromium 1,004 of 1,004. The API does not return the records, so the real values in CHQCLR's generated records are shown by the deployed commit and the local test and audit, not observed live.
+
+Not re-checked: live buttons "Convert a sample" and "Read a printout" (they spend the public pool and were not needed), deliveries. The stored mutation report on the live CHQCLR run is the Oct 30 one, on the old records; it was left as evidence and not regenerated.
 
 ## Summary
 
