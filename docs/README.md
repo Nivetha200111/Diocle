@@ -7,6 +7,7 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 | Document | What it is |
 |---|---|
 | [MEASUREMENT.md](MEASUREMENT.md) | The headline measurement: plan committed before any model call, results, deviations. Raw data in `eval/`. |
+| [DETAILS.md](DETAILS.md) | The full reference: everything that used to be in the README. |
 | [WALKTHROUGH.md](WALKTHROUGH.md) | Every feature with a screenshot, including VS Code and Muse Code, and what is not pictured. |
 | [SHOWCASE_CHQCLR.md](SHOWCASE_CHQCLR.md) | One run end to end: the mismatch, the repair, the re-check, what can be reproduced, and an audit of the evidence itself. |
 | [EVALUATION_PACKET.md](EVALUATION_PACKET.md) | A short packet for a prospective user. No outside evaluation has happened yet. |

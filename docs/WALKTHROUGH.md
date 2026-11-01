@@ -187,7 +187,7 @@ RE-VERIFIED  1027/1027 inputs matched, in 1 s. No model was called.
 |---|---|---|
 | Keyed files (VSAM-style) | No keyed conversion has run on the live site; experimental, Berkeley DB stand-in | [FEATURES](FEATURES.md#keyed-indexed--vsam-ksds-style-files-verified-on-gnucobols-indexed-file-handler) |
 | Smallest reproducer | Skipped when a sandbox is configured, so its card is empty on the live engine | [FEATURES](FEATURES.md#smallest-reproducer-and-regression-tests) |
-| JCL job check | Command line only (`run-job`), and it spends model credits | [README](../README.md#whole-jcl-job-verification-v1-one-sort-step-feeding-one-cobol-step) |
+| JCL job check | Command line only (`run-job`), and it spends model credits | [README](DETAILS.md#whole-jcl-job-verification-v1-one-sort-step-feeding-one-cobol-step) |
 | Creating a target repository, convert anyway | Local or admin only | [FEATURES](FEATURES.md#let-diocle-create-the-target-repository-local-or-admin-only) |
 | Notepad++ script | Its Notepad++ API calls are untested | [README](../editors/notepadpp/README.md) |
-| MCP server, fix memory, swarm, escalation tiers | Command line and agent behaviour rather than a screen | [README](../README.md#which-model-does-what), [`services/mcp`](../services/mcp/README.md) |
+| MCP server, fix memory, swarm, escalation tiers | Command line and agent behaviour rather than a screen | [README](DETAILS.md#which-model-does-what), [`services/mcp`](../services/mcp/README.md) |

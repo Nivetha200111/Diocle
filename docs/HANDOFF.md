@@ -20,6 +20,10 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **Copy.** Home, Evidence, Bug wall, README, MEASUREMENT (dated review appended; recorded results unchanged). "Still wrong", "proves" and "wrong cent" replaced by what was measured.
 - **New docs.** `SHOWCASE_CHQCLR.md`, `EVALUATION_PACKET.md`, `SUBMISSION_TEXT.md`; `eval/audit_chqclr.py` and its results; `demo/candidate-v13/`.
 
+**README:** about 1,500 words since Nov 2; everything else is in `docs/DETAILS.md`. Keep it that way: new detail goes there.
+
+**Re-measured Nov 2:** 4 of 10 again, same four programs, $0.18 (`eval/results-attack-rerun.json`).
+
 **Findings to keep in mind when writing anything:**
 - 54 distinct stored breaks: 30 malformed, 15 negative zero, 9 from a round with no Java output (`eval/results-stored-breaks-20261101.json`). None shows a wrong amount on a well-formed record. Do not write "wrong cent" about the breaker.
 - The attack compared output records only until this branch; a stored private-mode CHQCLR Java prints a wrong total on a valid return. "Survived" in stored runs is about output records.

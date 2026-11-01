@@ -1,0 +1,1426 @@
+{
+ "plan": "docs/MEASUREMENT.md, Re-measurement plan",
+ "model": "muse-spark-1.3-contributor",
+ "heldOutSeed": 8802,
+ "programs": {
+  "BRNCHSUM": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": false,
+   "heldOutTotal": 739,
+   "survives": false,
+   "attack": "not needed: failed the held-out inputs already",
+   "heldOutFirstDiff": "BS-TOTAL: original 046,580,013.61 converted 46,580,013.61",
+   "heldOutStdoutMatch": true,
+   "costUsd": 0.00552,
+   "calls": 1,
+   "seconds": 264.8,
+   "directory": "eval/samples/brnchsum",
+   "status": "unseen"
+  },
+  "LOANAMRT": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1641,
+   "attackTried": 25,
+   "attackBroke": 0,
+   "survives": true,
+   "attack": "breaker found no breaking input",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "TIEPRIN1\u0000\u0000\u0000\u0000\u0001\f\u0000\u0000\u0000\u000f\u0000\u0014202301",
+     "why": "Principal/term=0.005 exact tie tests COMPUTE ROUNDED half away from zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "TIEINT01\u0000\u0000\u0000\u0010\u0000\f\u0000\u00000\u000f\u0000\f202301",
+     "why": "Interest 100*0.003/12=0.025 exact tie tests ROUNDED half up.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "NEGTIE01\u0000\u0000\u0000\u0000\u0001\f\u0003\u0000\u0000\u000f\u0000\u0014202301",
+     "why": "Tiny principal with large term forces negative balances and negative interest ties.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "OVERFLOW\u0099\u0099\u0099\u0099\u0099\u009c\t\u0099\u0099\u009f\u0000\f202301",
+     "why": "Huge balance times max rate overflows 7-digit interest testing silent truncation.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "OVERPRN1\u0099\u0099\u0099\u0099\u0099\u009c\u0000\u0000\u0000\u000f\u0000\u0001202301",
+     "why": "Term 1 with max principal overflows 7-digit prin part leaving large balance.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "MONTH00A\u0000\u0000\u0001\u0000\u0000\f\u0001\u0000\u0000\u000f\u0000\f202300",
+     "why": "Month 00 is just below 01 and must reject.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-07",
+     "input": "MONTH12A\u0000\u0000\u0001\u0000\u0000\f\u0001\u0000\u0000\u000f\u0000\f202312",
+     "why": "Month 12 accepted at upper boundary with year rollover.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-08",
+     "input": "MONTH13R\u0000\u0000\u0001\u0000\u0000\f\u0001\u0000\u0000\u000f\u0000\f202313",
+     "why": "Month 13 is just above 12 and must reject.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-09",
+     "input": "ZEROPRIN\u0000\u0000\u0000\u0000\u0000\f\u0001\u0000\u0000\u000f\u0000\f202301",
+     "why": "Zero principal tests NOT >0 boundary must reject.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-10",
+     "input": "TERMZERO\u0000\u0000\u0001\u0000\u0000\f\u0001\u0000\u0000\u000f\u0000\u0000202301",
+     "why": "Zero term must reject.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-11",
+     "input": "YEARWRAP\u0000\u0000\u0001 \u0000\f\u0006\u0000\u0000\u000f\u0000\f999912",
+     "why": "Starting Dec 9999 forces year wrap to 0000.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-01",
+     "input": "MINPRN01\u0000\u0000\u0000\u0000\u0000\u001c\u0000\u0000\u0000\u000f\u0000\f202301",
+     "why": "Smallest positive principal forces zero rounded prin part for 11 periods.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-02",
+     "input": "NEGPRN01\u0000\u0000\u0000\u0000\u0000\u001d\u0001\u0000\u0000\u000f\u0000\f202301",
+     "why": "Negative penny tests NOT greater than zero rejection boundary.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-03",
+     "input": "NEGINTIE\u0000\u0000\u0000\u0000\u0000\u009c\u0003\u0000\u0000\u000f\u0000\f202301",
+     "why": "Forces negative balance before last period giving negative interest tie.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-04",
+     "input": "PAYWRAP0\u0001\u0000\u0000\u0000\u0000\f\u0006\u0000\u0000\u000f\u0000\u0002202301",
+     "why": "Payment exactly 10000000.00 wraps low-order digits to zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-05",
+     "input": "TERM11MO\u0000\u0000\u0001 \u0000\f\u0000\u0000\u0000\u000f\u0000\u000b202312",
+     "why": "Eleven periods from December tests year rollover just below cap.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-06",
+     "input": "TERM13CP\u0000\u0000\u0001 \u0000\f\u0000\u0000\u0000\u000f\u0000\r202301",
+     "why": "Thirteen periods tests first-year cap just above adjustment boundary.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-07",
+     "input": "TINYRATE\u0000\u0000\u0010\u0000\u0000\f\u0000\u0000\u0000\u001f\u0000\f202301",
+     "why": "Smallest nonzero rate tests tiny interest rounding to a penny.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-08",
+     "input": "YR000001\u0000\u0000\u0000\u0000\u0010\f\t\u0099\u0099\u009f\u0000\u0001000101",
+     "why": "Year zero with max rate and single period tests low year edge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-09",
+     "input": "YR999901\u0000\u0000\u0001 \u0000\f\u0006\u0000\u0000\u000f\u0000\u0002999901",
+     "why": "Year 9999 January avoids wrap with short term.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-10",
+     "input": "YR000101\u0000\u0000\u0001 \u0000\f\u0006\u0000\u0000\u000f\u0000\f000101",
+     "why": "Year zero January with full year tests low YYYYMM output.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-11",
+     "input": "MAXTRM99\u0099\u0099\u0099\u0099\u0099\u009c\t\u0099\u0099\u009f\u0003\u00e7202301",
+     "why": "Maximum term with maximum values tests small division and cap.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-12",
+     "input": "TIE0015B\u0000\u0000\u0000\u0000\u0001\\\u0000\u0000\u0000\u000f\u0000\n202301",
+     "why": "Principal over term equals 0.015 exact tie at different magnitude.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-10",
+     "input": "PLUSSTRT\u0000\u0000\u0001 \u0000\f\u0006\u0000\u0000\u000f\u0000\f020201",
+     "why": "Plus sign year with month 01 passing tests DISPLAY sign conversion.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-11",
+     "input": "SPCSTART\u0000\u0000\u0001 \u0000\f\u0006\u0000\u0000\u000f\u0000\f020201",
+     "why": "Leading space year with month 01 passing tests non-digit year conversion.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.026345,
+   "calls": 4,
+   "seconds": 1120.7,
+   "directory": "eval/samples/loanamrt",
+   "status": "unseen"
+  },
+  "FEESCHD": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1027,
+   "attackTried": 34,
+   "attackBroke": 0,
+   "survives": true,
+   "attack": "breaker found no breaking input",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "ACC0000001A+00000500000001030",
+     "why": "Waiver boundary at exactly 5000.00 must waive base to WV.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "ACC0000002A+00000499999001030",
+     "why": "One cent below waiver must keep base 6.00 with OK.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "ACC0000003A+00000000000001130",
+     "why": "One excess txn over free 10 must yield 0.35 fee.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "ACC0000004C-00000073000000025",
+     "why": "Exact half-cent tie 9.495 must round away to 9.50.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "ACC0000005C-00000072999000025",
+     "why": "Just below the tie must round down to 9.49.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "ACC0000006B+00000000000012930",
+     "why": "Total 39.90 just below 40.00 cap must stay OK.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-07",
+     "input": "ACC0000007B+00000000000013030",
+     "why": "Total 40.25 just above cap must cap to 40.00 CP.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-08",
+     "input": "ACC0000008C-00000100000000077",
+     "why": "Private total 40.06 must not cap while other product would.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-09",
+     "input": "ACC0000009D-00000100000000077",
+     "why": "Same 40.06 as other product must cap to 40.00 CP.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-10",
+     "input": "ACC0000010C-00010000000000030",
+     "why": "Private OD near 1560.82 must overflow S9(3)V99 total to near 560.82.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-11",
+     "input": "ACC0000011C-99999999999000099",
+     "why": "Huge negative balance must overflow S9(5)V99 OD interest.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-12",
+     "input": "ACC0000012A+00000000000999930",
+     "why": "Max txns must overflow S9(3)V99 txn fee before capping.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-01",
+     "input": "BPLUSWV001B+00000500000002530",
+     "why": "PLUS balance exactly at waiver must waive 3.50 base to WV.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-02",
+     "input": "BPRIVHI002C+00000999999000030",
+     "why": "PRIVATE high balance must stay OK since zero base cannot waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-03",
+     "input": "BWVCP00003A+00000600000020030",
+     "why": "Waived base with huge txn fee must overwrite WV with CP on cap.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-04",
+     "input": "BCAPEQ0004A-00000001000010710",
+     "why": "Total exactly 40.00 must not cap since cap needs strictly greater.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-05",
+     "input": "BCAPAB0005A-00000001100010710",
+     "why": "Total 40.01 just above cap must cap to 40.00 with CP.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-06",
+     "input": "BPLUS25006B+00000000000002530",
+     "why": "PLUS with exactly 25 txns must have zero excess fee.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-07",
+     "input": "BPLUS26007B+00000000000002630",
+     "why": "PLUS with 26 txns must charge one 0.35 excess fee.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-08",
+     "input": "BPRIVMAX08C+00000000000999930",
+     "why": "PRIVATE with max txns must still have zero fee due to 9999 free.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-09",
+     "input": "BODZERO009C-00000100000000000",
+     "why": "Negative balance with zero days must yield zero overdraft interest.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-10",
+     "input": "BODSM0010 C-00000000100000009",
+     "why": "Tiny 0.0046 interest must round down to 0.00.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-11",
+     "input": "BODSM0011 C-00000000100000010",
+     "why": "Tiny 0.0052 interest must round up to 0.01.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-12",
+     "input": "BOTHHI0012D+00000600000000030",
+     "why": "OTHER high balance must stay OK since zero base cannot waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-01",
+     "input": "C5000EXACTC+00000500000000030",
+     "why": "PRIVATE at exactly waiver balance must stay OK since zero base cannot waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-02",
+     "input": "Z5000EXACTZ+00000500000000030",
+     "why": "OTHER at exactly waiver balance must stay OK since zero base cannot waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-03",
+     "input": "MAXPOS0001A+99999999999000030",
+     "why": "Max positive balance must waive BASIC base to WV with zero total.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-04",
+     "input": "BASICZERO0A+00000000000000030",
+     "why": "BASIC with zero txns has negative excess and must keep 6.00 base.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-05",
+     "input": "WRAPSM0001A+00000000000286830",
+     "why": "Excess 2858 fee 1000.30 must wrap to 0.30 and avoid the cap.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-06",
+     "input": "WRAPSM0002B+00000000000288330",
+     "why": "PLUS excess 2858 fee 1000.30 must wrap to 0.30 and avoid the cap.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-07",
+     "input": "NEGZERO001A+00000000000001030",
+     "why": "Negative zero must behave as zero with no overdraft and no waiver.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-08",
+     "input": "TINYNEG001C-00000000001000030",
+     "why": "One-cent negative balance must take OD branch yet round to 0.00.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-10",
+     "input": "LOWER00001a+00000000000000030",
+     "why": "Lowercase a must not match BASIC and must act as OTHER.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-12",
+     "input": "ODCAP00001A-00000500000001030",
+     "why": "Large overdraft plus base must exceed cap and yield CP.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.021229,
+   "calls": 4,
+   "seconds": 878.8,
+   "directory": "samples/fee-schedule",
+   "status": "seen"
+  },
+  "FEEPOST": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1009,
+   "attackTried": 9,
+   "attackBroke": 0,
+   "survives": true,
+   "attack": "breaker found no breaking input",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "NEGZ01+0000000",
+     "why": "Negative zero amount stays -0000000 in COBOL POST-AMOUNT but Java normalizes zero to +0000000.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "NEGZ02+0000000",
+     "why": "Negative zero refund keeps minus sign in COBOL output while Java outputs plus zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "ABCDEF+0000000",
+     "why": "Same sign-of-zero mismatch with a different key to show it is data independent.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-01",
+     "input": "TIE001+0006700",
+     "why": "Exact half-cent tie 67*0.015=1.005 tests ROUNDED half away versus binary float rounding.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-02",
+     "input": "TIE002+0006900",
+     "why": "Exact tie 69*0.015=1.035 must round up to 1.04 under COBOL ROUNDED.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-03",
+     "input": "TIE003+0013300",
+     "why": "Larger exact tie 133*0.015=1.995 must round up to 2.00.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-04",
+     "input": "TIE004+0020100",
+     "why": "Exact tie 201*0.015=3.015 must round up to 3.02.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-05",
+     "input": "TIE005+0007300",
+     "why": "Exact tie 73*0.015=1.095 must round up to 1.10.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-06",
+     "input": "TIE006+0100100",
+     "why": "Large exact tie 1001*0.015=15.015 must round up to 15.02.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.012056,
+   "calls": 4,
+   "seconds": 518.5,
+   "directory": "samples/call-identifier",
+   "status": "seen"
+  },
+  "ACCTMTCH": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1587,
+   "survives": null,
+   "attack": "not applicable: the breaker designs single-file records",
+   "costUsd": 0.003941,
+   "calls": 1,
+   "seconds": 149.5,
+   "directory": "samples/account-match",
+   "status": "seen"
+  },
+  "CHQCLR": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1004,
+   "attackTried": 6,
+   "attackBroke": 6,
+   "survives": false,
+   "attack": "breaker broke it with 6 input(s)",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "RACC000000100000001SP     01234567890123",
+     "why": "Non-NSF fee of 5 spaces is moved verbatim by COBOL but Java normalizes it to 00000.",
+     "broke": true,
+     "diff": "CL-FEE: original '     ' converted 0.00"
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "RACC000000200000002SP12A4501234567890123",
+     "why": "Non-NSF fee with letter is moved verbatim by COBOL but Java maps letter to 0.",
+     "broke": true,
+     "diff": "CL-FEE: original 12A45 converted 120.45"
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "RACC000000300000003XX+010001234567890123",
+     "why": "Non-NSF fee with plus sign is moved verbatim by COBOL but Java strips plus.",
+     "broke": true,
+     "diff": "CL-FEE: original +0100 converted 1.00"
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "RACC000000400000004SP-010001234567890123",
+     "why": "Non-NSF fee with minus sign is moved verbatim by COBOL but Java strips minus.",
+     "broke": true,
+     "diff": "CL-FEE: original -0100 converted 1.00"
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "RACC000000500000005SP1 20001234567890123",
+     "why": "Non-NSF fee with embedded space is moved verbatim by COBOL but Java skips space.",
+     "broke": true,
+     "diff": "CL-FEE: original 1 200 converted 12.00"
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "RACC000000600000006NS1 20001234567890123",
+     "why": "NSF fee with embedded space is doubled from different base because Java skips space while COBOL treats it as 0.",
+     "broke": true,
+     "diff": "CL-FEE: original 204.00 converted 24.00"
+    }
+   ],
+   "costUsd": 0.007704,
+   "calls": 2,
+   "seconds": 390.6,
+   "directory": "eval/samples/chqclr",
+   "status": "unseen"
+  },
+  "INTACCR": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1027,
+   "attackTried": 12,
+   "attackBroke": 2,
+   "survives": false,
+   "attack": "breaker broke it with 2 input(s)",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "CASE000001-0000000010000000001S",
+     "why": "Tiny negative interest rounds to negative zero versus Java positive zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "CASE000002-0000000010000000001P",
+     "why": "Same signed-zero interest isolated with premium fee waiver.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "CASE000003-3650000000009500010P",
+     "why": "True interest minus ten million overflows to signed zero.",
+     "broke": true,
+     "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "CASE000004-0730000000009500050P",
+     "why": "Alternate overflow to minus ten million testing high-order truncation sign.",
+     "broke": true,
+     "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "CASE000005-0000000365000000001P",
+     "why": "Exact negative half-cent tie tests half away from zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "CASE000006-0000073365000000001P",
+     "why": "Exact negative tie at minus 1.005 tests rounding to minus 1.01.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-07",
+     "input": "CASE000007+0000003650000050001P",
+     "why": "Exact positive half-cent tie tests rounding up to 0.01.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-08",
+     "input": "CASE000008+0000003300000000000S",
+     "why": "Fee raw 1.005 must truncate to 1.00 not round.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-09",
+     "input": "CASE000009-0000157000000000000S",
+     "why": "Large shortfall pushes fee over the 25.00 cap.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-10",
+     "input": "CASE000010+0000000000010000100S",
+     "why": "Zero balance takes OTHER branch with zero interest.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-11",
+     "input": "CASE000011+0000010000000100365S",
+     "why": "Balance exactly on fee floor tests NOT less boundary.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-12",
+     "input": "CASE000012+0000009999900100365S",
+     "why": "One-cent shortfall truncates fee to zero affecting status.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.007683,
+   "calls": 2,
+   "seconds": 309.3,
+   "directory": "samples/interest-accrual",
+   "status": "seen"
+  },
+  "TXNLIST": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1,
+   "survives": null,
+   "attack": "not applicable: the breaker designs single-file records",
+   "costUsd": 0.005398,
+   "calls": 1,
+   "seconds": 220.0,
+   "directory": "samples/display-report",
+   "status": "seen"
+  },
+  "DAYCTRL": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1022,
+   "attackTried": 5,
+   "attackBroke": 2,
+   "survives": false,
+   "attack": "breaker broke it with 2 input(s)",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "ACC0000001-0000000010000100001",
+     "why": "Tiny negative interest rounds to -0.00, COBOL keeps minus sign while Java shows plus.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "ACC0000002-0000000050000500001",
+     "why": "Small negative accrual lost to rounding exposes negative-zero sign handling.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "ACC0000003-0000001000000100001",
+     "why": "Negative interest below half-cent rounds to signed zero with different display.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "ACC0000004-3650000000010000010",
+     "why": "Interest of -10000000.00 overflows 7 integer digits to signed zero with different sign.",
+     "broke": true,
+     "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "ACC0000005-7300000000010000010",
+     "why": "Interest of -20000000.00 wraps to signed zero preserving minus in COBOL only.",
+     "broke": true,
+     "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+    }
+   ],
+   "costUsd": 0.007142,
+   "calls": 2,
+   "seconds": 291.6,
+   "directory": "samples/daily-control",
+   "status": "seen"
+  },
+  "PKDPOST": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1042,
+   "attackTried": 8,
+   "attackBroke": 0,
+   "survives": true,
+   "attack": "breaker found no breaking input",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-12",
+     "input": "POSREV0002\u0000\u0000\u0000\u0000\u0000\f\u0000\u0000\u000f\u0000\u0000999999y999\u000f'",
+     "why": "Large positive reversal with max limit and max items tests boundaries.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-01",
+     "input": "MAXPOS0001\u0099\u0099\u0099\u0099\u0099\u009c\u0099\u0099\u009f'\u000f9999999999\u000f'",
+     "why": "Maxima for every field forces huge positive interest overflow and headroom overflow.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-03",
+     "input": "YEARPOS001\u0000\u0000\u0001\u0000\u0000\f\u0010\u0000\u000f\u0001m0000000001\u0001\u0000",
+     "why": "One-year exact interest of 1000.00 tests P-scaled limit and binary item scaling.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-04",
+     "input": "YEARNEG001\u0000\u0000\u0001\u0000\u0000\f\u0010\u0000\u000f\u00fe\u00930000000001\u00ff\u00ff",
+     "why": "Negative days reverse the exact one-year interest and item units sign.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-07",
+     "input": "DAYZERO001\u0000\u0000\u00124V|\u0099\u0099\u009f\u0000\u00000012345050\u0000\u0000",
+     "why": "Zero days gives zero interest while adjustment and hundreds limit interact.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-10",
+     "input": "LIMITMAX01\u0000\u0000\u0000\u0000\u0000\f\u0000\u0000\u000f\u0000\u00000000000999\u0000\u0000",
+     "why": "Max hundreds limit with zero balance checks headroom at the top boundary.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-04",
+     "input": "ZERONEG004\u0000\u0000\u0000\u0000\u0000\f\u0010\u0000\u000f\u00d8\u00f10000000001\u0001\u0000",
+     "why": "Negative-zero interest persists with non-zero limit and items.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-09",
+     "input": "MAXLIMZ001\u0000\u0000\u0000\u0000\u0000\f\u0010\u0000\u000f\u00fe\u00930000000999\u000f'",
+     "why": "Negative-zero interest with max limit and items still differs in sign.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.022335,
+   "calls": 4,
+   "seconds": 903.2,
+   "directory": "samples/packed-posting",
+   "status": "seen"
+  },
+  "FXCONV": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1016,
+   "attackTried": 34,
+   "attackBroke": 0,
+   "survives": true,
+   "attack": "breaker found no breaking input",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "NZERO001USD+00000000000",
+     "why": "Negative zero amount preserves minus sign in COBOL but Java normalizes to positive zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "TIENEG01USD-00000000004",
+     "why": "Exact negative tie -3.325 tests ROUNDED half away from zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "TIEPOS01USD+00000000004",
+     "why": "Exact positive tie 3.325 tests ROUNDED half away from zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "TIEEUR01EUR+00000000050",
+     "why": "Exact positive tie 45.205 tests EUR rounding to 45.21.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "TIEEUR02EUR-00000000050",
+     "why": "Exact negative tie -45.205 tests EUR rounding away to -45.21.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "OVRPOS01GBP+99999999999",
+     "why": "Huge positive product overflows S9(11)V99 and tests silent high-order truncation.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-07",
+     "input": "OVRNEG01GBP-99999999999",
+     "why": "Huge negative product overflows and tests sign-preserving truncation.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-08",
+     "input": "BNDLOW01GBP+94936708860",
+     "why": "Product just below 100B tests overflow boundary without wrapping.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-09",
+     "input": "BNDHIGH1GBP+94936708861",
+     "why": "Product just above 100B tests overflow boundary with wrapping to small value.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-10",
+     "input": "NEGZERO2JPY+00000000000",
+     "why": "Negative zero with JPY rate tests zero-sign in both FO-ZZZ and FO-PRINT.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-01",
+     "input": "LARGE001GBP+10000000000",
+     "why": "Large 10B converted value exercises billions comma grouping in FO-PRINT.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-02",
+     "input": "LARGE002USD+50000000000",
+     "why": "Large 41B converted value exercises multi-comma edited output.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-03",
+     "input": "LARGE003EUR+90000000000",
+     "why": "Large 81B converted value tests 11-digit FO-PRINT with leading blank.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-04",
+     "input": "LARGE004JPY+99999999999",
+     "why": "Max amount with JPY rate tests 9-digit comma formatting.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-05",
+     "input": "LARGE005INR+12345678912",
+     "why": "Mid-size INR conversion tests millions comma placement.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-06",
+     "input": "LARGE006GBP-25000000000",
+     "why": "Large negative conversion tests sign plus commas in FO-PRINT.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-07",
+     "input": "MID00001USD+00001234567",
+     "why": "Thousands value tests single-comma FO-PRINT grouping.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-08",
+     "input": "MID00002EUR+00001234561",
+     "why": "Non-tie thousands value avoids rounding ties while testing commas.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-09",
+     "input": "CHFN0001CHF+00000010000",
+     "why": "Known currency with no rate must return NR with zero amounts.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-10",
+     "input": "UNK00001CAD+00000010000",
+     "why": "Unknown currency must return UC with zero amounts.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-11",
+     "input": "LOW00001usd+00000010000",
+     "why": "Lowercase currency is unknown and must return UC.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-12",
+     "input": "ZERO0001USD+00000000000",
+     "why": "Zero amount with known currency returns OK zero distinct from UC zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-01",
+     "input": "GBTIEPOSGBP+00000015000",
+     "why": "GBP exact tie 15799.995 tests half away rounding.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-02",
+     "input": "GBTIENEGGBP-00000015000",
+     "why": "GBP exact negative tie -15799.995 tests half away from zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-03",
+     "input": "JPYSM01 JPY+00000000180",
+     "why": "JPY 0.99999 tests rounding up to 1.00.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-04",
+     "input": "JPYSM02 JPY-00000000180",
+     "why": "JPY -0.99999 tests negative rounding to -1.00.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-05",
+     "input": "INRRND01INR+00000010000",
+     "why": "INR 99.877 tests third-decimal rounding to 99.88.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-06",
+     "input": "INRRND02INR-00000010000",
+     "why": "INR -99.877 tests negative rounding to -99.88.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-07",
+     "input": "OVRSM001GBP+94936738905",
+     "why": "Just over 100B tests overflow wrapping to tiny 1.02 remainder.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-08",
+     "input": "OVRSM002GBP-94936738905",
+     "why": "Just under -100B tests negative overflow wrapping to -1.02.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-09",
+     "input": "COMBLW01USD+00000001203",
+     "why": "999.99 tests comma suppression just below 1000 boundary.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-10",
+     "input": "COMBHI01USD+00000001204",
+     "why": "1000.83 tests first comma appearing just above 1000 boundary.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-11",
+     "input": "CHFNEGZ1CHF+00000000000",
+     "why": "CHF negative zero must still be NR with positive zero output.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r3-12",
+     "input": "UCLARGE1CAD+99999999999",
+     "why": "Unknown currency with max amount must ignore amount and return UC zero.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.025239,
+   "calls": 4,
+   "seconds": 1117.5,
+   "directory": "eval/samples/fxconv",
+   "status": "unseen"
+  },
+  "TXNPOST": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1032,
+   "attackTried": 9,
+   "attackBroke": 1,
+   "survives": false,
+   "attack": "breaker broke it with 1 input(s)",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "RJNegZeroP+000000000+0000000000000000",
+     "why": "Payment rejected for zero amount preserves negative-zero balance via MOVE, COBOL shows minus and Java shows plus.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "RJNegAmt1P-000001000+0000000000000100",
+     "why": "Payment rejected for negative amount preserves negative-zero balance, exposing sign-of-zero display difference.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "NSNegZeroP+000005000+0000000000000000",
+     "why": "Insufficient-funds payment restores negative-zero balance via MOVE, COBOL keeps minus and Java loses it.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "FENegZeroF+000000000+0000000000000000",
+     "why": "Zero fee on negative-zero balance leaves negative zero, testing sign preservation through COMPUTE.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "ICNegZeroI+000000000+0000000000000000",
+     "why": "Zero interest on negative-zero balance adds zero credit, testing sign of resulting new balance.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "ICNegTinyI-000000002+0000000000000000",
+     "why": "Small negative interest rounds to negative-zero credit and is added to negative-zero balance.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-07",
+     "input": "ICNegTie1I-000000006+0000000000000000",
+     "why": "Exact negative tie of -0.005 tests half-away-from-zero rounding for interest credit.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-08",
+     "input": "ICNegTie2I-000000018+0000000100000000",
+     "why": "Exact negative tie of -0.015 tests rounding to -0.02 versus truncation toward zero.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-09",
+     "input": "FEOvrNeg0F+000000001-9999999999900000",
+     "why": "Fee overflow to exactly -1000000000.00 wraps to zero, testing sign of overflowed zero.",
+     "broke": true,
+     "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+    }
+   ],
+   "costUsd": 0.009931,
+   "calls": 2,
+   "seconds": 430.1,
+   "directory": "samples/txn-posting",
+   "status": "seen"
+  },
+  "LDGRWRT": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": false,
+   "heldOutTotal": 1021,
+   "survives": false,
+   "attack": "not needed: failed the held-out inputs already",
+   "heldOutFirstDiff": "MST-BALANCE: original -0.96 converted x'303030303030313600'; MST-FEE-CNT: original 3 converted 4",
+   "heldOutStdoutMatch": false,
+   "costUsd": 0.004314,
+   "calls": 1,
+   "seconds": 178.9,
+   "directory": "samples/ledger-rewrite",
+   "status": "seen"
+  },
+  "ACCTRPT": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": false,
+   "heldOutTotal": 1341,
+   "survives": false,
+   "attack": "not needed: failed the held-out inputs already",
+   "heldOutFirstDiff": "RPT-OLD: original -9999999.99 converted 9999999.99; RPT-NEW: original -9900000.00 converted 99000000@",
+   "heldOutStdoutMatch": true,
+   "costUsd": 0.006567,
+   "calls": 1,
+   "seconds": 234.8,
+   "directory": "samples/db2-account-report",
+   "status": "seen"
+  },
+  "LOYWAIVE": {
+   "seed": 8802,
+   "cases": 1000,
+   "translated": true,
+   "heldOutPassed": true,
+   "heldOutTotal": 1013,
+   "attackTried": 24,
+   "attackBroke": 0,
+   "survives": true,
+   "attack": "breaker found no breaking input",
+   "attempts": [
+    {
+     "id": "breaker-rerun-r1-01",
+     "input": "ACC00001+000500000000",
+     "why": "Exact balance threshold with low tenure must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-02",
+     "input": "ACC00002+000499999000",
+     "why": "One cent below balance threshold must charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-03",
+     "input": "ACC00003+000499999119",
+     "why": "Both conditions just below threshold must charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-04",
+     "input": "ACC00004+000499999120",
+     "why": "Low balance but exact tenure threshold must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-05",
+     "input": "ACC00005+000000000120",
+     "why": "Zero balance with qualifying tenure must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-06",
+     "input": "ACC00006+000000000119",
+     "why": "Zero balance with tenure one below must charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-07",
+     "input": "ACC00007+000500000119",
+     "why": "Balance threshold without decimals must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-08",
+     "input": "ACC00008+000000000119",
+     "why": "Negative zero with low tenure must charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-09",
+     "input": "ACC00009-000003650120",
+     "why": "Negative balance but qualifying tenure must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-10",
+     "input": "ACC00010+000000000000",
+     "why": "Both low must charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-11",
+     "input": "ACC00011+999999999000",
+     "why": "Maximum balance must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r1-12",
+     "input": "ACC00012-999999999999",
+     "why": "Minimum balance with maximum tenure must waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-01",
+     "input": "ACC00001+000500000000",
+     "why": "Same threshold without decimals must still waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-02",
+     "input": "ACC00002+000500000000",
+     "why": "Same threshold with one decimal must still waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-03",
+     "input": "ACC00003+000500000000",
+     "why": "Explicit plus on threshold must still waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-04",
+     "input": "ACC00004+000500000000",
+     "why": "Leading zero on threshold must still waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-05",
+     "input": "ACC00005+000000000000",
+     "why": "Short zero forms must still charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-06",
+     "input": "ACC00006+000000000000",
+     "why": "Zero-padded zero forms must still charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-07",
+     "input": "ACC00007+000000000000",
+     "why": "Short negative zero must still charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-08",
+     "input": "ACC00008+000000000000",
+     "why": "Explicit plus zero must still charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-09",
+     "input": "AC C0001+000600000000",
+     "why": "Account with embedded space must be echoed and waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-10",
+     "input": "        +000600000000",
+     "why": "Blank account must be echoed and waive.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-11",
+     "input": "acc00001+000000000000",
+     "why": "Lowercase account must be preserved and charge.",
+     "broke": false,
+     "diff": ""
+    },
+    {
+     "id": "breaker-rerun-r2-12",
+     "input": "A       +000499999119",
+     "why": "Short account must be padded and charge.",
+     "broke": false,
+     "diff": ""
+    }
+   ],
+   "costUsd": 0.013913,
+   "calls": 4,
+   "seconds": 625.9,
+   "directory": "samples/loyalty-waiver",
+   "status": "seen"
+  }
+ },
+ "spentUsd": 0.179317
+}

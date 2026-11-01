@@ -6,6 +6,7 @@
 ## Summary (read this first; details and caveats below)
 
 - **Lead finding: 4 of 10 attackable translations that passed 1,000 held-out inputs then differed from the original when attacked** (n = 10 programs, one fresh translation each; the breaker agent's designed inputs, each checked against GnuCOBOL). Programs: CHQCLR, DAYCTRL, INTACCR, TXNPOST.
+- **Re-measured Nov 2 with the two flaws found on Nov 1 fixed: 4 of 10 again, the same four programs** ([results](#re-measurement-results-nov-2-2026-reported-as-planned-no-program-was-re-run)). It is not a defect-detection rate.
 - **Read with the Nov 1 review below ("Review of the headline, Nov 1"):** what kind of differences these are, what "1,000 inputs" counts, and a weakness in CHQCLR's generated records. The results below are as recorded; nothing has been re-run or changed.
 - **Context, with its denominators.** First translations passed 1,000 held-out inputs in **37 of 45 attempts** (82%; this counts attempts: 3 per program x 15 programs). **All 15 programs passed at least once in three tries** (this counts programs). Full Diocle runs certified **14 of 15 programs** (this counts programs, one run each). 37/45 counts attempts and 14/15 counts programs, so they are not an apples-to-apples "model alone vs Diocle" comparison; by program, at least one first try passed for every program. The attack arm is a separate sample of fresh translations: do not merge it with the others.
 - **CHQCLR was not certified in the controlled run** (breaker broke 12 of 24; one repair cycle did not fix it within the caps).
@@ -206,4 +207,22 @@ Across every run folder on the author's machine and the public run list on Nov 1
 - **Outcome, fixed now:** among translations that pass the held-out check and can be attacked, how many differ under attack. Each difference is classed from its stored input and diff as: malformed input; negative zero, same value; a different value in an output record on a well-formed input; or display output only.
 - **Rules:** no re-run for a better result. One re-run only after an infrastructure failure, logged. All exclusions and failures stay in the file. The number is reported whichever way it goes, and it is not a defect-detection rate: n is small, one model, synthetic programs.
 - **Kept this time:** every attempt and all Java (`eval/results-attack-rerun.json`, `eval/attack-rerun-java/`).
+
+### Re-measurement results, Nov 2, 2026 (reported as planned; no program was re-run)
+
+Raw data: `eval/results-attack-rerun.json`, Java in `eval/attack-rerun-java/`. Spend $0.1793 of the $0.30 stop. No infrastructure failures, no exclusions.
+
+| Outcome | Programs | Count |
+|---|---|---|
+| Failed the held-out check already | BRNCHSUM, LDGRWRT, ACCTRPT | 3 |
+| Passed; the breaker cannot attack this shape | ACCTMTCH, TXNLIST | 2 |
+| Passed, and no attack input differed | FEEPOST, FEESCHD, FXCONV, LOANAMRT, LOYWAIVE, PKDPOST | 6 |
+| **Passed, then differed under attack** | CHQCLR, DAYCTRL, INTACCR, TXNPOST | **4** |
+
+**4 of 10 again, and the same four programs.** The set of ten differs by one: PKDPOST is in and BRNCHSUM out, since each run has its own fresh translations.
+
+- **The differences, from the stored inputs and diffs:** CHQCLR, 6 inputs, all malformed numeric fields, one of them the blank-body return from the audit. DAYCTRL 2, INTACCR 2, TXNPOST 1: negative zero at an exact overflow boundary, same value, different bytes. **None is a different value on a well-formed input, and none was a display-only difference**, so comparing display output changed no outcome here.
+- **What the fixes changed:** CHQCLR's Java passed the held-out check with real amounts this time, so the earlier weakness does not explain its result. The six survivors were also checked on display output.
+- **The value error here came from the ordinary check:** BRNCHSUM's first failing record writes `46,580,013.61` where the COBOL writes `046,580,013.61`.
+- **Read it as:** two runs of one model on one synthetic set, agreeing. Not a defect-detection rate, not evidence for other models or real programs, and the breaker's inputs are themselves limited.
 
