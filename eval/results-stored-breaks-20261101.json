@@ -1,0 +1,674 @@
+{
+ "synthetic": true,
+ "collected": "2026-11-01, every run folder on the author's machine and GET /api/runs",
+ "modelCalls": 0,
+ "classes": {
+  "malformed": "a numeric field holds a space, letter or other non-digit",
+  "negative-zero": "same value, different sign byte, at an exact overflow boundary",
+  "whole-batch-failure": "the Java wrote no records for the whole attack round, so the record is not shown to be responsible (one not-certified run)"
+ },
+ "counts": {
+  "malformed": 30,
+  "whole-batch-failure": 9,
+  "negative-zero": 15
+ },
+ "total": 54,
+ "breaks": [
+  {
+   "program": "CHQCLR",
+   "input": "CACC0000001        +00001000020240101   ",
+   "diff": "output record 11: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC0000001  123456+00001000020240101   ",
+   "diff": "CL-NUMBER: original 123456 converted 123456",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC000000100000001 00000000020240101   ",
+   "diff": "output record 3: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC000000100000001+00000000020240101   ",
+   "diff": "output record 1: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC000000100000001+00012.34520240101   ",
+   "diff": "output record 12: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC000000100000001+99999999920240101   ",
+   "diff": "output record 4: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC000000100000001-00000000020240101   ",
+   "diff": "output record 2: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC000000100000001-00001000020240101   ",
+   "diff": "output record 5: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC00000011234.567+00001000020240101   ",
+   "diff": "CL-NUMBER: original 1234.567 converted 1234",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACC0000001ABCD1234+00001000020240101   ",
+   "diff": "CL-NUMBER: original ABCD1234 converted 0",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCNUM0001ABCDEFGH+00000010020240101   ",
+   "diff": "CL-NUMBER: original ABCDEFGH converted 12345678",
+   "runs": [
+    "chqclr-20261101-004628"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00000100000001+00012.34020240101   ",
+   "diff": "CL-DEBIT: original -1343.40 converted -1003.40",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00000100000001+00012/34020240101   ",
+   "diff": "CL-DEBIT: original -1353.40 converted -1003.40",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00000100000001+1 000000020240101   ",
+   "diff": "CL-DEBIT: original -1000000.00 converted -100000.00",
+   "runs": [
+    "chqclr-20261101-142844"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00000100000011+0000AB12320240101XXX",
+   "diff": "CL-DEBIT: original -121.23 converted 0.00",
+   "runs": [
+    "chqclr-20261028-214355"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00000600000006+ABCDEFGHI20240101XXX",
+   "diff": "output record 7: the converted program wrote 6 records, the other wrote more",
+   "runs": [
+    "chqclr-20261028-234854"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00000900000009+000123.4520240101XXX",
+   "diff": "output record 10: the converted program wrote 6 records, the other wrote more",
+   "runs": [
+    "chqclr-20261028-234854"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "CACCT00001000000010+00000    20240101XXX",
+   "diff": "output record 11: the converted program wrote 6 records, the other wrote more",
+   "runs": [
+    "chqclr-20261028-234854"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACC000000300000003SPABCDEXXXXXXXXXXXXXX",
+   "diff": "CL-FEE: original ABCDE converted 123.45",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCRFEE00500000005SPABCDE              ",
+   "diff": "CL-FEE: original ABCDE converted 123.45",
+   "runs": [
+    "chqclr-20261101-004628"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCRNUM003ABCDEFGHSP00010              ",
+   "diff": "CL-NUMBER: original ABCDEFGH converted 12345678",
+   "runs": [
+    "chqclr-20261101-004628"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCT00000200000002NS1 000              ",
+   "diff": "CL-FEE: original 200.00 converted 20.00",
+   "runs": [
+    "chqclr-20261101-142844"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+   "diff": "CL-FEE: original 20.00 converted 0.00",
+   "runs": [
+    "chqclr-20261028-214355"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCT00000700000007XXABCDEXXXXXXXXXXXXXX",
+   "diff": "output record 8: the converted program wrote 6 records, the other wrote more",
+   "runs": [
+    "chqclr-20261028-234854"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCT00000800000008NS12.34XXXXXXXXXXXXXX",
+   "diff": "output record 9: the converted program wrote 6 records, the other wrote more",
+   "runs": [
+    "chqclr-20261028-234854"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RACCT00001100000011NS-0123XXXXXXXXXXXXXX",
+   "diff": "output record 12: the converted program wrote 6 records, the other wrote more",
+   "runs": [
+    "chqclr-20261028-234854"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET0000001  123456SP00100              ",
+   "diff": "CL-NUMBER: original 123456 converted 123456",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002NS50000              ",
+   "diff": "output record 7: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002NS99999              ",
+   "diff": "output record 6: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002SP  100              ",
+   "diff": "CL-FEE: original 100 converted 1.00",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002SP12.34              ",
+   "diff": "CL-FEE: original 12.34 converted 0.12",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002SP99999              ",
+   "diff": "output record 8: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002SPAB123              ",
+   "diff": "CL-FEE: original AB123 converted 0.00",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET000000100000002ns50000              ",
+   "diff": "output record 9: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRET0000001ABCDEFGHSP00100              ",
+   "diff": "CL-NUMBER: original ABCDEFGH converted 0",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRTACCT000100000002NS12.34              ",
+   "diff": "CL-FEE: original 268.68 converted 240.08",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "RRTACCT000100000002NS12/34              ",
+   "diff": "CL-FEE: original 270.68 converted 240.08",
+   "runs": [
+    "chqclr-20261030-163002"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "CHQCLR",
+   "input": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "diff": "output record 10: the converted program wrote 0 records, the other wrote more",
+   "runs": [
+    "chqclr-20261101-002207"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "whole-batch-failure"
+  },
+  {
+   "program": "DAYCTRL",
+   "input": "OVFNGZERO1-0100000000010000365",
+   "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "daily-control-20261030-180339"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "DAYCTRL",
+   "input": "OVFNGZERO2-0200000000010000365",
+   "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "daily-control-20261030-180339"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "HRINT010",
+   "input": "OVFZERO001-3650000000009350010S00",
+   "diff": "IO-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "hrint010-20261030-165943"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "HTDORMSW",
+   "input": "ASYNSWEEP005ABC00000100        DORMANT         36 5                                                                                                             ",
+   "diff": "OUT-RECORD: original ASYNSWEEP005ABCDORMANT-SWEEP           00000100    DORMANT converted ASYNSWEEP005ABCBELOW-THRESHOLD         00000100    DORMANT",
+   "runs": [
+    "htdormsw-20261101-152623"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "malformed"
+  },
+  {
+   "program": "INTACCR",
+   "input": "CASE000011-5000000000009500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261029-230750"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "INTOVF0002-0100000000009500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "intaccr-20261028-232614"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "OVF0000002-0100000000009500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261029-234240"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "OVF0000004-0200000000009500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261029-234240"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "OVF0000006-0300000000009500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261029-234240"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "OVF0000012-0100000000004500730P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261029-234240"
+   ],
+   "source": [
+    "live",
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "WRAP10M000-0010000000099500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261101-160419"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "WRAP20M000-0020000000099500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261101-160419"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "INTACCR",
+   "input": "WRAPNEG001-0100000000009500365P",
+   "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)",
+   "runs": [
+    "interest-accrual-20261030-171932"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "PKDPOST",
+   "input": "HEADN10M05\u0001\u0000\u0099\u0090\u0000\f\u0000\u0000\u000f\u0000\u00000000000999\u0000\u0000",
+   "diff": "PO-HEADROOM: original '000000000-' converted '000000000+' (same value, different bytes)",
+   "runs": [
+    "packed-posting-20261030-183421"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "TXNPOST",
+   "input": "OVERINT02I-000000006-9999999999900000",
+   "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)",
+   "runs": [
+    "txn-posting-20261101-151838"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  },
+  {
+   "program": "TXNPOST",
+   "input": "OVERNEG01F+000000001-9999999999900000",
+   "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)",
+   "runs": [
+    "txn-posting-20261101-151838"
+   ],
+   "source": [
+    "local"
+   ],
+   "class": "negative-zero"
+  }
+ ]
+}

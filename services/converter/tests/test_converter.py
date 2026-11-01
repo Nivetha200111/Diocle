@@ -227,6 +227,8 @@ def test_breaker_attacks_until_an_input_breaks_the_java(tmp_path):
 def test_breaker_counts_a_display_difference_and_names_the_input_responsible(tmp_path):
     """TEST DOUBLE for the verifier (rule 7): every output record matches and only the printed total differs, the case the
     breaker used to record as "no break". The real program behind this: docs/SHOWCASE_CHQCLR.md."""
+    from diocle_converter.breaker import Breaker
+
     ws = Workspace(tmp_path / "java")
     ws.write("IntAccr.java", "class IntAccr {}")
     layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
@@ -247,6 +249,8 @@ def test_breaker_counts_a_display_difference_and_names_the_input_responsible(tmp
 
 
 def test_breaker_blames_the_round_when_no_input_differs_alone(tmp_path):
+    from diocle_converter.breaker import Breaker
+
     ws = Workspace(tmp_path / "java")
     ws.write("IntAccr.java", "class IntAccr {}")
     layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
