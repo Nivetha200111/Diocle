@@ -554,12 +554,15 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
         if progress and delivered:
             progress.update(buildCheck=build_summary(build))
         body = _pr_body(report, delivered, skipped, others, build)
-        if create:
-            (repo / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
-            (repo / ".github" / "workflows" / "reverify.yml").write_text(reverify_workflow(report["source"]["location"], diocle_commit))
-            body += ("\n\nThis repository was created by Diocle for this migration. This pull request adds "
-                     "`.github/workflows/reverify.yml`, the CI that re-verifies each program; the pushing token needs the "
-                     "`workflow` scope for that file.")
+        workflow = repo / ".github" / "workflows" / "reverify.yml"
+        # Also when the target has none yet: a later delivery into a repository whose first pull request (the one that
+        # carried the workflow) was never merged would otherwise get no CI at all.
+        if create or not workflow.exists():
+            workflow.parent.mkdir(parents=True, exist_ok=True)
+            workflow.write_text(reverify_workflow(report["source"]["location"], diocle_commit))
+            body += ("\n\n" + ("This repository was created by Diocle for this migration. " if create else "")
+                     + "This pull request adds `.github/workflows/reverify.yml`, the CI that re-verifies each program; "
+                     "the pushing token needs the `workflow` scope for that file.")
         if dry_run:
             print(body)
             if create:

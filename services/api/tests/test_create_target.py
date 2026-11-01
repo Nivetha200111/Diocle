@@ -205,6 +205,46 @@ def test_full_flow_creates_private_then_pushes_workflow_and_programs_and_opens_t
     assert "gh [pr] [create] [--repo] [me/x-java]" in log and "This repository was created by Diocle" in log
 
 
+def _existing_target(tmp_path, workflow=None):
+    """A repository that already exists (made through the gh double), optionally with its own reverify.yml on main."""
+    import subprocess
+    subprocess.run(["gh", "repo", "create", "me/x-java"], check=True, capture_output=True)
+    bare = tmp_path / "ghstate" / "me" / "x-java.git"
+    if workflow is not None:
+        w = tmp_path / "seed"
+        subprocess.run(["git", "clone", "-q", str(bare), str(w)], check=True, capture_output=True)
+        (w / ".github" / "workflows").mkdir(parents=True)
+        (w / ".github" / "workflows" / "reverify.yml").write_text(workflow)
+        for cmd in (["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "ci"], ["push", "-q", "origin", "main"]):
+            subprocess.run(["git", "-C", str(w), *cmd], check=True, capture_output=True)
+    return bare
+
+
+def _delivered_workflow(bare):
+    import subprocess
+    branch = subprocess.run(["git", "-C", str(bare), "branch", "--list", "diocle/*"], capture_output=True, text=True).stdout.strip()
+    return subprocess.run(["git", "-C", str(bare), "show", f"{branch}:.github/workflows/reverify.yml"], capture_output=True, text=True)
+
+
+def test_an_existing_target_without_the_ci_gets_it_in_the_pull_request(flow, tmp_path):
+    # e.g. a repository Diocle created whose first pull request (the one that carried the workflow) was never merged
+    report, samples, runs, gh = flow
+    bare = _existing_target(tmp_path)
+    assert deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False) == "https://github.com/me/x-java/pull/1"
+    shown = _delivered_workflow(bare)
+    assert shown.returncode == 0 and "diocle_verifier.reverify" in shown.stdout
+    log = (tmp_path / "gh.log").read_text()
+    assert "This pull request adds `.github/workflows/reverify.yml`" in log and "This repository was created by Diocle" not in log
+
+
+def test_an_existing_target_keeps_its_own_ci(flow, tmp_path):
+    report, samples, runs, gh = flow
+    bare = _existing_target(tmp_path, workflow="name: the owner's own\n")
+    deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False)
+    assert _delivered_workflow(bare).stdout == "name: the owner's own\n"
+    assert "reverify.yml" not in (tmp_path / "gh.log").read_text()
+
+
 def test_partial_failure_says_what_exists_and_deletes_nothing(flow, monkeypatch):
     report, samples, runs, gh = flow
     monkeypatch.setenv("FAKE_GH_FAIL_PR", "1")
