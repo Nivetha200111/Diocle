@@ -131,17 +131,20 @@ class Breaker:
 
     def _display_breaks(self, report: dict, cases: list[Case], designed: list[dict]) -> tuple[list[dict], list[dict]]:
         """Every output record matched, but did the display output and exit code? Certification compares them, so an
-        attack must too. Each designed input is then run alone to name the ones responsible; if none differs alone (a
-        total that needs several records), the difference counts against the round's inputs together."""
-        if self._display_diff(report) is None:
+        attack must too. Rows may start with replays of earlier breaks, so this round's inputs are found by id. Each is
+        run alone, unless the difference is there with none of them; if none differs alone (a total that needs several
+        records), the difference counts against this round's inputs together."""
+        together = self._display_diff(report)
+        if together is None or not cases:
             return designed, []
-        marked = []
-        for c, row in zip(cases, designed):
-            diff = self._display_diff(self.verify(self.workspace.root, 1026, 0, [c]))
-            marked.append({**row, "match": diff is None, "diff": diff or row.get("diff", "")})
-        if not any(not r["match"] for r in marked):
-            together = self._display_diff(report)
-            marked = [{**r, "match": False, "diff": together} for r in designed]
+        blamed: dict[str, str] = {}
+        if self._display_diff(self.verify(self.workspace.root, 1026, 0, [])) is None:
+            for c in cases:
+                diff = self._display_diff(self.verify(self.workspace.root, 1026, 0, [c]))
+                if diff:
+                    blamed[c.id] = diff
+        blamed = blamed or {c.id: together for c in cases}
+        marked = [{**r, "match": False, "diff": blamed[r["inputId"]]} if r["inputId"] in blamed else r for r in designed]
         return marked, [r for r in marked if not r["match"]]
 
     @staticmethod
@@ -212,8 +215,9 @@ class Breaker:
                                        if broken else f"{self.label_name} round {round_no}: all {len(cases)} designed inputs match the COBOL")
                                       + (f" ({len(proposed) - len(cases)} rejected as invalid for the layout)" if len(proposed) > len(cases) else "")})
             if broken:
-                return [{"case": next(c for c in cases if c.id == r["inputId"]), "why": why.get(r["inputId"], ""),
-                         "diff": r.get("diff", "")} for r in broken]
+                # A replay of an earlier break can fail too: it is not one of this round's cases, but it is still a break.
+                return [{"case": next((c for c in cases if c.id == r["inputId"]), Case(r["inputId"], "model", r.get("input", ""))),
+                         "why": why.get(r["inputId"], ""), "diff": r.get("diff", "")} for r in broken]
             messages.append({"role": "user", "content": "All of those matched the COBOL exactly. Attack a different "
                              "behaviour of the program this time."})
         return []

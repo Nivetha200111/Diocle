@@ -36,6 +36,7 @@ export function verdictSentence(run: Run): string {
     return `The Java matched the original COBOL on ${counts} held-out output records (one run of each program on generated inputs the repair agent never saw), byte for byte${after?.stdoutMatch === false ? ", except printed output" : ""}${reported}.${first} "Certified" means on the inputs tried, not proven for every input.`;
   }
   if (run.certified) return `Certified${reported}, but this record has no held-out input counts to quote.`;
+  if (counts && after && after.failed === 0 && !after.stdoutMatch) return `Not certified: all ${counts} held-out output records matched, but the printed display output differed.`;
   if (counts) return `Not certified: the Java matched the original on only ${counts} held-out output records${after && originalWroteNothing(after) ? " (the original COBOL wrote no records on them)" : ""}.`;
   const why = run.error ? ` The run record says: ${clip(run.error.replace(/\s+/g, " "), 320)}` : "";
   if (originalDidNotCompile(run.error)) return `Not certified: the original COBOL did not compile, so nothing could be compared.${why}`;

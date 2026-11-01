@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/certificate.schema.json",
   "title": "EquivalenceCertificate",
-  "description": "v0.1. Written next to each converted program in a delivery pull request (programs/<PROGRAM>/certificate.json). It pins the legacy source and the verifier so CI can re-run the proof independently on fresh inputs.",
+  "description": "v0.2 (additive: `scope`). Written next to each converted program in a delivery pull request (programs/<PROGRAM>/certificate.json). It pins the legacy source and the verifier so CI can re-run the proof independently on fresh inputs.",
   "type": "object",
   "required": ["version", "program", "legacy", "java", "verification", "agent", "issuedAt"],
   "properties": {

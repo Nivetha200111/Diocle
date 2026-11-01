@@ -1,6 +1,6 @@
 # Demo candidate v13
 
-The owner chose this over v12 on Nov 1. A separately named cut, `~/Downloads/diocle-candidate-v13.mp4` (172.3 s, 1080p), made only from the submitted v12 picture and the owner's recorded narration. v12 (`~/Downloads/diocle-final-v12.mp4`, currently at https://youtu.be/EsKndaZ6d2E) and the recordings are untouched. No voice was synthesized and no footage invented. The owner uploads it.
+The owner chose this over v12 on Nov 1. A separately named cut, `~/Downloads/diocle-candidate-v13.mp4` (172.3 s, 1080p), made only from the v12 picture and the owner's recorded narration. v12 (`~/Downloads/diocle-final-v12.mp4`, currently at https://youtu.be/EsKndaZ6d2E) and the recordings are untouched. No voice was synthesized and no footage invented. The owner uploads it.
 
 Rebuild: `CHROME=<chromium> node overlays.mjs OUT_DIR <dir with playwright>`, then `python3 build.py V12.mp4 OUT_DIR OUT.mp4`. Checked with `demo/final/gates.sh` from the `video-draft-7` branch and at 854x480: the one silence and freeze are the deliberate 4 s hold on the limits card.
 
