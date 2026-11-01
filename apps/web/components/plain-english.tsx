@@ -1,7 +1,7 @@
 "use client";
 
 import { MessageSquareText } from "lucide-react";
-import { hostOf, type ModelCall, type Run } from "@/lib/runs";
+import { hostOf, originalDidNotCompile, originalWroteNothing, type ModelCall, type Run } from "@/lib/runs";
 
 // "In plain English": a card at the top of a run, built only from fields of the run record. Nothing is written about what
 // the program does unless the run has a verified behaviour spec (claims a model wrote, then confirmed by running the
@@ -36,8 +36,10 @@ export function verdictSentence(run: Run): string {
     return `The Java matched the original COBOL on ${counts} held-out inputs (inputs the repair agent never saw), field by field and byte for byte${after?.stdoutMatch === false ? ", except printed output" : ""}${reported}.${first} "Certified" means on the inputs tried, not proven for every input.`;
   }
   if (run.certified) return `Certified${reported}, but this record has no held-out input counts to quote.`;
-  if (counts) return `Not certified: the Java matched the original on only ${counts} held-out inputs.`;
+  if (counts) return `Not certified: the Java matched the original on only ${counts} held-out inputs${after && originalWroteNothing(after) ? " (the original COBOL wrote no records on them)" : ""}.`;
   const why = run.error ? ` The run record says: ${clip(run.error.replace(/\s+/g, " "), 320)}` : "";
+  if (originalDidNotCompile(run.error)) return `Not certified: the original COBOL did not compile, so nothing could be compared.${why}`;
+  if (after) return `Not certified: no held-out input was compared (the Java did not build, or neither program wrote output).${why}`;
   return `Not certified: the run ended before a comparison could be made.${why}`;
 }
 

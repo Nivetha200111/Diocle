@@ -234,7 +234,9 @@ function ConvertProgress({ job, run }: { job: LiveJob; run: Run | null }) {
         <div className="live-result" role="status">
           <p>
             <Badge tone={run.certified ? "green" : "amber"}>{verdict?.toUpperCase()}</Badge>{" "}
-            {run.after
+            {run.after && run.after.total === 0
+              ? <>Held-out check: no cases were compared.</>
+              : run.after
               ? <>Held-out check: <strong>{num(run.after.passed)}/{num(run.after.total)}</strong> inputs match GnuCOBOL, stdout {run.after.stdoutMatch ? "matches" : "differs"}.</>
               : <>No held-out result was recorded.</>}{" "}
             {run.certified ? "Certified means the Java matched the original on those inputs, not that it is correct on every input." : run.error ?? ""}

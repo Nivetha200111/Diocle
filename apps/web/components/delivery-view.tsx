@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, GitPullRequest, Plus, TriangleAlert } from "lucide-react";
-import { API_URL } from "@/lib/runs";
+import { API_URL, caseCount } from "@/lib/runs";
 import { CANONICAL, LINKS, useApiConfig } from "@/lib/config";
 import { Skeleton } from "./ui";
 import { AssuranceBadge } from "./assurance";
@@ -154,7 +154,7 @@ function ProgramCard({ p }: { p: DeliveryProgram }) {
       </ol>
       {run && (
         <p className="dlv-stats mono">
-          {run.before ? `before ${run.before.passed}/${run.before.total}` : "before …"} → {run.after ? `held-out ${run.after.passed}/${run.after.total}` : "held-out …"}
+          {run.before ? `before ${caseCount(run.before)}` : "before …"} → {run.after ? `held-out ${caseCount(run.after)}` : run.status === "running" ? "held-out …" : "no held-out check"}
           {" · "}{run.efficiency.modelCalls} calls · {run.steps} steps · {usd(run.efficiency.estimatedCostUsd)}
           {run.memoryUsed ? ` · ${run.memoryUsed} lessons from memory` : ""}
         </p>

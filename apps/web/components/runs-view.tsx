@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
-import { API_URL, ASSURANCE_BADGE, callCostUsd, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
+import { API_URL, ASSURANCE_BADGE, callCostUsd, countTile, originalDidNotCompile, originalWroteNothing, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { AssuranceBadge, AssuranceNote } from "./assurance";
 import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
@@ -12,7 +12,6 @@ import { DatabasePanel } from "./database-panel";
 import { ReproducerPanel } from "./reproducer-panel";
 import { MutationPanel } from "./mutation-panel";
 
-const pct = (v: Verification) => (v.total ? Math.round((v.passed / v.total) * 1000) / 10 : 0);
 const usd = (n: number | null) => (n === null ? "n/a" : `$${n < 0.01 ? n.toFixed(4) : n.toFixed(2)}`);
 const tokens = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`);
 
@@ -492,12 +491,9 @@ function RunDetail({ run }: { run: Run }) {
       <PlainEnglishCard run={run} />
 
       <div className="stats-grid">
-        <StatCard label="Before" tone="orange" icon={<ShieldAlert size={15} />}
-          value={run.before ? `${pct(run.before)}%` : "n/a"}
-          note={run.before ? `${run.before.passed}/${run.before.total} cases matched${run.before.stdoutMatch ? "" : " · stdout differs"}` : "not recorded"} />
+        <StatCard label="Before" tone="orange" icon={<ShieldAlert size={15} />} {...countTile(run.before, { error: run.error })} />
         <StatCard label="After (held-out inputs)" tone="green" icon={<CircleCheck size={15} />}
-          value={run.after ? `${pct(run.after)}%` : "n/a"}
-          note={run.after ? `${run.after.passed}/${run.after.total} cases the agent never saw` : "no certification"} />
+          {...countTile(run.after, { error: run.error, heldOut: true })} />
         <StatCard label="Agent" tone="purple" icon={<Bot size={15} />}
           value={`${steps.length}`} note={`tool steps · ${run.usage.calls} model calls · ${run.rounds.length} round(s)`} />
         <StatCard label="Cost" tone="green" icon={<Coins size={15} />}
@@ -560,14 +556,17 @@ function RunDetail({ run }: { run: Run }) {
             <div>
               <h2>What was wrong before</h2>
               <p>
-                {!run.before
-                  ? "No verification of the starting Java was recorded for this run."
+                {!run.before || run.before.total === 0
+                  ? (originalDidNotCompile(run.error) ? "The original COBOL did not compile, so the starting Java could not be compared with it."
+                    : run.before ? "No test case was compared: the starting Java did not build, or neither program wrote output." : "No verification of the starting Java was recorded for this run.")
                   : run.before.failed === 0
                     ? `The starting Java already matched GnuCOBOL on all ${run.before.total} test inputs, so no repair was needed.`
-                    : "Mismatches between GnuCOBOL and the starting Java."}
+                    : originalWroteNothing(run.before)
+                      ? "The original COBOL wrote no records on these inputs, while the starting Java did."
+                      : "Mismatches between GnuCOBOL and the starting Java."}
               </p>
             </div>
-            {run.before && <Badge tone={run.before.failed === 0 ? "green" : "amber"}>{run.before.failed === 0 ? "all matched" : `${run.before.failed} failing`}</Badge>}
+            {run.before && run.before.total > 0 && <Badge tone={run.before.failed === 0 ? "green" : "amber"}>{run.before.failed === 0 ? "all matched" : `${run.before.failed} failing`}</Badge>}
           </div>
           {(run.before?.failed ?? 0) > 0 && (
             <div className="table-scroll">
