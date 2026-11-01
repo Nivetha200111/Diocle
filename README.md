@@ -14,7 +14,7 @@ Diocle is a verification layer for AI-written code where a wrong cent costs mone
 
 I have worked on a COBOL modernization project at a global finance company. Reviewing the translated code by hand took so much effort that it drained the project's timeline. AI can now write the Java quickly, but someone still has to decide whether it is right, and a wrong cent repeats on every account (TSB's 2018 migration is the public example, see below). I built the check I wished that project had: run the original and the Java on the same inputs and compare every byte. No code or data from that work is in this repository; every program here is synthetic and written during the hackathon.
 
-**Who it's for.** The modernization lead or systems integrator moving a bank's, credit union's or payment operator's nightly COBOL batch (interest, fees, postings) to Java. **The pain:** proving the Java does what the COBOL did, today by hand review or sampling, which eats the timeline. **The risk:** a wrong cent that repeats on every account. Diocle replaces the review with a check anyone can re-run. More in [Who benefits](#who-benefits).
+**Who it's for.** The modernization lead or systems integrator moving a bank's, credit union's or payment operator's nightly COBOL batch (interest, fees, postings) to Java. **The pain:** proving the Java does what the COBOL did, today by hand review or sampling, which eats the timeline. **The risk:** a wrong cent that repeats on every account. Diocle replaces the review with a check anyone can re-run. **Why now:** when IBM's shares fell 13.2% in a day over AI COBOL translation (Feb 2026), IBM's own answer was that "translating COBOL is the easy part"; Diocle does the hard part, proving the translation right. More in [Why it matters](#why-it-matters) and [Who benefits](#who-benefits).
 
 ## The measured finding (15 synthetic programs, one model; [docs/MEASUREMENT.md](docs/MEASUREMENT.md))
 
@@ -88,10 +88,14 @@ Both statements are true and come from different runs with different settings. T
 
 ## Why it matters
 
-In 2017 Reuters reported that COBOL ran about 43% of US banking systems and 95% of ATM swipes, with some 220 billion
-lines in use (a figure from 2017), and the people who wrote it are retiring. Rewriting it is where banks get hurt: TSB's 2018
-core-banking migration locked close to two million customers out of their accounts, and its chief executive stepped
-down. AI makes the rewrite fast; it does not make it safe. The risk is silent: Java that compiles, runs and is wrong
+In February 2026, after Anthropic said AI could modernize COBOL, IBM's shares fell 13.2% in a day, their steepest drop since 2000
+([Reuters via The Star](https://www.thestar.com.my/tech/tech-news/2026/02/24/ibm-posts-steepest-daily-drop-since-2000-after-anthropic-says-ai-can-modernize-cobol)). IBM's answer was that "translating COBOL is the easy part"
+([VentureBeat](https://venturebeat.com/technology/ibms-usd40b-stock-wipeout-is-built-on-a-misconception-translating-cobol-isnt)). The hard part is proving the translation does what the original did. COBOL still handles
+about 95% of US ATM transactions (a widely repeated figure from 2017 Reuters reporting), and a wrong migration is expensive: TSB's 2018
+core-banking migration locked nearly two million customers out of their accounts, cost the bank £330 million, and brought a £48.65 million
+fine from the FCA and PRA in 2022 ([ITPro](https://www.itpro.com/business-strategy/it-infrastructure/369753/tsb-bank-fined-48-million-over-botched-it-upgrade)).
+MarketsandMarkets forecasts mainframe modernization spending to grow from about $8.4 billion in 2025 to $13.3 billion in 2030
+([press release](https://www.marketsandmarkets.com/PressReleases/mainframe-modernization.asp)). AI makes the rewrite fast; it does not make it safe. The risk is silent: Java that compiles, runs and is wrong
 by a cent, or by the sign of zero on 30 inputs in a thousand. Diocle's job is to catch that before anyone ships it.
 
 ## Who benefits
