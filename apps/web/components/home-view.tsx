@@ -280,6 +280,7 @@ function Pitch({ go }: { go: Go }) {
       <p className="pitch-models">
         Models write and attack; the byte comparison decides. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
         {" "}<strong>Limits:</strong> &ldquo;certified&rdquo; means matched on the inputs tried, not proven equivalent. GnuCOBOL is not IBM Enterprise COBOL; SQLite and Berkeley DB stand in for the DB2 and VSAM subsets; the breaker attacks single-file record programs only; optional guard and cross-check steps can be skipped, and a run says so. Synthetic programs only (<a href={LINKS.certified} target="_blank" rel="noreferrer">full limits</a>).
+        {" "}<strong>For risk and audit teams:</strong> the party that writes the change does not approve it (<a href={`${LINKS.diocle}#for-engineering-risk-and-audit-teams`} target="_blank" rel="noreferrer">what a reviewer can check</a>).
       </p>
     </section>
   );
