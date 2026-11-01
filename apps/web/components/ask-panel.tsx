@@ -10,6 +10,8 @@ import {
   clipUrl, encodeWav, fetchAsk, fetchAsksStatus, startAsk, startAskUpload,
   type AskClip, type AskJob, type AskSample, type AsksStatus, type ClaimResult,
 } from "@/lib/ask";
+import { HOSTED } from "@/lib/config";
+import { viewKey } from "@/lib/live";
 
 const usd = (n: number | null | undefined) => (n === null || n === undefined ? "n/a" : `$${n.toFixed(n < 0.01 ? 5 : 4)}`);
 const KEY = "diocle-ask-job";
@@ -33,6 +35,7 @@ export default function AskPanel() {
   const [starting, setStarting] = useState(false);
   const [recording, setRecording] = useState<number | null>(null);  // seconds so far, while the microphone is open
   const stopRec = useRef<(() => void) | null>(null);
+  const cancelRec = useRef<(() => void) | null>(null);
 
   const refresh = useCallback(() => {
     fetchAsksStatus().then((s) => setStatus(s ?? "unreachable")).catch(() => setStatus("unreachable"));
@@ -103,40 +106,54 @@ export default function AskPanel() {
   const record = async () => {
     if (!info) return;
     setError(null);
+    let stream: MediaStream | null = null;
+    let ctx: AudioContext | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
-      const ctx = new AudioContext({ sampleRate: 16000 });
-      const src = ctx.createMediaStreamSource(stream);
-      const node = ctx.createScriptProcessor(4096, 1, 1);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
+      const opened = stream;
+      ctx = new AudioContext();  // at the device's own rate (some browsers refuse any other); encodeWav averages it down to 16 kHz
+      const audio = ctx;
+      const rate = audio.sampleRate;
+      const limit = Math.floor(rate * MAX_SECONDS);
+      const src = audio.createMediaStreamSource(opened);
+      const node = audio.createScriptProcessor(4096, 1, 1);
       const chunks: Float32Array[] = [];
       let total = 0;
-      const finish = () => {
-        node.disconnect(); src.disconnect(); stream.getTracks().forEach((t) => t.stop());
-        const rate = ctx.sampleRate;
-        ctx.close().catch(() => undefined);
+      const stop = () => {
+        node.disconnect(); src.disconnect(); opened.getTracks().forEach((t) => t.stop());
+        audio.close().catch(() => undefined);
         clearInterval(tick);
         stopRec.current = null;
+        cancelRec.current = null;
         setRecording(null);
+      };
+      const finish = () => {
+        stop();
         const all = new Float32Array(total);
         let o = 0;
         for (const c of chunks) { all.set(c, o); o += c.length; }
         if (total / rate < 0.4) { setError("That was too short; hold the button a little longer."); return; }
-        void begin(() => startAskUpload(info.sample as AskSample, encodeWav(all, rate)));
+        void begin(() => startAskUpload(info.sample as AskSample, encodeWav(all.subarray(0, Math.min(total, limit)), rate)));
       };
       node.onaudioprocess = (e) => {
+        if (!stopRec.current) return;
         const d = new Float32Array(e.inputBuffer.getChannelData(0));
         chunks.push(d); total += d.length;
-        if (total / ctx.sampleRate >= MAX_SECONDS) finish();
+        if (total >= limit) finish();
       };
-      src.connect(node); node.connect(ctx.destination);
+      src.connect(node); node.connect(audio.destination);
       const t0 = Date.now();
       const tick = setInterval(() => setRecording(Math.min(MAX_SECONDS, (Date.now() - t0) / 1000)), 200);
       stopRec.current = finish;
+      cancelRec.current = stop;
       setRecording(0);
     } catch {
-      setError("The microphone could not be opened (permission denied or no microphone).");
+      stream?.getTracks().forEach((t) => t.stop());
+      ctx?.close().catch(() => undefined);
+      setError("The microphone could not be opened (permission denied, no microphone, or this browser cannot record here).");
     }
   };
+  useEffect(() => () => cancelRec.current?.(), []);  // leaving the page stops the microphone and sends nothing
 
   return (
     <section className="panel live ask" id="ask" aria-labelledby="ask-h">
@@ -193,12 +210,16 @@ export default function AskPanel() {
         <p className="live-caps">
           <strong>Your own voice:</strong> recording starts only when you press the button.{" "}
           {s?.uploadPerVisitorPerDay !== undefined && <>{s.uploadPerVisitorPerDay} recorded questions per visitor per day, {s.uploadPerDay} a day overall ({s.uploadVisitorLeft} left for you), at most {usd(s.maxUsd)} each. </>}
-          The clip goes to Meta&apos;s speech service. Only you can read the answer here; the clip is deleted when the job ends, and the transcript an hour later. Please leave out names and real account details.
+          {HOSTED
+            ? <>The clip goes to Meta&apos;s speech service. Only you can read the answer here; the clip is deleted when the job ends, and the transcript an hour later. Please leave out names and real account details.</>
+            : <>This is your local engine: the clip goes to Meta&apos;s speech service with your key and stays in this machine&apos;s runs folder.</>}
           {micReason && <> Not available now: {micReason}</>}
         </p>
       )}
       {error && <p className="live-error" role="alert">{error}</p>}
-      {job && <Stages job={job} />}
+      {job && (viewKey(job.id) && job.status !== "running" && !job.result && !job.error
+        ? <p className="live-caps" role="status">The answer to this question has been removed: results are kept for an hour.</p>
+        : <Stages job={job} />)}
     </section>
   );
 }

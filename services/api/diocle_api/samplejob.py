@@ -4,7 +4,7 @@
 
 JOB_ID is made by the server and checked against livesamples.JOB_ID; the kind is one of two words. Everything else that
 reaches a command line below is a constant in this file: the bundled sample directories, the bundled image and the dollar
-caps. No visitor value is read here at all. Model-written code is built and run only by the sandbox (the printout goes
+caps. The only visitor data is an uploaded image, under a server-chosen name in the job folder, already judged by its bytes. Model-written code is built and run only by the sandbox (the printout goes
 through `transcribe --sandbox`, which refuses to run without it).
 """
 
@@ -190,7 +190,7 @@ def run_printout(job: Job) -> None:
 def _forget_upload(job: Job) -> None:
     """A visitor's image and what was made from it leave the disk when the job ends; only the record stays (livesamples.get_job
     removes its transcription an hour later)."""
-    if job.state.get("upload"):
+    if job.state.get("public"):
         shutil.rmtree(job.path.parent / "out", ignore_errors=True)
         for name in (job.state.get("uploadImage"), "job.log"):
             if name:

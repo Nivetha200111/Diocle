@@ -1,7 +1,7 @@
 "use client";
 
 // The two public live buttons on the Try it live page (/try). Nothing here is replayed or invented: every line shown comes from the job
-// record or the run record the engine returns while the work happens. The visitor sends a sample name and nothing else.
+// record or the run record the engine returns while the work happens. The buttons send a sample name and nothing else; an image goes through its own capped route.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "./ui";
 import { ASSURANCE_BADGE, fetchRun, type Run } from "@/lib/runs";
@@ -127,7 +127,7 @@ export default function LiveSamples() {
             a third that reads a picture you send. The buttons take no input from you. Your picture goes only to the vision
             model, and what it writes is compiled and run only in the sandbox. Each is capped in dollars, in presses per visitor
             and per day, and runs one at a time.
-            {s && <> Together the two buttons may spend at most {usd(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} so far in the last 24 hours (estimates at list prices).</>}
+            {s && <> Everything on this page together may spend at most {usd(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} so far in the last 24 hours (estimates at list prices).</>}
           </p>
         </div>
       </div>
@@ -163,7 +163,9 @@ export default function LiveSamples() {
         }} />}
       {error && <p className="live-error" role="alert">{error}</p>}
       {job && job.sample === "addfee" && <ConvertProgress job={job} run={run} />}
-      {job && job.sample === "loyalty-waiver-printout" && <PrintoutProgress job={job} />}
+      {job && job.sample === "loyalty-waiver-printout" && (viewKey(job.id) && job.status !== "running" && !job.printout && !job.error
+        ? <p className="live-caps" role="status">The result of this image has been removed: results are kept for an hour.</p>
+        : <PrintoutProgress job={job} />)}
     </section>
   );
 }

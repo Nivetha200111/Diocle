@@ -7,7 +7,17 @@
 		X-Content-Type-Options "nosniff"
 		-Server
 	}
-	request_body {
+	# Small everywhere except the two capped uploads. The API also counts the bytes it reads.
+	@audio path /asks/upload
+	request_body @audio {
+		max_size 1MB
+	}
+	@image path /samples/live/upload
+	request_body @image {
+		max_size 3MB
+	}
+	@rest not path /asks/upload /samples/live/upload
+	request_body @rest {
 		max_size 16KB
 	}
 	reverse_proxy api:8000

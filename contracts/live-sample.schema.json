@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/live-sample.schema.json",
   "title": "Live sample",
-  "description": "v0.1, plus additive upload fields (Nov 2026): `uploadRequest`, `started.key`, `status.upload`. A visitor may also send one image, read by the same path; its result is shown only to whoever holds `key`. The two public \"try it live\" buttons: a visitor presses a button, Diocle runs ONE fixed bundled synthetic sample through a real Meta model call and verifies the result. The request carries nothing but the name of a sample from a fixed list; no visitor text ever reaches a model, a command line, a path or the sandbox. $defs.request is the body of POST /samples/live, $defs.job is the answer of GET /samples/live/{id}, $defs.status is the `publicImports.samples` object of GET /config. Strings in these shapes are fixed phrases or values the engine computed; provider messages are never echoed.",
+  "description": "v0.1, plus additive upload fields (Nov 2026): `uploadRequest`, `started.key`, `status.upload`. A visitor may also send one image, read by the same path; its result is shown only to whoever holds `key`. The two public \"try it live\" buttons: a visitor presses a button, Diocle runs ONE fixed bundled synthetic sample through a real Meta model call and verifies the result. On the two buttons the request carries nothing but the name of a sample from a fixed list. An uploaded image reaches the vision model, and what it writes runs only in the sandbox; nothing from it reaches a command line or a path. $defs.request is the body of POST /samples/live, $defs.job is the answer of GET /samples/live/{id}, $defs.status is the `publicImports.samples` object of GET /config. Strings in these shapes are fixed phrases or values the engine computed; provider messages are never echoed.",
   "$defs": {
     "sampleName": {
       "type": "string",
@@ -26,7 +26,7 @@
     },
     "uploadRequest": {
       "type": "object",
-      "description": "POST /samples/live/upload. One PNG or JPEG, judged by its bytes: at most 2 MB and 2400 pixels on a side.",
+      "description": "POST /samples/live/upload. One PNG or JPEG, judged by its bytes: at most 2 MB and 1600 pixels on a side.",
       "required": ["imageBase64"],
       "additionalProperties": false,
       "properties": { "imageBase64": { "type": "string" } }

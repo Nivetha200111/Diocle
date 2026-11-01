@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
+import threading
 
 from fastapi import FastAPI, HTTPException, Request
 from typing import Literal
@@ -11,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from fastapi.middleware.cors import CORSMiddleware
 
+import asyncio
 import base64
 import binascii
 import hmac
@@ -304,6 +307,47 @@ def start_live_sample(request: LiveSampleRequest, http: Request) -> dict:
         raise HTTPException(status_code=e.status, detail=e.message)
 
 
+MAX_UPLOADS_READING, UPLOAD_READ_SECONDS = 4, 30
+_uploads_reading = 0
+
+
+async def _read_upload(http: Request, limit: int, too_large: str) -> bytes:
+    """A public upload's body, counted as it arrives whatever the headers claim, for a bounded time, with a few at once, so
+    uploads cannot make the engine hold much memory or wait for ever."""
+    global _uploads_reading
+    if _uploads_reading >= MAX_UPLOADS_READING:
+        raise HTTPException(status_code=429, detail="Too many uploads are arriving right now. Try again in a moment.")
+    _uploads_reading += 1
+    try:
+        chunks, size = [], 0
+        async with asyncio.timeout(UPLOAD_READ_SECONDS):
+            async for chunk in http.stream():
+                size += len(chunk)
+                if size > limit:
+                    raise HTTPException(status_code=413, detail=too_large)
+                chunks.append(chunk)
+        return b"".join(chunks)
+    except TimeoutError:
+        raise HTTPException(status_code=408, detail="The upload took too long.")
+    finally:
+        _uploads_reading -= 1
+
+
+def _sweep_uploads_forever() -> None:
+    while True:
+        try:
+            livesamples.sweep_private()
+        except Exception as e:  # never stop sweeping; the type goes to the log
+            print(f"upload sweep failed: {type(e).__name__}", flush=True)
+        time.sleep(300)
+
+
+@app.on_event("startup")
+def _start_upload_sweep() -> None:
+    """Visitors' files must leave the disk even if no one reads the job again, and after a crash or a restart."""
+    threading.Thread(target=_sweep_uploads_forever, daemon=True).start()
+
+
 class LiveUploadRequest(BaseModel):
     """contracts/live-sample.schema.json $defs.uploadRequest."""
     model_config = ConfigDict(extra="forbid")
@@ -318,14 +362,9 @@ async def start_live_upload(http: Request) -> dict:
     why = livesamples.upload_refusal(visitor)
     if why:
         raise HTTPException(status_code=why.status, detail=why.message)
+    body = await _read_upload(http, 2_900_000, "the request is too large (images are at most 2 MB)")
     try:
-        declared = int(http.headers.get("content-length", "-1"))
-    except ValueError:
-        declared = -1
-    if declared < 0 or declared > 2_900_000:
-        raise HTTPException(status_code=413, detail="the request is too large (images are at most 2 MB)")
-    try:
-        data = base64.b64decode(LiveUploadRequest.model_validate_json(await http.body()).imageBase64, validate=True)
+        data = base64.b64decode(LiveUploadRequest.model_validate_json(body).imageBase64, validate=True)
     except (ValueError, binascii.Error):
         raise HTTPException(status_code=400, detail="the request is not a base64 image")
     try:
@@ -392,14 +431,9 @@ async def start_ask_upload(http: Request, x_diocle_admin: str | None = Header(de
         why = asks.upload_refusal(visitor)
         if why:
             raise HTTPException(status_code=why.status, detail=why.message)
+    body = await _read_upload(http, 1_000_000, "the request is too large (audio clips are at most 500 KB)")
     try:
-        declared = int(http.headers.get("content-length", "-1"))
-    except ValueError:
-        declared = -1
-    if declared < 0 or declared > 1_000_000:
-        raise HTTPException(status_code=413, detail="the request is too large (audio clips are at most 500 KB)")
-    try:
-        request = AskUploadRequest.model_validate_json(await http.body())
+        request = AskUploadRequest.model_validate_json(body)
         wav = base64.b64decode(request.audioBase64, validate=True)
     except (ValueError, binascii.Error):
         raise HTTPException(status_code=400, detail="the request is not a sample name and base64 audio")

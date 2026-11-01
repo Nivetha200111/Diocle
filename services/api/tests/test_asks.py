@@ -435,7 +435,7 @@ def test_a_clip_and_working_files_leave_the_disk_when_the_job_ends(tmp_path, mon
 
     class J:
         path = tmp_path / "job.json"
-        state = {"viewKey": "k"}
+        state = {"public": True, "viewKey": "k"}
     (tmp_path / "out").mkdir()
     (tmp_path / "out" / "ask.json").write_text("{}")
     for name in ("upload.wav", "job.log"):
@@ -446,3 +446,25 @@ def test_a_clip_and_working_files_leave_the_disk_when_the_job_ends(tmp_path, mon
     (tmp_path / "job.log").write_text("x")
     askjob._forget_upload(J)
     assert (tmp_path / "job.log").exists()
+
+
+def test_a_failed_recorded_questions_transcript_goes_too_even_if_no_one_reads_it(client):
+    body = public_upload(client, wav(1.0)).json()
+    path = asks.jobs_dir() / body["id"] / "job.json"
+    record = json.loads(path.read_text())
+    old = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(timespec="seconds")
+    record.update(status="failed", finishedAt=old, error="stopped", events=[{"at": "t", "message": "Heard: private words"}],
+                  partial={"transcript": {"text": "private words"}}, result=None)
+    path.write_text(json.dumps(record))
+    livesamples.sweep_private()
+    left = path.read_text()
+    assert "private words" not in left and body["key"] not in left
+    assert [p.name for p in path.parent.iterdir()] == ["job.json"]
+
+
+def test_a_local_caller_is_not_told_the_visitor_switch_applies(client, monkeypatch):
+    monkeypatch.setenv("DIOCLE_PUBLIC_UPLOADS", "0")
+    local = TestClient(app, client=("127.0.0.1", 50000))
+    s = local.get("/config").json()["publicImports"]["asks"]
+    assert s["uploadsAllowed"] is True and s["uploadReason"] is None
+

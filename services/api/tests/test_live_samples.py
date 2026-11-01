@@ -473,7 +473,19 @@ def png(width=800, height=600):
 def jpeg(width=800, height=600):
     app0 = b"\xff\xe0" + struct.pack(">H", 16) + b"\x00" * 14
     sof = b"\xff\xc2" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", height, width) + b"\x00" * 10
-    return b"\xff\xd8" + app0 + sof + b"\x00" * 2000
+    return b"\xff\xd8" + app0 + sof + b"\xff\xda" + b"\x00" * 2000
+
+
+def spliced():
+    """A fill byte, then a comment hiding a fake 100x100 frame, then the real 4000x4000 frame: a naive parser reads the fake."""
+    fake = b"\xff\xc0" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", 100, 100) + b"\x00" * 10
+    hide = b"\xff\xe1" + struct.pack(">H", 2 + len(fake)) + fake
+    return b"\xff\xd8\xff" + hide + b"\xff\xc2" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", 4000, 4000) + b"\x00" * 10 + b"\xff\xda" + b"\x00" * 2000
+
+
+def two_frames():
+    frame = b"\xff\xc2" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", 100, 100) + b"\x00" * 10
+    return b"\xff\xd8" + frame + frame + b"\xff\xda" + b"\x00" * 2000
 
 
 def send(client, data, who="203.0.113.60"):
@@ -505,14 +517,15 @@ def test_a_transcription_leaves_the_disk_after_an_hour_but_its_cost_still_counts
     job.update(status="done", finishedAt=(datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(timespec="seconds"),
                printout={"source": "PRIVATE COBOL", "usage": {"estimatedCostUsd": 0.05}})
     path.write_text(json.dumps(job))
-    assert client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": body["key"]}).json()["printout"]["source"] is None
+    assert client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": body["key"]}).json()["printout"] is None
     assert "PRIVATE" not in path.read_text() and livesamples.printout_spent() == pytest.approx(0.05)
 
 
 @pytest.mark.parametrize("name,data,phrase", [
     ("renamed executable", b"MZ" + b"\x00" * 3000, "PNG or JPEG"), ("svg", b"<svg xmlns='x'></svg>" + b" " * 3000, "PNG or JPEG"),
     ("empty", b"", "PNG or JPEG"), ("truncated png", b"\x89PNG\r\n\x1a\n", "PNG or JPEG"), ("truncated jpeg", b"\xff\xd8\xff", "PNG or JPEG"),
-    ("huge png", png(5000, 600), "pixels"), ("huge jpeg", jpeg(600, 9000), "pixels"), ("zero size", png(0, 0), "pixels"),
+    ("huge png", png(5000, 600), "pixels"), ("huge jpeg", jpeg(600, 9000), "pixels"), ("zero size", png(0, 0), "pixels"), ("1601 px", png(1601, 800), "pixels"),
+    ("a fake small frame hidden behind a fill byte", spliced(), "pixels"), ("two frames", two_frames(), "PNG or JPEG"), ("marker soup", b"\xff\xd8\xff\xd9" + b"\x00" * 3000, "PNG or JPEG"),
     ("too many bytes", png() + b"\x00" * (2 * 1024 * 1024), "larger than")])
 def test_a_bad_image_is_refused_and_starts_nothing(client, name, data, phrase):
     r = send(client, data)
@@ -558,11 +571,66 @@ def test_the_kill_switch_stops_images_but_not_the_bundled_buttons(client, monkey
 def test_an_image_and_what_was_made_from_it_leave_the_disk_when_the_job_ends(tmp_path, monkeypatch):
     class J:
         path = tmp_path / "job.json"
-        state = {"upload": True, "uploadImage": "upload.png"}
+        state = {"upload": True, "public": True, "uploadImage": "upload.png"}
     (tmp_path / "out").mkdir()
     (tmp_path / "out" / "x.cbl").write_text("x")
     for name in ("upload.png", "job.log"):
         (tmp_path / name).write_text("x")
     samplejob._forget_upload(J)
     assert list(tmp_path.iterdir()) == []
+
+
+def finish_upload(client, record, age_hours=0.0, **changes):
+    body = send(client, png(), record).json()
+    path = livesamples.jobs_dir() / body["id"] / "job.json"
+    job = json.loads(path.read_text())
+    job.update(status="failed", finishedAt=(datetime.now(timezone.utc) - timedelta(hours=age_hours)).isoformat(timespec="seconds"), **changes)
+    path.write_text(json.dumps(job))
+    return body, path
+
+
+def test_the_sweep_removes_a_killed_jobs_files_and_needs_no_one_to_read_it(client):
+    body, path = finish_upload(client, "203.0.113.70")
+    (path.parent / "out").mkdir()
+    (path.parent / "out" / "x.cbl").write_text("PRIVATE")
+    (path.parent / "job.log").write_text("PRIVATE")
+    livesamples.sweep_private()
+    assert [p.name for p in path.parent.iterdir()] == ["job.json"]
+
+
+@pytest.mark.parametrize("changes", [
+    {"printout": {"status": "refused", "reason": "PRIVATE reason", "source": None, "program": "PRIVATE", "attempts": [{"errors": "PRIVATE"}], "usage": {"estimatedCostUsd": 0.04}}},
+    {"printout": {"status": "compile-failed", "source": "PRIVATE", "program": "PRIVATE", "usage": {"estimatedCostUsd": 0.04}}},
+    {"error": "PRIVATE error", "events": [{"at": "t", "message": "PRIVATE"}], "printout": None}])
+def test_after_an_hour_only_status_times_and_cost_remain_even_unread(client, changes):
+    body, path = finish_upload(client, "203.0.113.71", age_hours=2, **changes)
+    livesamples.sweep_private()
+    left = path.read_text()
+    assert "PRIVATE" not in left and body["key"] not in left
+    assert client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": body["key"]}).json()["printout"] is None
+
+
+def test_a_body_is_counted_as_it_arrives_whatever_the_headers_say(client):
+    def stream():
+        for _ in range(40):
+            yield b"x" * 100_000
+    r = client.post("/samples/live/upload", content=stream(), headers={**headers("203.0.113.72"), "content-type": "application/json"})
+    assert r.status_code == 413 and FakePopen.calls == []
+
+
+def test_too_many_uploads_at_once_are_turned_away(client, monkeypatch):
+    from diocle_api import app as module
+    monkeypatch.setattr(module, "_uploads_reading", module.MAX_UPLOADS_READING)
+    assert send(client, png(), "203.0.113.73").status_code == 429 and FakePopen.calls == []
+
+
+def test_a_strange_key_is_just_a_wrong_key(client):
+    body = send(client, png(), "203.0.113.74").json()
+    r = client.get(f"/samples/live/{body['id']}", headers={"X-Diocle-View": b"caf\xc3\xa9"})
+    assert r.status_code == 200 and r.json()["printout"] is None
+
+
+def test_uploads_do_not_count_against_the_bundled_buttons_usage(client):
+    send(client, png(), "203.0.113.75")
+    assert client.get("/config", headers=headers("203.0.113.75")).json()["publicImports"]["samples"]["printout"]["usedToday"] == 0
 

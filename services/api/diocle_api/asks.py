@@ -1,6 +1,6 @@
 """The public "Ask the original program" button (contracts/voice-question.schema.json): policy, job records and the start path.
 
-PUBLIC path: a visitor names one bundled sample and one bundled clip from fixed lists. There is no upload surface: nothing a
+BUNDLED path: a visitor names one bundled sample and one bundled clip from fixed lists. On this path nothing a
 visitor sends reaches a model, a path, a command line or the sandbox except those two enum values. The bundled clips are
 the author's recorded WAV files in voice_clips/. LOCAL/ADMIN path (start_upload): one uploaded WAV, validated by its bytes (16 kHz
 mono 16-bit PCM, at most 10 s and 500 KB) before anything is written; gated in app.py like createTarget and convert-anyway.
@@ -182,7 +182,7 @@ def refusal(visitor: str) -> Refused | None:
 
 def _shared_refusal() -> Refused | None:
     if livesamples.spent() + MAX_USD > livesamples.budget_usd():
-        return Refused(429, f"The live buttons have used their ${livesamples.budget_usd():.2f} model budget for the last 24 hours.")
+        return Refused(429, f"The live page has used its ${livesamples.budget_usd():.2f} model budget for the last 24 hours.")
     if public.spent_today() + MAX_USD > public.limits()["dailyBudgetUsd"]:
         return Refused(429, "The public daily model budget is used up for the last 24 hours; try again later.")
     if livesamples.busy():
@@ -211,13 +211,13 @@ def upload_refusal(visitor: str) -> Refused | None:
 
 
 def _uploads_today() -> int:
-    return len([j for j in _last_day(read_jobs()) if j.get("viewKey")])
+    return len([j for j in _last_day(read_jobs()) if j.get("public")])
 
 
 def status(visitor: str, may_upload: bool) -> dict:
     """voice-question $defs.status, for GET /config."""
     why = refusal(visitor)
-    upload_why = upload_refusal(visitor)
+    upload_why = _shared_refusal() if may_upload else upload_refusal(visitor)  # a trusted caller is not counted as a visitor
     return {"enabled": switched_on(), "available": why is None, "reason": why.message if why else None, "maxUsd": MAX_USD,
             "perVisitorPerDay": PER_VISITOR, "perDay": PER_DAY, "usedToday": len(_last_day(read_jobs())),
             "visitorLeft": public.visitor_left(BUCKET, visitor, PER_VISITOR), "uploadPerVisitorPerDay": UPLOAD_PER_VISITOR, "uploadPerDay": UPLOAD_PER_DAY, "uploadUsedToday": _uploads_today(),
@@ -311,7 +311,7 @@ def start_public_upload(sample: str, wav: bytes, visitor: str) -> tuple[str, str
         raise Refused(429, str(e)) from e
     job = _new_job(sample, None, Path())
     key = secrets.token_urlsafe(24)
-    job.update(upload=True, viewKey=key)
+    job.update(upload=True, public=True, viewKey=key)
     path = jobs_dir() / job["id"] / "upload.wav"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(wav)
@@ -336,12 +336,10 @@ def get_job(job_id: str, key: str | None = None) -> dict | None:
             job = json.loads((jobs_dir() / job_id / "job.json").read_text())
         except (OSError, ValueError):
             return None
-    if livesamples.private_is_old(job) and (job.get("result") or {}).get("transcript") is not None:
-        job.update(result={"costs": (job.get("result") or {}).get("costs")}, partial=None, events=[])
+    if livesamples.private_is_old(job):
+        job = livesamples.wipe_private(job)
         _write(job)
     view = {k: job.get(k) for k in _VIEW}
-    if not livesamples.may_read(job, key):
+    if job.get("wiped") or not livesamples.may_read(job, key):
         view.update(events=[], result=None, partial=None)
-    elif view.get("result") and "transcript" not in view["result"]:
-        view["result"] = None
     return view

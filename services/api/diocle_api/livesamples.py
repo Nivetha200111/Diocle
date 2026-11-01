@@ -5,7 +5,7 @@ A visitor may start ONE of two fixed jobs, named from a fixed list, with no othe
   addfee                   convert the bundled ADDFEE sample with Muse Spark and verify it (the normal run pipeline)
   loyalty-waiver-printout  read the bundled printout image with Muse Wonder and check the COBOL it wrote
 
-Nothing a visitor sends reaches a model, a command line, a path or the sandbox: the request body is validated to a name from
+On the two buttons, nothing a visitor sends reaches a model, a command line, a path or the sandbox: the request body is validated to a name from
 SAMPLES, and the subprocess (samplejob.py) is started with that name's constants only. Caps (rule 10, set by the owner):
 per run (--max-usd / VISION_MAX_USD), per visitor per day, per day overall, one job at a time across these buttons, visitor
 imports and deliveries, and a daily dollar budget shared by both buttons that is itself drawn from the public daily budget.
@@ -19,6 +19,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import signal
 import struct
 import subprocess
@@ -33,7 +34,7 @@ from .runs import runs_dir
 JOB_ID = re.compile(r"^live-[0-9]{8}-[0-9]{6}-[a-z]+$")
 UPLOAD_BUCKET = "live:upload"
 UPLOAD_MAX_USD, UPLOAD_PER_VISITOR, UPLOAD_PER_DAY = 0.10, 1, 3
-MAX_IMAGE_BYTES, MAX_IMAGE_SIDE = 2 * 1024 * 1024, 2400
+MAX_IMAGE_BYTES, MAX_IMAGE_SIDE = 2 * 1024 * 1024, 1600
 PRIVATE_SECONDS = 3600
 MAX_JOB_SECONDS = 30 * 60
 
@@ -239,7 +240,7 @@ def _shared_refusal(max_usd: float) -> Refused | None:
     """The budget, one-at-a-time and cooldown rules every live job obeys."""
     total = spent()
     if total + max_usd > budget_usd():
-        return Refused(429, f"The two live buttons have used their ${budget_usd():.2f} model budget for the last 24 hours.")
+        return Refused(429, f"The live page has used its ${budget_usd():.2f} model budget for the last 24 hours.")
     if public.spent_today() + max_usd > public.limits()["dailyBudgetUsd"]:
         return Refused(429, "The public daily model budget is used up for the last 24 hours; try again later.")
     other = busy()
@@ -254,26 +255,47 @@ def _shared_refusal(max_usd: float) -> Refused | None:
 
 def uploads_enabled() -> bool:
     """Visitors' own images and microphone clips. Kill switch: DIOCLE_PUBLIC_UPLOADS=0; the live buttons' switch also stops them."""
-    return os.environ.get("DIOCLE_PUBLIC_UPLOADS", "1") != "0" and switched_on()
+    return os.environ.get("DIOCLE_PUBLIC_UPLOADS", "1").strip().lower() not in ("0", "false", "off", "no") and switched_on()
+
+
+def _jpeg_size(data: bytes) -> tuple[int, int] | None:
+    """(width, height) from a strict walk of the segments up to the scan: fill bytes as decoders read them, exactly one frame
+    header, and anything unexpected refused, so no decoder can see a larger picture than this does."""
+    pos, size = 2, None
+    while True:
+        if pos >= len(data) or data[pos] != 0xFF:
+            return None
+        while pos < len(data) and data[pos] == 0xFF:
+            pos += 1
+        if pos + 2 >= len(data):
+            return None
+        marker = data[pos]
+        pos += 1
+        if marker == 0xDA:  # start of scan: the headers are over
+            return size
+        if marker in (0x00, 0x01, 0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+            return None
+        length = struct.unpack(">H", data[pos:pos + 2])[0]
+        if length < 2 or pos + length > len(data):
+            return None
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            if size is not None or length < 7:
+                return None
+            height, width = struct.unpack(">HH", data[pos + 3:pos + 7])
+            size = (width, height)
+        pos += length
 
 
 def image_problem(data: bytes) -> str | None:
-    """Why these bytes are not an acceptable image, judged by the bytes alone: PNG or JPEG, small enough, and not so large in
-    pixels that a model call could cost more than the job's cap."""
+    """Why these bytes are not an acceptable image, judged by the bytes alone: PNG or JPEG, small enough, and small enough in
+    pixels that the pre-flight estimate of the model call (samplejob: 4,000 input tokens) holds. The page sends at most this."""
     if len(data) > MAX_IMAGE_BYTES:
         return f"the image is larger than {MAX_IMAGE_BYTES // (1024 * 1024)} MB"
     size = None
-    if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR" and len(data) >= 24:
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and data[8:16] == b"\x00\x00\x00\rIHDR" and len(data) >= 24:
         size = struct.unpack(">II", data[16:24])
-    elif data[:3] == b"\xff\xd8\xff":
-        pos = 2
-        while pos + 9 < len(data) and data[pos] == 0xFF:
-            marker, length = data[pos + 1], struct.unpack(">H", data[pos + 2:pos + 4])[0]
-            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
-                height, width = struct.unpack(">HH", data[pos + 5:pos + 9])
-                size = (width, height)
-                break
-            pos += 2 + length
+    elif data[:2] == b"\xff\xd8":
+        size = _jpeg_size(data)
     if size is None:
         return "the file is not a complete PNG or JPEG image"
     if not (0 < size[0] <= MAX_IMAGE_SIDE and 0 < size[1] <= MAX_IMAGE_SIDE):
@@ -294,7 +316,7 @@ def upload_refusal(visitor: str) -> Refused | None:
 
 
 def _uploads_today() -> int:
-    return len([j for j in _last_day(read_jobs()) if j.get("upload")])
+    return len([j for j in _last_day(read_jobs()) if j.get("public")])
 
 
 def upload_status(visitor: str) -> dict:
@@ -312,7 +334,7 @@ def status(visitor: str) -> dict:
         why = refusal(name, visitor)
         buttons[cfg["kind"]] = {
             "maxUsd": cfg["maxUsd"], "perVisitorPerDay": cfg["perVisitor"], "perDay": cfg["perDay"],
-            "usedToday": len([j for j in _last_day(read_jobs()) if j["sample"] == name]),
+            "usedToday": len([j for j in _last_day(read_jobs()) if j["sample"] == name and not j.get("upload")]),
             "visitorLeft": public.visitor_left(f"live:{name}", visitor, cfg["perVisitor"]),
             "available": why is None, "reason": why.message if why else None}
     return {"enabled": switched_on(), "budgetUsd": budget_usd(), "spentTodayUsd": total if total != float("inf") else None,
@@ -355,7 +377,7 @@ def start_upload(data: bytes, visitor: str) -> tuple[str, str]:
         raise Refused(429, str(e)) from e
     job = _new_job(job_id, "loyalty-waiver-printout", UPLOAD_MAX_USD)
     key = secrets.token_urlsafe(24)
-    job.update(upload=True, viewKey=key, uploadImage="upload.png" if data[:1] == b"\x89" else "upload.jpg")
+    job.update(upload=True, public=True, viewKey=key, uploadImage="upload.png" if data[:1] == b"\x89" else "upload.jpg")
     path = jobs_dir() / job_id / job["uploadImage"]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
@@ -371,18 +393,52 @@ def _new_job(job_id: str, sample: str, max_usd: float) -> dict:
 def may_read(job: dict, key: str | None) -> bool:
     """A public upload's result belongs to whoever sent it. Other jobs are open to anyone."""
     stored = job.get("viewKey")
-    return not stored or (isinstance(key, str) and hmac.compare_digest(stored, key))
+    return not stored or (isinstance(key, str) and hmac.compare_digest(stored.encode(), key.encode("utf-8", "surrogateescape")))
 
 
 def private_is_old(job: dict) -> bool:
     """A finished upload keeps its result for PRIVATE_SECONDS, long enough for the visitor to read it."""
     finished = job.get("finishedAt")
-    if job.get("status") == "running" or not job.get("viewKey") or not finished:
+    if job.get("status") == "running" or not job.get("public") or job.get("wiped") or not finished:
         return False
     try:
         return datetime.now(timezone.utc) - datetime.fromisoformat(finished) > timedelta(seconds=PRIVATE_SECONDS)
     except ValueError:
         return True
+
+
+def wipe_private(job: dict) -> dict:
+    """What remains of a visitor's job after an hour: an allow-list, with the cost in the shape the budgets read."""
+    kept = {k: job[k] for k in ("version", "id", "sample", "clip", "status", "stage", "startedAt", "finishedAt", "maxUsd", "upload", "public",
+                                "pid") if k in job}
+    kept.update(events=[], error=None, runId=None, wiped=True, partial=None)
+    usage = (job.get("printout") or {}).get("usage")
+    kept["printout"] = {"usage": usage} if usage else None
+    costs = (job.get("result") or {}).get("costs")
+    kept["result"] = {"costs": costs} if costs else None
+    return kept
+
+
+def sweep_private() -> None:
+    """For every public upload that is not running: delete everything but its record, whatever ended it (a crash, a kill, an
+    engine restart), and past the hour reduce the record to wipe_private. Runs at engine start, then on a timer."""
+    from .asks import jobs_dir as asks_dir
+    running_job()  # marks the jobs whose process died
+    for root in (jobs_dir(), asks_dir()):
+        for path in root.glob("*/job.json"):
+            try:
+                job = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            if not isinstance(job, dict) or not job.get("public") or job.get("status") == "running":
+                continue
+            for child in path.parent.iterdir():
+                if child.name != "job.json":
+                    shutil.rmtree(child, ignore_errors=True) if child.is_dir() else child.unlink(missing_ok=True)
+            if private_is_old(job):
+                tmp = path.with_suffix(".tmp")
+                tmp.write_text(json.dumps(wipe_private(job), indent=2) + "\n")
+                tmp.replace(path)
 
 
 def _launch(job: dict, kind: str) -> str:
@@ -419,11 +475,10 @@ def get_job(job_id: str, key: str | None = None) -> dict | None:
             job = json.loads((jobs_dir() / job_id / "job.json").read_text())
         except (OSError, ValueError):
             return None
-    if private_is_old(job) and (job.get("printout") or {}).get("source"):
-        job["printout"]["source"] = None
-        job["events"] = []
+    if private_is_old(job):
+        job = wipe_private(job)
         _write(job)
     view = {k: job.get(k) for k in _VIEW}
-    if not may_read(job, key):
+    if job.get("wiped") or not may_read(job, key):
         view.update(events=[], printout=None, runId=None)
     return view

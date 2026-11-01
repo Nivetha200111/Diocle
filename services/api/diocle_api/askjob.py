@@ -115,7 +115,7 @@ def run(job: Job, audio: Path) -> None:
 def _forget_upload(job: Job) -> None:
     """A public clip and its working files leave the disk when the job ends; only the record stays (asks.get_job removes its
     transcript and claims an hour later). Bundled clips and local or admin uploads are not touched."""
-    if job.state.get("viewKey"):
+    if job.state.get("public"):
         for name in ("upload.wav", "job.log"):
             (job.path.parent / name).unlink(missing_ok=True)
         shutil.rmtree(job.path.parent / "out", ignore_errors=True)

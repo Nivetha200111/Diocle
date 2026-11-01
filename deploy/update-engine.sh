@@ -22,7 +22,8 @@ cd /opt/diocle
 git pull --ff-only
 git log --oneline -1
 cd deploy
-docker compose -f docker-compose.api.yml up -d --build'
+docker compose -f docker-compose.api.yml up -d --build
+docker compose -f docker-compose.api.yml restart caddy'
 
 echo "Waiting for the api…"
 i=0
