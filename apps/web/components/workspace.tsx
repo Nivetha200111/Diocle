@@ -1160,7 +1160,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
                   <h2>
                     Convert the COBOL.
                     <br />
-                    Prove it still works.
+                    Check it still works.
                   </h2>
                   <p>
                     Muse Spark converts each program to Java.

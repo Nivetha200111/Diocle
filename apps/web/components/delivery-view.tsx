@@ -466,7 +466,7 @@ export default function DeliveryView() {
               <h2><GitPullRequest size={14} /> Pull request</h2>
               <p>
                 Opened on {repoName(delivery.target ?? "")}{delivery.targetCreated ? ` (a ${delivery.createTarget?.visibility ?? "private"} repository created by this delivery)` : ""}.
-                CI re-runs the proof on fresh inputs Diocle never saw.
+                CI re-runs the comparison on fresh inputs Diocle never saw, under the same pinned verifier.
               </p>
             </div>
           </div>

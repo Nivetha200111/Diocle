@@ -72,23 +72,23 @@ function startingFailure(field: string, original: string, java: string): (run: R
 export const CARDS: CardSpec[] = [
   {
     key: "chqclr-fee", title: "Returned-cheque fee came out as 0.00", program: "CHQCLR", runId: "chqclr-20261028-214355",
-    why: "A wrong fee on a bounced cheque is a wrong charge on a customer account, and the Java had already passed 1,000 held-out inputs without it.",
-    caveat: "The COBOL states no currency, so none is shown. The input carries malformed numeric data, so this shows agreement with GnuCOBOL's handling of bad data, not proven IBM behaviour.",
+    why: "On this record the COBOL charges a fee and the Java drops it. The fee field is malformed (a space in a PIC 9 field), the kind of dirty data an old feed can hold; the generated records are always well-formed, so no number of them could have shown this.",
+    caveat: "Malformed input, designed by the breaker: not an ordinary transaction. The result is GnuCOBOL's handling of bad data; IBM Enterprise COBOL was not tested and may behave differently or stop. The COBOL states no currency, so none is shown.",
     repo: { original: "20.00", java: "0.00", field: "CL-FEE", role: "breaker", model: "muse-spark-1.3-contributor", round: "breaker attack round 1", costUsd: 0.017605, costNote: "est., list prices" },
     source: { label: "docs/EVALUATION.md", href: `${DOCS}/EVALUATION.md` },
     extract: breakerCatch("CL-FEE", "20.00", "0.00"),
   },
   {
     key: "chqclr-debit", title: "A debit of -121.23 came out as 0.00", program: "CHQCLR", runId: "chqclr-20261028-214355",
-    why: "Money going out of an account was recorded as nothing.",
-    caveat: "Same run as the card above; the same malformed-data caveat applies.",
+    why: "The COBOL reads letters in a numeric field as digits and posts a debit; the Java recorded nothing. Which is right is a business question; the point of the check is that they differ.",
+    caveat: "Same run as the card above; the same malformed-data caveat applies (letters in a numeric field).",
     repo: { original: "-121.23", java: "0.00", field: "CL-DEBIT", role: "breaker", model: "muse-spark-1.3-contributor", round: "breaker attack round 1", costUsd: 0.017605, costNote: "est., list prices" },
     source: { label: "docs/EVALUATION.md", href: `${DOCS}/EVALUATION.md` },
     extract: breakerCatch("CL-DEBIT", "-121.23", "0.00"),
   },
   {
     key: "intaccr-wonder", title: "Negative zero: -000000000 became +000000000", program: "INTACCR", runId: "interest-accrual-20261029-230750",
-    why: "When the interest overflows its field the COBOL leaves a negative zero. Downstream programs reading the file byte for byte would see a different record from the one the mainframe wrote.",
+    why: "When the interest overflows its field the COBOL leaves a negative zero. The value is the same, the bytes are not: a downstream program or reconciliation reading the file byte for byte would see a different record. The input is well-formed but extreme.",
     repo: { original: "-000000000", java: "+000000000", field: "OUT-INTEREST", role: "breaker", model: "muse-wonder-1.0", round: "breaker attack round 1", costUsd: 0.619124, costNote: "est., list prices; Muse Wonder's price is third-party and unconfirmed" },
     source: { label: "docs/EVALUATION.md", href: `${DOCS}/EVALUATION.md` },
     extract: breakerCatch("OUT-INTEREST", "-000000000", "+000000000"),

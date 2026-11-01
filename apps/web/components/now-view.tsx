@@ -165,7 +165,7 @@ export default function NowView() {
             <div className="now-starts">
               <a className="now-start" href="/try"><strong>Try it in one click</strong><span>Convert a sample, read a printout, or ask a program a question out loud.</span></a>
               <a className="now-start" href="/delivery"><strong>Import a COBOL repository</strong><span>Paste a public GitHub link; Diocle converts and certifies each program it can.</span></a>
-              <a className="now-start" href="/evidence"><strong>See what has been proven</strong><span>Every run, every cost, every refusal, with links to check each claim.</span></a>
+              <a className="now-start" href="/evidence"><strong>See the evidence</strong><span>Every run, every cost, every refusal, with links to check each claim.</span></a>
             </div>
           </section>
           {last && (

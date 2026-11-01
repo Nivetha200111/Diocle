@@ -21,7 +21,7 @@ function explainDiff(diff: string | undefined): string {
   if (!m) return diff ?? "";
   const [, field, was, now] = m;
   if (field === "CL-FEE") {
-    return `The return fee (doubled for NSF returns, i.e. cheques returned for insufficient funds): the COBOL charged ${was}; the AI-written Java charged ${now}. The unit is not stated in the COBOL.`;
+    return `The return fee (doubled for NSF returns, i.e. cheques returned for insufficient funds), on a record whose fee field is malformed: the COBOL on GnuCOBOL charged ${was}; the AI-written Java charged ${now}. The unit is not stated in the COBOL.`;
   }
   return `Field ${field}: the COBOL wrote ${was}; the AI-written Java wrote ${now}.`;
 }
@@ -33,8 +33,8 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
   const final = run?.after ? `${run.after.passed.toLocaleString()}/${run.after.total.toLocaleString()}` : `${SAMPLE_RECORDED.finalHeldOut.toLocaleString()}/${SAMPLE_RECORDED.finalHeldOut.toLocaleString()}`;
   const frames = [
     { tone: "bad", head: "BREAKER AGENT", text: explainDiff(broke[0]) },
-    { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} designed inputs broke it · patched, compiled, re-tested` },
-    { tone: "ok", head: "CERTIFIED", text: `${final} held-out inputs matched` },
+    { tone: "busy", head: "REPAIR AGENT", text: `${broke.length} of ${tried} designed inputs made it differ · patched, compiled, re-tested` },
+    { tone: "ok", head: "CERTIFIED", text: `${final} output records matched on held-out generated inputs; matched on the inputs tried, not proven equivalent` },
   ];
   const [at, setAt] = useState(0);
   useEffect(() => {
@@ -47,7 +47,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
       <div className={`verdict-strip verdict-${check.allMatch ? "ok" : "bad"}`} role="status">
         <strong>{check.allMatch ? "RE-VERIFIED NOW" : "DIFFERENCE FOUND"}</strong>
         <span>
-          seed {check.seed} · {check.passed.toLocaleString()}/{check.total.toLocaleString()} inputs match ·
+          seed {check.seed} · {check.passed.toLocaleString()}/{check.total.toLocaleString()} output records match ·
           stdout {check.stdoutMatch ? "matches" : "differs"} · byte for byte · {check.seconds}s · no model involved
           {check.firstMismatch ? ` · first difference: ${check.firstMismatch}` : ""}
         </span>
@@ -116,7 +116,7 @@ function SampleHero({ go }: { go: Go }) {
       <VerdictStrip run={run} offline={offline} check={check} />
       <div className="home-actions sample-actions">
         <button className="button primary sample-try" disabled={busy} onClick={tryIt}>
-          {busy ? "Running COBOL and Java on fresh inputs…" : `▶ Try the sample (${SAMPLE_RUN.program})`}
+          {busy ? "Running COBOL and Java on fresh records…" : `▶ Try the sample (${SAMPLE_RUN.program})`}
         </button>
         <button className="button secondary" onClick={() => {
           window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
@@ -124,8 +124,8 @@ function SampleHero({ go }: { go: Go }) {
         }}>Open the full run</button>
         <a className="button secondary" href="/bugs">Bug of the day</a>
         <span className="sample-note">
-          Re-runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java on about
-          1,000 inputs from a seed chosen now, and compares every byte. Takes a few seconds.
+          Runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java once each on a file of about
+          1,000 well-formed records from a seed chosen now, and compares every output byte. A re-check of stored Java: no model runs. Takes a few seconds.
         </span>
       </div>
       {error && <p className="dlv-error sample-error">{error}</p>}
@@ -201,8 +201,8 @@ function WhatIsCobol() {
           COBOL is a programming language from 1959 that still runs the nightly <em>batch jobs</em> (programs that
           process a whole day of records at once) at banks: adding interest, charging fees, posting transactions.
           These programs are decades old and hold rules nobody fully remembers, so nobody wants to touch them. AI can
-          now rewrite one in Java in minutes; the risk is a silent wrong cent on some input. Diocle runs the old
-          program and the new Java on the same inputs and compares every byte.
+          now rewrite one in Java in minutes; the risk is a silent difference on some input. Diocle runs the old
+          program (on GnuCOBOL) and the new Java on the same inputs and compares every output byte.
         </p>
       )}
     </section>
@@ -219,9 +219,9 @@ const HARBOR = {
 };
 
 const PIPELINE: [string, string, string][] = [
-  ["Translate", "Muse Spark", "writes the Java from the COBOL"],
-  ["Compare", "GnuCOBOL", "runs the original; both see 1,000+ inputs, compared byte for byte"],
-  ["Attack", "Breaker agent", "designs inputs to break the Java; a repair agent fixes what breaks"],
+  ["Translate", "Muse Spark, as translator", "writes the Java from the COBOL; it never certifies"],
+  ["Compare", "GnuCOBOL, no model", "runs the original and the Java on 1,000+ generated records; every output byte must match"],
+  ["Attack", "Muse Spark, as breaker", "designs inputs aimed at Java that passed; Muse Spark, as repair agent with tools, fixes what differs"],
   ["Deliver", "Pull request", "the target repository's own CI re-checks every program on fresh inputs"],
 ];
 
@@ -242,12 +242,12 @@ function Pitch({ go }: { go: Go }) {
   return (
     <section className="panel pitch" aria-label="What Diocle does">
       <div className="panel-heading">
-        <div><h2>DIOCLE.EXE</h2><p>COBOL to Java, with proof</p></div>
+        <div><h2>DIOCLE.EXE</h2><p>For a modernization lead deciding whether to accept AI-written Java for a COBOL batch program</p></div>
       </div>
       <div className="pitch-top">
         <div className="pitch-claim">
-          <h1>AI translated a bank&apos;s COBOL to Java. It passed {SAMPLE_RECORDED.firstHeldOut.toLocaleString()} tests. It was still wrong.</h1>
-          <p className="pitch-sub">Diocle finds where, fixes it, and proves the Java matches the original before anyone has to trust it.</p>
+          <h1>Ten AI translations of COBOL passed a 1,000-record test. An attacking model made four of them differ from the original.</h1>
+          <p className="pitch-sub">Diocle compares the Java with the original under GnuCOBOL, attacks translations that pass, repairs what differs and saves evidence anyone can re-run. It is testing on stated inputs, not a formal proof.</p>
           <div className="pitch-actions">
             <button type="button" className="button primary" onClick={() => go("Try it live")}>▶ Try it live</button>
             <button type="button" className="button secondary" onClick={() => go("Delivery")}>Import a COBOL repository</button>
@@ -256,10 +256,10 @@ function Pitch({ go }: { go: Go }) {
         </div>
         <figure className="pitch-catch">
           <figcaption>THE CATCH · {SAMPLE_RUN.program}, cheque clearing</figcaption>
-          <p className="pitch-input">Input: a cheque returned for insufficient funds, its fee field starting with a space</p>
-          <div className="pitch-row"><span>Original COBOL charged</span><strong className="pitch-ok mono">{was}</strong></div>
+          <p className="pitch-input">Muse Spark designed this input: a cheque returned for insufficient funds whose fee is <span className="mono">␣1000</span>, a space where <span className="mono">PIC 9</span> expects a digit. Malformed data, not an ordinary transaction.</p>
+          <div className="pitch-row"><span>Original COBOL on GnuCOBOL charged</span><strong className="pitch-ok mono">{was}</strong></div>
           <div className="pitch-row"><span>AI-written Java charged</span><strong className="pitch-bad mono">{now}</strong></div>
-          <p className="pitch-fixed">Found by the breaker agent · fixed by the repair agent · re-certified on {final.toLocaleString()} new inputs</p>
+          <p className="pitch-fixed">Fixed by the repair agent · matched again on {final.toLocaleString()} output records · a stored run · IBM Enterprise COBOL was not tested and may treat this record differently</p>
           <button type="button" className="link-button" onClick={openRun}>Open this run and check it yourself</button>
         </figure>
       </div>
@@ -270,9 +270,9 @@ function Pitch({ go }: { go: Go }) {
         ])}
       </ol>
       <dl className="pitch-numbers">
-        <div><dd className="mono">4 of 10</dd><dt>AI translations that passed 1,000 tests were still wrong when attacked</dt></div>
+        <div><dd className="mono">4 of 10</dd><dt>attackable translations that passed then differed under attack: 1 on malformed numbers, 3 on a negative-zero sign byte at overflow (15 synthetic programs, one model)</dt></div>
         <div><dd className="mono">{HARBOR.programs}</dd><dt>programs certified and delivered in one pull request, <a href={HARBOR.url} target="_blank" rel="noreferrer">{HARBOR.pr}</a></dt></div>
-        <div><dd className="mono">0</dd><dt>differences on {HARBOR.freshInputs.toLocaleString()} fresh inputs in <a href={HARBOR.ci} target="_blank" rel="noreferrer">its CI run</a></dt></div>
+        <div><dd className="mono">0</dd><dt>differences on {HARBOR.freshInputs.toLocaleString()} fresh output records in <a href={HARBOR.ci} target="_blank" rel="noreferrer">its CI run</a></dt></div>
       </dl>
       <div className="pitch-multi">
         <button type="button" className="pitch-card" onClick={() => go("Try it live")}>
@@ -286,8 +286,8 @@ function Pitch({ go }: { go: Go }) {
         </button>
       </div>
       <p className="pitch-models">
-        Meta models only: <strong>Muse Spark</strong>, <strong>Muse Spark Open</strong> (open weights, private mode) and <strong>Muse Wonder</strong>.
-        {" "}&ldquo;Certified&rdquo; means matched on every tested input, not proven equivalent (<a href={LINKS.certified} target="_blank" rel="noreferrer">limits</a>). Synthetic programs only.
+        Models write and attack; the byte comparison decides. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
+        {" "}<strong>Limits:</strong> &ldquo;certified&rdquo; means matched on the inputs tried, not proven equivalent. GnuCOBOL is not IBM Enterprise COBOL; SQLite and Berkeley DB stand in for the DB2 and VSAM subsets; the breaker attacks single-file record programs only; optional guard and cross-check steps can be skipped, and a run says so. Synthetic programs only (<a href={LINKS.certified} target="_blank" rel="noreferrer">full limits</a>).
       </p>
     </section>
   );
@@ -301,19 +301,21 @@ export default function HomeView({ go }: { go: Go }) {
       <section className="panel home-headline" aria-label="Measured result">
         <div className="panel-heading">
           <div>
-            <h2>Measured: passing the test is not the same as being right</h2>
+            <h2>Measured: passing a large test is not the same as matching everywhere</h2>
             <p>15 synthetic COBOL programs, Muse Spark, GnuCOBOL as the judge</p>
           </div>
         </div>
         <dl className="eff-grid home-evidence">
-          <div><dt>First translations passing 1,000 held-out inputs (3 tries x 15 programs)</dt><dd className="mono">37/45</dd></div>
-          <div><dt>Test-passing translations still wrong when attacked</dt><dd className="mono">4/10</dd></div>
+          <div><dt>First translations passing the held-out check of 1,000 random records (3 tries x 15 programs)</dt><dd className="mono">37/45</dd></div>
+          <div><dt>Attackable, test-passing translations that differed under attack</dt><dd className="mono">4/10</dd></div>
           <div><dt>Programs certified by a full Diocle run</dt><dd className="mono">14/15</dd></div>
         </dl>
         <p className="home-pr">
-          In a separate attack run (one fresh translation per program), four of the ten translations that passed the
-          1,000-input test and could be attacked were broken by the breaker agent&apos;s designed inputs; three of those four had
-          passed all three first-try trials. One program, CHQCLR, was not certified. Small sample, one model, synthetic
+          In a separate attack run (one fresh translation per program), the breaker&apos;s designed inputs made four of the ten
+          attackable translations that passed the check differ from the original: CHQCLR on malformed numeric fields, and DAYCTRL, INTACCR
+          and TXNPOST on the sign of a zero at an overflow boundary (same value, different bytes). No stored break is a wrong amount on a
+          well-formed record; those come from the ordinary checks. Three of those four had passed all three first-try trials. The three figures count
+          different things, so they are not a &ldquo;model alone vs Diocle&rdquo; score. One program, CHQCLR, was not certified in that run. Small sample, one model, synthetic
           programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>.
         </p>
       </section>
@@ -358,7 +360,7 @@ muse plugins approve diocle:mcp_server:diocle`}</pre>
         <section className="panel">
           <div className="panel-heading"><div><h2>What “certified” means</h2></div></div>
           <ul className="home-list">
-            <li>On every input tried, the Java’s records, display output and exit code equal the original’s.</li>
+            <li>On every input tried, the Java’s records, display output and exit code equal the original’s. Each check is one run of each program on one generated file; the counts are output records compared.</li>
             <li>The original is compiled with <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> 3.2 under IBM’s <Term tip={GLOSSARY["TRUNC(STD)"]}>TRUNC(STD)</Term> and DISPLAY defaults, in <Term tip={GLOSSARY.EBCDIC}>EBCDIC</Term> collating order.</li>
             <li>Where captured mainframe output exists, the mainframe is the judge instead.</li>
           </ul>

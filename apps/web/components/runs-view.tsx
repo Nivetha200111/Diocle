@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
 import { API_URL, ASSURANCE_BADGE, callCostUsd, countTile, originalDidNotCompile, originalWroteNothing, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { AssuranceBadge, AssuranceNote } from "./assurance";
-import { SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
+import { RUN_NOTES, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
@@ -67,7 +67,7 @@ function BreakerPanel({ b }: { b: Breaker }) {
             After certification, a second Muse Spark agent designed {b.tried} inputs to break the Java
             over {b.rounds} round(s).{" "}
             {b.broke
-              ? `${b.broke} broke it${b.fixed ? `; the repair agent fixed them and the Java re-certified on fresh held-out inputs.` : "; not yet fixed."}`
+              ? `${b.broke} made it differ from the original${b.fixed ? `; the repair agent fixed them and the Java matched again on fresh held-out records and a new attack.` : "; not fixed within the caps, so this run is not certified."}`
               : "None broke it."}
           </p>
         </div>
@@ -321,7 +321,7 @@ function EfficiencyPanel({ e }: { e: Efficiency }) {
       <div className="panel-heading">
         <div>
           <h2>Agent efficiency</h2>
-          <p>What this proof cost. Costs are estimates from list prices.</p>
+          <p>What this run cost. Raw model spend, estimated from list prices; no compute, hosting or review.</p>
         </div>
       </div>
       <dl className="eff-grid">
@@ -419,7 +419,7 @@ function ReverifyPanel({ run }: { run: Run }) {
       <div className="panel-heading">
         <div>
           <h2>Check it yourself</h2>
-          <p>Re-run the original COBOL and this Java on 1,000 inputs from a seed chosen now. No model is involved.</p>
+          <p>Run the original COBOL and this stored Java once each on about 1,000 generated records from a seed chosen now. No model is involved, so this re-checks the Java; it is not a new conversion.</p>
         </div>
       </div>
       <div className="reverify">
@@ -485,6 +485,7 @@ function RunDetail({ run }: { run: Run }) {
             Model: <span className="mono">{run.model ?? "none"}</span> · {run.createdAt?.replace("T", " ")} · run <span className="mono">{run.id}</span>
           </p>
           {SUPERSEDED[run.id] && <p className="dlv-reason">{SUPERSEDED[run.id]}</p>}
+          {RUN_NOTES[run.id] && <p className="dlv-reason">{RUN_NOTES[run.id]}</p>}
         </div>
       </div>
 
@@ -492,7 +493,7 @@ function RunDetail({ run }: { run: Run }) {
 
       <div className="stats-grid">
         <StatCard label="Before" tone="orange" icon={<ShieldAlert size={15} />} {...countTile(run.before, { error: run.error })} />
-        <StatCard label="After (held-out inputs)" tone="green" icon={<CircleCheck size={15} />}
+        <StatCard label="After (held-out, output records)" tone="green" icon={<CircleCheck size={15} />}
           {...countTile(run.after, { error: run.error, heldOut: true })} />
         <StatCard label="Agent" tone="purple" icon={<Bot size={15} />}
           value={`${steps.length}`} note={`tool steps · ${run.usage.calls} model calls · ${run.rounds.length} round(s)`} />
