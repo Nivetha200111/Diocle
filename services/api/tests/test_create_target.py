@@ -237,6 +237,20 @@ def test_an_existing_target_without_the_ci_gets_it_in_the_pull_request(flow, tmp
     assert "This pull request adds `.github/workflows/reverify.yml`" in log and "This repository was created by Diocle" not in log
 
 
+def test_ci_under_another_name_that_runs_the_reverifier_counts(flow, tmp_path):
+    import subprocess
+    report, samples, runs, gh = flow
+    bare = _existing_target(tmp_path)
+    w = tmp_path / "seed2"
+    subprocess.run(["git", "clone", "-q", str(bare), str(w)], check=True, capture_output=True)
+    (w / ".github" / "workflows").mkdir(parents=True)
+    (w / ".github" / "workflows" / "ci.yaml").write_text("run: python -m diocle_verifier.reverify programs\n")
+    for cmd in (["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "ci"], ["push", "-q", "origin", "main"]):
+        subprocess.run(["git", "-C", str(w), *cmd], check=True, capture_output=True)
+    deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False)
+    assert _delivered_workflow(bare).returncode != 0 and "reverify.yml" not in (tmp_path / "gh.log").read_text()
+
+
 def test_an_existing_target_keeps_its_own_ci(flow, tmp_path):
     report, samples, runs, gh = flow
     bare = _existing_target(tmp_path, workflow="name: the owner's own\n")

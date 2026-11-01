@@ -96,7 +96,8 @@ cd services/api
 ```
 
 It uses your own `gh` login (or `GH_TOKEN`, read by `gh`, never printed); the token needs the `repo` scope, plus `workflow` because
-the first pull request adds `.github/workflows/reverify.yml` (a repository Diocle creates has no CI of its own). The owner must be on
+the first pull request adds `.github/workflows/reverify.yml` (a repository Diocle creates has no CI of its own). A delivery into any
+target with no workflow that runs the re-verifier (for example one whose first pull request was never merged) adds it too. The owner must be on
 the same allowlist as any target (`DIOCLE_IMPORT_OWNERS`). The repository is created only after at least one program is certified. It is
 private unless you pass `--target-public`. It never reuses, overwrites or pushes into an existing repository (it refuses and tells you to pass
 the URL as the target), and never makes anything public implicitly. If a step fails after creation the repository stays, and the message

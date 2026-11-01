@@ -153,8 +153,8 @@ def create_repository(plan: dict) -> None:
 
 
 def reverify_workflow(legacy_url: str, diocle_commit: str) -> str:
-    """CI for a repository Diocle created: a target that already existed brings its own. Pins the verifier commit the
-    certificates name; the seed is one the converter never used."""
+    """CI for a repository Diocle created, or a target with no Diocle CI yet (one that has its own keeps it). Pins the
+    verifier commit the certificates name; the seed is one the converter never used."""
     # Both values end up in a shell line of the generated workflow: accept only what they must look like, and quote them anyway.
     if not GITHUB_URL.fullmatch(legacy_url.strip()):
         raise SystemExit(f"the legacy repository must be https://github.com/<owner>/<repo> to be written into CI, got {legacy_url[:60]!r}")
@@ -556,8 +556,12 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
         body = _pr_body(report, delivered, skipped, others, build)
         workflow = repo / ".github" / "workflows" / "reverify.yml"
         # Also when the target has none yet: a later delivery into a repository whose first pull request (the one that
-        # carried the workflow) was never merged would otherwise get no CI at all.
-        if create or not workflow.exists():
+        # carried the workflow) was never merged would otherwise get no CI at all. Any workflow that already runs the
+        # re-verifier counts, whatever its file name.
+        has_ci = any("diocle_verifier.reverify" in f.read_text(errors="replace")
+                     for f in (repo / ".github" / "workflows").glob("*.y*ml")) if (repo / ".github" / "workflows").is_dir() else False
+        added_ci = create or not (has_ci or workflow.exists())  # never overwrite a file of that name
+        if added_ci:
             workflow.parent.mkdir(parents=True, exist_ok=True)
             workflow.write_text(reverify_workflow(report["source"]["location"], diocle_commit))
             body += ("\n\n" + ("This repository was created by Diocle for this migration. " if create else "")
@@ -589,7 +593,7 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
         if create:
             created.append("pushed")
         if onto:  # an existing branch: its pull request (if any) picks up the new commit
-            return f"pushed to {branch}"
+            return f"pushed to {branch}" + (" (with .github/workflows/reverify.yml, which it did not have)" if added_ci else "")
         title = (f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
                  + (f"; {len(others)} more NOT certified" if others else "")) if delivered else \
             f"Diocle: {len(others)} program(s) converted, NONE certified (convert anyway)"
