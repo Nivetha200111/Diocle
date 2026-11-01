@@ -8,6 +8,7 @@ import pytest
 
 from diocle_verifier.inputs import generate_cases, generate_for_layout
 from diocle_verifier.layout import format_record, load_fields, parse_record, record_length, redefine_views
+from diocle_verifier import verify as verify_module
 from diocle_verifier.verify import passes, verify_sample
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -154,7 +155,7 @@ def test_two_fields_with_the_same_name_keep_the_record_length():
 
 
 @pytest.mark.toolchain
-def test_a_fee_fault_on_ordinary_returns_is_caught_only_with_real_values(tmp_path):
+def test_a_fee_fault_on_ordinary_returns_is_caught_only_with_real_values(tmp_path, monkeypatch):
     """The failure this fix exists for: Java that charges no NSF fee at all. Without views every generated fee is zero and it
     passes 1,004 of 1,004; with views the same check fails. GnuCOBOL and the JDK are real; the fault is planted here."""
     java = tmp_path / "java"
@@ -164,9 +165,10 @@ def test_a_fee_fault_on_ordinary_returns_is_caught_only_with_real_values(tmp_pat
     good = "outFee = truncUnsigned(fee.multiply(BigDecimal.valueOf(2)), 3, 2);"
     assert good in text
     source.write_text(text.replace(good, "outFee = BigDecimal.ZERO.setScale(2);"))
-    layout = json.loads((CHQCLR / "sample.json").read_text())["layouts"]["input"]
-    placeholders = generate_cases(load_fields(layout), seed=4243, random_count=200)
-    assert passes(verify_sample(CHQCLR, java, seed=4243, random_count=0, extra_cases=placeholders))  # the old records miss it
+    with monkeypatch.context() as old:  # the generator as it was: placeholder bodies miss the fault
+        old.setattr(verify_module, "generate_for_layout", lambda spec, *, seed, random_count: generate_cases(
+            load_fields(spec), seed=seed, random_count=random_count))
+        assert passes(verify_sample(CHQCLR, java, seed=4243, random_count=200))
     caught = verify_sample(CHQCLR, java, seed=4243, random_count=200)
     assert not passes(caught) and any("CL-FEE" in (r.get("diff") or "") for r in caught["results"])
     source.write_text(text)

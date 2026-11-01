@@ -25,13 +25,25 @@ from diocle_verifier.inputs import Case, generate_cases
 from diocle_verifier.layout import load_fields
 from diocle_verifier.mutate import generate_mutants
 from diocle_verifier.runners import ProgramTimeout
+from diocle_verifier import verify as verify_module
 from diocle_verifier.verify import passes, verify_sample
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT / "eval" / "samples" / "chqclr"
 RUN = ROOT / "eval" / "showcase" / "chqclr-20261028-214355"
+OTHER_JAVA = ROOT / "eval" / "showcase" / "chqclr-other-java"  # every other stored CHQCLR Java, one folder per run
 AUDIT_SEED, AUDIT_RECORDS = 20261101, 1000
 CERT_SEED, MUTANT_SEED = 4243, 1026  # the stored run's certification seed and the live report's mutant seed
+
+
+def only(cases: list[Case], java: Path) -> dict:
+    """Exactly these records: the verifier's own generated boundary records are switched off, so input sets stay apart."""
+    original = verify_module.generate_for_layout
+    verify_module.generate_for_layout = lambda spec, *, seed, random_count: []
+    try:
+        return verify_sample(SAMPLE, java, seed=AUDIT_SEED, random_count=0, extra_cases=cases)
+    finally:
+        verify_module.generate_for_layout = original
 
 
 def digits(rng: random.Random, width: int) -> str:
@@ -87,17 +99,21 @@ def sha(path: Path) -> str:
 
 
 def summarize(java: Path) -> dict:
-    report = verify_sample(SAMPLE, java, seed=AUDIT_SEED, random_count=0, extra_cases=well_formed())
+    # Random account ids make most outputs distinct on their own: read the non-zero counts for how much arithmetic ran.
+    report = only(well_formed(), java)
     rows = [r for r in report["results"] if r.get("inputSource") == "audit"]
     outputs = [r.get("originalOutput", "") for r in rows]
-    return {"java": str(java.relative_to(ROOT)) if java.is_relative_to(ROOT) else f"run folder {java.parent.name}",
+    return {"java": java.name if java.parent == OTHER_JAVA else RUN.name,
             "javaSha256": sha(next(java.glob("*.java"))),
             "recordsCompared": report["summary"]["total"], "failed": report["summary"]["failed"],
             "auditRecords": len(rows), "distinctOutputs": len(set(outputs)),
             "nonZeroDebits": sum(o[19:28].strip("0") != "" for o in outputs),
             "nonZeroFees": sum(o[28:33].strip("0") != "" for o in outputs),
             "stdoutMatch": report["runs"]["stdoutMatch"], "exitCodeMatch": report["runs"]["exitCodeMatch"],
+            **({} if report["runs"]["stdoutMatch"] else {"displayOriginal": report["runs"]["original"]["stdout"].strip(),
+                                                         "displayJava": report["runs"]["converted"]["stdout"].strip()}),
             "passes": passes(report),
+            "cheques": sum(r["input"][0] == "C" for r in rows), "returns": sum(r["input"][0] == "R" for r in rows),
             "firstFailures": [{"input": r.get("input"), "diff": r.get("diff")} for r in report["results"] if not r["match"]][:5]}
 
 
@@ -117,7 +133,7 @@ def replay_breaks(java: Path) -> list[dict]:
     rows = []
     stored = {c["input"]: c["diff"] for c in json.loads((RUN / "breaker.json").read_text())["counterexamples"]}
     for record, diff in stored.items():
-        report = verify_sample(SAMPLE, java, seed=AUDIT_SEED, random_count=0, extra_cases=[Case("break", "model", record)])
+        report = only([Case("break", "model", record)], java)
         row = next(r for r in report["results"] if r.get("inputId") == "break")
         rows.append({"input": record, "malformed": is_malformed(record), "storedDiffOnPreRepairJava": diff,
                      "originalOutputToday": row["originalOutput"], "repairedJavaOutputToday": row["convertedOutput"],
@@ -130,7 +146,7 @@ def residual(java: Path) -> list[dict]:
     is certified on the inputs it was tried on, not on these."""
     rows = []
     for name, record in (("return with a blank body", "R" + " " * 39), ("cheque with a blank body", "C" + " " * 39)):
-        report = verify_sample(SAMPLE, java, seed=AUDIT_SEED, random_count=0, extra_cases=[Case("blank", "audit", record)])
+        report = only([Case("blank", "audit", record)], java)
         row = next(r for r in report["results"] if r.get("inputId") == "blank")
         rows.append({"record": name, "input": record, "malformed": is_malformed(record), "matches": row["match"],
                      "original": row["originalOutput"], "java": row["convertedOutput"], "diff": row.get("diff")})
@@ -142,15 +158,11 @@ def mutants(java: Path) -> dict:
     selected, generated = generate_mutants(java, seed=MUTANT_SEED, max_mutants=40)
     layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
     placeholders = generate_cases(load_fields(layout), seed=CERT_SEED, random_count=1000)  # the generator the stored run used
-    sets = {"storedRunInputs": dict(seed=AUDIT_SEED, random_count=0, extra_cases=placeholders),
-            "fixedGenerator": dict(seed=CERT_SEED, random_count=1000, extra_cases=[]),
-            "wellFormedAudit": dict(seed=AUDIT_SEED, random_count=0, extra_cases=well_formed()),
-            "breakerRecords": dict(seed=AUDIT_SEED, random_count=0, extra_cases=breaker_cases()),
+    sets = {"storedRunInputs": placeholders, "fixedGenerator": None, "wellFormedAudit": well_formed(), "breakerRecords": breaker_cases(),
             # Well-formed, and only a long file of large cheques gets the running total this high: 9 integer digits, then past them.
-            "largeTotal": dict(seed=AUDIT_SEED, random_count=0, extra_cases=large_cheques(11)),
-            "overflowingTotal": dict(seed=AUDIT_SEED, random_count=0, extra_cases=large_cheques(120)),
+            "largeTotal": large_cheques(11), "overflowingTotal": large_cheques(120),
             # And one small cheque: a net total with a single integer digit, so the edited total's leading spaces all show.
-            "smallTotal": dict(seed=AUDIT_SEED, random_count=0, extra_cases=[Case("small-001", "audit", f"CACCT000001{1:08d}+00000050020240101   ")])}
+            "smallTotal": [Case("small-001", "audit", f"CACCT000001{1:08d}+00000050020240101   ")]}
     rows = []
     for m in selected:
         with tempfile.TemporaryDirectory(prefix="diocle-audit-") as tmp:
@@ -161,9 +173,9 @@ def mutants(java: Path) -> dict:
             target.write_text(text[: m.start] + m.replacement + text[m.end :], encoding="utf-8", errors="surrogateescape")
             row = {"id": m.id, "operator": m.operator, "line": m.line, "original": m.original, "mutated": m.mutated,
                    "compiled": True, "detectedBy": []}
-            for name, args in sets.items():
+            for name, cases in sets.items():
                 try:
-                    report = verify_sample(SAMPLE, work, **args)
+                    report = verify_sample(SAMPLE, work, seed=CERT_SEED, random_count=1000) if cases is None else only(cases, work)
                 except ProgramTimeout:  # never finishes where the original does: detected, as in the mutation report
                     row["detectedBy"].append(name)
                     continue
@@ -182,13 +194,12 @@ def mutants(java: Path) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--java", action="append", type=Path, help="other stored Java folders to run on the well-formed records")
     ap.add_argument("--mutants", action="store_true")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args()
     java = RUN / "java"
     result = {"synthetic": True, "modelCalls": 0, "auditSeed": AUDIT_SEED, "cobolSha256": sha(SAMPLE / "src" / "CHQCLR.cbl"),
-              "runId": RUN.name, "breaks": replay_breaks(java), "residual": residual(java), "fixedGenerator": fixed_generator(java), "wellFormed": [summarize(j) for j in [java, *(a.java or [])]]}
+              "runId": RUN.name, "breaks": replay_breaks(java), "residual": residual(java), "fixedGenerator": fixed_generator(java), "wellFormed": [summarize(j) for j in [java, *sorted(p for p in OTHER_JAVA.iterdir() if p.is_dir())]]}
     designed = breaker_cases()
     result["breakerDesigned"] = {"distinctRecords": len(designed), "malformed": sum(is_malformed(c.record) for c in designed)}
     if a.mutants:
