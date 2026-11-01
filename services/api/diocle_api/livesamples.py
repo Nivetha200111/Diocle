@@ -36,6 +36,7 @@ UPLOAD_BUCKET = "live:upload"
 UPLOAD_MAX_USD, UPLOAD_PER_VISITOR, UPLOAD_PER_DAY = 0.10, 1, 3
 MAX_IMAGE_BYTES, MAX_IMAGE_SIDE = 2 * 1024 * 1024, 1600
 PRIVATE_SECONDS = 3600
+JPEG_HEADER_MARKERS = {0xC0, 0xC1, 0xC2, 0xC4, 0xCC, 0xDB, 0xDD, 0xFE, *range(0xE0, 0xF0)}  # frame, tables, app data, comment
 MAX_JOB_SECONDS = 30 * 60
 
 # The only things a start can mean. `kind` names the runner in samplejob.py; the numbers are hard caps (they can be lowered
@@ -273,12 +274,12 @@ def _jpeg_size(data: bytes) -> tuple[int, int] | None:
         pos += 1
         if marker == 0xDA:  # start of scan: the headers are over
             return size
-        if marker in (0x00, 0x01, 0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+        if marker not in JPEG_HEADER_MARKERS:  # no unknown segment can hide the real frame header from this walk
             return None
         length = struct.unpack(">H", data[pos:pos + 2])[0]
         if length < 2 or pos + length > len(data):
             return None
-        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+        if marker in (0xC0, 0xC1, 0xC2):
             if size is not None or length < 7:
                 return None
             height, width = struct.unpack(">HH", data[pos + 3:pos + 7])
@@ -379,7 +380,7 @@ def start_upload(data: bytes, visitor: str) -> tuple[str, str]:
     key = secrets.token_urlsafe(24)
     job.update(upload=True, public=True, viewKey=key, uploadImage="upload.png" if data[:1] == b"\x89" else "upload.jpg")
     path = jobs_dir() / job_id / job["uploadImage"]
-    path.parent.mkdir(parents=True, exist_ok=True)
+    _write({**job, "status": "failed", "error": "the job did not start", "finishedAt": job["startedAt"]})  # a crash here is still swept
     path.write_bytes(data)
     return _launch(job, "printout"), key
 
@@ -433,7 +434,7 @@ def sweep_private() -> None:
             if not isinstance(job, dict) or not job.get("public") or job.get("status") == "running":
                 continue
             for child in path.parent.iterdir():
-                if child.name != "job.json":
+                if child.name not in ("job.json", "job.tmp"):
                     shutil.rmtree(child, ignore_errors=True) if child.is_dir() else child.unlink(missing_ok=True)
             if private_is_old(job):
                 tmp = path.with_suffix(".tmp")

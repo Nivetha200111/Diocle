@@ -483,6 +483,14 @@ def spliced():
     return b"\xff\xd8\xff" + hide + b"\xff\xc2" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", 4000, 4000) + b"\x00" * 10 + b"\xff\xda" + b"\x00" * 2000
 
 
+def reserved_marker():
+    """A fake small frame, then the real headers wrapped in reserved marker FF02: some decoders skip the marker, a lax walk trusts the fake."""
+    fake = b"\xff\xc0" + struct.pack(">H", 11) + b"\x08" + struct.pack(">HH", 100, 100) + b"\x01\x01\x11\x00"
+    real = b"\xff\xc0" + struct.pack(">H", 11) + b"\x08" + struct.pack(">HH", 4000, 4000) + b"\x01\x01\x11\x00"
+    wrap = b"\xff\x02" + struct.pack(">H", 2 + len(real)) + real
+    return b"\xff\xd8" + fake + wrap + b"\xff\xda" + b"\x00" * 2000
+
+
 def two_frames():
     frame = b"\xff\xc2" + struct.pack(">H", 17) + b"\x08" + struct.pack(">HH", 100, 100) + b"\x00" * 10
     return b"\xff\xd8" + frame + frame + b"\xff\xda" + b"\x00" * 2000
@@ -526,6 +534,7 @@ def test_a_transcription_leaves_the_disk_after_an_hour_but_its_cost_still_counts
     ("empty", b"", "PNG or JPEG"), ("truncated png", b"\x89PNG\r\n\x1a\n", "PNG or JPEG"), ("truncated jpeg", b"\xff\xd8\xff", "PNG or JPEG"),
     ("huge png", png(5000, 600), "pixels"), ("huge jpeg", jpeg(600, 9000), "pixels"), ("zero size", png(0, 0), "pixels"), ("1601 px", png(1601, 800), "pixels"),
     ("a fake small frame hidden behind a fill byte", spliced(), "pixels"), ("two frames", two_frames(), "PNG or JPEG"), ("marker soup", b"\xff\xd8\xff\xd9" + b"\x00" * 3000, "PNG or JPEG"),
+    ("a reserved marker hiding the real frame", reserved_marker(), "PNG or JPEG"),
     ("too many bytes", png() + b"\x00" * (2 * 1024 * 1024), "larger than")])
 def test_a_bad_image_is_refused_and_starts_nothing(client, name, data, phrase):
     r = send(client, data)

@@ -36,6 +36,8 @@ export default function AskPanel() {
   const [recording, setRecording] = useState<number | null>(null);  // seconds so far, while the microphone is open
   const stopRec = useRef<(() => void) | null>(null);
   const cancelRec = useRef<(() => void) | null>(null);
+  const opening = useRef(false);
+  const mounted = useRef(true);
 
   const refresh = useCallback(() => {
     fetchAsksStatus().then((s) => setStatus(s ?? "unreachable")).catch(() => setStatus("unreachable"));
@@ -104,13 +106,18 @@ export default function AskPanel() {
   const micAllowed = !!s?.uploadsAllowed && !!info;
   const micReason = running || starting ? reason : s?.uploadReason ?? null;
   const record = async () => {
-    if (!info) return;
+    if (!info || opening.current || stopRec.current) return;  // one recording at a time, even on a double click
+    opening.current = true;
     setError(null);
     let stream: MediaStream | null = null;
     let ctx: AudioContext | null = null;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
       const opened = stream;
+      if (!mounted.current) {  // the visitor left while the permission prompt or device was opening: record nothing
+        opened.getTracks().forEach((t) => t.stop());
+        return;
+      }
       ctx = new AudioContext();  // at the device's own rate (some browsers refuse any other); encodeWav averages it down to 16 kHz
       const audio = ctx;
       const rate = audio.sampleRate;
@@ -119,7 +126,10 @@ export default function AskPanel() {
       const node = audio.createScriptProcessor(4096, 1, 1);
       const chunks: Float32Array[] = [];
       let total = 0;
+      let done = false;
       const stop = () => {
+        if (done) return;
+        done = true;
         node.disconnect(); src.disconnect(); opened.getTracks().forEach((t) => t.stop());
         audio.close().catch(() => undefined);
         clearInterval(tick);
@@ -128,6 +138,7 @@ export default function AskPanel() {
         setRecording(null);
       };
       const finish = () => {
+        if (done) return;
         stop();
         const all = new Float32Array(total);
         let o = 0;
@@ -136,7 +147,7 @@ export default function AskPanel() {
         void begin(() => startAskUpload(info.sample as AskSample, encodeWav(all.subarray(0, Math.min(total, limit)), rate)));
       };
       node.onaudioprocess = (e) => {
-        if (!stopRec.current) return;
+        if (done) return;
         const d = new Float32Array(e.inputBuffer.getChannelData(0));
         chunks.push(d); total += d.length;
         if (total >= limit) finish();
@@ -151,9 +162,14 @@ export default function AskPanel() {
       stream?.getTracks().forEach((t) => t.stop());
       ctx?.close().catch(() => undefined);
       setError("The microphone could not be opened (permission denied, no microphone, or this browser cannot record here).");
+    } finally {
+      opening.current = false;
     }
   };
-  useEffect(() => () => cancelRec.current?.(), []);  // leaving the page stops the microphone and sends nothing
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; cancelRec.current?.(); };  // leaving the page stops the microphone and sends nothing
+  }, []);
 
   return (
     <section className="panel live ask" id="ask" aria-labelledby="ask-h">

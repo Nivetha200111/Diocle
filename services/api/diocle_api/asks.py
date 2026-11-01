@@ -313,7 +313,7 @@ def start_public_upload(sample: str, wav: bytes, visitor: str) -> tuple[str, str
     key = secrets.token_urlsafe(24)
     job.update(upload=True, public=True, viewKey=key)
     path = jobs_dir() / job["id"] / "upload.wav"
-    path.parent.mkdir(parents=True, exist_ok=True)
+    _write({**job, "status": "failed", "error": "the job did not start", "finishedAt": job["startedAt"]})  # a crash here is still swept
     path.write_bytes(wav)
     return _launch(job, path), key
 
