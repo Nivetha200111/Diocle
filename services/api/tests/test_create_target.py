@@ -440,3 +440,13 @@ def test_the_rendered_compile_step_runs_and_quotes_awkward_paths(tmp_path):
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert (tmp_path / "t" / "out" / "MyA.class").exists()
+
+
+def test_a_failed_plan_is_recorded_on_the_delivery_the_dashboard_follows(tmp_path, monkeypatch):
+    monkeypatch.setattr(deliver, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(deliver, "_gh", lambda args, check=True: (_ for _ in ()).throw(OSError("no gh")))
+    with pytest.raises(SystemExit, match="could not find your GitHub login"):
+        deliver.main(["https://github.com/me/legacy", "--create-target", "legacy-java", "--id", "delivery-20261101-000000"])
+    record = json.loads((tmp_path / "runs" / "deliveries" / "delivery-20261101-000000" / "delivery.json").read_text())
+    assert record["stage"] == "failed" and "GitHub login" in record["error"] and record["targetCreated"] is False
+    jsonschema.validate(record, DELIVERY)

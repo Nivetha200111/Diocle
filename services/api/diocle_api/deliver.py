@@ -750,7 +750,13 @@ def main(argv: list[str] | None = None) -> int:
     create = plan = None
     if args.create_target is not None:
         create = validate_create_target(args.create_target, args.target_owner, "public" if args.target_public else "private")
-        plan = plan_create(create, args.legacy_url, args.dry_run)  # fail fast; creates nothing
+        try:
+            plan = plan_create(create, args.legacy_url, args.dry_run)  # fail fast; creates nothing
+        except SystemExit as e:
+            if args.id:  # the dashboard follows this id: record why, or it can only report the job as interrupted
+                Progress(args.legacy_url, None, args.id).update(stage="failed", error=str(e)[:500], finishedAt=_now(),
+                                                               createTarget=create, targetCreated=False)
+            raise
         args.target_url = plan["url"]
     # DIOCLE_CONVERT_ANYWAY=1 in the environment counts for local runs only; a visitor import never reads it.
     convert_anyway = args.convert_anyway or (not args.public and os.environ.get("DIOCLE_CONVERT_ANYWAY") == "1")
