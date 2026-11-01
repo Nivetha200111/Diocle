@@ -1,0 +1,693 @@
+{
+ "synthetic": true,
+ "modelCalls": 0,
+ "auditSeed": 20261101,
+ "cobolSha256": "09f098c736e7bff4b3c3c4889ccb4be664caac3397dfdc48c32734f862ff8543",
+ "runId": "chqclr-20261028-214355",
+ "breaks": [
+  {
+   "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+   "malformed": true,
+   "storedDiffOnPreRepairJava": "CL-FEE: original 20.00 converted 0.00",
+   "originalOutputToday": "ACCT00000200000008+00000000002000RT",
+   "repairedJavaOutputToday": "ACCT00000200000008+00000000002000RT",
+   "repairedMatches": true
+  },
+  {
+   "input": "CACCT00000100000011+0000AB12320240101XXX",
+   "malformed": true,
+   "storedDiffOnPreRepairJava": "CL-DEBIT: original -121.23 converted 0.00",
+   "originalOutputToday": "ACCT00000100000011-00001212300000CL",
+   "repairedJavaOutputToday": "ACCT00000100000011-00001212300000CL",
+   "repairedMatches": true
+  }
+ ],
+ "residual": [
+  {
+   "record": "return with a blank body",
+   "input": "R                                       ",
+   "malformed": true,
+   "matches": false,
+   "original": "                  +000000000     RT",
+   "java": "                  +00000000000000RT",
+   "diff": "CL-FEE: original '     ' converted 0.00"
+  },
+  {
+   "record": "cheque with a blank body",
+   "input": "C                                       ",
+   "malformed": true,
+   "matches": true,
+   "original": "                  +00000000000000CL",
+   "java": "                  +00000000000000CL",
+   "diff": null
+  }
+ ],
+ "fixedGenerator": [
+  {
+   "seed": 4243,
+   "passes": true,
+   "total": 1004,
+   "passed": 1004,
+   "failed": 0,
+   "distinctOutputs": 1003,
+   "nonZeroDebits": 491,
+   "nonZeroFees": 487
+  },
+  {
+   "seed": 8801,
+   "passes": true,
+   "total": 1004,
+   "passed": 1004,
+   "failed": 0,
+   "distinctOutputs": 1003,
+   "nonZeroDebits": 512,
+   "nonZeroFees": 465
+  },
+  {
+   "seed": 9001,
+   "passes": true,
+   "total": 1004,
+   "passed": 1004,
+   "failed": 0,
+   "distinctOutputs": 1003,
+   "nonZeroDebits": 479,
+   "nonZeroFees": 510
+  },
+  {
+   "seed": 9002,
+   "passes": true,
+   "total": 1004,
+   "passed": 1004,
+   "failed": 0,
+   "distinctOutputs": 1003,
+   "nonZeroDebits": 471,
+   "nonZeroFees": 519
+  },
+  {
+   "seed": 9003,
+   "passes": true,
+   "total": 1004,
+   "passed": 1004,
+   "failed": 0,
+   "distinctOutputs": 1003,
+   "nonZeroDebits": 504,
+   "nonZeroFees": 477
+  }
+ ],
+ "wellFormed": [
+  {
+   "java": "eval/showcase/chqclr-20261028-214355/java",
+   "javaSha256": "7749c5e13488bcdab95da31767102c9af590b919c35336951ddd962b8e45a301",
+   "recordsCompared": 1004,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "firstFailures": []
+  },
+  {
+   "java": "run folder chqclr-20261028-234854",
+   "javaSha256": "6f9bd7a778545388356f4e25da12910af38fc86dab1bc195c0f97db94a4e5d6d",
+   "recordsCompared": 1004,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "firstFailures": []
+  },
+  {
+   "java": "run folder chqclr-20261101-004628",
+   "javaSha256": "e77c75640b78cd5e42bc6442471a861d828f26e537f575071cc01c26b5c6e75f",
+   "recordsCompared": 1004,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "firstFailures": []
+  },
+  {
+   "java": "run folder chqclr-20261030-163002",
+   "javaSha256": "db4daeeb9a111f189d50f82f840f0f907ae04cc7c969927640e6bbcf74cc72cd",
+   "recordsCompared": 1004,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "firstFailures": []
+  }
+ ],
+ "breakerDesigned": {
+  "distinctRecords": 22,
+  "malformed": 5
+ },
+ "mutation": {
+  "generatedCandidates": 186,
+  "selected": 40,
+  "compiled": 35,
+  "detected": {
+   "storedRunInputs": 14,
+   "fixedGenerator": 20,
+   "wellFormedAudit": 21,
+   "breakerRecords": 22,
+   "largeTotal": 17,
+   "overflowingTotal": 18,
+   "smallTotal": 19
+  },
+  "detectedByAny": 26,
+  "mutants": [
+   {
+    "id": "m001",
+    "operator": "scale-off-by-one",
+    "line": 11,
+    "original": "private BigDecimal wsTotal = BigDecimal.ZERO.setScale(2);",
+    "mutated": "private BigDecimal wsTotal = BigDecimal.ZERO.setScale(1);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m002",
+    "operator": "relational-swap",
+    "line": 34,
+    "original": "if (all.length != 0) {",
+    "mutated": "if (all.length == 0) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m003",
+    "operator": "negate-condition",
+    "line": 35,
+    "original": "if (lineMode) {",
+    "mutated": "if (!(lineMode)) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m004",
+    "operator": "arithmetic-swap",
+    "line": 38,
+    "original": "boolean endsNl = all[all.length - 1] == 0x0A || all[all.length - 1] == 0x0D;",
+    "mutated": "boolean endsNl = all[all.length + 1] == 0x0A || all[all.length - 1] == 0x0D;",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m005",
+    "operator": "relational-swap",
+    "line": 42,
+    "original": "if (line.length() > 40) line = line.substring(0, 40);",
+    "mutated": "if (line.length() >= 40) line = line.substring(0, 40);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m006",
+    "operator": "remove-else",
+    "line": 46,
+    "original": "} else {",
+    "mutated": "} else if (false) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m007",
+    "operator": "loop-bound",
+    "line": 49,
+    "original": "for (int i = 0; i < n; i++) {",
+    "mutated": "for (int i = 0; i < (n) - 1; i++) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m008",
+    "operator": "remove-truncation",
+    "line": 53,
+    "original": "int rem = all.length % recLen;",
+    "mutated": "int rem = all.length;",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m009",
+    "operator": "arithmetic-swap",
+    "line": 55,
+    "original": "String r = new String(all, n * recLen, rem, StandardCharsets.ISO_8859_1);",
+    "mutated": "String r = new String(all, n / recLen, rem, StandardCharsets.ISO_8859_1);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m010",
+    "operator": "scale-off-by-one",
+    "line": 61,
+    "original": "wsTotal = BigDecimal.ZERO.setScale(2);",
+    "mutated": "wsTotal = BigDecimal.ZERO.setScale(3);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m011",
+    "operator": "negate-condition",
+    "line": 66,
+    "original": "if (lineMode) {",
+    "mutated": "if (!(lineMode)) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m012",
+    "operator": "remove-else",
+    "line": 70,
+    "original": "} else {",
+    "mutated": "} else if (false) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m013",
+    "operator": "negate-condition",
+    "line": 91,
+    "original": "if (typ == 'C') {",
+    "mutated": "if (!(typ == 'C')) {",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m014",
+    "operator": "scale-off-by-one",
+    "line": 99,
+    "original": "clFeeBd = BigDecimal.ZERO.setScale(2);",
+    "mutated": "clFeeBd = BigDecimal.ZERO.setScale(1);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m015",
+    "operator": "boundary-constant",
+    "line": 103,
+    "original": "clAcct = rec.substring(1, 11);",
+    "mutated": "clAcct = rec.substring(2, 11);",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m016",
+    "operator": "boundary-constant",
+    "line": 104,
+    "original": "clNum = rec.substring(11, 19);",
+    "mutated": "clNum = rec.substring(12, 19);",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m017",
+    "operator": "boundary-constant",
+    "line": 104,
+    "original": "clNum = rec.substring(11, 19);",
+    "mutated": "clNum = rec.substring(11, 18);",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m018",
+    "operator": "boundary-constant",
+    "line": 106,
+    "original": "String feeStr = rec.substring(21, 26);",
+    "mutated": "String feeStr = rec.substring(21, 25);",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords"
+    ]
+   },
+   {
+    "id": "m019",
+    "operator": "string-compare",
+    "line": 109,
+    "original": "if (reason.equals(\"NS\")) {",
+    "mutated": "if (reason.equalsIgnoreCase(\"NS\")) {",
+    "compiled": true,
+    "detectedBy": [
+     "breakerRecords"
+    ]
+   },
+   {
+    "id": "m020",
+    "operator": "remove-else",
+    "line": 119,
+    "original": "} else {",
+    "mutated": "} else if (false) {",
+    "compiled": false,
+    "detectedBy": []
+   },
+   {
+    "id": "m021",
+    "operator": "arithmetic-swap",
+    "line": 130,
+    "original": "outRecs.add(clAcct + clNum + clDebStr + clFeeStr + clCode);",
+    "mutated": "outRecs.add(clAcct - clNum + clDebStr + clFeeStr + clCode);",
+    "compiled": false,
+    "detectedBy": []
+   },
+   {
+    "id": "m022",
+    "operator": "loop-bound",
+    "line": 137,
+    "original": "for (int i = 0; i < digits.length(); i++) {",
+    "mutated": "for (int i = 0; i < (digits.length()) - 1; i++) {",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m023",
+    "operator": "loop-bound",
+    "line": 148,
+    "original": "for (int i = 0; i < s.length(); i++) {",
+    "mutated": "for (int i = 0; i < (s.length()) - 1; i++) {",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords"
+    ]
+   },
+   {
+    "id": "m024",
+    "operator": "rounding-mode",
+    "line": 156,
+    "original": "BigDecimal t = v.setScale(decD, RoundingMode.DOWN);",
+    "mutated": "BigDecimal t = v.setScale(decD, RoundingMode.HALF_UP);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m025",
+    "operator": "string-compare",
+    "line": 158,
+    "original": "if (scaled.equals(BigInteger.ZERO)) return BigDecimal.ZERO.setScale(decD);",
+    "mutated": "if (scaled.equalsIgnoreCase(BigInteger.ZERO)) return BigDecimal.ZERO.setScale(decD);",
+    "compiled": false,
+    "detectedBy": []
+   },
+   {
+    "id": "m026",
+    "operator": "remove-truncation",
+    "line": 161,
+    "original": "BigInteger low = scaled.abs().mod(mod);",
+    "mutated": "BigInteger low = scaled.abs();",
+    "compiled": true,
+    "detectedBy": [
+     "overflowingTotal"
+    ]
+   },
+   {
+    "id": "m027",
+    "operator": "string-compare",
+    "line": 162,
+    "original": "if (low.equals(BigInteger.ZERO)) return BigDecimal.ZERO.setScale(decD);",
+    "mutated": "if (low.equalsIgnoreCase(BigInteger.ZERO)) return BigDecimal.ZERO.setScale(decD);",
+    "compiled": false,
+    "detectedBy": []
+   },
+   {
+    "id": "m028",
+    "operator": "rounding-mode",
+    "line": 168,
+    "original": "BigDecimal t = v.setScale(decD, RoundingMode.DOWN);",
+    "mutated": "BigDecimal t = v.setScale(decD, RoundingMode.FLOOR);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m029",
+    "operator": "rounding-mode",
+    "line": 168,
+    "original": "BigDecimal t = v.setScale(decD, RoundingMode.DOWN);",
+    "mutated": "BigDecimal t = v.setScale(decD, RoundingMode.HALF_UP);",
+    "compiled": true,
+    "detectedBy": []
+   },
+   {
+    "id": "m030",
+    "operator": "remove-truncation",
+    "line": 172,
+    "original": "BigInteger low = scaled.mod(mod);",
+    "mutated": "BigInteger low = scaled;",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords"
+    ]
+   },
+   {
+    "id": "m031",
+    "operator": "negate-condition",
+    "line": 182,
+    "original": "while (digits.length() < total) digits = \"0\" + digits;",
+    "mutated": "while (!(digits.length() < total)) digits = \"0\" + digits;",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs",
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m032",
+    "operator": "arithmetic-swap",
+    "line": 184,
+    "original": "return sign + digits;",
+    "mutated": "return sign - digits;",
+    "compiled": false,
+    "detectedBy": []
+   },
+   {
+    "id": "m033",
+    "operator": "pad-char",
+    "line": 210,
+    "original": "for (int i = 0; i < 9; i++) out[i] = ' ';",
+    "mutated": "for (int i = 0; i < 9; i++) out[i] = '0';",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs"
+    ]
+   },
+   {
+    "id": "m034",
+    "operator": "pad-char",
+    "line": 211,
+    "original": "out[9] = '0';",
+    "mutated": "out[9] = ' ';",
+    "compiled": true,
+    "detectedBy": [
+     "storedRunInputs"
+    ]
+   },
+   {
+    "id": "m035",
+    "operator": "remove-else",
+    "line": 213,
+    "original": "} else {",
+    "mutated": "} else if (false) {",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m036",
+    "operator": "pad-char",
+    "line": 215,
+    "original": "while (first < 10 && ic[first] == '0') first++;",
+    "mutated": "while (first < 10 && ic[first] == ' ') first++;",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m037",
+    "operator": "relational-swap",
+    "line": 216,
+    "original": "for (int i = 0; i < 10; i++) out[i] = ic[i];",
+    "mutated": "for (int i = 0; i <= 10; i++) out[i] = ic[i];",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m038",
+    "operator": "loop-bound",
+    "line": 217,
+    "original": "for (int i = 0; i < 9; i++) {",
+    "mutated": "for (int i = 0; i < (9) - 1; i++) {",
+    "compiled": true,
+    "detectedBy": [
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m039",
+    "operator": "relational-swap",
+    "line": 219,
+    "original": "if (neg && i == first - 1) out[i] = '-';",
+    "mutated": "if (neg && i != first - 1) out[i] = '-';",
+    "compiled": true,
+    "detectedBy": [
+     "fixedGenerator",
+     "wellFormedAudit",
+     "breakerRecords",
+     "smallTotal"
+    ]
+   },
+   {
+    "id": "m040",
+    "operator": "pad-char",
+    "line": 220,
+    "original": "else out[i] = ' ';",
+    "mutated": "else out[i] = '0';",
+    "compiled": true,
+    "detectedBy": [
+     "wellFormedAudit",
+     "breakerRecords",
+     "largeTotal",
+     "overflowingTotal",
+     "smallTotal"
+    ]
+   }
+  ]
+ }
+}

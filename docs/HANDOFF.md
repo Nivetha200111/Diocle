@@ -27,6 +27,8 @@ This repository is public: never write secrets, passcodes, personal details or e
 - The bundled clip `waiver-tenure.wav` mistranscribes on the real speech model; `fee-overdrawn.wav` is exact. Re-record if convenient.
 - This Mac has JDK 27 and no JDK 21; local suites ran on it, CI runs JDK 21.
 
+**Mutation re-test (CHQCLR, same 40 faults, 35 compile):** stored inputs 14, fixed generator 20, all sets together 26; 9 undetected look value-preserving or unreachable on fixed-length files. See `docs/SHOWCASE_CHQCLR.md`.
+
 **Video.** Submitted v12 is unchanged. Candidate: `~/Downloads/diocle-candidate-v13.mp4` (172.3 s), edit list and optional pickups in `demo/candidate-v13/README.md`. The owner chooses; if v13 is used, upload it and update README line 1.
 
 **Owner decisions:** push to `main` (then wait for CI on that exact commit); deploy the engine; pick the video; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.

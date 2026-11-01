@@ -42,9 +42,30 @@ We did not isolate which setting mattered, and each run's breaker designed diffe
 
 The score looked low. Re-testing the same 40 seeded faults on other inputs (`--mutants`, no model):
 
-MUTATION_TABLE
+| Input set | Faults detected of 35 |
+|---|---|
+| The stored run's generated records (placeholder bodies) | 14 |
+| The fixed generator, 1,000 records | 20 |
+| 1,000 well-formed records (audit) | 21 |
+| The stored breaker's 22 designed records | 22 |
+| 11 cheques of the largest amount (9-digit total) | 17 |
+| 120 cheques of the largest amount (total overflows) | 18 |
+| One small cheque (single-digit total) | 19 |
+| **Any of the above** | **26** |
 
-The classification of survivors is by reading the code, not a proof, and the denominator is unchanged: 35 compiled, none removed. It is not a confidence score. The operator set is a sample of realistic faults, and five mutants that did not compile are artefacts of the tool (for example `equalsIgnoreCase` on a `BigInteger`).
+The sets overlap, and the last three are tiny and were aimed at survivors after seeing them, so read the "any" as a floor for what is reachable, not as what a certification run detects. Two faults were caught only by the old placeholder records (`m033`, `m034`, the path for a net total of exactly zero): the fixed generator does not reach that path by chance, so it is not simply better in every respect.
+
+**The 9 no set detected, in three groups:**
+
+| Faults | What they change | Why nothing noticed |
+|---|---|---|
+| `m001`, `m010`, `m014` | The scale of a `BigDecimal` zero | Value-preserving here: later arithmetic and truncation normalise it |
+| `m024`, `m028`, `m029` | The rounding mode in `setScale(decD, ...)` | No rounding happens: parsed values already have that scale |
+| `m004`, `m005`, `m009` | The reader's line-sequential fallback and its partial-last-record branch | Not reached by whole fixed-length files, which is what the verifier writes for this program |
+
+Reachable but not caught by a normal check: `m026` (dropping the running total's overflow needs a total past 9 integer digits, about 101 maximum-size cheques) and `m038` (a total with one integer digit). Those are real coverage gaps of the generated records, not defects found in the Java.
+
+The grouping of the 9 is by reading the code, not a proof, and the denominator is unchanged: 35 compiled, none removed. It is not a confidence score. The operator set is a sample of realistic faults, and five mutants that did not compile are artefacts of the tool (for example `equalsIgnoreCase` on a `BigInteger`).
 
 ## Why adversarial inputs, in this light
 

@@ -4,8 +4,8 @@ It adds captions and corrected stamps, and cuts two spoken overclaims. No voice 
 import subprocess, sys
 src, ov, out = sys.argv[1:4]
 # name, from, to, on the v12 timeline
-SHOWN = [("patch-passed", 0.0, 4.95), ("patch-broken", 4.95, 9.07), ("hook-stamp", 6.75, 9.07), ("hook-bar", 6.9, 9.07),
-         ("hood-malformed", 98.3, 112.8), ("hood-stamp", 110.45, 112.0), ("hood-weak", 112.8, 119.03), ("ci", 124.2, 129.9),
+SHOWN = [("patch-passed", 0.0, 4.95), ("patch-broken", 4.95, 9.07), ("hook-stamp-slam", 6.55, 6.8), ("hook-stamp", 6.8, 9.07), ("hook-bar", 6.8, 9.07),
+         ("hood-malformed", 98.3, 112.8), ("hood-stamp-slam", 110.4, 110.65), ("hood-stamp", 110.65, 111.87), ("hood-weak", 112.8, 119.03), ("ci", 124.2, 129.9),
          ("measured", 146.2, 156.53), ("limits", 156.53, 168.5), ("end", 174.0, 177.6)]
 # (from, to) of v12 kept, in order; HOLD seconds of the limits card with no voice sit between the 2nd and 3rd.
 KEEP = [(0.0, 32.2), (33.9, 156.55), (164.2, 177.6)]
