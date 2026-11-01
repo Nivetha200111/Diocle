@@ -181,7 +181,7 @@ def test_nested_copybooks_travel_with_the_program(tmp_path):
     text = FLAT.replace("       WORKING-STORAGE SECTION.\n", "       WORKING-STORAGE SECTION.\n       COPY NESTA.\n")
     (tmp_path / "FLATP.cbl").write_text(text)
     (tmp_path / "NESTA.cpy").write_text("       COPY NESTB.\n")
-    (tmp_path / "NESTB.cpy").write_text("       01  WS-B PIC X.\n")
+    (tmp_path / "NESTB.cpy").write_text("       01  WS-B PIC X.\n       01  WS-M PIC X(20) VALUE 'RECORD COPY FAILED'.\n")
     report = analyze(tmp_path)
     p = next(p for p in report["programs"] if p["name"] == "FLATP")
     assert p["copybooks"] == ["NESTA", "NESTB"] and p["convertible"]
