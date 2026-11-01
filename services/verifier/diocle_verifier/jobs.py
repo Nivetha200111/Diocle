@@ -44,7 +44,8 @@ from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
-from .runners import CLOCK, CLOCK_ENV, Run, _exec, _exec_side, build_cobol, read_records, safe_env, write_records
+from .runners import (CLOCK, CLOCK_ENV, FAIL_CLOSED, Run, _exec, _exec_side, build_cobol, guard_after, guard_before,
+                      original_sources, read_records, safe_env, write_records)
 
 
 def _seed_free_dds(job: dict) -> set[str]:
@@ -285,8 +286,18 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                                      f"{dd!r} on step {step['step']!r}; it cannot be seeded on the converted side")
                 write_records(Path(converted_path), records, fmt)
 
-        original = _run_original(sample_dir, job, dd_paths_o, work_o)
+        # The converted pipeline runs FIRST, before any original-side output (the answer it is compared with) exists
+        # in work_o; the original's seeded inputs and sources are hashed before and checked after, and nothing new
+        # may appear in work_o, so a pipeline that found work_o could neither read nor plant an answer.
+        snapshot = guard_before([*sorted(p for p in work_o.rglob("*") if p.is_file()),
+                                 sample_dir / "sample.json",  # _run_original reads it again after the Java ran
+                                 *original_sources(sample_dir, meta)], work_o)
         converted = _run_converted(pipeline, work_c, collation)
+        tamper = guard_after(snapshot, work_o)
+        if tamper:
+            original = {"outputs": {}, "cobolRun": Run(False, None, "", FAIL_CLOSED + "; ".join(tamper))}
+        else:
+            original = _run_original(sample_dir, job, dd_paths_o, work_o)
 
         step_reports = []
         for step in job["steps"]:

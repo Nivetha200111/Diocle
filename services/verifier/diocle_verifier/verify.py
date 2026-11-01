@@ -13,7 +13,8 @@ from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import is_multi, verify_multi
-from .runners import CLOCK, Run, read_records, run_cobol, run_java, write_records
+from .runners import (CLOCK, FAIL_CLOSED, Run, guard_after, guard_before, original_sources, read_records, run_cobol,
+                      run_java, write_records)
 from .standin import stand_ins_run
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
@@ -55,10 +56,19 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
         write_records(input_path, [c.record for c in cases], record_format(meta["layouts"]["input"]))
         out_format = (record_format(meta["layouts"]["output"]), record_length(out_fields))
         collation = meta.get("collation", "ascii")
-        original = run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work,
-                             out_format, [sample_dir / m for m in meta.get("modules", [])], collation)
-        converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, work, out_format,
+        # The Java runs FIRST, in its own directory, before the original's output (the answer it is compared with)
+        # exists; what the original reads is hashed before and checked after, and nothing may appear in `work`.
+        jrun = work / "jrun"
+        jrun.mkdir()
+        snapshot = guard_before([input_path, *original_sources(sample_dir, meta)], work)
+        converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, jrun, out_format,
                              collation)
+        tamper = guard_after(snapshot, work)
+        if tamper:
+            original = Run(False, None, "", FAIL_CLOSED + "; ".join(tamper))
+        else:
+            original = run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path,
+                                 work, out_format, [sample_dir / m for m in meta.get("modules", [])], collation)
 
     results, golden_report = [], None
     if original.compiled and converted.compiled:
