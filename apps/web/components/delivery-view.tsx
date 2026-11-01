@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, GitPullRequest, Plus, TriangleAlert } from "lucide-react";
-import { API_URL, caseCount } from "@/lib/runs";
+import { API_URL, caseCount, plural } from "@/lib/runs";
 import { CANONICAL, LINKS, useApiConfig } from "@/lib/config";
 import { Skeleton } from "./ui";
 import { AssuranceBadge } from "./assurance";
@@ -50,13 +50,13 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
   const ci = ciState(d);
   if (!d.target) {
     return [
-      { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
+      { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
       { label: "2. Convert & certify", detail: `${certified}/${d.programs.filter((p) => p.status !== "skipped").length} certified${uncertified(d)}`, led: led(1) },
       { label: "3. Results", detail: d.stage === "done" ? "Java, diffs and traces in Run history" : "waiting", led: d.stage === "done" ? "ok" : "off" },
     ];
   }
   return [
-    { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${d.programs.length} programs` : "reading copybooks and JCL", led: led(0) },
+    { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
     { label: "2. Convert & certify", detail: `${certified}/${d.programs.length} certified${uncertified(d)}`, led: led(1) },
     { label: "3. Open pull request", detail: d.pullRequest ? "opened" : "waiting", led: d.pullRequest ? "ok" : led(2) },
     { label: "4. CI re-verifies", detail: ci === "ok" ? "passed on fresh inputs" : ci === "bad" ? "failed" : ci === "busy" ? "running" : "waiting", led: ci },
@@ -447,10 +447,10 @@ export default function DeliveryView() {
             <p>
               <span className={`led led-${delivery.buildCheck.verdict === "pass" ? "ok" : delivery.buildCheck.verdict === "fail" ? "bad" : "busy"}`} />{" "}
               <strong>{delivery.buildCheck.verdict}</strong>
-              {delivery.buildCheck.programs != null && ` · ${delivery.buildCheck.programs} programs`}
-              {delivery.buildCheck.calls != null && ` · ${delivery.buildCheck.calls} CALLs examined`}
+              {delivery.buildCheck.programs != null && ` · ${plural(delivery.buildCheck.programs, "program")}`}
+              {delivery.buildCheck.calls != null && ` · ${plural(delivery.buildCheck.calls, "CALL")} examined`}
               {delivery.buildCheck.copybookDrift != null && ` · ${delivery.buildCheck.copybookDrift} copybook drift`}
-              {delivery.buildCheck.classCollisions != null && ` · ${delivery.buildCheck.classCollisions} class collisions`}
+              {delivery.buildCheck.classCollisions != null && ` · ${plural(delivery.buildCheck.classCollisions, "class collision")}`}
             </p>
             {delivery.buildCheck.reasons.length > 0 && (
               <ul>{delivery.buildCheck.reasons.slice(0, 6).map((r, i) => <li key={i}>{r}</li>)}</ul>
