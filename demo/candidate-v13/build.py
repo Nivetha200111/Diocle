@@ -9,7 +9,7 @@ SHOWN = [("patch-passed", 0.0, 4.95), ("patch-broken", 4.95, 9.07), ("hook-stamp
          ("measured", 146.2, 156.53), ("limits", 156.53, 168.5), ("end", 174.0, 177.6)]
 # (from, to) of v12 kept, in order; HOLD seconds of the limits card with no voice sit between the 2nd and 3rd.
 KEEP = [(0.0, 32.2), (33.9, 156.55), (164.2, 177.6)]
-HOLD = 4.0
+HOLD = 0.8
 inputs = ["-i", src]
 for name, *_ in SHOWN:
     inputs += ["-loop", "1", "-t", "178", "-framerate", "30", "-i", f"{ov}/{name}.png"]

@@ -31,7 +31,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **Mutation re-test (CHQCLR, same 40 faults, 35 compile):** stored inputs 14, fixed generator 20, all sets together 26; 9 undetected look value-preserving or unreachable on fixed-length files. See `docs/SHOWCASE_CHQCLR.md`.
 
-**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (172.3 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. The owner uploads v13; then update README line 1.
+**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. The owner uploads v13; then update README line 1.
 
 **Owner steps:** upload v13, then README line 1 and the docs naming the old link get the new one; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
 
