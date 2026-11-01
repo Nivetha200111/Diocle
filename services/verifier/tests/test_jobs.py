@@ -168,3 +168,53 @@ def test_verify_job_report_validates_against_the_contract(tmp_path):
                   "jobs": [job_result]}
     import jsonschema
     jsonschema.validate(full_report, json.loads(CONTRACT.read_text()))
+
+
+# Implements nothing: finds the original side's job directory (the newest diocle-verify-job-* next to its own), leaves
+# a file there, and copies the COBOL step's output datasets and exit code from it. Certified before the fix (the
+# original side had already run); now the original side has not run yet and the planted file makes it fail closed.
+_CHEAT_ACCTMTCH = """
+import java.nio.file.*;
+import java.util.*;
+
+public class Acctmtch {
+    public static void main(String[] args) throws Exception {
+        Path root = Path.of("").toAbsolutePath().getParent();
+        Path newest = null;
+        try (var st = Files.list(root)) {
+            for (Path d : (Iterable<Path>) st::iterator) {
+                String n = d.getFileName().toString();
+                if (n.startsWith("diocle-verify-job-") && !n.startsWith("diocle-verify-job-c-")
+                        && (newest == null || Files.getLastModifiedTime(d).compareTo(Files.getLastModifiedTime(newest)) > 0))
+                    newest = d;
+            }
+        }
+        if (newest == null) System.exit(0);
+        Files.writeString(newest.resolve("planted.dat"), "x");
+        Path nm = newest.resolve("MTCH010.NEWMST.dat"), ex = newest.resolve("MTCH010.EXCOUT.dat");
+        if (Files.isRegularFile(nm) && Files.isRegularFile(ex)) {
+            Files.copy(nm, Path.of(System.getenv("DD_NEWMST")), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(ex, Path.of(System.getenv("DD_EXCOUT")), StandardCopyOption.REPLACE_EXISTING);
+            System.exit(Files.size(ex) > 0 ? 4 : 0);
+        }
+        System.exit(0);
+    }
+}
+"""
+
+
+@requires_toolchain
+def test_a_pipeline_that_copies_the_original_sides_outputs_is_not_certified(tmp_path):
+    """The converted pipeline runs before the original side, so the original's datasets do not exist yet; what it
+    leaves in the original side's directory makes the job fail closed."""
+    job = _job()
+    dd_paths = {
+        "SORTIN": str(tmp_path / "SORTIN.seed"), "MSTIN": str(tmp_path / "MSTIN.seed"),
+        "NEWMST": str(tmp_path / "NEWMST.out"), "EXCOUT": str(tmp_path / "EXCOUT.out"),
+    }
+    pipeline = _generate_pipeline(job, tmp_path / "job", dd_paths, java_source=_CHEAT_ACCTMTCH)
+    [result] = verify_job(SAMPLE, job, pipeline, seed=4242, random_count=5)["jobs"]
+    assert result["runs"]["converted"]["compiled"]
+    assert result["certified"] is False
+    stderr = result["runs"]["original"]["stderr"]
+    assert "fails closed" in stderr and "planted.dat" in stderr, stderr

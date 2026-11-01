@@ -213,6 +213,37 @@ def build_java(src_dir: Path, main_class: str, workdir: Path) -> tuple[list[str]
     return ["java", "-cp", str(classes), main_class], None
 
 
+FAIL_CLOSED = "not run, verification fails closed: "
+
+
+def original_sources(sample_dir: Path, meta: dict) -> list[Path]:
+    """Everything the original is built from: its source, CALLed modules and every file under the copybook dir."""
+    return ([sample_dir / meta["source"]] + [sample_dir / m for m in meta.get("modules", [])]
+            + sorted(p for p in (sample_dir / meta["copybookDir"]).rglob("*") if p.is_file()))
+
+
+def _sha(p: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def guard_before(guarded: list[Path], work: Path) -> tuple[dict[str, str], set[str]]:
+    """Taken just before the converted program runs, while the original has not run (its answer does not exist yet):
+    hashes of the files the original will read or be built from, and the names already in its working directory."""
+    return {str(p): _sha(p) for p in guarded if p.is_file()}, {p.name for p in work.iterdir()}
+
+
+def guard_after(snapshot: tuple[dict[str, str], set[str]], work: Path) -> list[str]:
+    """Why the original must not run (empty if nothing was touched): the converted program, running as the same user,
+    changed a file the original reads or put a file where the original will run and write its output."""
+    before, names = snapshot
+    problems = [f"the converted program changed {Path(p).name}" for p, h in before.items()
+                if not Path(p).is_file() or _sha(Path(p)) != h]
+    problems += [f"the converted program created {p.name}" for p in sorted(work.iterdir()) if p.name not in names]
+    return problems
+
+
 def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[str, int]], workdir: Path, label: str,
               extra_env: dict[str, str] | None = None, seeds: dict[str, Path] | None = None,
               timeout: int = 120) -> Run:
