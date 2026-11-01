@@ -122,10 +122,7 @@ function SampleHero({ go }: { go: Go }) {
           window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
           go("Live runs");
         }}>Open the full run</button>
-        <a className="button secondary" href="/try">Try it live: convert a sample now</a>
-        <a className="button secondary" href="/mission">Agent replay: watch the agents work</a>
         <a className="button secondary" href="/bugs">Bug of the day</a>
-        <a className="button secondary" href="/evidence">Cost and speed scoreboard</a>
         <span className="sample-note">
           Re-runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java on about
           1,000 inputs from a seed chosen now, and compares every byte. Takes a few seconds.

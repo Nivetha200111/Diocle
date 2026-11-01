@@ -83,17 +83,7 @@ export function PlainEnglishCard({ run }: { run: Run }) {
               {claims.length > shown.length ? ` Showing ${shown.length} of ${claims.length} confirmed claims; the Behaviour spec panel below has all of them.` : ""}
             </p>
           </div>
-        ) : (
-          <div>
-            <h3>What this program does</h3>
-            <p className="plain-none">No plain-English summary was generated for this run.</p>
-            <p className="plain-note">
-              Run verified documentation to get one: <code>python -m diocle_converter run SAMPLE --document</code>
-              {" "}(see <a href="https://github.com/Nivetha200111/Diocle#verified-documentation" target="_blank" rel="noreferrer">README: Verified documentation</a>).
-              It is optional and not on every run.
-            </p>
-          </div>
-        )}
+        ) : null}
         <div>
           <h3>Did the Java match?</h3>
           <p>{verdictSentence(run)}</p>

@@ -62,11 +62,12 @@ export function MutationPanel({ run }: { run: Run }) {
       {report && c && report.status === "ok" && (
         <div className="mutation">
           <p className="reverify-result ok">
-            Initial inputs ({report.inputs.initial.toLocaleString("en-US")}) detected {detected} of {scored} seeded faults
+            The {report.inputs.initial.toLocaleString("en-US")} inputs that certified the Java caught {detected} of {scored} seeded faults
             {c.timeout > 0 && ` (of which ${c.timeout} timed out)`}
-            {c.score !== null && ` (${Math.round(c.score * 100)}%)`}; extra inputs detected {report.augmented.extraKills} more
-            ({report.augmented.extraInputs} extra inputs); {c.survived} survived the initial inputs
-            ({report.augmented.stillSurviving ?? c.survived} still survive after the extra inputs);
+            {c.score !== null && ` (${Math.round(c.score * 100)}%)`}; {c.survived} went unnoticed.
+            {" "}{report.augmented.survivorsRerun > 0
+              ? `Extra inputs caught ${report.augmented.extraKills} more (${report.augmented.extraInputs} extra inputs); ${report.augmented.stillSurviving ?? c.survived} still unnoticed after them.`
+              : "No extra inputs were tried on them."}
             {" "}{c.notCompiled} did not compile; {c.equivalentSuspected} suspected equivalent
             {c.notRun > 0 && `; ${c.notRun} not run (time limit)`}
             {c.error > 0 && `; ${c.error} harness errors`}.
@@ -80,17 +81,20 @@ export function MutationPanel({ run }: { run: Run }) {
             A survivor is a coverage question, not automatically a defect: no input exercised the difference, or the change is harmless. This is not a confidence score.
           </p>
           {survivors.length > 0 && (
+            <details className="mutation-details">
+              <summary>Show the {survivors.length} seeded {survivors.length === 1 ? "fault" : "faults"} the initial inputs did not catch</summary>
             <ul className="mutation-list">
               {survivors.map((m) => (
                 <li key={m.id}>
                   <code>{m.location.file}:{m.location.line}</code> {m.description}
                   {m.augmentedOutcome === "killed" && <> · caught by extra input <code>{m.augmentedKilledBy}</code></>}
-                  {m.augmentedOutcome !== "killed" && <> · still survives</>}
+                  {m.augmentedOutcome && m.augmentedOutcome !== "killed" && <> · still survives the extra inputs</>}
                   <br />
                   <code>{m.original}</code> → <code>{m.mutated}</code>
                 </li>
               ))}
             </ul>
+            </details>
           )}
         </div>
       )}

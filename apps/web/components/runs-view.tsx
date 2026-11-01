@@ -609,9 +609,13 @@ export default function RunsView() {
   const [selected, setSelected] = useState<string | null>(null);
   const [run, setRun] = useState<Run | null>(null);
   const [error, setError] = useState("");
+  // Opened from a link to one run (the README's judge path, the front page): show that run first, the list after it.
+  const [linked, setLinked] = useState(false);
+  const [showList, setShowList] = useState(false);
 
   useEffect(() => {
     const fromHash = () => (window.location.hash.startsWith("#run=") ? decodeURIComponent(window.location.hash.slice(5)) : null);
+    setLinked(fromHash() !== null);
     fetchRuns()
       .then((items) => {
         setRuns(items);
@@ -652,13 +656,25 @@ export default function RunsView() {
       </div>
     );
   }
+  const table = (
+    <EfficiencyTable runs={runs} selected={selected} onSelect={(id) => {
+      setSelected(id);
+      window.history.replaceState(null, "", `#run=${encodeURIComponent(id)}`);  // the address now links to this run
+      if (linked) window.scrollTo({ top: 0 });  // the run opens above the list
+    }} />
+  );
+  const detail = run && run.id === selected ? <RunDetail run={run} /> : <Skeleton rows={4} label="Loading run" />;
+  if (!linked) return <>{table}{detail}</>;
   return (
     <>
-      <EfficiencyTable runs={runs} selected={selected} onSelect={(id) => {
-        setSelected(id);
-        window.history.replaceState(null, "", `#run=${encodeURIComponent(id)}`);  // the address now links to this run
-      }} />
-      {run && run.id === selected ? <RunDetail run={run} /> : <Skeleton rows={4} label="Loading run" />}
+      {detail}
+      {showList ? table : (
+        <section className="panel runs-more">
+          <button type="button" className="button secondary" onClick={() => setShowList(true)}>
+            See all {runs.length} runs on this engine
+          </button>
+        </section>
+      )}
     </>
   );
 }
