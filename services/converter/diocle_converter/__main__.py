@@ -670,6 +670,13 @@ def _atomic_write_text(path: Path, text: str) -> None:
     tmp.replace(path)
 
 
+def _no_single_file(meta: dict) -> str:
+    """Why the breaker and cross-check, which design records for one input file, have nothing to work on."""
+    if meta.get("displayOnly"):
+        return "it designs input records, and this program reads no input file (it only writes to the screen)"
+    return "it designs single-file records, and this program has several files"
+
+
 def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event,
             attacker=None, who="Breaker", tiered=False, minimizing=None):
     """Breaker cycles: attack; anything that breaks becomes a standing case and the agent repairs and re-certifies.
@@ -677,10 +684,9 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
     MODEL_MAX_BREAKER_CYCLES and the run's overall call cap."""
     meta = json.loads((program.sample_dir / "sample.json").read_text())
     if "layouts" not in meta and attacker is None:
-        on_event({"type": "stage", "stage": "attacking",
-                  "message": "Breaker skipped: it designs single-file records, and this program has several files"})
+        on_event({"type": "stage", "stage": "attacking", "message": f"Breaker skipped: {_no_single_file(meta)}"})
         return outcome, {"rounds": 0, "tried": 0, "broke": 0, "repairCycles": 0, "fixed": False, "counterexamples": [],
-                         "skipped": "multi-file program"}
+                         "skipped": "no input file" if meta.get("displayOnly") else "multi-file program"}
     breaker = attacker or Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event,
                                   model=settings.tier_model(settings.breaker_tier) if tiered else None)  # tier 2 by default
     found: list[dict] = []
@@ -750,7 +756,7 @@ def _crosscheck(program, workspace, client, verify, agent, standing_cases, outco
                     else "no CROSSCHECK_MODEL_* or OPEN_MODEL_* configured")
     meta = json.loads((program.sample_dir / "sample.json").read_text())
     if "layouts" not in meta:
-        return skip("it designs single-file records, and this program has several files")
+        return skip(_no_single_file(meta))
     try:
         cross_client = ModelClient(cross_settings)
         if cross_settings.max_usd is not None:  # inherited from the run's settings: count the run's own calls too
