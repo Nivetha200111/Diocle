@@ -40,10 +40,10 @@ def own_diagnostics(raw: str, file_name: str, max_lines: int = 20, max_chars: in
 def compile_check(source: Path, copybook_dir: Path | None, timeout: int = 60) -> dict:
     """cobc -fsyntax-only with the verifier's flags. {"ok": bool, "errors": str}"""
     try:
-        from .runners import IBM_FLAGS, _exec
+        from .runners import IBM_FLAGS, _exec, format_flags
     except ImportError:
         raise
-    cmd = ["cobc", "-fsyntax-only", "-std=ibm", *IBM_FLAGS]
+    cmd = ["cobc", "-fsyntax-only", "-std=ibm", *IBM_FLAGS, *format_flags(source)]
     if copybook_dir and copybook_dir.is_dir():
         cmd += ["-I", str(copybook_dir)]
     try:

@@ -17,9 +17,49 @@ _VALUES = re.compile(r"'([^']*)'")
 _COPY_WORD = r"(?<![A-Z0-9_'\"-])COPY"
 
 
+_FREE_FORMAT = re.compile(r"^\s*(?:>>\s*SOURCE\s+(?:FORMAT\s+)?(?:IS\s+)?FREE|\$\s*SET\s+SOURCEFORMAT\s*\(?[\"']?FREE)", re.I)
+
+
+def is_free_format(text: str) -> bool:
+    """The source opens with >>SOURCE FORMAT FREE (or $SET SOURCEFORMAT"FREE"); the verifier compiles it with -free.
+    Keep in step with diocle_verifier.runners.format_flags."""
+    return bool(_FREE_FORMAT.match(next((line for line in text.splitlines() if line.strip()), "")))
+
+
+def scan_line(line: str) -> tuple[str, str]:
+    """(the line up to a *> comment outside any literal, the same with literal contents blanked). One line at a
+    time, so an unbalanced quote (a continued literal, an apostrophe in a comment) blanks only the rest of its own
+    line and can never hide code on the lines after it."""
+    code, blanked, quote, i = [], [], None, 0
+    while i < len(line):
+        ch = line[i]
+        if quote is None and line.startswith("*>", i):
+            break
+        if quote is None and ch in "'\"":
+            quote = ch
+        elif quote is not None and ch == quote:
+            quote = None
+        elif quote is not None:
+            code.append(ch)
+            blanked.append(" ")
+            i += 1
+            continue
+        code.append(ch)
+        blanked.append(ch)
+        i += 1
+    return "".join(code), "".join(blanked)
+
+
 def source_lines(text: str) -> list[tuple[int, str]]:
-    """(line number, code area columns 8-72) for each non-comment line of fixed-format source."""
+    """(line number, code) for each non-comment line: columns 8-72 of fixed-format source, or the whole line of
+    free-format source (opening with >>SOURCE FORMAT FREE, which the verifier compiles with -free; *> comments)."""
     out = []
+    if is_free_format(text):
+        for number, line in enumerate(text.splitlines(), 1):
+            code = scan_line(line)[0]
+            if code.strip() and not code.lstrip().startswith((">>", "$")):
+                out.append((number, code.rstrip()))
+        return out
     for number, line in enumerate(text.splitlines(), 1):
         if len(line) > 6 and line[6] in "*/":
             continue
@@ -203,9 +243,12 @@ def parse_copybook(text: str, *, code: bool = False) -> Layout:
                     result["values"] = list(dict.fromkeys(values))
             layout.fields.append(result)
 
-    for child in roots[0].children:
-        if child.level != 88:
-            walk(child, "display", None, "", None)
+    if any(c.level != 88 for c in roots[0].children):
+        for child in roots[0].children:
+            if child.level != 88:
+                walk(child, "display", None, "", None)
+    else:  # the record is itself elementary (01 IN-RECORD PIC X(160)): one field, sliced by reference modification
+        walk(roots[0], "display", None, "", None)
     if not layout.fields and not layout.unsupported:
         layout.unsupported = "no elementary fields found"
     return layout
@@ -296,7 +339,8 @@ def parse_program(text: str) -> ProgramInfo:
                     break
     copybooks = list(dict.fromkeys(re.findall(_COPY_WORD + r"\s+([A-Z0-9-]+)", code)))
     calls = list(dict.fromkeys(re.findall(r"\bCALL\s+['\"]([A-Z0-9-]+)['\"]", code)))
-    dynamic_calls = sorted(set(re.findall(r"(?<![A-Z0-9-])CALL\s+([A-Z][A-Z0-9-]*)(?![A-Z0-9-])", code)))
+    unquoted = " ".join(scan_line(c)[1].strip() for _, c in source_lines(text))  # MOVE "CALL FAILED" TO ... is not a CALL
+    dynamic_calls = sorted(set(re.findall(r"(?<![A-Z0-9-])CALL\s+([A-Z][A-Z0-9-]*)(?![A-Z0-9-])", unquoted)))
     procedure = _tokens(code)
     procedure = procedure[_procedure_start(procedure):]
     resolved, still_dynamic = _resolve_dynamic_calls(code, procedure, dynamic_calls)
