@@ -2,7 +2,7 @@
 
 Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Nov 1, 2026: open boxes below. Draft text to paste: [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md).
 
-- [ ] **Choose the video.** v12 is at the submitted link; the corrected candidate is `~/Downloads/diocle-candidate-v13.mp4` ([what changed and optional pickups](../demo/candidate-v13/README.md)). If v13 is used, upload it and update README line 1.
+- [ ] **Upload v13.** `~/Downloads/diocle-candidate-v13.mp4` ([what changed and optional pickups](../demo/candidate-v13/README.md)), then update README line 1 and the box below.
 - [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
 - [ ] **Engine deploy** (`deploy/update-engine.sh`, needs the Mac) so the live re-verify uses the fixed record generator; then press Try the sample once.
 

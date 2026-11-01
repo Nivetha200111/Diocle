@@ -50,10 +50,19 @@ export const SUPERSEDED: Record<string, string> = {
 // What a stored run's own counts cannot tell a reader. Shown on the run; the record is unchanged.
 export const RUN_NOTES: Record<string, string> = {
   "chqclr-20261028-214355":
-    "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees and few distinct outputs (found and fixed Nov 1, 2026). The real values here came from the breaker's designed inputs. A later free audit of this Java on 1,000 well-formed cheques and returns with real amounts: all matched. It also found a malformed record this Java still gets different from the COBOL, a return with a blank body, which no attack tried: certified means on the inputs tried (docs/SHOWCASE_CHQCLR.md).",
+    "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees and few distinct outputs (found and fixed Nov 1, 2026). The real values here came from the breaker's designed inputs. A later free audit of this Java on 1,000 valid records, 906 of them cheques and returns with real amounts: all matched. It also found a malformed record this Java still gets different from the COBOL, a return with a blank body, which no attack tried: certified means on the inputs tried (docs/SHOWCASE_CHQCLR.md).",
   "chqclr-20261028-234854":
     "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees (found and fixed Nov 1, 2026; docs/SHOWCASE_CHQCLR.md).",
 };
+
+const FLAT_RECORD_NOTE = "Read this count with care: this program reads one flat 160-byte text record, so generated records are placeholders that take its reject path (1,000 of them give one distinct output). What exercised it here was the repository's own 400 sample records and, where it ran, the breaker. The target repository's CI has only the generated records.";
+
+// Harbor Trust's single-file programs share one flat record. The others have their own layouts and are not covered by this note.
+const FLAT_RECORD_RUN = /^ht(cbr|chk|dor|dormsw|fxc|fxconv|glr|iacr|intacc|loanam|lon|nsf|ovdfee|srt|stm)-/;
+
+export function runNote(id: string): string | null {
+  return RUN_NOTES[id] ?? (FLAT_RECORD_RUN.test(id) ? FLAT_RECORD_NOTE : null);
+}
 
 // The program on the front page: the breaker agent made it differ after 1,000 generated held-out records had matched.
 export const SAMPLE_RUN = { id: "chqclr-20261028-214355", program: "CHQCLR" };

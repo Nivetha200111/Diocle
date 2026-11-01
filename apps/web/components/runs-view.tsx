@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
 import { API_URL, ASSURANCE_BADGE, callCostUsd, countTile, originalDidNotCompile, originalWroteNothing, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { AssuranceBadge, AssuranceNote } from "./assurance";
-import { RUN_NOTES, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
+import { runNote, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
@@ -64,9 +64,9 @@ function BreakerPanel({ b }: { b: Breaker }) {
         <div>
           <h2><ShieldAlert size={14} /> Breaker agent</h2>
           <p>
-            After certification, a second Muse Spark agent designed {b.tried} inputs to break the Java
-            over {b.rounds} round(s).{" "}
-            {b.broke
+            {b.skipped ? `No attack ran: ${b.skipped}. Not a pass. ` : <>After certification, a second agent ran {b.tried} attack inputs against the Java
+            over {b.rounds} round(s), replays of earlier breaks included.{" "}</>}
+            {b.skipped ? "" : b.broke
               ? `${b.broke} made it differ from the original${b.fixed ? `; the repair agent fixed them and the Java matched again on fresh held-out records and a new attack.` : "; not fixed within the caps, so this run is not certified."}`
               : "None broke it."}
           </p>
@@ -485,7 +485,7 @@ function RunDetail({ run }: { run: Run }) {
             Model: <span className="mono">{run.model ?? "none"}</span> · {run.createdAt?.replace("T", " ")} · run <span className="mono">{run.id}</span>
           </p>
           {SUPERSEDED[run.id] && <p className="dlv-reason">{SUPERSEDED[run.id]}</p>}
-          {RUN_NOTES[run.id] && <p className="dlv-reason">{RUN_NOTES[run.id]}</p>}
+          {runNote(run.id) && <p className="dlv-reason">{runNote(run.id)}</p>}
         </div>
       </div>
 

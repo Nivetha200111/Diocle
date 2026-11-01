@@ -46,8 +46,8 @@ export function verdictSentence(run: Run): string {
 export function breakerSentence(run: Run): string | null {
   const b = run.breaker;
   if (!b || !(b.tried > 0)) return null;
-  if (b.broke === 0) return `A second AI (the breaker agent) designed ${n(b.tried)} inputs to make the Java differ; none did. That is not proof that no such input exists.`;
-  return `A second AI (the breaker agent) attacked the Java and made it differ on ${n(b.broke)} of ${n(b.tried)} inputs it designed; `
+  if (b.broke === 0) return `A second AI (the breaker agent) ran ${n(b.tried)} inputs meant to make the Java differ; none did. That is not proof that no such input exists.`;
+  return `A second AI (the breaker agent) attacked the Java and made it differ on ${n(b.broke)} of ${n(b.tried)} attack inputs, replays included; `
     + (b.fixed ? "the repair agent fixed it and the Java was checked again." : "the repair agent did not fix it within its limits.");
 }
 
@@ -57,41 +57,49 @@ export function modelLines(run: Run): { role: string; models: string[] }[] {
   return roles.map((role) => ({ role, models: [...new Set(calls.filter((c) => c.role === role).map((c) => c.model))] }));
 }
 
-export type CheckLine = { check: string; state: "done" | "not-run" | "failed"; label: string; detail: string };
+export type CheckLine = { check: string; state: "done" | "not-run" | "flag" | "failed"; label: string; detail: string };
 
 // The record's checks, kept apart: a check that did not happen says so and is never counted as a pass.
 export function checkLines(run: Run): CheckLine[] {
   const after = run.after;
   const lines: CheckLine[] = [];
   const compared = !!after && after.total > 0;
+  const patched = run.assurance === "certified-against-repaired-cobol";
   lines.push(compared
-    ? { check: "Compiled and ran", state: "done", label: "yes", detail: "Both the original and the Java built and produced output." }
+    ? { check: "Compiled and ran", state: "done", label: "yes", detail: patched ? "The original did not compile as written. A patched copy and the Java built and produced output." : "Both the original and the Java built and produced output." }
     : { check: "Compiled and ran", state: run.assurance === "compiled-unverified" ? "not-run" : "failed", label: run.assurance === "compiled-unverified" ? "compile only" : "no comparison", detail: "Nothing was compared on this record." });
   if (compared) {
     lines.push({
       check: "Agreement on tested inputs",
-      state: after.failed === 0 ? "done" : "failed",
+      state: after.failed === 0 && after.stdoutMatch ? "done" : "failed",
       label: `${n(after.passed)} of ${n(after.total)}`,
-      detail: `Output records compared${after.stdoutMatch ? "; display output also matched" : "; display output differed"}. Generated records are well-formed.`,
+      detail: `Output records compared${after.stdoutMatch ? "; display output also matched" : "; display output DIFFERED"}. Generated records carry no deliberately bad data, and a flat text record gets placeholders.`,
     });
   }
   const b = run.breaker;
   if (!b || !(b.tried > 0)) {
-    lines.push({ check: "Attack by the breaker", state: "not-run", label: "not run", detail: "No designed input was tried in this run: the breaker was off, or this program is not a single-file record program it can attack. Not a pass." });
+    lines.push({ check: "Attack by the breaker", state: "not-run", label: "not run", detail: `No designed input was tried in this run: ${b?.skipped ?? (compared && after.failed === 0 && after.stdoutMatch ? "the breaker was off, or this program is not a single-file record program it can attack" : "it only attacks Java that passed")}. Not a pass.` });
   } else if (b.broke === 0) {
-    lines.push({ check: "Attack by the breaker", state: "done", label: "survived", detail: `${n(b.tried)} designed inputs, none differed. A limited attack, not a proof.` });
+    lines.push({ check: "Attack by the breaker", state: "done", label: "survived", detail: `${n(b.tried)} attack inputs, none differed. A limited attack, not a proof.` });
   } else {
-    lines.push({ check: "Attack by the breaker", state: b.fixed ? "done" : "failed", label: b.fixed ? "broken, then repaired" : "broken, not repaired", detail: `${n(b.broke)} of ${n(b.tried)} designed inputs differed.` });
+    lines.push({ check: "Attack by the breaker", state: b.fixed ? "done" : "failed", label: b.fixed ? "broken, then repaired" : "broken, not repaired", detail: `${n(b.broke)} of ${n(b.tried)} attack inputs differed, replays included.` });
   }
-  lines.push(run.crosscheck
-    ? { check: "Independent cross-check", state: "done", label: "ran", detail: "A second, open-weight model proposed inputs; each was run through both programs." }
-    : { check: "Independent cross-check", state: "not-run", label: "not run", detail: "Opt-in; it did not run here. Not a pass." });
+  const c = run.crosscheck;
+  lines.push(!c
+    ? { check: "Independent cross-check", state: "not-run", label: "not run", detail: "Opt-in; it did not run here. Not a pass." }
+    : c.skipped
+      ? { check: "Independent cross-check", state: "not-run", label: "skipped", detail: `It could not run (${clip(c.skipped, 120)}). Not a pass.` }
+      : !c.casesValid
+        ? { check: "Independent cross-check", state: "not-run", label: "no valid inputs", detail: "The model proposed nothing that fitted the layout, so nothing was tried. Not a pass." }
+        : { check: "Independent cross-check", state: c.mismatches ? "failed" : "done", label: `${n(c.casesValid)} tried, ${n(c.mismatches ?? 0)} differed`, detail: "A second, open-weight model proposed inputs; each valid one was run through both programs." });
   const review = run.guard?.review;
   lines.push(!review
     ? { check: "Guard model review", state: "not-run", label: "not run", detail: "Policy only, or the run was not certified. Not a pass." }
     : review.verdict === "error"
       ? { check: "Guard model review", state: "not-run", label: "skipped", detail: `It did not complete (${clip(review.summary ?? "no reason recorded", 120)}). Not a pass; the comparison and the policy still ran.` }
-      : { check: "Guard model review", state: review.verdict === "pass" ? "done" : "failed", label: review.verdict, detail: "One model review of the final Java. It can revoke a certification, never grant one." });
+      : review.verdict === "flag"
+        ? { check: "Guard model review", state: "flag", label: "flag", detail: `It completed with findings to read: ${clip(review.summary ?? "no summary recorded", 160)}` }
+        : { check: "Guard model review", state: review.verdict === "pass" ? "done" : "failed", label: review.verdict, detail: "One model review of the final Java. It can revoke a certification, never grant one." });
   return lines;
 }
 
@@ -107,7 +115,7 @@ export function comparedAgainst(run: Run): string[] {
   return out;
 }
 
-const CHECK_TEXT = { done: "done", "not-run": "not run", failed: "failed" } as const;
+const CHECK_TEXT = { done: "done", "not-run": "not run", flag: "completed with findings", failed: "failed" } as const;
 
 function WhatThisEstablished({ run }: { run: Run }) {
   if (run.status === "running" || run.status === "interrupted") return null;
