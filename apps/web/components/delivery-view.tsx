@@ -169,13 +169,13 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
   const [asAdmin, setAsAdmin] = useState(false);
   const admin = !open || asAdmin;
   const [legacy, setLegacy] = useState("");
-  const [target, setTarget] = useState("https://github.com/Nivetha200111/quillmark-java");
+  const [target, setTarget] = useState("");
   const [parallel, setParallel] = useState(true);
   const [breaker, setBreaker] = useState(true);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [passcode, setPasscode] = useState("");
-  const [createRepo, setCreateRepo] = useState(false);
+  const [createRepo, setCreateRepo] = useState(true);  // a new repository per import; an existing target is opt-in
   const [name, setName] = useState("");
   const [nameEdited, setNameEdited] = useState(false);
   const [owner, setOwner] = useState("");
@@ -192,7 +192,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
           <h2>{admin ? "Start a delivery" : "Import a repository"}</h2>
           <p>
             {admin
-              ? "Paste the legacy repository and the repository that should receive the pull request."
+              ? "Paste the legacy repository. Diocle creates a new repository for the Java and opens the pull request there; untick the box to use an existing one."
               : "Paste any public GitHub repository with COBOL. Muse Spark converts each program to Java; Diocle runs both against GnuCOBOL and repairs until they agree."}
           </p>
         </div>
@@ -238,7 +238,8 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
             {!createRepo && (
               <label>
                 <span>Target repository (pull request out)</span>
-                <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false} />
+                <input value={target} onChange={(e) => setTarget(e.target.value)} spellCheck={false}
+                       placeholder="https://github.com/<owner>/<repo>" required />
               </label>
             )}
             {createRepo && (
