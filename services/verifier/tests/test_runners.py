@@ -98,3 +98,50 @@ def test_free_main_links_a_fixed_module_and_the_fixed_cee3abd_stand_in(tmp_path)
     assert cmd is not None, failed.stderr
     from diocle_verifier.runners import _exec
     assert _exec(cmd).stdout.split() == ["SUB", "RAN", "MAIN", "DONE"]
+
+
+def test_hyphenated_assign_names_open_the_whole_dd_name(tmp_path):
+    import shutil
+
+    import pytest
+
+    from diocle_verifier.runners import assign_flags, run_cobol
+    if not shutil.which("cobc"):
+        pytest.skip("GnuCOBOL not installed")
+    source = tmp_path / "HYPH.cbl"
+    source.write_text("""       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HYPH.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT IN-F ASSIGN TO INPUT-FILE
+               ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT OUT-F ASSIGN TO OUTPUT-FILE
+               ORGANIZATION IS LINE SEQUENTIAL.
+       DATA DIVISION.
+       FILE SECTION.
+       FD  IN-F.
+       01  IN-REC PIC X(4).
+       FD  OUT-F.
+       01  OUT-REC PIC X(4).
+       WORKING-STORAGE SECTION.
+       01  WS-EOF PIC X VALUE "N".
+       PROCEDURE DIVISION.
+           OPEN INPUT IN-F OUTPUT OUT-F
+           PERFORM UNTIL WS-EOF = "Y"
+               READ IN-F AT END MOVE "Y" TO WS-EOF
+               NOT AT END MOVE IN-REC TO OUT-REC WRITE OUT-REC END-READ
+           END-PERFORM
+           CLOSE IN-F OUT-F
+           STOP RUN.
+""")
+    assert assign_flags(source) and not assign_flags(tmp_path / "missing.cbl")
+    (tmp_path / "in.txt").write_text("AAAA\nBBBB\n")
+    work = tmp_path / "work"
+    work.mkdir()
+    run = run_cobol(source, tmp_path, {"input": "INPUT-FILE", "output": "OUTPUT-FILE"}, tmp_path / "in.txt", work)
+    assert run.compiled and run.exit_code == 0, run.stdout + run.stderr  # -std=ibm alone opens DD "FILE" for both
+    assert run.output_lines == ["AAAA", "BBBB"]
+    plain = tmp_path / "PLAIN.cbl"
+    plain.write_text(source.read_text().replace("INPUT-FILE", "INFILE").replace("OUTPUT-FILE", "OUTFILE"))
+    assert assign_flags(plain) == []
