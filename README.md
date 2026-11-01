@@ -92,6 +92,22 @@ Screenshots of each: [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md).
 | **Editors** | A VS Code extension and a Muse Code plugin, both local | Muse Spark; Muse Code |
 | **Evidence** | Run records, a checks table per run, mutation testing, coverage matrix, cost scoreboard | None |
 
+## For engineering, risk and audit teams
+
+Diocle is built around a control a bank already understands: the party that writes the change does not approve it.
+
+| What a reviewer asks | What Diocle provides today |
+|---|---|
+| Who approved this change? | No model can certify. Only a deterministic comparison with the original can |
+| Can we reproduce the result? | Run records keep the seeds and every model call, verification reports keep each input and output, and delivered certificates pin the verifier commit |
+| Can someone else re-check it? | The target repository's CI re-runs the comparison on a new seed. It shares the verifier's assumptions, and a flat text record's generated inputs do not change with the seed |
+| What wasn't checked? | Run pages and new certificates list which checks ran and which were skipped, plus stated stand-ins |
+| What happens to code it can't verify? | It is refused with a reason. Local and admin convert-anyway output is labelled unverified, never certified |
+| Where does our code go? | On the public engine it compiles and runs in a sandbox with no network; run locally, it runs on your machine. Model calls go to the host you configure, including open-weights Muse Spark Open on a partner host |
+| Can spend run away? | Every model loop has hard call caps. Public buttons, imports, the quickstart and escalation also have dollar caps |
+
+**Not there yet:** no bank has used it, and it has no security audit or compliance certification. Results are under GnuCOBOL, not IBM Enterprise COBOL, on synthetic programs. Running the open weights on your own hardware is untested. A real pilot would start on one low-risk batch program, with the bank's own captured mainframe output.
+
 ## How the agents work
 
 - **Translator** (Muse Spark) writes the Java. It never certifies anything.
