@@ -164,6 +164,11 @@ function Evidence({ go }: { go: Go }) {
         {" "}<a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>, re-verified by that
         repository&apos;s own <a href={LINKS.evidenceCi} target="_blank" rel="noreferrer">CI run</a>; about
         {" "}{usd(CANONICAL.modelSpendUsd)} of model spend for the six conversions (estimated from list prices).
+        {" "}A larger one, from a second synthetic estate:{" "}
+        <a href="https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2" target="_blank" rel="noreferrer">harbor-trust-mainframe-java#2</a>,
+        {" "}19 programs certified and re-verified by its{" "}
+        <a href="https://github.com/Nivetha200111/harbor-trust-mainframe-java/actions/runs/41301995356" target="_blank" rel="noreferrer">CI run</a>
+        {" "}on 18,019 fresh inputs.
         {" "}<strong>{runs ? `${certified}/${runs.length}` : "…"}</strong> counts every run this engine has kept,
         including failed and interrupted attempts. <button type="button" className="link-button" onClick={() => go("Evidence")}>All evidence</button>
       </p>
@@ -338,7 +343,7 @@ muse plugins approve diocle:mcp_server:diocle`}</pre>
           <ul className="home-list">
             <li>Equivalence for every possible input: testing cannot show that.</li>
             <li>Equivalence to IBM COBOL where GnuCOBOL differs and no mainframe output was captured.</li>
-            <li>Support for <Term tip={GLOSSARY.CICS}>CICS</Term>, <Term tip={GLOSSARY.DB2}>DB2</Term> or <Term tip={GLOSSARY.VSAM}>VSAM</Term> updates: those programs are reported, not converted.</li>
+            <li>Support for <Term tip={GLOSSARY.CICS}>CICS</Term>, <Term tip={GLOSSARY.DB2}>DB2</Term> or <Term tip={GLOSSARY.VSAM}>VSAM</Term> beyond the stated subsets (DB2 and keyed files are verified on stand-ins): those programs are reported, not converted.</li>
           </ul>
           <p className="home-more"><a href={LINKS.certified} target="_blank" rel="noreferrer">Full definition and limits</a></p>
         </section>
