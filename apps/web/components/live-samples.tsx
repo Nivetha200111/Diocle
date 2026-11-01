@@ -2,11 +2,11 @@
 
 // The two public live buttons on the Try it live page (/try). Nothing here is replayed or invented: every line shown comes from the job
 // record or the run record the engine returns while the work happens. The visitor sends a sample name and nothing else.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "./ui";
 import { ASSURANCE_BADGE, fetchRun, type Run } from "@/lib/runs";
-import type { ButtonStatus, SamplesStatus } from "@/lib/config";
-import { fetchJob, fetchSamplesStatus, printoutImageUrl, startLive, type LiveJob, type LiveSample, type PrintoutResult } from "@/lib/live";
+import type { ButtonStatus, SamplesStatus, UploadStatus } from "@/lib/config";
+import { fetchJob, fetchSamplesStatus, printoutImageUrl, shrinkImage, startLive, startLiveUpload, viewKey, type LiveJob, type LiveSample, type PrintoutResult } from "@/lib/live";
 
 const usd = (n: number | null | undefined) => (n === null || n === undefined ? "n/a" : `$${n.toFixed(n < 1 ? 4 : 2)}`);
 const num = (n: number) => n.toLocaleString("en-US");
@@ -123,9 +123,10 @@ export default function LiveSamples() {
         <div>
           <h2 id="live-h">Try it live</h2>
           <p>
-            Two buttons that run a REAL Meta model call on one fixed, bundled, synthetic sample and verify the result.
-            They take no input from you: you cannot upload anything here, so nothing you type can reach a model, a
-            command or the sandbox. Each press is capped in dollars, in presses per visitor and per day, and runs one at a time.
+            Two buttons that run a REAL Meta model call on one fixed, bundled, synthetic sample and verify the result, and
+            a third that reads a picture you send. The buttons take no input from you. Your picture goes only to the vision
+            model, and what it writes is compiled and run only in the sandbox. Each is capped in dollars, in presses per visitor
+            and per day, and runs one at a time.
             {s && <> Together the two buttons may spend at most {usd(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} so far in the last 24 hours (estimates at list prices).</>}
           </p>
         </div>
@@ -153,10 +154,50 @@ export default function LiveSamples() {
           image
         />
       </div>
+      {s?.upload?.enabled && <ImageUpload status={s.upload} busy={starting || job?.status === "running"} onError={setError}
+        onStart={async (file) => {
+          setStarting(true); setError(null); setJob(null); setRun(null);
+          try { follow(await startLiveUpload(await shrinkImage(file, s.upload?.maxBytes ?? 2097152))); }
+          catch (e) { setError(e instanceof Error ? e.message : "The request failed."); refresh(); }
+          finally { setStarting(false); }
+        }} />}
       {error && <p className="live-error" role="alert">{error}</p>}
       {job && job.sample === "addfee" && <ConvertProgress job={job} run={run} />}
       {job && job.sample === "loyalty-waiver-printout" && <PrintoutProgress job={job} />}
     </section>
+  );
+}
+
+function ImageUpload(p: { status: UploadStatus; busy: boolean; onStart: (file: File) => void; onError: (message: string) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const why = p.busy ? "A live job is running; this comes back when it finishes." : p.status.reason;
+  return (
+    <div className="live-card live-upload">
+      <h3>Read your own image</h3>
+      <p className="live-what">
+        Send a photo or screenshot of a COBOL listing. Muse Wonder writes the COBOL it sees; it is compiled and run in the sandbox against
+        the bundled LOYWAIVE program. To see it match, photograph <a href={printoutImageUrl} target="_blank" rel="noreferrer">this listing</a>.
+        Any other program will show as different or refused, which says nothing about how well it was read: compare the text yourself.
+      </p>
+      <p className="live-caps">
+        Your browser shrinks the picture and removes its metadata first. It goes to Meta&apos;s vision model; only you can read the result here. The
+        image is deleted when the job ends, and the transcription an hour later. Send synthetic or public code only, never your employer&apos;s or a client&apos;s.
+      </p>
+      <div className="ask-actions">
+        <input ref={input} type="file" accept="image/png,image/jpeg" aria-label="Choose an image of a COBOL listing"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <button type="button" className="button secondary" disabled={why !== null || !file}
+          onClick={() => {
+            if (!file) { p.onError("Choose an image first."); return; }
+            p.onStart(file);
+            setFile(null);
+            if (input.current) input.current.value = "";
+          }}>Read my image</button>
+      </div>
+      {why && <p className="live-reason" role="status">Disabled: {why}</p>}
+      <p className="live-caps">At most {usd(p.status.maxUsd)} per image. Caps: {p.status.perVisitorPerDay} per visitor per day, {p.status.perDay} a day overall ({p.status.usedToday} used in the last 24 hours, {p.status.visitorLeft} left for you).</p>
+    </div>
   );
 }
 
@@ -290,6 +331,7 @@ function PrintoutProgress({ job }: { job: LiveJob }) {
               : <>The comparison did not run{p.reason ? `: ${p.reason}` : ""}.</>}{" "}
             {p.status === "verified-identical" && "Identical on those inputs is not a proof for every input."}
             {p.status !== "verified-identical" && p.reason && d?.ran ? p.reason : ""}
+            {viewKey(job.id) && p.status !== "verified-identical" && " This was compared with the bundled LOYWAIVE program, so a different listing cannot match: it says nothing about how well your image was read."}
           </p>
           {p.source ? (<>
             <h4>The COBOL the model transcribed{p.program ? ` (${p.program})` : ""}</h4>

@@ -102,7 +102,12 @@ export type ButtonStatus = {
   maxUsd: number; perVisitorPerDay: number; perDay: number; usedToday: number; visitorLeft: number;
   available: boolean; reason: string | null;
 };
+export type UploadStatus = {
+  enabled: boolean; maxUsd: number; perVisitorPerDay: number; perDay: number; usedToday: number; visitorLeft: number;
+  available: boolean; reason: string | null; maxBytes: number;
+};
 export type SamplesStatus = {
+  upload?: UploadStatus;
   enabled: boolean; budgetUsd: number; spentTodayUsd: number | null; busy: string | null;
   convert: ButtonStatus; printout: ButtonStatus;
 };

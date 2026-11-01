@@ -1,5 +1,6 @@
 // "Ask the original program" (contracts/voice-question.schema.json). The public request is two names from fixed lists.
 import { API_URL } from "./runs";
+import { base64Of, rememberViewKey, viewHeaders } from "./live";
 
 export type AskSample = "interest-accrual" | "loyalty-waiver";
 export type AskClip = "fee-overdrawn" | "waiver-tenure";
@@ -8,6 +9,7 @@ export type AskClipInfo = { clip: AskClip; sample: AskSample; question: string; 
 export type AsksStatus = {
   enabled: boolean; available: boolean; reason: string | null; maxUsd: number; perVisitorPerDay: number; perDay: number;
   usedToday: number; visitorLeft: number; uploadsAllowed: boolean; clips: AskClipInfo[];
+  uploadPerVisitorPerDay?: number; uploadPerDay?: number; uploadUsedToday?: number; uploadVisitorLeft?: number; uploadReason?: string | null;
 };
 
 export type Transcript = {
@@ -54,20 +56,19 @@ export async function startAsk(sample: AskSample, clip: AskClip): Promise<string
   return (await r.json()).id as string;
 }
 
-// Local engine only (the engine refuses this from anyone else): the recorded clip as base64 WAV.
+// A recorded clip as base64 WAV. A public visitor gets a key back, and only that key can read the answer.
 export async function startAskUpload(sample: AskSample, wav: Blob): Promise<string> {
-  const bytes = new Uint8Array(await wav.arrayBuffer());
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   const r = await fetch(`${API_URL}/asks/upload`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample, audioBase64: btoa(bin) }),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sample, audioBase64: await base64Of(wav) }),
   });
   if (!r.ok) throw new Error(await detail(r));
-  return (await r.json()).id as string;
+  const { id, key } = await r.json() as { id: string; key?: string };
+  if (key) rememberViewKey(id, key);
+  return id;
 }
 
 export async function fetchAsk(id: string): Promise<AskJob> {
-  const r = await fetch(`${API_URL}/asks/${encodeURIComponent(id)}`, { cache: "no-store" });
+  const r = await fetch(`${API_URL}/asks/${encodeURIComponent(id)}`, { cache: "no-store", headers: viewHeaders(id) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }

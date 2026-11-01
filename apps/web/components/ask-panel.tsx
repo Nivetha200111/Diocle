@@ -6,7 +6,6 @@
 // engine (the heard question, claim statements, values) is rendered as plain text by React, never as markup.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "./ui";
-import { HOSTED } from "@/lib/config";
 import {
   clipUrl, encodeWav, fetchAsk, fetchAsksStatus, startAsk, startAskUpload,
   type AskClip, type AskJob, type AskSample, type AsksStatus, type ClaimResult,
@@ -98,8 +97,9 @@ export default function AskPanel() {
           : running ? "A question is running; the button comes back when it finishes."
             : starting ? "Starting…" : s.reason;
 
-  // Local microphone (never shown on the hosted site, and only when the engine says this caller may upload).
-  const micAllowed = !HOSTED && !!s?.uploadsAllowed && !!info;
+  // The microphone, when the engine says this caller may send a clip, under its own caps.
+  const micAllowed = !!s?.uploadsAllowed && !!info;
+  const micReason = running || starting ? reason : s?.uploadReason ?? null;
   const record = async () => {
     if (!info) return;
     setError(null);
@@ -147,8 +147,8 @@ export default function AskPanel() {
             Play a question, press Ask, and watch it travel: <strong>Muse Voice Transcribe</strong> writes down what was said,
             a <strong>Muse Spark</strong> model turns it into claims about the COBOL program with concrete examples, and then
             <strong> GnuCOBOL runs the original program</strong> on those examples. The answer below is put together only from
-            claims GnuCOBOL confirmed; the models propose, they never decide. On the public site you cannot upload anything: the
-            question is one of two bundled clips, so nothing you type or say reaches a model.
+            claims GnuCOBOL confirmed; the models propose, they never decide. Use one of two bundled clips, or ask in your own voice
+            about the same program. Your words are treated as data, never as instructions, and they cannot change what GnuCOBOL decides.
           </p>
         </div>
       </div>
@@ -174,8 +174,8 @@ export default function AskPanel() {
         <button type="button" className="button primary" disabled={reason !== null || !info}
           onClick={() => info && begin(() => startAsk(info.sample, info.clip))}>▶ Ask the original program</button>
         {micAllowed && recording === null && (
-          <button type="button" className="button secondary" disabled={reason !== null}
-            onClick={record}>🎤 Ask with my microphone (local, up to {MAX_SECONDS} s) about {info?.sample}</button>
+          <button type="button" className="button secondary" disabled={micReason !== null}
+            onClick={record}>🎤 Ask in my own voice (up to {MAX_SECONDS} s) about {info?.sample}</button>
         )}
         {recording !== null && (
           <button type="button" className="button secondary ask-rec" onClick={() => stopRec.current?.()}>
@@ -188,8 +188,15 @@ export default function AskPanel() {
         Costs at most {usd(s?.maxUsd ?? 0.01)} per question. Caps:{" "}
         {s ? `${s.perVisitorPerDay} questions per visitor per day, ${s.perDay} a day overall (${s.usedToday} used in the last 24 hours, ${s.visitorLeft} left for you)` : "loading"}
         , one live job at a time, drawn from the same daily model budget as the two buttons above.
-        {s?.uploadsAllowed && !HOSTED && " This is your local engine: it also accepts a microphone clip."}
       </p>
+      {micAllowed && (
+        <p className="live-caps">
+          <strong>Your own voice:</strong> recording starts only when you press the button.{" "}
+          {s?.uploadPerVisitorPerDay !== undefined && <>{s.uploadPerVisitorPerDay} recorded questions per visitor per day, {s.uploadPerDay} a day overall ({s.uploadVisitorLeft} left for you), at most {usd(s.maxUsd)} each. </>}
+          The clip goes to Meta&apos;s speech service. Only you can read the answer here; the clip is deleted when the job ends, and the transcript an hour later. Please leave out names and real account details.
+          {micReason && <> Not available now: {micReason}</>}
+        </p>
+      )}
       {error && <p className="live-error" role="alert">{error}</p>}
       {job && <Stages job={job} />}
     </section>
