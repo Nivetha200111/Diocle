@@ -11,6 +11,8 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)
 
+**History rewrite (Nov 2, owner request):** commit messages only: the Co-Authored-By lines were removed from 90+ commits, so commit ids since Oct 31 changed; code, dates and authors did not. The old history is kept at tag `pre-rewrite-20261102`, so ids cited in these docs and pinned by delivered pull requests still resolve. Do not add that line again. The server needs one `git fetch origin && git reset --hard origin/main` in `/opt/diocle` before its next pull.
+
 **Live state: `main`, site and engine on `debd697` or later (pushed and deployed Nov 1 evening, owner approved; GitHub CI green on `debd697`).** Engine deploys stay with the owner (a session safeguard blocks them): `sh deploy/update-engine.sh` from the Mac. Only docs have changed since, so no further deploy is needed. Live check: LIVE_CHECK.md addendum.
 
 **What it changes** (fixes, wording and evidence only; feature lock respected):
