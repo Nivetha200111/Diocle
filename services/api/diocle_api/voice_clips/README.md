@@ -1,7 +1,7 @@
 # Bundled voice clips
 
-Two short clips for the public "Ask the original program" panel. Both are a **synthetic voice made with macOS `say`**
-(`say -o X.wav --data-format=LEI16@16000 "..."`), 16 kHz mono 16-bit PCM WAV, no recording of any person.
+Two short clips for the public "Ask the original program" panel. Both are the **author's own recorded voice** (recorded Nov 1, 2026;
+replacing earlier macOS `say` clips), 16 kHz mono 16-bit PCM WAV, trimmed and level-normalised with ffmpeg.
 
 | file | sample it asks about | spoken question |
 | --- | --- | --- |

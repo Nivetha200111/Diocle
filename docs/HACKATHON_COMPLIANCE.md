@@ -40,7 +40,7 @@ Already existed and is used, not built here:
 ## Voice and narration disclosure
 
 - **Video narration.** The final video's narration is the author's own recorded voice (recorded Oct 31 and Nov 1, 2026). Earlier drafts used synthetic voices (macOS `say`, Kokoro, an ElevenLabs test); none of them is in the submitted video. `demo/voiceover.py` is one of those earlier draft scripts.
-- **Voice clips in the product.** The two spoken-question clips (`services/api/diocle_api/voice_clips/`) are made with macOS `say`.
+- **Voice clips in the product.** The two spoken-question clips (`services/api/diocle_api/voice_clips/`) are the author's own recorded voice (Nov 1, 2026), replacing earlier macOS `say` clips.
 - **Speech model.** Meta's Muse Voice Transcribe transcribes speech and does not speak; it is not used for the narration.
 - **Video contents.** This repository does not contain the final video; nothing here makes claims about what it shows. **TO CONFIRM (owner):** it opens with the "Built Oct 27 to Nov 4, 2026" card and shows only what was built in the window.
 

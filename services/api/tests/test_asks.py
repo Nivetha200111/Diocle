@@ -265,7 +265,7 @@ def test_oversize_bodies_and_bad_base64_are_refused_before_work(client):
 def test_bundled_clips_are_served_by_name_only(client):
     for name in ("fee-overdrawn", "waiver-tenure"):
         r = client.get(f"/asks/clips/{name}")
-        assert r.status_code == 200 and r.headers["content-type"] == "audio/wav" and r.content[:4] == b"RIFF" and len(r.content) < 100_000
+        assert r.status_code == 200 and r.headers["content-type"] == "audio/wav" and r.content[:4] == b"RIFF" and len(r.content) < 500_000
     for bad in ("..%2f..%2fetc%2fpasswd", "other", "fee-overdrawn.wav"):
         assert client.get(f"/asks/clips/{bad}").status_code in (404, 422)
 

@@ -165,7 +165,7 @@ export default function AskPanel() {
             <p className="ask-q">&ldquo;{c.question}&rdquo;</p>
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <audio controls preload="none" src={clipUrl(c.clip)} aria-label={`Spoken question: ${c.question}`} />
-            <p className="live-caps">Synthetic voice clip made with macOS say ({c.seconds.toFixed(1)} s). Not a recording of a person.</p>
+            <p className="live-caps">Recorded by the author ({c.seconds.toFixed(1)} s).</p>
           </div>
         ))}
         {status === null && <p className="live-caps">Checking what this engine allows…</p>}
