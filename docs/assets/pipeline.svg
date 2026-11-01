@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 540" width="1280" height="540" role="img" aria-labelledby="t d" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">How Diocle works</title>
+  <desc id="d">A GitHub repository is analyzed. Muse Spark translates the COBOL to Java. GnuCOBOL runs the original next to the Java and compares them. On a mismatch a Muse Spark repair agent fixes the Java and it is compared again. Java that matches is checked on 1,000 held-out generated records, then attacked by a Muse Spark breaker. A break goes back to repair. Otherwise Diocle opens a pull request with an equivalence report, and the target repository's CI re-runs the comparison.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#3b3f46"/></marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#b3261e"/></marker>
+    <style>
+      .box{stroke-width:2.5}
+      .model{fill:#e8f0ff;stroke:#0866ff}
+      .det{fill:#e7f5ec;stroke:#1f7a45}
+      .out{fill:#f3f1ec;stroke:#6b6658}
+      .h{font-size:21px;font-weight:700;fill:#14171c}
+      .s{font-size:16px;fill:#3b3f46}
+      .tag{font-size:13px;font-weight:700;letter-spacing:.6px}
+      .l{font-size:15px;fill:#3b3f46;font-weight:600}
+      .lr{font-size:15px;fill:#b3261e;font-weight:600}
+      .e{fill:none;stroke:#3b3f46;stroke-width:2.5}
+      .er{fill:none;stroke:#b3261e;stroke-width:2.5;stroke-dasharray:7 5}
+    </style>
+  </defs>
+  <rect width="1280" height="540" rx="14" fill="#ffffff"/>
+
+  <!-- row 1 -->
+  <rect class="box out" x="30" y="40" width="270" height="110" rx="12"/>
+  <text class="h" x="165" y="88" text-anchor="middle">GitHub repository</text>
+  <text class="s" x="165" y="116" text-anchor="middle">COBOL, copybooks, JCL</text>
+
+  <rect class="box det" x="350" y="40" width="270" height="110" rx="12"/>
+  <text class="tag" x="485" y="68" text-anchor="middle" fill="#1f7a45">NO MODEL</text>
+  <text class="h" x="485" y="96" text-anchor="middle">Analyze</text>
+  <text class="s" x="485" y="123" text-anchor="middle">layouts, risks, what it refuses</text>
+
+  <rect class="box model" x="670" y="40" width="270" height="110" rx="12"/>
+  <text class="tag" x="805" y="68" text-anchor="middle" fill="#0866ff">MUSE SPARK</text>
+  <text class="h" x="805" y="96" text-anchor="middle">Translate</text>
+  <text class="s" x="805" y="123" text-anchor="middle">writes the Java; never certifies</text>
+
+  <rect class="box det" x="990" y="40" width="260" height="110" rx="12"/>
+  <text class="tag" x="1120" y="68" text-anchor="middle" fill="#1f7a45">NO MODEL</text>
+  <text class="h" x="1120" y="96" text-anchor="middle">Compare</text>
+  <text class="s" x="1120" y="123" text-anchor="middle">GnuCOBOL vs Java, every byte</text>
+
+  <path class="e" d="M300 95H346" marker-end="url(#a)"/>
+  <path class="e" d="M620 95H666" marker-end="url(#a)"/>
+  <path class="e" d="M940 95H986" marker-end="url(#a)"/>
+
+  <!-- row 2 -->
+  <rect class="box model" x="990" y="230" width="260" height="110" rx="12"/>
+  <text class="tag" x="1120" y="258" text-anchor="middle" fill="#0866ff">MUSE SPARK, WITH TOOLS</text>
+  <text class="h" x="1120" y="286" text-anchor="middle">Repair agent</text>
+  <text class="s" x="1120" y="313" text-anchor="middle">fixes observed mismatches</text>
+
+  <path class="er" d="M1090 150V226" marker-end="url(#r)"/>
+  <path class="e" d="M1150 230V154" marker-end="url(#a)"/>
+  <text class="lr" x="1084" y="175" text-anchor="end">mismatch</text>
+  <text class="l" x="1160" y="194">re-test</text>
+
+  <rect class="box det" x="670" y="230" width="270" height="110" rx="12"/>
+  <text class="tag" x="805" y="258" text-anchor="middle" fill="#1f7a45">NO MODEL</text>
+  <text class="h" x="805" y="286" text-anchor="middle">Held-out check</text>
+  <text class="s" x="805" y="313" text-anchor="middle">1,000 unseen generated records</text>
+
+  <path class="e" d="M1010 150V190H805V226" marker-end="url(#a)"/>
+  <text class="l" x="880" y="182">matches</text>
+
+  <rect class="box model" x="350" y="230" width="270" height="110" rx="12"/>
+  <text class="tag" x="485" y="258" text-anchor="middle" fill="#0866ff">MUSE SPARK</text>
+  <text class="h" x="485" y="286" text-anchor="middle">Breaker attacks</text>
+  <text class="s" x="485" y="313" text-anchor="middle">designs inputs; both programs run</text>
+
+  <path class="e" d="M670 285H624" marker-end="url(#a)"/>
+  <text class="l" x="647" y="273" text-anchor="middle">pass</text>
+
+  <path class="er" d="M485 340V372H1120V344" marker-end="url(#r)"/>
+  <text class="lr" x="800" y="364" text-anchor="middle">a break goes back to repair</text>
+
+  <rect class="box out" x="30" y="230" width="270" height="110" rx="12"/>
+  <text class="h" x="165" y="272" text-anchor="middle">Pull request</text>
+  <text class="s" x="165" y="300" text-anchor="middle">Java + equivalence report</text>
+
+  <path class="e" d="M350 285H304" marker-end="url(#a)"/>
+  <text class="l" x="325" y="220" text-anchor="middle">no break</text>
+
+  <!-- row 3 -->
+  <rect class="box det" x="30" y="400" width="270" height="110" rx="12"/>
+  <text class="tag" x="165" y="428" text-anchor="middle" fill="#1f7a45">NO MODEL</text>
+  <text class="h" x="165" y="456" text-anchor="middle">Target repo CI</text>
+  <text class="s" x="165" y="483" text-anchor="middle">re-runs it on a new seed</text>
+  <path class="e" d="M165 340V396" marker-end="url(#a)"/>
+
+  <text class="h" x="350" y="430">Models write and attack. The comparison decides.</text>
+  <text class="s" x="350" y="460">Evidence on the inputs tried under GnuCOBOL: not a formal proof, not IBM Enterprise COBOL.</text>
+  <text class="s" x="350" y="486">The breaker runs on single-file record programs only; on others, the run says "not run".</text>
+</svg>

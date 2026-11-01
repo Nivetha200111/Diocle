@@ -238,13 +238,7 @@ All code here was written during the Meta Global AI Developer Hackathon (buildin
 
 ## What runs today
 
-```
-GitHub repo link ─► analyze ─► Muse Spark translates ─► repair agent ◄─► verifier (GnuCOBOL vs Java)
-                                                              │
-                         breaker agent attacks ◄── held-out certification (1,000 unseen inputs)
-                                                              │
-                     pull request + equivalence report ─► target repo CI re-verifies on fresh inputs
-```
+<p align="center"><img src="docs/assets/pipeline.svg" alt="Flowchart. A GitHub repository is analyzed with no model. Muse Spark translates it to Java. GnuCOBOL and the Java are compared; a mismatch goes to the Muse Spark repair agent and back. Java that matches goes through a held-out check of 1,000 generated records, then the Muse Spark breaker attacks it; a break goes back to repair. With no break, Diocle opens a pull request with an equivalence report, and the target repository's CI re-runs the comparison on a new seed." width="100%"></p>
 
 | Part | What it does |
 |---|---|
