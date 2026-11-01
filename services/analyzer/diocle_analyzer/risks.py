@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from .cobol import source_lines
+from .cobol import is_free_format, source_lines
 
 _PARAGRAPH = re.compile(r"^ {0,3}([A-Z0-9][A-Z0-9-]*)\.\s*$")
 
@@ -49,6 +49,8 @@ def _source_findings(program: str, text: str) -> list[dict]:
     """Code cut at column 72. Sources with sequence numbers in columns 73-80 are normal; there a cut only shows when
     the text past column 72 is not a sequence number."""
     out = []
+    if is_free_format(text):  # compiled with -free: nothing is cut at column 72
+        return out
     is_sequence_number = lambda l: len(l[72:80]) == 8 and l[72:80].isdigit()  # a full 8-digit field, not a spilled digit
     for number, line in enumerate(text.splitlines(), 1):
         if len(line) > 72 and line[6:7] not in ("*", "/") and line[71] != " " and line[72] != " ":
