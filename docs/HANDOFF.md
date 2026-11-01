@@ -24,7 +24,7 @@ The owner continues on Windows, without the Mac (no GnuCOBOL, JDK 21, SSH key, v
 - Not from Windows: engine deploys and server changes (the SSH key stays on the Mac), and new paid runs (keys are in the Mac's `.env`; none are needed).
 
 **Ranked to-do for Nov 2-3 (feature lock: fixes, docs, video and submission only)**
-1. Upload v9 (unlisted YouTube) and replace `LINK_TO_BE_ADDED_BEFORE_SUBMISSION` on README line 1.
+1. DONE Nov 1: v12 uploaded (unlisted YouTube, https://youtu.be/EsKndaZ6d2E) and linked on README line 1.
 2. Draft the submission text from the README's first paragraph, the 4-of-10 finding and the two evidence pull requests. Submit on the hackathon page before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). Aim for Nov 3.
 3. Walk the judge path cold, on desktop and phone (README "Judge path: three clicks"), and fix wording or layout only.
 4. Optional polish, web only and in the same style: Evidence and Try it live are the next densest pages.
