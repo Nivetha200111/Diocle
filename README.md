@@ -34,7 +34,7 @@ As of Oct 31, 2026 the public run list had 36 runs (it has grown since with live
 
 ## Run it yourself in 5 minutes
 
-Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+. The quickstart script itself is only tested on macOS; the test suites also run on Linux in CI.
+Needs GnuCOBOL 3.2 (`cobc`), JDK 21 and Python 3.11+, or just Docker (below). Tested on macOS and on Linux (Ubuntu 24.04 in Docker); the test suites also run on Linux in CI.
 
 ```sh
 git clone https://github.com/Nivetha200111/Diocle && cd Diocle
@@ -43,6 +43,17 @@ sh scripts/quickstart.sh --no-key     # no key, no model call: re-verifies a che
 ```
 
 Measured on a Mac from a clean checkout on Oct 30: about 23 s, 1,027 of 1,027 inputs (most of that is the one-time environment setup). With your own Meta key, see [Quickstart](#quickstart-one-command) (about 2.5 minutes, a few cents). `make test` runs all four suites; CI runs them on every push.
+
+**Linux, or any OS with Docker** (nothing to install but Docker; the image is the engine's own: Ubuntu 24.04, GnuCOBOL 3.2, JDK 21, Python 3.12):
+
+```sh
+git clone https://github.com/Nivetha200111/Diocle && cd Diocle
+docker build -f deploy/Dockerfile.api -t diocle-quickstart .     # first build compiles GnuCOBOL: several minutes
+docker run --rm --entrypoint sh diocle-quickstart -c \
+  'git clone -q --depth 1 https://github.com/Nivetha200111/Diocle /tmp/d && cd /tmp/d && sh scripts/quickstart.sh --no-key'
+```
+
+Measured Nov 1 (arm64 Docker via Colima, image already built): 13.6 s, 1,027 of 1,027 inputs, no model call. For a real conversion with your own key, put `META_MODEL_API_KEY=...` in `.env` (never on the command line), add `--env-file .env` after `--rm`, and drop `--no-key` (capped at $0.10). Measured Nov 1 the same way: INTACCR certified, 1,027/1,027 held-out inputs, 2 Muse Spark calls, $0.015, 2 min 24 s.
 
 ## How the agents work
 
