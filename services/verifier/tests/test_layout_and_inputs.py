@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shutil
 from decimal import Decimal
@@ -111,10 +112,12 @@ def test_a_view_that_does_not_fill_the_body_is_not_guessed():
     assert redefine_views({"fields": [{**base, "kind": "numeric", "digits": 10, "scale": 0}, short]}) == {}
 
 
-def test_generated_chqclr_records_are_well_formed_and_carry_real_values():
+def test_generated_chqclr_records_are_valid_and_carry_real_values():
     cases = generate_for_layout(_chqclr_layout(), seed=4243, random_count=1000)
     records = [c.record for c in cases if c.source == "random"]
     assert len(records) == 1000 and all(len(r) == 40 for r in records)
+    boundary = [c.record for c in cases if c.source == "boundary"]
+    assert all(r[19] in "+-" for r in boundary if r[0] == "C")  # boundary records carry a real body too
     cheques = [r for r in records if r[0] == "C"]
     returns = [r for r in records if r[0] == "R"]
     assert len(cheques) > 400 and len(returns) > 400 and len(cheques) + len(returns) == 1000
@@ -124,13 +127,30 @@ def test_generated_chqclr_records_are_well_formed_and_carry_real_values():
 
 
 def test_records_without_views_are_exactly_what_they_always_were():
-    # The stream for views is separate, so every layout without a redefined alphanumeric body keeps its records, seed for seed.
-    for sample in ("samples/interest-accrual", "samples/txn-posting", "eval/samples/loanamrt"):
-        spec = json.loads((ROOT / sample / "sample.json").read_text())
-        if "layouts" not in spec:
-            continue
-        layout = spec["layouts"]["input"]
-        assert generate_for_layout(layout, seed=8801, random_count=50) == generate_cases(load_fields(layout), seed=8801, random_count=50)
+    # Hashes of the records from the generator before views existed (commit 785bf3f): a layout without a redefined
+    # alphanumeric body keeps its records, seed for seed.
+    pinned = {"samples/interest-accrual": "636558dc611442c793843453f43c4484df8f881593af81b9f9450384206302cd",
+              "samples/txn-posting": "e827a5c6f071ee15caaa1c1811f38460925fa8302e7fee9d059dec303c8fdbf1",
+              "eval/samples/loanamrt": "3f21abd890d207c514d39f87beedaaee8937d289dee9c3068c22733a89b303e3"}
+    for sample, sha in pinned.items():
+        layout = json.loads((ROOT / sample / "sample.json").read_text())["layouts"]["input"]
+        records = [c.record for c in generate_for_layout(layout, seed=8801, random_count=50)]
+        assert hashlib.sha256("\n".join(records).encode("latin-1")).hexdigest() == sha
+
+
+def test_a_numeric_filler_in_a_view_gets_a_number():
+    spec = {"fields": [{"name": "BODY", "kind": "alnum", "length": 8},
+                       {"name": "A", "kind": "alnum", "length": 4, "redefines": "BODY"},
+                       {"name": "FILLER", "kind": "numeric", "digits": 4, "scale": 0, "signed": False, "redefines": "BODY"}]}
+    records = [c.record for c in generate_for_layout(spec, seed=1, random_count=20)]
+    assert all(len(r) == 8 and r[4:].isdigit() for r in records)
+
+
+def test_two_fields_with_the_same_name_keep_the_record_length():
+    spec = {"fields": [{"name": "BODY", "kind": "alnum", "length": 5}, {"name": "BODY", "kind": "alnum", "length": 11},
+                       {"name": "A", "kind": "alnum", "length": 11, "redefines": "BODY"}]}
+    assert redefine_views(spec) == {}
+    assert all(len(c.record) == 16 for c in generate_for_layout(spec, seed=1, random_count=5))
 
 
 @pytest.mark.toolchain
@@ -144,6 +164,9 @@ def test_a_fee_fault_on_ordinary_returns_is_caught_only_with_real_values(tmp_pat
     good = "outFee = truncUnsigned(fee.multiply(BigDecimal.valueOf(2)), 3, 2);"
     assert good in text
     source.write_text(text.replace(good, "outFee = BigDecimal.ZERO.setScale(2);"))
+    layout = json.loads((CHQCLR / "sample.json").read_text())["layouts"]["input"]
+    placeholders = generate_cases(load_fields(layout), seed=4243, random_count=200)
+    assert passes(verify_sample(CHQCLR, java, seed=4243, random_count=0, extra_cases=placeholders))  # the old records miss it
     caught = verify_sample(CHQCLR, java, seed=4243, random_count=200)
     assert not passes(caught) and any("CL-FEE" in (r.get("diff") or "") for r in caught["results"])
     source.write_text(text)

@@ -219,6 +219,7 @@
       ],
       "description": "Breaker agent results after certification: designed inputs tried, how many broke the Java, whether the repair fixed them",
       "properties": {
+        "skipped": { "type": "string", "description": "Why no attack ran (multi-file program, display-only program). Additive." },
         "rounds": {
           "type": "integer"
         },

@@ -64,6 +64,13 @@ def test_a_check_that_did_not_happen_is_never_recorded_as_passed():
     assert zero["attack"] == {"status": "not-run"}
     capped = deliver.certificate_scope(_scope_run(guard={"review": {"verdict": "error", "summary": "review skipped: cap"}}))
     assert capped["guardReview"] == "skipped"
+    assert deliver.certificate_scope(_scope_run(guard={"review": {"verdict": "flag"}}))["guardReview"] == "flag"
+    assert deliver.certificate_scope(_scope_run(guard={"review": {"verdict": "block"}}))["guardReview"] == "block"
+    shape = deliver.certificate_scope(_scope_run(breaker={"tried": 0, "broke": 0, "skipped": "multi-file program"}))
+    assert shape["attack"] == {"status": "not-run", "reason": "multi-file program"}
+    assert deliver.certificate_scope(_scope_run(crosscheck={"skipped": "unavailable"}))["crossCheck"] == "skipped"
+    assert deliver.certificate_scope(_scope_run(crosscheck={"casesProposed": 5, "casesValid": 0}))["crossCheck"] == "no-valid-inputs"
+    assert deliver.certificate_scope(_scope_run(crosscheck={"casesProposed": 5, "casesValid": 3}))["crossCheck"] == "ran"
     done = deliver.certificate_scope(_scope_run(breaker={"tried": 24, "broke": 2}, guard={"review": {"verdict": "pass"}}))
     assert done["attack"] == {"status": "broken-and-repaired", "tried": 24, "broke": 2} and done["guardReview"] == "pass"
     assert any("IBM Enterprise COBOL" in x for x in scope["notEstablished"]) and any("Formal equivalence" in x for x in scope["notEstablished"])
