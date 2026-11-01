@@ -75,6 +75,7 @@ def classify(root: Path) -> tuple[list[Path], dict[str, Path], list[Path]]:
 
 def analyze(root: Path, *, kind: str = "directory", location: str | None = None, commit: str | None = None) -> dict:
     root = root.resolve()
+    _data_cache.clear()  # seeds are read fresh for each analysis (the MCP server analyzes in one long process)
     sources, copybooks, jcl_members = classify(root)
     parsed = {p: parse_program(p.read_text(errors="replace")) for p in sources}
     program_ids = {info.name for info in parsed.values()}
