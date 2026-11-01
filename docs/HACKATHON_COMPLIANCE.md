@@ -36,10 +36,12 @@ Already existed and is used, not built here:
 | whisper.cpp | Captions and take alignment in the video pipeline only (`demo/`), not in the product | MIT |
 | Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Voice Transcribe), Muse Spark Open on Fireworks (and Baseten examples), Muse Code | The models the product calls and the agent the plugin targets | Meta's and the hosts' terms; keys are in `.env`, never committed |
 | Vercel and Vultr | Hosting | Their own terms |
+| Meta, Fireworks and Baseten logos (README) | Identify services Diocle uses; loaded from Simple Icons and the companies' GitHub profiles, not committed; no endorsement implied | Trademarks of their owners |
+| Portrait of Diocletian (`docs/assets/diocletian.jpg`) | README, the name section | J. Paul Getty Museum, CC0, via Wikimedia Commons |
 
 ## Voice and narration disclosure
 
-- **Video narration.** The submitted video (https://youtu.be/EsKndaZ6d2E) uses only the author's own recorded voice (recorded Oct 31 and Nov 1, 2026). Earlier drafts tried synthetic voices; none of them is in the submitted video, and the draft voice script was removed from the repository on Nov 1.
+- **Video narration.** The submitted video (https://youtu.be/ZkujXuDwNSM) uses only the author's own recorded voice (recorded Oct 31 and Nov 1, 2026). Earlier drafts tried synthetic voices; none of them is in the submitted video, and the draft voice script was removed from the repository on Nov 1.
 - **Voice clips in the product.** The two spoken-question clips (`services/api/diocle_api/voice_clips/`) are the author's own recorded voice (Nov 1, 2026), replacing earlier macOS `say` clips.
 - **Speech model.** Meta's Muse Voice Transcribe transcribes speech and does not speak; it is not used for the narration.
 - **Video contents.** This repository does not contain the final video; nothing here makes claims about what it shows. **TO CONFIRM (owner):** it opens with the "Built Oct 27 to Nov 4, 2026" card and shows only what was built in the window.

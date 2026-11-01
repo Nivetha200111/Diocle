@@ -1,4 +1,4 @@
-**Demo video (3 min): https://youtu.be/EsKndaZ6d2E**
+**Demo video (under 3 min): https://youtu.be/ZkujXuDwNSM**
 
 <p align="center"><img src="docs/assets/logo.svg" alt="Diocle logo" width="96" height="96"></p>
 
@@ -8,12 +8,21 @@
 
 **AI writes the code. Diocle checks it against the original, and then attacks it, before anyone has to trust it.**
 
+<p>
+  <a href="https://www.meta.ai"><img src="https://cdn.simpleicons.org/meta/0866FF" alt="Meta" height="40"></a>&nbsp;&nbsp;
+  <a href="https://fireworks.ai"><img src="https://github.com/fw-ai.png?size=80" alt="Fireworks AI" height="40"></a>&nbsp;&nbsp;
+  <a href="https://www.baseten.co"><img src="https://github.com/basetenlabs.png?size=80" alt="Baseten" height="40"></a>
+</p>
+
+<sub>Built with <strong>Meta</strong>'s models. <strong>Fireworks</strong> and <strong>Baseten</strong> host the open-weights Muse Spark Open. Logos belong to their owners and identify what Diocle uses; no endorsement or partnership is implied.</sub>
+
 Diocle is a verification layer for AI-written Java, starting with COBOL batch programs. Meta's Muse Spark translates the COBOL and repairs the Java; the original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, exit code and display line must match, including on 1,000 generated records the agent never saw. Java that passes is then attacked: Muse Spark designs inputs aimed at where it might differ, and a mismatch goes back for repair. A model never certifies; the comparison does. The result is reproducible evidence on the inputs tried under GnuCOBOL, not a formal proof and not a test on IBM Enterprise COBOL. Built for the Meta Global AI Developer Hackathon (Indie track, problem statement **Build for Your World**). All programs and data are synthetic.
 
 | Start here | |
 |---|---|
-| **Watch** | [The demo video](https://youtu.be/EsKndaZ6d2E) (3 min) |
+| **Watch** | [The demo video](https://youtu.be/ZkujXuDwNSM) (under 3 min) |
 | **Use** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model), or [run it with no key](#run-it-yourself-in-5-minutes) |
+| **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
 | **Read** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [each claim and how to check it](docs/CLAIMS_TO_EVIDENCE.md), [the limits](#limits) |
 
 ## Why I built this
@@ -65,6 +74,24 @@ docker run --rm --entrypoint sh diocle-quickstart -c \
 
 Measured Nov 1 (arm64 Docker via Colima, image already built): 13.6 s, 1,027 of 1,027 inputs, no model call. For a real conversion with your own key, put `META_MODEL_API_KEY=...` in `.env` (never on the command line), add `--env-file .env` after `--rm`, and drop `--no-key` (capped at $0.10). Measured Nov 1 the same way: INTACCR certified, 1,027/1,027 held-out inputs, 2 Muse Spark calls, $0.015, 2 min 24 s.
 
+## Important features
+
+Screenshots of each: [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md).
+
+| Feature | What it does | Models and hosts |
+|---|---|---|
+| **Translate** | COBOL and copybooks to Java; it never certifies | Muse Spark |
+| **Differential check** | Original on GnuCOBOL and the Java on the same generated records; every output byte, display line and exit code must match | None: deterministic |
+| **Breaker** | Designs inputs aimed at Java that passed, on single-file record programs | Muse Spark; once Muse Wonder |
+| **Repair agent** | Uses 7 tools to fix observed mismatches, then re-checked on records it never saw | Muse Spark |
+| **Delivery** | A pull request with an equivalence report per program, and CI in the target repository that re-runs the comparison | None at that step |
+| **Copybooks as SQL** | `DECIMAL(p,s)` tables from the PICs, checked by a SQLite round trip | None |
+| **Private mode, cross-check, guard review** | The agents on open weights; an optional second attacker and final review, thinly tested | Muse Spark Open on Fireworks and Baseten |
+| **Read a printout** | A photographed listing back into COBOL, then compared with the original | Muse Wonder |
+| **Ask by voice** | A spoken question, answered only from claims GnuCOBOL confirmed | Muse Voice Transcribe, Muse Spark |
+| **Editors** | A VS Code extension and a Muse Code plugin, both local | Muse Spark; Muse Code |
+| **Evidence** | Run records, a checks table per run, mutation testing, coverage matrix, cost scoreboard | None |
+
 ## How the agents work
 
 - **Translator** (Muse Spark) writes the Java. It never certifies anything.
@@ -88,6 +115,18 @@ Not used: Muse Image, SAM 3.1, Muse Glimmer. File paths, run ids and the full ta
 ## Built here vs pre-existing
 
 First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and two public COBOL repositories used as test input (the Open Mainframe Project course, CC BY 4.0; AWS CardDemo, Apache-2.0). Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](docs/HACKATHON_COMPLIANCE.md) (licences, voice disclosure).
+
+## The name
+
+<img align="right" src="docs/assets/diocletian.jpg" alt="Marble head from a statue of the Roman emperor Diocletian" width="150">
+
+**Diocle** comes from *Diocles*, the birth name of the Roman emperor [Diocletian](https://en.wikipedia.org/wiki/Diocletian), who ruled from 284 to 305. He inherited a sprawling empire in crisis and reorganised how it was run, including its government, taxes and coinage. *Dioklēs* is a Greek name, [read as](https://en.wiktionary.org/wiki/%CE%94%CE%B9%CE%BF%CE%BA%CE%BB%E1%BF%86%CF%82) "glory of Zeus" or "divine glory".
+
+It suits a project about reorganising old systems, but not everything he did was worth copying. His edict fixing maximum prices in 301 failed, and his reign also brought a persecution of Christians. Decrees did not make the reforms work, and an AI's word does not make a translation right, so Diocle runs the check instead.
+
+<sub>Portrait: fragment of a togate statue of Diocletian, about A.D. 295–300, J. Paul Getty Museum, [CC0 via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Head_of_Diocletian,_Getty_Museum.jpg).</sub>
+
+<br clear="right">
 
 ## Limits
 
@@ -273,7 +312,7 @@ Every known limit, one row each. Nothing in this table is claimed to work.
 | Without golden files the oracle is GnuCOBOL, not IBM Enterprise COBOL | GnuCOBOL can differ from IBM in edge cases (intermediate precision, NUMPROC, hex float arithmetic) | Golden-file replay judges the Java against captured mainframe output where it exists | No real mainframe output has been tested yet |
 | SQL schemas are checked on SQLite only | Alphanumeric fields that carry binary bytes (LOW-VALUES, a REDEFINES over packed data) would need BYTEA/BINARY in PostgreSQL or DB2, and a record type split behind a REDEFINES is kept as the shared bytes, not as typed columns per variant | None | Known limitation |
 | The breaker agent attacks single-file programs only | Its input design is per record layout. In the frozen evaluation it broke CHQCLR after the program had matched on 1,004 held-out output records (fee 20.00 vs 0.00 and debit -121.23 vs 0.00; fixed and re-certified); both records carry malformed numeric content (a leading space, letters in a numeric field), so this shows agreement with GnuCOBOL's handling of bad data, not IBM behaviour. On other shapes (ACCTMTCH, ACCTRPT, LDGRWRT, TXNLIST in the measurement) no attack runs and the run page says "not run" | None | Known limitation |
-| Generated records carry no deliberately bad data, and some record shapes get placeholders | Bad data is exercised only by what the breaker designs. **Flat text records** (one `PIC X(n)` field) get a counter that does not change with the seed: in the Harbor delivery, [harbor-trust-mainframe-java#2](https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2), 18 of the 19 programs' generated records give one identical `REJECT` line each, so those programs were exercised during conversion by records taken from the repository's data files (400 for the 14 single-file ones) and, where it could run, the breaker. Its CI, which has only the generated records, re-checks little for them; the 19th, HTDBDEF, prints a placeholder line. A body shared by REDEFINES got the same placeholder until Nov 1 (CHQCLR among the samples; [audit](docs/SHOWCASE_CHQCLR.md)); multi-file, job and keyed paths still do not fill views. Stored counts for affected runs are labelled | The breaker where it can run; your own `corpus` or `fixtureCases` in `sample.json` | REDEFINES fixed for single-file programs (live since the Nov 1 engine deploy); flat records are a known limit |
+| Generated records carry no deliberately bad data, and some record shapes get placeholders | Bad data is exercised only by what the breaker designs. **Flat text records** (one `PIC X(n)` field) get a counter that does not change with the seed: in the Harbor delivery, [harbor-trust-mainframe-java#2](https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2), 18 of the 19 programs' generated records give one identical `REJECT` line each, so those programs were exercised during conversion by records taken from the repository's data files (400 for the 14 single-file ones) and, where it could run, the breaker. Its CI, which has only the generated records, re-checks little for them; the 19th, HTDBDEF, prints a placeholder line. That delivery's whole-repository build check also reports FAIL on CALL argument mismatches, and its pull request says so. A body shared by REDEFINES got the same placeholder until Nov 1 (CHQCLR among the samples; [audit](docs/SHOWCASE_CHQCLR.md)); multi-file, job and keyed paths still do not fill views. Stored counts for affected runs are labelled | The breaker where it can run; your own `corpus` or `fixtureCases` in `sample.json` | REDEFINES fixed for single-file programs (live since the Nov 1 engine deploy); flat records are a known limit |
 | Mutation testing (verification strength) covers single-input, single-output record programs only | No coverage tool (mutants in code the layouts never reach show up as survivors), a fixed operator set, extra inputs built from the base record layout only (REDEFINES views are not varied, so CHQCLR got just 6 extra inputs), capped at 40 mutants and a wall clock | Ran live once in [docs/LIVE_CHECK.md](docs/LIVE_CHECK.md) (CHQCLR, Oct 30, 2026: 14 of 35 seeded faults detected, 21 survived, 5 did not compile); a survivor is a coverage question, not a verdict | Experimental beyond that one run |
 | Verified documentation covers single-file record programs only | Multi-file, DISPLAY-only and I-O programs are skipped; it checks only the examples a model wrote | The claim-checking path ran live behind the "Ask the original program" panel on Oct 30, 2026; the `--document` command line and the Markdown download were not re-run live | Experimental |
 | The voice question covers two bundled single-file programs on the public site and any single-file record program locally | The speech model sometimes mishears (one real run heard "the fee the fee"), a weak transcript yields weak claims, and the answer is only as good as the examples GnuCOBOL confirmed. The speech route is Meta's client protocol, not a documented API. The microphone path was verified only up to the engine (encoder output and upload), not with a real microphone | Use `--text` locally to skip transcription | Live (one public ask checked Oct 30) with these limits |

@@ -6,8 +6,8 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
-> **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The submitted video,
-> v12 (https://youtu.be/EsKndaZ6d2E), uses only the owner's own recorded voice; no synthetic voice is in it.
+> **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
+> v13 (https://youtu.be/ZkujXuDwNSM), uses only the owner's own recorded voice; no synthetic voice is in it.
 
 ## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)
 
@@ -31,9 +31,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **Mutation re-test (CHQCLR, same 40 faults, 35 compile):** stored inputs 14, fixed generator 20, all sets together 26; 9 undetected look value-preserving or unreachable on fixed-length files. See `docs/SHOWCASE_CHQCLR.md`.
 
-**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. The owner uploads v13; then update README line 1.
+**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. Uploaded by the owner: https://youtu.be/ZkujXuDwNSM, linked on README line 1.
 
-**Owner steps:** upload v13, then README line 1 and the docs naming the old link get the new one; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
+**Owner steps:** change the YouTube title (it still says "proves"); submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
 
 ## Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST; superseded where the section above differs)
 
