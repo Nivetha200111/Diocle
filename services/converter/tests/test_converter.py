@@ -224,6 +224,45 @@ def test_breaker_attacks_until_an_input_breaks_the_java(tmp_path):
     assert len(sdk.requests) == 2  # stopped at the first breaking round
 
 
+def test_breaker_counts_a_display_difference_and_names_the_input_responsible(tmp_path):
+    """TEST DOUBLE for the verifier (rule 7): every output record matches and only the printed total differs, the case the
+    breaker used to record as "no break". The real program behind this: docs/SHOWCASE_CHQCLR.md."""
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    case = lambda bal: {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": bal},
+                                   {"name": "ACCT-RATE", "value": "0.0500"}, {"name": "ACCT-DAYS", "value": "1"},
+                                   {"name": "ACCT-TIER", "value": "S"}], "why": "total"}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case("1.00"), case("2.00")]}))])
+
+    def verify(java_dir, seed, random_count, extra_cases):
+        bad = any("0000000200" in c.record for c in extra_cases)
+        return {"results": [{"inputId": c.id, "inputSource": c.source, "input": c.record, "match": True} for c in extra_cases],
+                "runs": {"stdoutMatch": not bad, "exitCodeMatch": True, "original": {"stdout": "NET=-200.00\n"}, "converted": {"stdout": "NET=-1200.00\n"}}}
+
+    breaker = Breaker(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), verify, layout)
+    broken = breaker.attack(rounds=1)
+    assert len(broken) == 1 and "0000000200" in broken[0]["case"].record and "-1200.00" in broken[0]["diff"]
+    assert [a["broke"] for a in breaker.attempts] == [False, True]
+
+
+def test_breaker_blames_the_round_when_no_input_differs_alone(tmp_path):
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    case = lambda bal: {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": bal},
+                                   {"name": "ACCT-RATE", "value": "0.0500"}, {"name": "ACCT-DAYS", "value": "1"},
+                                   {"name": "ACCT-TIER", "value": "S"}], "why": "total"}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case("1.00"), case("2.00")]}))])
+
+    def verify(java_dir, seed, random_count, extra_cases):
+        together = len(extra_cases) > 1
+        return {"results": [{"inputId": c.id, "inputSource": c.source, "input": c.record, "match": True} for c in extra_cases],
+                "runs": {"stdoutMatch": not together, "exitCodeMatch": True, "original": {"stdout": "a"}, "converted": {"stdout": "b"}}}
+
+    assert len(Breaker(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), verify, layout).attack(rounds=1)) == 2
+
+
 def test_swarm_agent_receives_lessons_certified_by_others_mid_run(tmp_path):
     ws = Workspace(tmp_path / "java")
     ws.write("IntAccr.java", "class IntAccr {}")

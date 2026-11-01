@@ -75,11 +75,12 @@
           "properties": {
             "status": { "type": "string", "enum": ["survived", "broken-and-repaired", "not-run"], "description": "not-run is not a pass: the breaker was off, or the program's shape is not one it can attack." },
             "tried": { "type": "integer" },
-            "broke": { "type": "integer" }
+            "broke": { "type": "integer" },
+            "reason": { "type": "string", "description": "Why it did not run, when the run recorded one." }
           }
         },
-        "crossCheck": { "type": "string", "enum": ["ran", "not-run"] },
-        "guardReview": { "type": "string", "enum": ["pass", "fail", "skipped", "not-run"], "description": "The optional model review. skipped: it was configured but did not complete (a cap or an error). The deterministic policy runs regardless." },
+        "crossCheck": { "type": "string", "enum": ["ran", "no-valid-inputs", "skipped", "not-run"], "description": "skipped: it was asked for and could not run. no-valid-inputs: the model proposed nothing that fitted the layout. Only ran tried anything." },
+        "guardReview": { "type": "string", "enum": ["pass", "flag", "block", "skipped", "not-run"], "description": "The optional model review, with the verdicts of run.schema.json. flag: it completed with findings. skipped: it was configured but did not complete (a cap or an error). The deterministic policy runs regardless." },
         "notEstablished": { "type": "array", "items": { "type": "string" } }
       }
     },

@@ -84,6 +84,7 @@ def redefine_views(spec: dict) -> dict[str, list[list[Field]]]:
     (a short view, or nesting a flat list cannot show) is left out: it keeps the generator's placeholder, nothing is guessed."""
     views: dict[str, list[list[Field]]] = {}
     lengths = {f["name"]: f["length"] for f in spec["fields"] if f["kind"] == "alnum" and not f.get("redefines")}
+    names = [f["name"] for f in spec["fields"] if not f.get("redefines")]
     open_view: dict[str, list[Field]] = {}
     bad: set[str] = set()
     for f in spec["fields"]:
@@ -102,6 +103,7 @@ def redefine_views(spec: dict) -> dict[str, list[list[Field]]]:
             views.setdefault(base, []).append(current)
             open_view[base] = []
     bad |= {base for base, current in open_view.items() if current}
+    bad |= {name for name in names if names.count(name) > 1}  # which field a view redefines is then a guess
     return {base: v for base, v in views.items() if base not in bad}
 
 

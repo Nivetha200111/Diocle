@@ -367,7 +367,7 @@ NOT_ESTABLISHED = ["Formal equivalence: the comparison covers the inputs tried, 
 def certificate_scope(run: dict) -> dict:
     """contracts/certificate.schema.json `scope`, read from the run record. A check that did not happen says so."""
     after = run.get("after") or {}
-    breaker, guard = run.get("breaker") or {}, run.get("guard") or {}
+    breaker, guard, cross = run.get("breaker") or {}, run.get("guard") or {}, run.get("crosscheck") or {}
     tried, broke = breaker.get("tried") or 0, breaker.get("broke") or 0
     review = guard.get("review") or {}
     verdict = review.get("verdict")
@@ -378,12 +378,13 @@ def certificate_scope(run: dict) -> dict:
         stand_ins.append("Berkeley DB (GnuCOBOL's indexed handler) stands in for VSAM")
     stand_ins += [f"Diocle's own {s.get('routine')} routine stands in for IBM Language Environment" for s in after.get("standIns") or []]
     return {
-        "oracle": "The original COBOL compiled with GnuCOBOL 3.2 under IBM's TRUNC(STD) and DISPLAY defaults, run on generated records (not IBM Enterprise COBOL).",
+        "oracle": "The original COBOL compiled with GnuCOBOL 3.2 under IBM's TRUNC(STD) and DISPLAY defaults (not IBM Enterprise COBOL).",
         "standIns": stand_ins,
-        "attack": ({"status": "not-run"} if not tried else
+        "attack": ({"status": "not-run", **({"reason": breaker["skipped"]} if breaker.get("skipped") else {})} if not tried else
                    {"status": "survived" if not broke else "broken-and-repaired", "tried": tried, "broke": broke}),
-        "crossCheck": "ran" if run.get("crosscheck") else "not-run",
-        "guardReview": verdict if verdict in ("pass", "fail") else "skipped" if verdict else "not-run",
+        "crossCheck": ("not-run" if not cross else "skipped" if cross.get("skipped") else
+                       "no-valid-inputs" if not cross.get("casesValid") else "ran"),
+        "guardReview": verdict if verdict in ("pass", "flag", "block") else "skipped" if verdict else "not-run",
         "notEstablished": NOT_ESTABLISHED,
     }
 
@@ -441,7 +442,7 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         attacked = ("**not run**" if attack["status"] == "not-run" else
                     f"{attack['tried']} designed, none differed" if attack["status"] == "survived" else
                     f"{attack['tried']} designed, {attack['broke']} differed; repaired")
-        guarded = {"pass": "pass", "fail": "**fail**", "skipped": "**skipped**", "not-run": "not run"}[scope["guardReview"]]
+        guarded = {"pass": "pass", "flag": "**flag**", "block": "**block**", "skipped": "**skipped**", "not-run": "not run"}[scope["guardReview"]]
         lines.append(f"| `{cert['program']}` | {before} | **{v['passed']}/{v['total']}** output records match, stdout "
                      f"{'matches' if v['stdoutMatch'] else 'differs'} | {attacked} | {guarded} | {a['modelCalls']} calls, {a['rounds']} round(s), "
                      f"{a['memoryLessonsUsed']} lessons from memory | {_usd(a['estimatedCostUsd'])} |")
@@ -449,11 +450,11 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         stand_ins = sorted({x for run, cert in delivered for x in (cert.get("scope") or certificate_scope(run))["standIns"]})
         lines += ["", "### What this shows", "",
                   "- **Shown:** each program compiled and, on the generated records and designed inputs tried, its Java wrote the same "
-                  "output bytes, display lines and exit code as the original under GnuCOBOL 3.2. One run of each side per check; the counts are output records compared.",
+                  "output bytes, display lines and exit code as the original under GnuCOBOL 3.2. One run of each side per check; the counts are output records compared. Before Nov 1, 2026 the attack itself compared output records only.",
                   "- **Not shown:** formal equivalence for every input, or behaviour on IBM Enterprise COBOL and z/OS. "
-                  "Generated records are well-formed; bad data is only exercised by what the breaker designs.",
+                  "Generated records carry no deliberately bad data, so bad data is exercised only by what the breaker designs; a flat text record gets placeholders, so check how much the counts exercised.",
                   *([f"- **Stand-ins:** {'; '.join(stand_ins)}. Passing against a stand-in is not passing on the real platform."] if stand_ins else []),
-                  "- **Not a pass:** a breaker marked \"not run\" (off, or a program shape it cannot attack) and a guard review marked \"skipped\" or \"not run\" checked nothing. "
+                  "- **Not a pass:** a breaker marked \"not run\" (off, or a program shape it cannot attack) and a guard review marked \"skipped\" or \"not run\" checked nothing; a guard \"flag\" completed with findings to read. "
                   "The deterministic Java policy and the comparison ran regardless.",
                   "- **Still for a person:** code review, integration with real data and downstream systems, and acceptance on your own runtime."]
     repaired = [o for o in others if o["assurance"] == "certified-against-repaired-cobol"]

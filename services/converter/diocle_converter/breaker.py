@@ -129,6 +129,31 @@ class Breaker:
     model: str | None = None  # a higher tier's model ID for the attacker (--tiers); None is the run's default
     suspected: list[dict] = field(default_factory=list)  # fields the model says may diverge (opinion, never evidence)
 
+    def _display_breaks(self, report: dict, cases: list[Case], designed: list[dict]) -> tuple[list[dict], list[dict]]:
+        """Every output record matched, but did the display output and exit code? Certification compares them, so an
+        attack must too. Each designed input is then run alone to name the ones responsible; if none differs alone (a
+        total that needs several records), the difference counts against the round's inputs together."""
+        if self._display_diff(report) is None:
+            return designed, []
+        marked = []
+        for c, row in zip(cases, designed):
+            diff = self._display_diff(self.verify(self.workspace.root, 1026, 0, [c]))
+            marked.append({**row, "match": diff is None, "diff": diff or row.get("diff", "")})
+        if not any(not r["match"] for r in marked):
+            together = self._display_diff(report)
+            marked = [{**r, "match": False, "diff": together} for r in designed]
+        return marked, [r for r in marked if not r["match"]]
+
+    @staticmethod
+    def _display_diff(report: dict) -> str | None:
+        runs = report.get("runs") or {}
+        if runs.get("stdoutMatch", True) is False:
+            original, converted = (str((runs.get(s) or {}).get("stdout", "")).strip()[-200:] for s in ("original", "converted"))
+            return f"display output: original {original!r} converted {converted!r}"
+        if runs.get("exitCodeMatch", True) is False:
+            return f"exit code: original {(runs.get('original') or {}).get('exitCode')} converted {(runs.get('converted') or {}).get('exitCode')}"
+        return None
+
     def attack(self, rounds: int = 3, label: str = "attack") -> list[dict]:
         """Up to `rounds` attack rounds; stops at the first round that breaks the Java. Returns the breaking cases."""
         fields = load_fields(self.input_layout)
@@ -177,6 +202,8 @@ class Breaker:
                 first = failing[0].get("diff", "") if failing else ""
                 designed = [{"inputId": c.id, "input": c.record, "match": not failing, "diff": first} for c in cases]
             broken = [r for r in designed if not r["match"]]
+            if not broken:
+                designed, broken = self._display_breaks(report, cases, designed)
             for r in designed:
                 self.attempts.append({"id": r["inputId"], "input": r.get("input"), "why": why.get(r["inputId"], ""),
                                       "broke": not r["match"], "diff": r.get("diff", "")})

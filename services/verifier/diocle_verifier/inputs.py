@@ -45,7 +45,8 @@ def _random_value(f: Field, rng: random.Random, index: int) -> Decimal | str:
 def _with_view(record: str, values: dict, fields: list[Field], views: dict[str, list[list[Field]]], rng: random.Random) -> str:
     """The record with each redefined body filled through one of its views, so its numbers carry real values. When the
     field before the body lists as many values as there are views (CQ-TYPE 'C', 'R'; two bodies), they are paired in
-    declaration order, as a record-type byte and its layouts usually are; otherwise the view is chosen at random."""
+    declaration order, as a record-type byte and its layouts usually are; otherwise the view is chosen at random. A wrong
+    guess gives a record that does not fit its type: still a fair input, both programs read the same bytes."""
     offset = 0
     for i, f in enumerate(fields):
         options = views.get(f.name)
@@ -53,16 +54,17 @@ def _with_view(record: str, values: dict, fields: list[Field], views: dict[str, 
             kind = fields[i - 1] if i else None
             paired = kind is not None and len(kind.values) == len(options) and values.get(kind.name) in kind.values
             view = options[kind.values.index(values[kind.name])] if paired else rng.choice(options)
-            body = "".join(format_value(v, " " * v.length if v.name == "FILLER" else _random_value(v, rng, rng.randrange(10**6)))
-                           for v in view)
-            record = record[:offset] + body + record[offset + f.length :]
+            body = "".join(format_value(v, " " * v.length if v.name == "FILLER" and v.kind == "alnum"
+                                        else _random_value(v, rng, rng.randrange(10**6))) for v in view)
+            if len(body) == f.length:  # never change a record's length: the file's framing depends on it
+                record = record[:offset] + body + record[offset + f.length :]
         offset += f.length
     return record
 
 
 def generate_cases(fields: list[Field], *, seed: int = 1026, random_count: int = 200,
                    views: dict[str, list[list[Field]]] | None = None) -> list[Case]:
-    """views (layout.redefine_views): random records fill those bodies with real values. Their random numbers come from a
+    """views (layout.redefine_views): generated records fill those bodies with real values. Their random numbers come from a
     separate stream, so a layout without views gets exactly the records it always got."""
     rng = random.Random(seed)
     view_rng = random.Random(f"views:{seed}")
@@ -75,7 +77,7 @@ def generate_cases(fields: list[Field], *, seed: int = 1026, random_count: int =
             for f in fields
         }
         record = format_record(values, fields)
-        if views and source == "random":
+        if views:
             record = _with_view(record, values, fields, views, view_rng)
         cases.append(Case(f"case-{index:04d}", source, record))
 
