@@ -14,8 +14,10 @@ The converted Java runs **first**, in its own subdirectory, before the original'
 it cannot read or run the answer it is compared with. The files the original reads or is built from (inputs, seeds,
 source, modules, copybooks) are hashed before the Java runs and checked after; if one changed, or the Java left a new
 file where the original will run, the original is not run and verification fails closed with that reason. This holds on
-every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). It does not stop a Java
-program that compiles and runs the COBOL source itself or leaves a background process behind: that is the sandbox's job.
+every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). Limit: a converted program
+that leaves a detached process running, or compiles the COBOL itself, is not stopped by this check; the sandbox limits
+what such a process can reach but does not kill it before the original runs (it kills every process only when the job
+ends).
 
 ## Limits of the generated inputs
 - **Always well-formed.** Every generated numeric field holds a valid value for its PIC and usage: no invalid packed
