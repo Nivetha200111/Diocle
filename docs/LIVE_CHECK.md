@@ -59,6 +59,20 @@ Against the live site and engine, and a local build of branch `release-candidate
 
 Not re-checked: live buttons "Convert a sample" and "Read a printout" (they spend the public pool and were not needed), deliveries. The stored mutation report on the live CHQCLR run is the Oct 30 one, on the old records; it was left as evidence and not regenerated.
 
+## Addendum: your own voice and image, Nov 2, 2026, about 02:10 IST
+
+Engine and site on `main`, through Vercel and Caddy, in Chromium. **The microphone was Chromium's simulated device playing a recording; no physical microphone has been tried.**
+
+| Check | Result | Notes |
+|---|---|---|
+| Recorded question through the page | pass | Accepted; heard "What happens happens to the fee when the account is overdrawn?" (the speech model repeated a word); 3 claims, all confirmed by GnuCOBOL on 6 examples; $0.00164 of the $0.01 cap |
+| Image through the page: a JPEG of the bundled listing | pass | Muse Wonder read it; compiled and run in the sandbox against LOYWAIVE: identical on 1,013 of 1,013; $0.0687 of the $0.10 cap |
+| Reading those results without the key | pass | Status only: no events, no result |
+| Files on the engine after both jobs | pass | Only `job.json` in each job folder |
+| CHQCLR re-verify on the fixed generator | pass | 1,004 of 1,004 |
+
+Not tried live: a listing other than the bundled one, the one-hour removal (covered by tests), the visitor caps being reached (covered by tests).
+
 ## Summary
 
 - **Pass: 25** (rows 1 to 13, 15, 16 and 20 to 29; row 12 passes for the route only).

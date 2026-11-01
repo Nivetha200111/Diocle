@@ -13,7 +13,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **History rewrite (Nov 2, owner request):** commit messages only: the Co-Authored-By lines were removed from 90+ commits, so commit ids since Oct 31 changed; code, dates and authors did not. The old history is kept at tag `pre-rewrite-20261102`, so ids cited in these docs and pinned by delivered pull requests still resolve. Do not add that line again. The server needs one `git fetch origin && git reset --hard origin/main` in `/opt/diocle` before its next pull.
 
-**Live state: `main`, site and engine on `debd697` or later (pushed and deployed Nov 1 evening, owner approved; GitHub CI green on `debd697`).** Engine deploys stay with the owner (a session safeguard blocks them): `sh deploy/update-engine.sh` from the Mac. Only docs have changed since, so no further deploy is needed. Live check: LIVE_CHECK.md addendum.
+**Live state, Nov 2 about 02:15 IST: `main`, site and engine on `49f57c2` or later (owner approved). Later commits are docs only.** Deploy: `sh deploy/update-engine.sh` from the Mac; a session safeguard may block it unless the owner asked for it in that session. Live check: LIVE_CHECK.md addendum.
 
 **What it changes** (fixes, wording and evidence only; feature lock respected):
 - **CI fix.** The bundled-clip test in `services/converter/tests/test_ask.py` kept a 100 KB / 4 s limit from the old synthetic clips (`dca3d7d` moved only the API copy). It now judges the two named clips by `validate_wav`, wholeness and audibility, and fails on a missing, stray, truncated or silent clip. `main` is red on GitHub until this is pushed.
@@ -43,7 +43,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. Uploaded by the owner: https://youtu.be/ZkujXuDwNSM, linked on README line 1.
 
-**Owner steps:** change the YouTube title (it still says "proves"); submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
+**Owner steps:** change the YouTube title (it still says "proves"); try the microphone once with a real one; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post and Meta credit claim in SUBMISSION_CHECKLIST are also the owner's.
 
 ## Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST; superseded where the section above differs)
 
