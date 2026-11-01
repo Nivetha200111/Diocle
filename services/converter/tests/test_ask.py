@@ -43,8 +43,15 @@ def wav(seconds=1.0, rate=16000, channels=1, bits=16, fmt=1):
 
 def test_a_good_clip_passes_and_the_bundled_clips_are_valid():
     assert voice.validate_wav(wav(2.0)).seconds == pytest.approx(2.0)
-    for p in CLIPS.glob("*.wav"):
-        assert p.stat().st_size < 100_000 and voice.validate_wav(p.read_bytes()).seconds < 4
+    # The clips the API serves and the CLI's --clip accepts, by name: a missing clip fails instead of looping over nothing.
+    # Judged by the service's own limits (validate_wav); the clips are the author's recordings, so no smaller limit applies.
+    assert sorted(p.stem for p in CLIPS.glob("*.wav")) == ["fee-overdrawn", "waiver-tenure"]
+    for name in ("fee-overdrawn", "waiver-tenure"):
+        data = (CLIPS / f"{name}.wav").read_bytes()
+        clip = voice.validate_wav(data)
+        assert struct.unpack("<I", data[4:8])[0] + 8 == len(data)  # validate_wav tolerates a streamed WAV; a bundled file must be whole
+        samples = struct.unpack(f"<{len(clip.pcm) // 2}h", clip.pcm)
+        assert (sum(s * s for s in samples) / len(samples)) ** 0.5 > 328  # above -40 dBFS: a recording, not a silent file
 
 
 @pytest.mark.parametrize("name,data,phrase", [

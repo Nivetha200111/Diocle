@@ -2,7 +2,7 @@
 
 PUBLIC path: a visitor names one bundled sample and one bundled clip from fixed lists. There is no upload surface: nothing a
 visitor sends reaches a model, a path, a command line or the sandbox except those two enum values. The bundled clips are
-synthetic-voice WAV files in voice_clips/. LOCAL/ADMIN path (start_upload): one uploaded WAV, validated by its bytes (16 kHz
+the author's recorded WAV files in voice_clips/. LOCAL/ADMIN path (start_upload): one uploaded WAV, validated by its bytes (16 kHz
 mono 16-bit PCM, at most 10 s and 500 KB) before anything is written; gated in app.py like createTarget and convert-anyway.
 
 Caps (rule 10, set by the owner's code, never by a request): $0.01 per ask, 5 asks per visitor per day, 30 per day overall,
