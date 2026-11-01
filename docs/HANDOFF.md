@@ -6,6 +6,9 @@ Read this first in every session; update it as you build (see CLAUDE.md, "Sessio
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
+> **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The submitted video,
+> v12 (https://youtu.be/EsKndaZ6d2E), uses only the owner's own recorded voice; no synthetic voice is in it.
+
 ## START HERE: Nov 2-3, working from a Windows machine (written Nov 1, 17:45 IST)
 
 The owner continues on Windows, without the Mac (no GnuCOBOL, JDK 21, SSH key, video sources or local Claude memory there). This section is the whole context a new session needs; the dated sections below are history.
