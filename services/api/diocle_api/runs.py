@@ -37,6 +37,7 @@ def _verification(path: Path, limit: int = 8) -> dict | None:
     return {
         **({"database": database} if isinstance(database, dict) else {}),
         **({"keyed": keyed} if isinstance(keyed, dict) else {}),
+        **({"standIns": report["runs"]["standIns"]} if report["runs"].get("standIns") else {}),
         **report["summary"],
         "stdoutMatch": report["runs"]["stdoutMatch"],
         "failingExamples": [

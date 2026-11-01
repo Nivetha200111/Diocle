@@ -360,6 +360,34 @@ def _copybook_paths(report: dict, program: dict) -> list[str]:
     return [program["copybookPaths"][c] for c in program["copybooks"]]
 
 
+NOT_ESTABLISHED = ["Formal equivalence: the comparison covers the inputs tried, not every possible input.",
+                   "Behaviour on IBM Enterprise COBOL or z/OS."]
+
+
+def certificate_scope(run: dict) -> dict:
+    """contracts/certificate.schema.json `scope`, read from the run record. A check that did not happen says so."""
+    after = run.get("after") or {}
+    breaker, guard = run.get("breaker") or {}, run.get("guard") or {}
+    tried, broke = breaker.get("tried") or 0, breaker.get("broke") or 0
+    review = guard.get("review") or {}
+    verdict = review.get("verdict")
+    stand_ins = []
+    if after.get("database"):
+        stand_ins.append(f"{after['database'].get('engine') or 'SQLite'} stands in for DB2")
+    if after.get("keyed"):
+        stand_ins.append("Berkeley DB (GnuCOBOL's indexed handler) stands in for VSAM")
+    stand_ins += [f"Diocle's own {s.get('routine')} routine stands in for IBM Language Environment" for s in after.get("standIns") or []]
+    return {
+        "oracle": "The original COBOL compiled with GnuCOBOL 3.2 under IBM's TRUNC(STD) and DISPLAY defaults, run on generated records (not IBM Enterprise COBOL).",
+        "standIns": stand_ins,
+        "attack": ({"status": "not-run"} if not tried else
+                   {"status": "survived" if not broke else "broken-and-repaired", "tried": tried, "broke": broke}),
+        "crossCheck": "ran" if run.get("crosscheck") else "not-run",
+        "guardReview": verdict if verdict in ("pass", "fail") else "skipped" if verdict else "not-run",
+        "notEstablished": NOT_ESTABLISHED,
+    }
+
+
 def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_commit: str) -> dict:
     after = run["after"]
     eff = run["efficiency"]
@@ -380,6 +408,7 @@ def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_com
                   "rounds": len(run["rounds"]), "modelCalls": eff["modelCalls"], "totalTokens": eff["totalTokens"],
                   "estimatedCostUsd": eff["estimatedCostUsd"],
                   "memoryLessonsUsed": (run.get("memory") or {}).get("used", 0)},
+        "scope": certificate_scope(run),
         "issuedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
 
@@ -402,13 +431,31 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         + ("" if not others else " Programs under the other headings are NOT certified; read their sections."), "",
     ]
     if delivered:
-        lines += ["## Certified", "", "| Program | Before | Held-out certification | Agent | Est. cost |", "|---|---|---|---|---|"]
+        lines += ["## Certified (matched on the records tried; see What this shows)", "",
+                  "| Program | Before | Held-out certification | Breaker | Guard review | Agent | Est. cost |", "|---|---|---|---|---|---|---|"]
     for run, cert in delivered:
         before = f"{run['before']['passed']}/{run['before']['total']}" if run.get("before") else "n/a"
         v, a = cert["verification"], cert["agent"]
-        lines.append(f"| `{cert['program']}` | {before} | **{v['passed']}/{v['total']}** match, stdout "
-                     f"{'matches' if v['stdoutMatch'] else 'differs'} | {a['modelCalls']} calls, {a['rounds']} round(s), "
+        scope = cert.get("scope") or certificate_scope(run)
+        attack = scope["attack"]
+        attacked = ("**not run**" if attack["status"] == "not-run" else
+                    f"{attack['tried']} designed, none differed" if attack["status"] == "survived" else
+                    f"{attack['tried']} designed, {attack['broke']} differed; repaired")
+        guarded = {"pass": "pass", "fail": "**fail**", "skipped": "**skipped**", "not-run": "not run"}[scope["guardReview"]]
+        lines.append(f"| `{cert['program']}` | {before} | **{v['passed']}/{v['total']}** output records match, stdout "
+                     f"{'matches' if v['stdoutMatch'] else 'differs'} | {attacked} | {guarded} | {a['modelCalls']} calls, {a['rounds']} round(s), "
                      f"{a['memoryLessonsUsed']} lessons from memory | {_usd(a['estimatedCostUsd'])} |")
+    if delivered:
+        stand_ins = sorted({x for run, cert in delivered for x in (cert.get("scope") or certificate_scope(run))["standIns"]})
+        lines += ["", "### What this shows", "",
+                  "- **Shown:** each program compiled and, on the generated records and designed inputs tried, its Java wrote the same "
+                  "output bytes, display lines and exit code as the original under GnuCOBOL 3.2. One run of each side per check; the counts are output records compared.",
+                  "- **Not shown:** formal equivalence for every input, or behaviour on IBM Enterprise COBOL and z/OS. "
+                  "Generated records are well-formed; bad data is only exercised by what the breaker designs.",
+                  *([f"- **Stand-ins:** {'; '.join(stand_ins)}. Passing against a stand-in is not passing on the real platform."] if stand_ins else []),
+                  "- **Not a pass:** a breaker marked \"not run\" (off, or a program shape it cannot attack) and a guard review marked \"skipped\" or \"not run\" checked nothing. "
+                  "The deterministic Java policy and the comparison ran regardless.",
+                  "- **Still for a person:** code review, integration with real data and downstream systems, and acceptance on your own runtime."]
     repaired = [o for o in others if o["assurance"] == "certified-against-repaired-cobol"]
     unverified = [o for o in others if o["assurance"] == "compiled-unverified"]
     failed = [o for o in others if o["assurance"] == "failed"]

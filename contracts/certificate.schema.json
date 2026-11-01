@@ -62,6 +62,27 @@
         "memoryLessonsUsed": { "type": "integer" }
       }
     },
+    "scope": {
+      "type": "object",
+      "description": "Additive. What this certificate does and does not rest on, so a reader of the file alone can tell a skipped check from a passed one.",
+      "required": ["oracle", "standIns", "attack", "crossCheck", "guardReview", "notEstablished"],
+      "properties": {
+        "oracle": { "type": "string", "description": "What the Java was compared with, in one sentence (GnuCOBOL, or the mainframe's captured output)." },
+        "standIns": { "type": "array", "items": { "type": "string" }, "description": "Stated stand-ins the result depends on (SQLite for DB2, Berkeley DB for VSAM, Diocle's CEE3ABD routine). Empty when none." },
+        "attack": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "type": "string", "enum": ["survived", "broken-and-repaired", "not-run"], "description": "not-run is not a pass: the breaker was off, or the program's shape is not one it can attack." },
+            "tried": { "type": "integer" },
+            "broke": { "type": "integer" }
+          }
+        },
+        "crossCheck": { "type": "string", "enum": ["ran", "not-run"] },
+        "guardReview": { "type": "string", "enum": ["pass", "fail", "skipped", "not-run"], "description": "The optional model review. skipped: it was configured but did not complete (a cap or an error). The deterministic policy runs regardless." },
+        "notEstablished": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "issuedAt": { "type": "string", "description": "ISO 8601" }
   }
 }
