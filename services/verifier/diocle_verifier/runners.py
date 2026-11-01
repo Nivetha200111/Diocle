@@ -93,6 +93,28 @@ def format_flags(source: Path) -> list[str]:
     return ["-free"] if _FREE_DIRECTIVE.match(first) else []
 
 
+def build_executable(exe: Path, main: Path, others: list[Path], flags: list[str], workdir: Path,
+                     timeout: int = 120) -> subprocess.CompletedProcess:
+    """cobc -x the entry program with its CALLed modules and stand-ins. One command when every file has the same
+    source format (as before); otherwise each file is compiled to an object with its own format flag and then
+    linked, because -free on the command line would apply to a fixed-format module too."""
+    files = [main, *others]
+    formats = [format_flags(f) for f in files]
+    if all(f == formats[0] for f in formats):
+        return _exec(["cobc", "-x", "-std=ibm", *flags, *formats[0], "-o", str(exe), *map(str, files)], timeout=timeout)
+    objects = workdir / "objects"
+    objects.mkdir(exist_ok=True)
+    built = []
+    for i, (path, fmt) in enumerate(zip(files, formats)):
+        obj = objects / f"{i:02d}-{path.stem}.o"
+        step = _exec(["cobc", "-c", "-std=ibm", *(["-x"] if i == 0 else []), *flags, *fmt, "-o", str(obj), str(path)],
+                     timeout=timeout)
+        if step.returncode != 0:
+            return step
+        built.append(str(obj))
+    return _exec(["cobc", "-x", "-std=ibm", "-o", str(exe), *built], timeout=timeout)
+
+
 # Both sides see the same "now": GnuCOBOL through COB_CURRENT_DATE, Java through DIOCLE_CLOCK (ISO-8601, UTC).
 CLOCK = "2000-02-29T13:45:10.00Z"
 CLOCK_ENV = {"COB_CURRENT_DATE": "2000/02/29 13:45:10.00", "DIOCLE_CLOCK": CLOCK, "TZ": "UTC"}
@@ -135,8 +157,8 @@ def run_cobol(source: Path, copybook_dir: Path, dd: dict[str, str], input_path: 
     collation "ebcdic" compares and sorts alphanumeric data in mainframe (EBCDIC) order."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *format_flags(source), *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
-                   *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir)])
+    build = build_executable(exe, source, [*(modules or []), *map(Path, _stand_ins(source, modules, workdir))],
+                             [*IBM_FLAGS, *colseq, "-I", str(copybook_dir)], workdir)
     if build.returncode != 0:
         return Run(False, build.returncode, build.stdout, build.stderr)
     return _run_program([str(exe)], dd, input_path, workdir, "original", out_format)
@@ -159,8 +181,8 @@ def build_cobol(source: Path, copybook_dir: Path, workdir: Path, modules: list[P
     """Compile once; returns (command to run, None) or (None, failed Run)."""
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *format_flags(source), *colseq, "-I", str(copybook_dir), "-o", str(exe), str(source),
-                   *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir)], timeout=timeout)
+    build = build_executable(exe, source, [*(modules or []), *map(Path, _stand_ins(source, modules, workdir))],
+                             [*IBM_FLAGS, *colseq, "-I", str(copybook_dir)], workdir, timeout=timeout)
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
     return [str(exe)], None
