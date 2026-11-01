@@ -42,6 +42,24 @@ I have worked on a COBOL modernization project at a global finance company. Revi
 - About **$0.69** of raw model spend for the whole measurement at list prices (excludes compute, hosting and human review; no comparison with human cost is made).
 - Small sample, one model, synthetic programs; the per-program table, caveats and deviations are in the measurement document. CHQCLR's runs disagree (certified on the live site with fix memory on, not certified in the controlled run): [CHQCLR: certified or not?](#chqclr-certified-or-not)
 
+## One public program, not ours: CardDemo's CBCUS01C
+
+Everything above is on synthetic programs we wrote. As a separate check, on Nov 1 we ran `CBCUS01C`, a 178-line customer-file reader from [AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo) (Apache-2.0, commit `59cc6c2fd7eb`), through conversion and every check that applies to it. **It certified, for $0.0112 and 2 model calls. It is a small program with little logic, and the checks reached only part of it.**
+
+| Check | Result |
+|---|---|
+| Analyzer, no model | Convertible. So are only 4 of CardDemo's 44 programs; the rest are refused with a reason, mostly CICS and missing copybooks |
+| Translate, Muse Spark | Compiled first time, no repair needed |
+| Compare with the original under GnuCOBOL | 250 seeded keyed records; final file, all 502 display lines and exit code identical. Repeated on 5 fresh seeds: all pass |
+| Guard policy and model review, Muse Spark Open on Fireworks | Policy stopped nothing; review completed: pass |
+| Copybook to SQL, SQLite round trip | 205 of 205 records byte for byte |
+| Seeded faults | **5 of 40 detected, 35 survived.** Most sit in file-status and abend handling that valid seeded data never reaches; a few change nothing on the status values it sees. Grouped by reading the code |
+| Breaker and cross-check | **Not run:** the program writes no output file, and both need one |
+| Abend path | **Not reached.** `CEE3ABD` is Diocle's stand-in, not IBM Language Environment |
+| Pull request and target-repository CI | **Not run:** delivery targets allowed owners only, and would publish Java derived from CardDemo |
+
+So this shows the pipeline runs on code we did not write and refuses what it cannot check. It does not show CardDemo was migrated: Berkeley DB stands in for VSAM, GnuCOBOL for IBM Enterprise COBOL, and the run is local, not on the public list. No CardDemo code or derived Java is in this repository. Record: [eval/results-carddemo-20261101.json](eval/results-carddemo-20261101.json). To repeat it with your own key (about a cent), from each service's folder: `python -m diocle_analyzer <clone> --samples-dir ../../runs/_carddemo`, then `python -m diocle_converter run ../../runs/_carddemo/cbcus01c --no-memory --breaker --crosscheck --max-usd 0.30`.
+
 ## Judge path: three clicks
 
 1. Open [diocle.vercel.app](https://diocle.vercel.app): the first screen is the finding, one catch (on a record with a malformed fee field, the COBOL on GnuCOBOL charged 20.00 and the AI-written Java 0.00), the four steps, the numbers and the limits. Scroll once for CHQCLR's COBOL next to its certified Java and press **Try the sample**: both programs run again on about 1,000 generated records from a seed chosen right then (free, no model call: it re-checks stored Java, it does not convert anything).

@@ -1,0 +1,98 @@
+{
+ "synthetic": false,
+ "source": {
+  "repository": "https://github.com/aws-samples/aws-mainframe-modernization-carddemo",
+  "commit": "59cc6c2fd7eb",
+  "licence": "Apache-2.0",
+  "path": "app/cbl/CBCUS01C.cbl",
+  "sha256": "233dbc3bc33a3b9ac555922085a92be56e88d16316bff624b5723c4c36c99714",
+  "lines": 178,
+  "note": "Not vendored: no CardDemo source or derived Java is in this repository."
+ },
+ "run": {
+  "id": "cbcus01c-20261101-220900",
+  "date": "2026-11-01",
+  "where": "local Mac, GnuCOBOL 3.2, JDK 27; not on the public run list",
+  "javaSha256": "326859c1c8d8a0e4a8769883e2cfec35702494e28bcb82f897fa3ca5892a444b",
+  "certified": true,
+  "modelCalls": 2,
+  "estimatedCostUsd": 0.011193,
+  "memory": "off",
+  "calls": [
+   {
+    "role": "translator",
+    "model": "muse-spark-1.3-contributor"
+   },
+   {
+    "role": "guard",
+    "model": "accounts/fireworks/models/muse-spark-open"
+   }
+  ]
+ },
+ "checks": {
+  "analyzer": "convertible; 4 of 44 CardDemo programs are",
+  "translate": "Muse Spark; compiled first time",
+  "compare": {
+   "casesPassed": 2,
+   "casesTotal": 2,
+   "meaning": "one keyed file and one display stream",
+   "recordsSeeded": 250,
+   "displayLines": 502,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "seed": 4242
+  },
+  "freshSeeds": [
+   {
+    "seed": 9001,
+    "passes": true
+   },
+   {
+    "seed": 9002,
+    "passes": true
+   },
+   {
+    "seed": 9003,
+    "passes": true
+   },
+   {
+    "seed": 9004,
+    "passes": true
+   },
+   {
+    "seed": 9005,
+    "passes": true
+   }
+  ],
+  "guardPolicy": {
+   "stopped": 0,
+   "findings": 0
+  },
+  "guardModelReview": {
+   "model": "accounts/fireworks/models/muse-spark-open",
+   "verdict": "pass"
+  },
+  "sqlRoundTrip": {
+   "records": 205,
+   "result": "205 of 205 byte for byte, SQLite"
+  },
+  "seededFaults": {
+   "selected": 40,
+   "counts": {
+    "detected": 5,
+    "survived": 35
+   },
+   "note": "Same operators as the mutation tool, run by hand: its report does not support display-only programs. 'survived' means no input noticed."
+  },
+  "breaker": {
+   "status": "not-run",
+   "reason": "display-only program"
+  },
+  "crossCheck": {
+   "status": "not-run",
+   "reason": "it designs records for one input and one output file, and this program writes no output file (it only writes to the screen)"
+  },
+  "abendPath": "not reached: generated data does not cause file-status errors; CEE3ABD is Diocle's stated stand-in",
+  "pullRequestAndTargetCI": "not run: delivery only targets allowed owners, and it would publish Java derived from CardDemo"
+ }
+}
