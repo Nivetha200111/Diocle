@@ -103,7 +103,7 @@ export function originalWroteNothing(v: Verification): boolean {
 }
 
 export function caseCount(v: { passed: number; total: number }): string {
-  return v.total > 0 ? `${v.passed.toLocaleString()}/${v.total.toLocaleString()}` : "none ran";
+  return v.total > 0 ? `${v.passed.toLocaleString()}/${v.total.toLocaleString()}` : "none compared";
 }
 
 export function countTile(v: Verification | null | undefined, opts: { error?: string | null; heldOut?: boolean }):
@@ -111,7 +111,7 @@ export function countTile(v: Verification | null | undefined, opts: { error?: st
   if (!v || v.total === 0) {
     if (originalDidNotCompile(opts.error)) return { value: "—", note: "the original COBOL did not compile, so nothing ran" };
     if (!v) return { value: "n/a", note: opts.heldOut ? "no certification" : "not recorded" };
-    return { value: "—", note: "no cases compared: neither program wrote output to compare" };
+    return { value: "—", note: "no cases compared: the Java did not build, or neither program wrote output" };
   }
   const pct = Math.round((v.passed / v.total) * 1000) / 10;
   return {

@@ -30,7 +30,7 @@ function DeliveryNow({ d, now }: { d: Delivery; now: number }) {
     { label: "1. Clone & analyze", state: d.stage === "analyzing" ? "busy" : total ? "ok" : d.stage === "failed" ? "bad" : "off",
       note: d.stage === "analyzing" ? "reading programs and copybooks" : `${total} program${total === 1 ? "" : "s"}` },
     { label: "2. Convert & certify", state: d.stage === "converting" ? "busy" : ["delivering", "done"].includes(d.stage) ? "ok" : d.stage === "failed" ? "bad" : "off",
-      note: `${certified}/${total} certified` },
+      note: total ? `${certified}/${total} certified` : "waiting for the program list" },
     ...(d.target ? [{ label: "3. Open pull request", state: (d.pullRequest ? "ok" : d.stage === "delivering" ? "busy" : "off") as "ok" | "busy" | "off",
       note: d.pullRequest ? "opened" : "waiting" }] : []),
   ];
