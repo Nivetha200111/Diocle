@@ -26,5 +26,5 @@ Counts below are from the public run list (`GET https://diocle.vercel.app/api/ru
 ## Not Meta models, and why they are disclosed
 
 - The demo video narration is the author's own recorded voice; no speech synthesis is used in the video. See [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
-- The two spoken-question clips in the product are made with macOS `say` (`services/api/diocle_api/voice_clips/`).
+- The two spoken-question clips in the product are the author's own recorded voice (`services/api/diocle_api/voice_clips/`).
 - GnuCOBOL is the verifier's oracle and is not a model.
