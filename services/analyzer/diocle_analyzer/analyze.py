@@ -433,6 +433,46 @@ def _sample_ksds(program: dict, inputs: list[dict]) -> dict:
     return {"subset": KEYED_SUBSET, "keyLinks": links}
 
 
+REPO_FIXTURE_MAX = 400  # records per program taken from the repository's own data files
+_SOURCE_SUFFIXES = COBOL_SUFFIXES | COPYBOOK_SUFFIXES | JCL_SUFFIXES | {".md", ".json", ".yml", ".yaml", ".xml", ".py", ".sql",
+                                                                       ".sh", ".bms", ".mac", ".asm", ".out"}
+
+
+def repo_fixtures(root: Path, layout: dict) -> list[dict]:
+    """Seed records for a flat line-sequential input (01 IN-RECORD PIC X(n), sliced by reference modification).
+
+    Generated inputs for one n-byte alphanumeric field are filler that real programs reject on the first byte, so
+    the verifier would mostly exercise the reject path. Instead, every text data file in the repository whose
+    lines all fit the record (at most n characters, at least one exactly n) contributes evenly spaced records, up
+    to REPO_FIXTURE_MAX in all. They are run through both the COBOL and the Java like any other input; each case
+    names the file and line it came from. Structured layouts keep the generated inputs only."""
+    fields = layout.get("fields") or []
+    if layout.get("format") != "line" or len(fields) != 1 or fields[0]["kind"] != "alnum":
+        return []
+    width = fields[0]["length"]
+    found: list[tuple[str, list[tuple[int, str]]]] = []
+    for path in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.parts):
+        if path.suffix.lower() in _SOURCE_SUFFIXES or path.stat().st_size > 4_000_000 or any(
+                part.lower() in ("expected", "output", "outputs") for part in path.relative_to(root).parts[:-1]):
+            continue
+        text = _text(path)
+        if text is None:
+            continue
+        lines = [(n, line.rstrip("\r")) for n, line in enumerate(text.split("\n"), 1) if line.rstrip("\r").strip()]
+        if lines and all(len(line) <= width for _, line in lines) and any(len(line) == width for _, line in lines):
+            found.append((path.relative_to(root).as_posix(), lines))
+    if not found:
+        return []
+    per_file = max(1, REPO_FIXTURE_MAX // len(found))
+    cases = []
+    for rel, lines in found:
+        step = max(1, -(-len(lines) // per_file))  # ceiling: spread the picks over the whole file
+        for n, line in lines[::step][:per_file]:
+            cases.append({"id": f"repo-{len(cases) + 1:04d}", "record": line.ljust(width),
+                          "why": f"line {n} of {rel} in the imported repository"})
+    return cases[:REPO_FIXTURE_MAX]
+
+
 def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path:
     """Materialize one convertible program as a Diocle sample directory (the converter's input format)."""
     root = root.resolve()
@@ -475,6 +515,9 @@ def write_sample(root: Path, report: dict, program: dict, out_dir: Path) -> Path
                             **({"keyed": f["keyed"]} if f.get("keyed") else {})}
                            for f in inputs + updated + outputs],
                  **shared_keys(inputs)}),
+        **({"fixtureCases": seeds} if single and (seeds := repo_fixtures(root, by_direction["input"]["layout"])) else {}),
+        **({"fixtureFiles": multi_seeds} if not single and (multi_seeds := {
+            f["dd"]: [c["record"] for c in cases] for f in inputs if (cases := repo_fixtures(root, f["layout"]))}) else {}),
         **({"displayOnly": True} if program.get("displayOnly") else {}),
         **({"standIns": program["standIns"]} if program.get("standIns") else {}),
         **({"sql": _sample_sql(program, inputs)} if program.get("sql") else {}),
