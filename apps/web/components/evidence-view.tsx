@@ -183,7 +183,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
             </li>
           ))}
         </ul>
-        <p className="home-more"><a href={`${LINKS.diocle}#not-supported-yet`} target="_blank" rel="noreferrer">Everything not supported yet</a></p>
+        <p className="home-more"><a href={`${LINKS.diocle}/blob/main/docs/DETAILS.md#not-supported-yet`} target="_blank" rel="noreferrer">Everything not supported yet</a></p>
       </section>
 
       <section className="panel">
