@@ -49,11 +49,11 @@ The score looked low. Re-testing the same 40 seeded faults on other inputs (`--m
 |---|---|
 | The stored run's generated records (placeholder bodies) | 14 |
 | The fixed generator, 1,000 records | 20 |
-| 1,000 well-formed records (audit) | 21 |
+| 1,000 valid records (audit) | 21 |
 | The stored breaker's 22 designed records | 22 |
-| 11 cheques of the largest amount (9-digit total) | 17 |
-| 120 cheques of the largest amount (total overflows) | 18 |
-| One small cheque (single-digit total) | 19 |
+| 11 cheques of the largest amount (9-digit total) | 14 |
+| 120 cheques of the largest amount (total overflows) | 15 |
+| One small cheque (single-digit total) | 15 |
 | **Any of the above** | **26** |
 
 The sets overlap, and the last three are tiny and were aimed at survivors after seeing them, so read the "any" as a floor for what is reachable, not as what a certification run detects. Two faults were caught only by the old placeholder records (`m033`, `m034`, the path for a net total of exactly zero): the fixed generator does not reach that path by chance, so it is not simply better in every respect.

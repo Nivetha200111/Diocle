@@ -49,9 +49,9 @@
    "total": 1004,
    "passed": 1004,
    "failed": 0,
-   "distinctOutputs": 1003,
+   "distinctOutputs": 1004,
    "nonZeroDebits": 491,
-   "nonZeroFees": 487
+   "nonZeroFees": 489
   },
   {
    "seed": 8801,
@@ -59,9 +59,9 @@
    "total": 1004,
    "passed": 1004,
    "failed": 0,
-   "distinctOutputs": 1003,
-   "nonZeroDebits": 512,
-   "nonZeroFees": 465
+   "distinctOutputs": 1004,
+   "nonZeroDebits": 513,
+   "nonZeroFees": 470
   },
   {
    "seed": 9001,
@@ -69,9 +69,9 @@
    "total": 1004,
    "passed": 1004,
    "failed": 0,
-   "distinctOutputs": 1003,
+   "distinctOutputs": 1004,
    "nonZeroDebits": 479,
-   "nonZeroFees": 510
+   "nonZeroFees": 511
   },
   {
    "seed": 9002,
@@ -79,8 +79,8 @@
    "total": 1004,
    "passed": 1004,
    "failed": 0,
-   "distinctOutputs": 1003,
-   "nonZeroDebits": 471,
+   "distinctOutputs": 1004,
+   "nonZeroDebits": 470,
    "nonZeroFees": 519
   },
   {
@@ -89,16 +89,16 @@
    "total": 1004,
    "passed": 1004,
    "failed": 0,
-   "distinctOutputs": 1003,
-   "nonZeroDebits": 504,
-   "nonZeroFees": 477
+   "distinctOutputs": 1004,
+   "nonZeroDebits": 507,
+   "nonZeroFees": 481
   }
  ],
  "wellFormed": [
   {
-   "java": "eval/showcase/chqclr-20261028-214355/java",
+   "java": "chqclr-20261028-214355",
    "javaSha256": "7749c5e13488bcdab95da31767102c9af590b919c35336951ddd962b8e45a301",
-   "recordsCompared": 1004,
+   "recordsCompared": 1000,
    "failed": 0,
    "auditRecords": 1000,
    "distinctOutputs": 907,
@@ -107,12 +107,14 @@
    "stdoutMatch": true,
    "exitCodeMatch": true,
    "passes": true,
+   "cheques": 478,
+   "returns": 428,
    "firstFailures": []
   },
   {
-   "java": "run folder chqclr-20261028-234854",
+   "java": "chqclr-20261028-234854",
    "javaSha256": "6f9bd7a778545388356f4e25da12910af38fc86dab1bc195c0f97db94a4e5d6d",
-   "recordsCompared": 1004,
+   "recordsCompared": 1000,
    "failed": 0,
    "auditRecords": 1000,
    "distinctOutputs": 907,
@@ -121,26 +123,14 @@
    "stdoutMatch": true,
    "exitCodeMatch": true,
    "passes": true,
+   "cheques": 478,
+   "returns": 428,
    "firstFailures": []
   },
   {
-   "java": "run folder chqclr-20261101-004628",
-   "javaSha256": "e77c75640b78cd5e42bc6442471a861d828f26e537f575071cc01c26b5c6e75f",
-   "recordsCompared": 1004,
-   "failed": 0,
-   "auditRecords": 1000,
-   "distinctOutputs": 907,
-   "nonZeroDebits": 473,
-   "nonZeroFees": 339,
-   "stdoutMatch": true,
-   "exitCodeMatch": true,
-   "passes": true,
-   "firstFailures": []
-  },
-  {
-   "java": "run folder chqclr-20261030-163002",
+   "java": "chqclr-20261030-163002",
    "javaSha256": "db4daeeb9a111f189d50f82f840f0f907ae04cc7c969927640e6bbcf74cc72cd",
-   "recordsCompared": 1004,
+   "recordsCompared": 1000,
    "failed": 0,
    "auditRecords": 1000,
    "distinctOutputs": 907,
@@ -149,6 +139,74 @@
    "stdoutMatch": true,
    "exitCodeMatch": true,
    "passes": true,
+   "cheques": 478,
+   "returns": 428,
+   "firstFailures": []
+  },
+  {
+   "java": "chqclr-20261101-002207",
+   "javaSha256": "b520e4ed8082f29b2e4e04bebf9e2c4a5a272f3b90f081134ce909db9640c599",
+   "recordsCompared": 1000,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "cheques": 478,
+   "returns": 428,
+   "firstFailures": []
+  },
+  {
+   "java": "chqclr-20261101-004628",
+   "javaSha256": "e77c75640b78cd5e42bc6442471a861d828f26e537f575071cc01c26b5c6e75f",
+   "recordsCompared": 1000,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "cheques": 478,
+   "returns": 428,
+   "firstFailures": []
+  },
+  {
+   "java": "chqclr-20261101-142844",
+   "javaSha256": "0a8c00de9d1dd7ab36774832a9bb5847bd9f84227cca0f5a2db9f2e72eb26d52",
+   "recordsCompared": 1000,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": false,
+   "exitCodeMatch": true,
+   "displayOriginal": "CHQCLR NET= -88199037.41",
+   "displayJava": "CHQCLR NET= -88298037.41",
+   "passes": false,
+   "cheques": 478,
+   "returns": 428,
+   "firstFailures": []
+  },
+  {
+   "java": "chqclr-20261101-162541",
+   "javaSha256": "ecbdc672eaadf864de80deccf55383f78450ed1693795018af3bb2ed7a28e4b6",
+   "recordsCompared": 1000,
+   "failed": 0,
+   "auditRecords": 1000,
+   "distinctOutputs": 907,
+   "nonZeroDebits": 473,
+   "nonZeroFees": 339,
+   "stdoutMatch": true,
+   "exitCodeMatch": true,
+   "passes": true,
+   "cheques": 478,
+   "returns": 428,
    "firstFailures": []
   }
  ],
@@ -165,9 +223,9 @@
    "fixedGenerator": 20,
    "wellFormedAudit": 21,
    "breakerRecords": 22,
-   "largeTotal": 17,
-   "overflowingTotal": 18,
-   "smallTotal": 19
+   "largeTotal": 14,
+   "overflowingTotal": 15,
+   "smallTotal": 15
   },
   "detectedByAny": 26,
   "mutants": [
@@ -210,8 +268,7 @@
      "wellFormedAudit",
      "breakerRecords",
      "largeTotal",
-     "overflowingTotal",
-     "smallTotal"
+     "overflowingTotal"
     ]
    },
    {
@@ -372,10 +429,7 @@
      "storedRunInputs",
      "fixedGenerator",
      "wellFormedAudit",
-     "breakerRecords",
-     "largeTotal",
-     "overflowingTotal",
-     "smallTotal"
+     "breakerRecords"
     ]
    },
    {
@@ -389,10 +443,7 @@
      "storedRunInputs",
      "fixedGenerator",
      "wellFormedAudit",
-     "breakerRecords",
-     "largeTotal",
-     "overflowingTotal",
-     "smallTotal"
+     "breakerRecords"
     ]
    },
    {
@@ -406,10 +457,7 @@
      "storedRunInputs",
      "fixedGenerator",
      "wellFormedAudit",
-     "breakerRecords",
-     "largeTotal",
-     "overflowingTotal",
-     "smallTotal"
+     "breakerRecords"
     ]
    },
    {
