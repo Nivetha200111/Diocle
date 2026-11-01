@@ -1,9 +1,15 @@
+import json
+import shutil
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from diocle_verifier.inputs import generate_cases
-from diocle_verifier.layout import format_record, load_fields, parse_record, record_length
+from diocle_verifier.inputs import generate_cases, generate_for_layout
+from diocle_verifier.layout import format_record, load_fields, parse_record, record_length, redefine_views
+from diocle_verifier.verify import passes, verify_sample
+
+ROOT = Path(__file__).resolve().parents[3]
 
 SPEC = {
     "fields": [
@@ -79,3 +85,66 @@ def test_generation_is_deterministic_and_covers_boundaries():
     amounts = {parse_record(c.record, fields)["AMT"] for c in a if c.source == "boundary"}
     assert {Decimal("99999.99"), Decimal("-99999.99"), Decimal("0.01"), Decimal("-0.01"), Decimal(0)} <= amounts
     assert len({c.id for c in a}) == len(a)
+
+
+# ---- REDEFINES views: the generator fills a shared body with real values ----------------------------------------------
+
+CHQCLR = ROOT / "eval" / "samples" / "chqclr"
+
+
+def _chqclr_layout():
+    return json.loads((CHQCLR / "sample.json").read_text())["layouts"]["input"]
+
+
+def test_views_are_grouped_by_the_length_of_the_body_they_fill():
+    views = redefine_views(_chqclr_layout())
+    assert [[f.name for f in v] for v in views["CQ-BODY"]] == [
+        ["CQ-ACCT", "CQ-NUMBER", "CQ-AMOUNT", "CQ-DATE", "FILLER"], ["RT-ACCT", "RT-NUMBER", "RT-REASON", "RT-FEE", "FILLER"]]
+
+
+def test_a_view_that_does_not_fill_the_body_is_not_guessed():
+    base = {"name": "BODY", "kind": "alnum", "length": 10}
+    short = {"name": "A", "kind": "alnum", "length": 4, "redefines": "BODY"}
+    over = {"name": "B", "kind": "alnum", "length": 12, "redefines": "BODY"}
+    assert redefine_views({"fields": [base, short]}) == {}
+    assert redefine_views({"fields": [base, over]}) == {}
+    assert redefine_views({"fields": [{**base, "kind": "numeric", "digits": 10, "scale": 0}, short]}) == {}
+
+
+def test_generated_chqclr_records_are_well_formed_and_carry_real_values():
+    cases = generate_for_layout(_chqclr_layout(), seed=4243, random_count=1000)
+    records = [c.record for c in cases if c.source == "random"]
+    assert len(records) == 1000 and all(len(r) == 40 for r in records)
+    cheques = [r for r in records if r[0] == "C"]
+    returns = [r for r in records if r[0] == "R"]
+    assert len(cheques) > 400 and len(returns) > 400 and len(cheques) + len(returns) == 1000
+    assert all(r[11:19].isdigit() and r[19] in "+-" and r[20:29].isdigit() and r[29:37].isdigit() and r[37:] == "   " for r in cheques)
+    assert all(r[11:19].isdigit() and r[19:21] in ("NS", "SP") and r[21:26].isdigit() and r[26:] == " " * 14 for r in returns)
+    assert len({r[20:29] for r in cheques}) > 200 and len({r[21:26] for r in returns}) > 200
+
+
+def test_records_without_views_are_exactly_what_they_always_were():
+    # The stream for views is separate, so every layout without a redefined alphanumeric body keeps its records, seed for seed.
+    for sample in ("samples/interest-accrual", "samples/txn-posting", "eval/samples/loanamrt"):
+        spec = json.loads((ROOT / sample / "sample.json").read_text())
+        if "layouts" not in spec:
+            continue
+        layout = spec["layouts"]["input"]
+        assert generate_for_layout(layout, seed=8801, random_count=50) == generate_cases(load_fields(layout), seed=8801, random_count=50)
+
+
+@pytest.mark.toolchain
+def test_a_fee_fault_on_ordinary_returns_is_caught_only_with_real_values(tmp_path):
+    """The failure this fix exists for: Java that charges no NSF fee at all. Without views every generated fee is zero and it
+    passes 1,004 of 1,004; with views the same check fails. GnuCOBOL and the JDK are real; the fault is planted here."""
+    java = tmp_path / "java"
+    shutil.copytree(ROOT / "eval" / "showcase" / "chqclr-20261028-214355" / "java", java)
+    source = java / "Chqclr.java"
+    text = source.read_text()
+    good = "outFee = truncUnsigned(fee.multiply(BigDecimal.valueOf(2)), 3, 2);"
+    assert good in text
+    source.write_text(text.replace(good, "outFee = BigDecimal.ZERO.setScale(2);"))
+    caught = verify_sample(CHQCLR, java, seed=4243, random_count=200)
+    assert not passes(caught) and any("CL-FEE" in (r.get("diff") or "") for r in caught["results"])
+    source.write_text(text)
+    assert passes(verify_sample(CHQCLR, java, seed=4243, random_count=200))

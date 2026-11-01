@@ -10,7 +10,7 @@ from pathlib import Path
 from . import REPORT_VERSION
 from .codec import convert_file
 from .diff import compare
-from .inputs import Case, generate_cases
+from .inputs import Case, generate_for_layout
 from .layout import load_fields, record_format, record_length
 from .multi import is_multi, verify_multi
 from .runners import (CLOCK, FAIL_CLOSED, Run, guard_after, guard_before, original_sources, read_records, run_cobol,
@@ -49,7 +49,7 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
     corpus = [Case(f"corpus-{i + 1:04d}", "corpus", r) for i, r in enumerate(
         r for path in meta.get("corpus", []) for r in read_records(sample_dir / path, in_format, in_length))]
     cases = (fixtures + golden_cases + corpus + list(extra_cases or [])
-             + generate_cases(in_fields, seed=seed, random_count=random_count))
+             + generate_for_layout(meta["layouts"]["input"], seed=seed, random_count=random_count))
     with tempfile.TemporaryDirectory(prefix="diocle-verify-") as tmp:
         work = Path(tmp)
         input_path = work / "input.dat"

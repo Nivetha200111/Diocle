@@ -1,0 +1,189 @@
+{
+  "rounds": 2,
+  "tried": 24,
+  "broke": 2,
+  "repairCycles": 1,
+  "fixed": true,
+  "counterexamples": [
+    {
+      "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+      "why": "Fee with leading space is zero in Java but may be nonzero in COBOL.",
+      "diff": "CL-FEE: original 20.00 converted 0.00"
+    },
+    {
+      "input": "CACCT00000100000011+0000AB12320240101XXX",
+      "why": "Non-numeric amount digits tests Java zero versus COBOL conversion.",
+      "diff": "CL-DEBIT: original -121.23 converted 0.00"
+    }
+  ],
+  "attempts": [
+    {
+      "id": "breaker-attack-r1-01",
+      "input": "CACCT00000100000001+99999999920240101XXX",
+      "why": "Max cheque amount tests largest debit and total.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-02",
+      "input": "CACCT00000100000002-99999999920240101XXX",
+      "why": "Most negative amount makes debit positive credit.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-03",
+      "input": "RACCT00000200000003NS50000YYYYYYYYYYYYYY",
+      "why": "NS fee 500.00 doubles to 1000.00 testing fee overflow to zero.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-04",
+      "input": "RACCT00000200000004NS60000YYYYYYYYYYYYYY",
+      "why": "NS fee 600.00 doubles to 1200.00 testing high-order truncation to 200.00.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-05",
+      "input": "RACCT00000200000005NS99999YYYYYYYYYYYYYY",
+      "why": "NS max fee 999.99 doubles to 1999.98 testing wrap to 999.98.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-08",
+      "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+      "why": "Fee with leading space is zero in Java but may be nonzero in COBOL.",
+      "broke": true,
+      "diff": "CL-FEE: original 20.00 converted 0.00"
+    },
+    {
+      "id": "breaker-attack-r1-09",
+      "input": "CACCT00000100000009100000000120240101XXX",
+      "why": "Digit in sign position tests Java ignoring sign char versus COBOL digit value.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-10",
+      "input": "CACCT00000100000010-00000000020240101XXX",
+      "why": "Negative zero amount tests sign handling of zero debit.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-11",
+      "input": "CACCT00000100000011+0000AB12320240101XXX",
+      "why": "Non-numeric amount digits tests Java zero versus COBOL conversion.",
+      "broke": true,
+      "diff": "CL-DEBIT: original -121.23 converted 0.00"
+    },
+    {
+      "id": "breaker-attack-r1-12",
+      "input": "XZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",
+      "why": "Unknown type tests RJ reject path with ignored body.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-08",
+      "input": "RACCT00000200000008NS 1000YYYYYYYYYYYYYY",
+      "why": "",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-attack-r1-11",
+      "input": "CACCT00000100000011+0000AB12320240101XXX",
+      "why": "",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-01",
+      "input": "RACCT00000100000001NS50000              ",
+      "why": "NSF fee 500.00 doubles to 1000.00 overflowing PIC 9(3)V99 to test silent high-order wrap to zero.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-02",
+      "input": "RACCT00000200000002NS99999              ",
+      "why": "NSF fee 999.99 doubles to 1999.98 overflowing to 999.98 to test low-order retention.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-03",
+      "input": "RACCT00000300000003NS60000              ",
+      "why": "NSF fee 600.00 doubles to 1200.00 overflowing to 200.00 to test wrap versus saturation.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-04",
+      "input": "RACCT00000400000004SP99999              ",
+      "why": "Stopped reason with max fee tests non-doubled path and RT-STOPPED handling.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-05",
+      "input": "CACCT00000500000005+99999999920240101   ",
+      "why": "Max cheque +9999999.99 gives max negative debit -9999999.99 boundary.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-06",
+      "input": "CACCT00000600000006-99999999920240101   ",
+      "why": "Min cheque -9999999.99 negates to max positive debit to test sign flip.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-07",
+      "input": "CACCT00000700000007+00000000020240101   ",
+      "why": "Positive zero cheque tests zero debit sign and total accumulation.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-08",
+      "input": "CACCT00000800000008-00000000020240101   ",
+      "why": "Negative zero cheque tests sign handling of zero through ZERO minus amount.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-09",
+      "input": "CACCT000009        +00001000020240101   ",
+      "why": "Spaces in numeric CQ-NUMBER tests verbatim copy versus COBOL numeric normalization.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-10",
+      "input": "CACCT000010ABCDEFGH+00001000020240101   ",
+      "why": "Letters in numeric CQ-NUMBER tests DISPLAY numeric MOVE with invalid digits.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-11",
+      "input": "RACCT00001100000011ns10000              ",
+      "why": "Lowercase ns must not double like NS to test exact case-sensitive 88 condition.",
+      "broke": false,
+      "diff": ""
+    },
+    {
+      "id": "breaker-recheck1-r1-12",
+      "input": "XACCT00001200000012+00001000020240101   ",
+      "why": "Invalid type must reject cheque-like body to RJ with spaces and zeros.",
+      "broke": false,
+      "diff": ""
+    }
+  ]
+}

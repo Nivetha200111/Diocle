@@ -31,7 +31,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from .diff import compare
-from .inputs import Case, _random_value, generate_cases
+from .inputs import Case, _random_value, generate_for_layout
 from .layout import Field, format_record, load_fields, record_format, record_length
 from .multi import is_multi
 from .runners import CLOCK_ENV, Run, _exec, _run_program, build_cobol, build_java, read_records, write_records
@@ -377,7 +377,7 @@ def mutate_local(sample_dir: Path, java_dir: Path, *, seed: int = 1026, max_muta
     fixtures = [Case(f"fixture-{c['id']}", "fixture", c["record"]) for c in meta.get("fixtureCases", [])]
     corpus = [Case(f"corpus-{i + 1:04d}", "corpus", r) for i, r in enumerate(
         r for path in meta.get("corpus", []) for r in read_records(sample_dir / path, in_format, record_length(in_fields)))]
-    cases = fixtures + corpus + generate_cases(in_fields, seed=input_seed, random_count=random_count)
+    cases = fixtures + corpus + generate_for_layout(meta["layouts"]["input"], seed=input_seed, random_count=random_count)
     report["inputs"]["initial"] = len(cases)
 
     with tempfile.TemporaryDirectory(prefix="diocle-mutate-") as tmp:
