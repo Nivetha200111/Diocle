@@ -14,6 +14,7 @@ export const LINKS = {
   evidenceDoc: "https://github.com/Nivetha200111/Diocle/blob/main/docs/EVIDENCE.md",
   evaluation: "https://github.com/Nivetha200111/Diocle/blob/main/docs/EVALUATION.md",
   measurement: "https://github.com/Nivetha200111/Diocle/blob/main/docs/MEASUREMENT.md",
+  showcase: "https://github.com/Nivetha200111/Diocle/blob/main/docs/SHOWCASE_CHQCLR.md",
   vscode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/vscode",
   museCode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/muse-code",
   certified: "https://github.com/Nivetha200111/Diocle#what-certified-means-and-does-not",
@@ -46,7 +47,15 @@ export const SUPERSEDED: Record<string, string> = {
     "Superseded: fails the later byte-exact verifier (-000000000 vs +000000000 on 30 of 1,019 inputs). Re-delivered in quillmark-modern#4.",
 };
 
-// The program on the front page: the breaker agent broke it after 1,000 held-out inputs had passed.
+// What a stored run's own counts cannot tell a reader. Shown on the run; the record is unchanged.
+export const RUN_NOTES: Record<string, string> = {
+  "chqclr-20261028-214355":
+    "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees and few distinct outputs (found and fixed Nov 1, 2026). The real values here came from the breaker's designed inputs. A later free audit of this Java on 1,000 well-formed cheques and returns with real amounts: all matched (docs/SHOWCASE_CHQCLR.md).",
+  "chqclr-20261028-234854":
+    "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees (found and fixed Nov 1, 2026; docs/SHOWCASE_CHQCLR.md).",
+};
+
+// The program on the front page: the breaker agent made it differ after 1,000 generated held-out records had matched.
 export const SAMPLE_RUN = { id: "chqclr-20261028-214355", program: "CHQCLR" };
 
 export const MODELS = {
@@ -63,7 +72,7 @@ export const GLOSSARY: Record<string, string> = {
   DB2: "IBM's mainframe database, used through EXEC SQL. Programs that use it are reported, not converted.",
   VSAM: "Mainframe indexed and relative files. Programs that update them are reported, not converted.",
   GnuCOBOL: "The open-source COBOL compiler Diocle uses to run the original program next to the Java.",
-  "held-out": "Inputs generated after the agent finished. It never saw them, so it cannot have tuned the Java to them.",
+  "held-out": "Records generated after the agent finished, written to one file and run once through each program. It never saw them, so it cannot have tuned the Java to them. The counts shown are output records compared.",
 };
 
 export type PublicImports = {

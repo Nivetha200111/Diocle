@@ -89,6 +89,8 @@ export type Verification = {
   failed: number;
   stdoutMatch: boolean;
   database?: DatabaseComparison | null;
+  keyed?: Record<string, unknown> | null;
+  standIns?: { routine: string; exitCode?: number; note?: string }[];
   failingExamples: { inputId: string; inputSource?: string; diff: string; fieldDiffs?: FieldDiff[] }[];
 };
 

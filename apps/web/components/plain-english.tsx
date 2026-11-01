@@ -28,15 +28,15 @@ export function verdictSentence(run: Run): string {
   const reported = run.visitor ? " (as reported by the import; not re-verified on this site)" : "";
   if (run.assurance === "compiled-unverified") return "The Java compiles, but no test ran: it is not verified and needs a developer's review.";
   if (run.assurance === "certified-against-repaired-cobol") {
-    return `The original COBOL did not compile, so it was patched. The Java matched the PATCHED COBOL${counts ? ` on ${counts} held-out inputs` : ""}; a person must confirm the patch keeps the original's meaning.`;
+    return `The original COBOL did not compile, so it was patched. The Java matched the PATCHED COBOL${counts ? ` on ${counts} held-out output records` : ""}; a person must confirm the patch keeps the original's meaning.`;
   }
   if (run.certified && counts) {
     const first = run.before && run.before.failed > 0
       ? ` Its first Java failed ${n(run.before.failed)} of ${n(run.before.total)} starting tests and was repaired.` : "";
-    return `The Java matched the original COBOL on ${counts} held-out inputs (inputs the repair agent never saw), field by field and byte for byte${after?.stdoutMatch === false ? ", except printed output" : ""}${reported}.${first} "Certified" means on the inputs tried, not proven for every input.`;
+    return `The Java matched the original COBOL on ${counts} held-out output records (one run of each program on generated inputs the repair agent never saw), byte for byte${after?.stdoutMatch === false ? ", except printed output" : ""}${reported}.${first} "Certified" means on the inputs tried, not proven for every input.`;
   }
   if (run.certified) return `Certified${reported}, but this record has no held-out input counts to quote.`;
-  if (counts) return `Not certified: the Java matched the original on only ${counts} held-out inputs${after && originalWroteNothing(after) ? " (the original COBOL wrote no records on them)" : ""}.`;
+  if (counts) return `Not certified: the Java matched the original on only ${counts} held-out output records${after && originalWroteNothing(after) ? " (the original COBOL wrote no records on them)" : ""}.`;
   const why = run.error ? ` The run record says: ${clip(run.error.replace(/\s+/g, " "), 320)}` : "";
   if (originalDidNotCompile(run.error)) return `Not certified: the original COBOL did not compile, so nothing could be compared.${why}`;
   if (after) return `Not certified: no held-out input was compared (the Java did not build, or neither program wrote output).${why}`;
@@ -46,8 +46,8 @@ export function verdictSentence(run: Run): string {
 export function breakerSentence(run: Run): string | null {
   const b = run.breaker;
   if (!b || !(b.tried > 0)) return null;
-  if (b.broke === 0) return `A second AI (the breaker agent) designed ${n(b.tried)} inputs to break the Java; none did.`;
-  return `A second AI (the breaker agent) attacked the Java and broke it with ${n(b.broke)} of ${n(b.tried)} inputs it designed; `
+  if (b.broke === 0) return `A second AI (the breaker agent) designed ${n(b.tried)} inputs to make the Java differ; none did. That is not proof that no such input exists.`;
+  return `A second AI (the breaker agent) attacked the Java and made it differ on ${n(b.broke)} of ${n(b.tried)} inputs it designed; `
     + (b.fixed ? "the repair agent fixed it and the Java was checked again." : "the repair agent did not fix it within its limits.");
 }
 
@@ -55,6 +55,84 @@ export function modelLines(run: Run): { role: string; models: string[] }[] {
   const calls: ModelCall[] = run.usage?.modelCalls ?? [];
   const roles = [...new Set(calls.map((c) => c.role))];
   return roles.map((role) => ({ role, models: [...new Set(calls.filter((c) => c.role === role).map((c) => c.model))] }));
+}
+
+export type CheckLine = { check: string; state: "done" | "not-run" | "failed"; label: string; detail: string };
+
+// The record's checks, kept apart: a check that did not happen says so and is never counted as a pass.
+export function checkLines(run: Run): CheckLine[] {
+  const after = run.after;
+  const lines: CheckLine[] = [];
+  const compared = !!after && after.total > 0;
+  lines.push(compared
+    ? { check: "Compiled and ran", state: "done", label: "yes", detail: "Both the original and the Java built and produced output." }
+    : { check: "Compiled and ran", state: run.assurance === "compiled-unverified" ? "not-run" : "failed", label: run.assurance === "compiled-unverified" ? "compile only" : "no comparison", detail: "Nothing was compared on this record." });
+  if (compared) {
+    lines.push({
+      check: "Agreement on tested inputs",
+      state: after.failed === 0 ? "done" : "failed",
+      label: `${n(after.passed)} of ${n(after.total)}`,
+      detail: `Output records compared${after.stdoutMatch ? "; display output also matched" : "; display output differed"}. Generated records are well-formed.`,
+    });
+  }
+  const b = run.breaker;
+  if (!b || !(b.tried > 0)) {
+    lines.push({ check: "Attack by the breaker", state: "not-run", label: "not run", detail: "No designed input was tried in this run: the breaker was off, or this program is not a single-file record program it can attack. Not a pass." });
+  } else if (b.broke === 0) {
+    lines.push({ check: "Attack by the breaker", state: "done", label: "survived", detail: `${n(b.tried)} designed inputs, none differed. A limited attack, not a proof.` });
+  } else {
+    lines.push({ check: "Attack by the breaker", state: b.fixed ? "done" : "failed", label: b.fixed ? "broken, then repaired" : "broken, not repaired", detail: `${n(b.broke)} of ${n(b.tried)} designed inputs differed.` });
+  }
+  lines.push(run.crosscheck
+    ? { check: "Independent cross-check", state: "done", label: "ran", detail: "A second, open-weight model proposed inputs; each was run through both programs." }
+    : { check: "Independent cross-check", state: "not-run", label: "not run", detail: "Opt-in; it did not run here. Not a pass." });
+  const review = run.guard?.review;
+  lines.push(!review
+    ? { check: "Guard model review", state: "not-run", label: "not run", detail: "Policy only, or the run was not certified. Not a pass." }
+    : review.verdict === "error"
+      ? { check: "Guard model review", state: "not-run", label: "skipped", detail: `It did not complete (${clip(review.summary ?? "no reason recorded", 120)}). Not a pass; the comparison and the policy still ran.` }
+      : { check: "Guard model review", state: review.verdict === "pass" ? "done" : "failed", label: review.verdict, detail: "One model review of the final Java. It can revoke a certification, never grant one." });
+  return lines;
+}
+
+// What the comparison rests on, in the terms a person deciding on this Java needs.
+export function comparedAgainst(run: Run): string[] {
+  const after = run.after;
+  const out = [run.assurance === "certified-against-repaired-cobol"
+    ? "A PATCHED copy of the original, compiled with GnuCOBOL 3.2; not the original and not IBM Enterprise COBOL."
+    : "The original compiled with GnuCOBOL 3.2 (IBM TRUNC(STD) and DISPLAY defaults); not IBM Enterprise COBOL."];
+  if (after?.database) out.push("SQLite stands in for DB2, for a stated SQL subset.");
+  if (after?.keyed) out.push("Berkeley DB stands in for VSAM, for a stated keyed-file subset.");
+  for (const s of after?.standIns ?? []) out.push(`Diocle's own ${s.routine} routine stands in for IBM Language Environment.`);
+  return out;
+}
+
+const CHECK_TEXT = { done: "done", "not-run": "not run", failed: "failed" } as const;
+
+function WhatThisEstablished({ run }: { run: Run }) {
+  if (run.status === "running" || run.status === "interrupted") return null;
+  return (
+    <div>
+      <h3>What this run did and did not establish</h3>
+      <div className="table-scroll">
+        <table className="data-table plain-checks">
+          <caption className="sr-only">Each check in this run and its state</caption>
+          <thead><tr><th>Check</th><th>Result</th><th>What it means</th></tr></thead>
+          <tbody>
+            {checkLines(run).map((l) => (
+              <tr key={l.check} data-state={l.state}>
+                <td>{l.check}</td>
+                <td title={CHECK_TEXT[l.state]}><strong>{l.label}</strong></td>
+                <td>{l.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="plain-note"><strong>Compared against:</strong> {comparedAgainst(run).join(" ")}</p>
+      <p className="plain-note"><strong>Not established:</strong> formal equivalence for every input, or behaviour on IBM Enterprise COBOL and z/OS. A person still reviews the code and accepts it on their own runtime.</p>
+    </div>
+  );
 }
 
 export function PlainEnglishCard({ run }: { run: Run }) {
@@ -97,6 +175,7 @@ export function PlainEnglishCard({ run }: { run: Run }) {
             )}
           </p>
         </div>
+        <WhatThisEstablished run={run} />
       </div>
     </section>
   );

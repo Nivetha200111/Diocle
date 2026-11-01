@@ -81,10 +81,11 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           </div>
         </div>
         <ol className="home-list">
-          <li>Muse Spark translated it; the Java passed 1,004 of 1,004 <Term tip={GLOSSARY["held-out"]}>held-out</Term> inputs.</li>
-          <li>The breaker agent (also Muse Spark) designed 24 inputs. Two broke it. First, the return fee for a cheque bounced for insufficient funds (NSF; the base fee is doubled, and the unit is not stated in the COBOL). The COBOL charged <span className="mono">20.00</span>; the AI-written Java charged <span className="mono">0.00</span>. Second, a debit of <span className="mono">-121.23</span> in COBOL vs <span className="mono">0.00</span> in Java.</li>
-          <li>The repair agent fixed both; the Java re-certified on 1,006 fresh held-out inputs.</li>
-          <li>Both inputs carry malformed numeric data, so this shows agreement with GnuCOBOL&apos;s handling of bad data, not proven IBM behaviour.</li>
+          <li>Muse Spark translated it; the Java matched on 1,004 of 1,004 <Term tip={GLOSSARY["held-out"]}>held-out</Term> output records, from one run of each program.</li>
+          <li>The breaker agent (also Muse Spark) designed 24 inputs. Two made the Java differ. First, the return fee for a cheque bounced for insufficient funds (NSF; the base fee is doubled, and the unit is not stated in the COBOL), with a space in the numeric fee field. The COBOL charged <span className="mono">20.00</span>; the AI-written Java charged <span className="mono">0.00</span>. Second, a debit of <span className="mono">-121.23</span> in COBOL vs <span className="mono">0.00</span> in Java, with letters in the numeric amount field.</li>
+          <li>The repair agent fixed both; the Java matched on 1,006 fresh held-out output records and on a new attack.</li>
+          <li><strong>Both inputs are malformed, not ordinary transactions:</strong> this shows agreement with GnuCOBOL&apos;s handling of bad data, not IBM behaviour. All 40 distinct breaks in the stored runs are of this kind (26) or a negative-zero sign byte at an overflow boundary (14; same value, different bytes).</li>
+          <li><strong>A weakness we found in our own check (Nov 1):</strong> this program&apos;s records share one body through REDEFINES, and the generator filled it with a placeholder, so those 1,004 records had zero amounts and fees and only 3 distinct outputs. The generator is fixed. A free audit of this stored Java on 1,000 well-formed cheques and returns with real amounts: all matched, and so did the Java from the controlled run that was not certified. <a href={LINKS.showcase} target="_blank" rel="noreferrer">Reproduce it <ExternalLink size={11} /></a>.</li>
         </ol>
         <p className="home-more"><a href={runLink(SAMPLE_RUN.id)} onClick={open(SAMPLE_RUN.id)}>Open the run, with its trace and a re-verify button</a></p>
       </section>
