@@ -28,7 +28,7 @@
 body {
   background: var(--w-desktop);
   font-family: var(--w-ui);
-  font-size: 12px;
+  font-size: 13px;
   -webkit-font-smoothing: none;
 }
 .app-shell *,
@@ -39,7 +39,7 @@ body {
 }
 .app-shell :is(p, small, th, td, label, .badge, .tabs button, .nav-label, .stat-top, .page-eyebrow, .text-button, .button, .count, .filter-select select, .breadcrumbs),
 .modal :is(p, small, label, .button) {
-  font-size: 11px !important;
+  font-size: 13px !important;
 }
 ::selection {
   background: var(--w-navy);
@@ -57,7 +57,7 @@ input:focus-visible,
 code,
 pre {
   font-family: var(--w-mono) !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 .view-content {
   animation: none;
@@ -1234,3 +1234,230 @@ a.nav-item {
 .editor-col h3 { margin: 0 0 6px; font-size: 13px; }
 .editor-col .home-pr { margin: 0 0 6px; padding: 0; }
 .editor-cmd { margin: 6px 0 8px; padding: 8px 10px; background: #000; color: #9f9 !important; font-size: 12px; line-height: 1.5; overflow: auto; white-space: pre; box-shadow: var(--w-in); }
+
+/* ---------- front page: the pitch (one story a judge can read in seconds, without sound) ---------- */
+.pitch-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 16px 24px 8px;
+  align-items: start;
+}
+.pitch-claim h1 {
+  font-family: var(--w-pixel);
+  font-weight: 400;
+  font-size: 50px !important;
+  line-height: 1.02;
+  margin: 0 0 14px;
+}
+.app-shell .pitch-claim .pitch-sub {
+  font-size: 18px !important;
+  line-height: 1.45;
+  max-width: 640px;
+  margin: 0;
+}
+.pitch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+.app-shell .pitch-actions .button {
+  font-size: 15px !important;
+  padding: 10px 18px;
+  min-height: 0;
+  height: auto;
+  text-decoration: none;
+}
+.pitch-catch {
+  margin: 0;
+  background: #000;
+  box-shadow: var(--w-in);
+  padding: 16px 18px;
+}
+.app-shell .pitch-catch,
+.app-shell .pitch-catch * {
+  color: var(--phosphor) !important;
+}
+.pitch-catch figcaption {
+  font-family: var(--w-pixel);
+  font-size: 22px;
+  letter-spacing: 1px !important;
+  margin-bottom: 6px;
+}
+.app-shell .pitch-catch .pitch-input,
+.app-shell .pitch-catch .pitch-fixed {
+  font-size: 13px !important;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+.pitch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-top: 1px dashed #1f7a3a;
+  padding: 6px 0;
+  font-size: 15px;
+}
+.app-shell .pitch-row strong.mono {
+  font-family: var(--w-pixel) !important;
+  font-size: 56px !important;
+  line-height: 1;
+}
+.app-shell .pitch-catch .pitch-bad {
+  color: #ff4040 !important;
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+}
+.app-shell .pitch-catch .link-button {
+  color: #fff !important;
+  font-size: 13px !important;
+  text-decoration: underline;
+}
+.pitch-pipeline {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 16px 24px 0;
+  padding: 0;
+}
+.pitch-pipeline li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 22px 12px 14px;
+  background: #fff;
+  box-shadow: var(--w-out);
+}
+.pitch-pipeline li:not(:last-child)::after {
+  content: "\25B6";
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: 16px;
+}
+.pitch-pipeline b {
+  font-family: var(--w-pixel);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1;
+}
+.pitch-pipeline em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+}
+.pitch-pipeline span {
+  font-size: 13px;
+  line-height: 1.4;
+}
+.pitch-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 24px 0;
+}
+.pitch-numbers > div {
+  background: var(--w-face);
+  box-shadow: var(--w-out);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.pitch-numbers dt {
+  font-size: 13px;
+  line-height: 1.4;
+}
+.app-shell .pitch-numbers dd.mono {
+  margin: 0;
+  background: #000;
+  box-shadow: var(--w-in);
+  padding: 2px 10px;
+  font-family: var(--w-pixel) !important;
+  font-size: 44px !important;
+  line-height: 1.05;
+  color: var(--phosphor) !important;
+}
+.pitch-multi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 24px 0;
+}
+.pitch-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding: 10px 14px;
+  background: #fffff0;
+  box-shadow: var(--w-out);
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.pitch-card:active {
+  box-shadow: var(--w-in);
+}
+.pitch-card img {
+  flex: none;
+  object-fit: cover;
+  object-position: top left;
+  box-shadow: var(--w-in);
+  background: #fff;
+}
+.pitch-mic {
+  flex: none;
+  width: 120px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  background: #fff;
+  box-shadow: var(--w-in);
+}
+.app-shell .pitch .pitch-models {
+  margin: 14px 24px 18px;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+@media (max-width: 1100px) {
+  .pitch-top,
+  .pitch-multi {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pitch-pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .pitch-pipeline li::after {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .pitch-top {
+    padding: 12px 12px 4px;
+  }
+  .pitch-claim h1 {
+    font-size: 34px !important;
+  }
+  .pitch-pipeline,
+  .pitch-numbers,
+  .pitch-multi {
+    grid-template-columns: minmax(0, 1fr);
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+  .app-shell .pitch .pitch-models {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+}

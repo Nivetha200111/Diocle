@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, SAMPLE_RUN } from "@/lib/config";
 import { fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, reverifyRun, schemaFile, type Reverify, type Run, type RunListItem, type SourceFile } from "@/lib/runs";
 import { SAMPLE_COBOL, SAMPLE_RECORDED } from "@/lib/sample";
+import { printoutImageUrl } from "@/lib/live";
 import { SourcePane } from "./runs-view";
 import { Term } from "./ui";
 
@@ -211,59 +212,93 @@ function WhatIsCobol() {
   );
 }
 
-const STEPS: [string, React.ReactNode][] = [
-  ["ANALYZE", <>Reads a mainframe library export: programs, <Term tip={GLOSSARY.copybook}>copybooks</Term>, <Term tip={GLOSSARY.JCL}>JCL</Term> and procedures. Derives every record layout byte by byte and flags behaviour a rewrite must keep.</>],
-  ["CONVERT", <>Meta Muse Spark translates each program to Java. A repair agent, also Muse Spark, reads failures, patches, compiles and re-tests until it matches.</>],
-  ["CHECK", <>The original COBOL and the Java run on the same inputs. Every field, byte, display line and return code must agree, including on 1,000 <Term tip={GLOSSARY["held-out"]}>held-out</Term> inputs. Then a breaker agent tries to break it.</>],
-  ["DELIVER", <>Each program that passes goes to the target repository as a pull request with an equivalence report. That repository&apos;s CI repeats the check on fresh inputs.</>],
+
+const HARBOR = {
+  pr: "harbor-trust-mainframe-java#2",
+  url: "https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2",
+  ci: "https://github.com/Nivetha200111/harbor-trust-mainframe-java/actions/runs/41301995356",
+  programs: 19,
+  freshInputs: 18019,  // 18 programs x 1,001 inputs + HTDBDEF (display only) x 1, all PASS in that CI run
+};
+
+const PIPELINE: [string, string, string][] = [
+  ["Translate", "Muse Spark", "writes the Java from the COBOL"],
+  ["Compare", "GnuCOBOL", "runs the original; both see 1,000+ inputs, compared byte for byte"],
+  ["Attack", "Breaker agent", "designs inputs to break the Java; a repair agent fixes what breaks"],
+  ["Deliver", "Pull request", "the target repository's own CI re-checks every program on fresh inputs"],
 ];
+
+// The first screen: one real catch a judge can read without sound, the pipeline, and the numbers that back it.
+function Pitch({ go }: { go: Go }) {
+  const [run, setRun] = useState<Run | null>(null);
+  useEffect(() => {
+    fetchRun(SAMPLE_RUN.id).then(setRun).catch(() => setRun(null));
+  }, []);
+  const diff = run?.breaker?.counterexamples[0]?.diff ?? SAMPLE_RECORDED.broke[0];
+  const m = diff.match(/^([\w-]+): original (.+?) converted (.+)$/);
+  const [was, now] = m ? [m[2], m[3]] : ["20.00", "0.00"];
+  const final = run?.after?.total ?? SAMPLE_RECORDED.finalHeldOut;
+  function openRun() {
+    window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
+    go("Live runs");
+  }
+  return (
+    <section className="panel pitch" aria-label="What Diocle does">
+      <div className="panel-heading">
+        <div><h2>DIOCLE.EXE</h2><p>COBOL to Java, with proof</p></div>
+      </div>
+      <div className="pitch-top">
+        <div className="pitch-claim">
+          <h1>AI translated a bank&apos;s COBOL to Java. It passed {SAMPLE_RECORDED.firstHeldOut.toLocaleString()} tests. It was still wrong.</h1>
+          <p className="pitch-sub">Diocle finds where, fixes it, and proves the Java matches the original before anyone has to trust it.</p>
+          <div className="pitch-actions">
+            <button type="button" className="button primary" onClick={() => go("Try it live")}>▶ Try it live</button>
+            <button type="button" className="button secondary" onClick={() => go("Delivery")}>Import a COBOL repository</button>
+            <a className="button secondary" href="/mission">Watch the agents work</a>
+          </div>
+        </div>
+        <figure className="pitch-catch">
+          <figcaption>THE CATCH · {SAMPLE_RUN.program}, cheque clearing</figcaption>
+          <p className="pitch-input">Input: a cheque returned for insufficient funds, its fee field starting with a space</p>
+          <div className="pitch-row"><span>Original COBOL charged</span><strong className="pitch-ok mono">{was}</strong></div>
+          <div className="pitch-row"><span>AI-written Java charged</span><strong className="pitch-bad mono">{now}</strong></div>
+          <p className="pitch-fixed">Found by the breaker agent · fixed by the repair agent · re-certified on {final.toLocaleString()} new inputs</p>
+          <button type="button" className="link-button" onClick={openRun}>Open this run and check it yourself</button>
+        </figure>
+      </div>
+      <ol className="pitch-pipeline">
+        {PIPELINE.map(([step, who, what], i) => (
+          <li key={step}><b>{i + 1}. {step}</b><em>{who}</em><span>{what}</span></li>
+        ))}
+      </ol>
+      <dl className="pitch-numbers">
+        <div><dd className="mono">4 of 10</dd><dt>AI translations that passed 1,000 tests were still wrong when attacked</dt></div>
+        <div><dd className="mono">{HARBOR.programs}</dd><dt>programs certified and delivered in one pull request, <a href={HARBOR.url} target="_blank" rel="noreferrer">{HARBOR.pr}</a></dt></div>
+        <div><dd className="mono">0</dd><dt>differences on {HARBOR.freshInputs.toLocaleString()} fresh inputs in <a href={HARBOR.ci} target="_blank" rel="noreferrer">its CI run</a></dt></div>
+      </dl>
+      <div className="pitch-multi">
+        <button type="button" className="pitch-card" onClick={() => go("Try it live")}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={printoutImageUrl} alt="A printed COBOL listing" width={120} height={80} />
+          <span><b>Muse Wonder reads a printed listing</b> and writes the COBOL; GnuCOBOL checks it against the original.</span>
+        </button>
+        <button type="button" className="pitch-card" onClick={() => go("Try it live")}>
+          <span className="pitch-mic" aria-hidden="true">🎙</span>
+          <span><b>Ask a program a question out loud</b>; the answer is checked by running the original COBOL.</span>
+        </button>
+      </div>
+      <p className="pitch-models">
+        Meta models only: <strong>Muse Spark</strong>, <strong>Muse Spark Open</strong> (open weights, private mode) and <strong>Muse Wonder</strong>.
+        {" "}&ldquo;Certified&rdquo; means matched on every tested input, not proven equivalent (<a href={LINKS.certified} target="_blank" rel="noreferrer">limits</a>). Synthetic programs only.
+      </p>
+    </section>
+  );
+}
 
 export default function HomeView({ go }: { go: Go }) {
   return (
     <div className="view-content home">
-      <section className="panel home-hero">
-        <div className="panel-heading">
-          <div>
-            <h2>DIOCLE.EXE</h2>
-            <p>COBOL to Java, checked against the original</p>
-          </div>
-        </div>
-        <div className="home-hero-body">
-          <h1>AI writes the code.<br />Diocle checks it against the original before anyone has to trust it.</h1>
-          <p>
-            Banks still move money through COBOL written decades ago, and the people who wrote it are retiring.
-            Converting it is the easy part; knowing the new code rounds, truncates and overflows exactly like the old
-            code is the hard part, and today it is checked by hand. Diocle makes that check automatic, repeatable and
-            inspectable.
-          </p>
-          <p className="home-meta">
-            Built with <strong>Meta Muse Spark</strong> as translator, repair agent and breaker agent, and
-            {" "}<strong>Muse Spark Open</strong> (open weights) for private mode. No other model is used.
-          </p>
-          <p className="home-meta">
-            &ldquo;Certified&rdquo; here means <strong>matched on the tested inputs, not proven equivalent</strong>
-            {" "}(<a href={LINKS.certified} target="_blank" rel="noreferrer">definition and limits</a>). Synthetic programs only; GnuCOBOL, SQLite and Berkeley DB stand in for z/OS COBOL, DB2 and VSAM.
-          </p>
-        </div>
-      </section>
-
-      <section className="panel home-start" aria-label="Start here">
-        <div className="panel-heading"><div><h2>Start here</h2><p>Four ways in. Everything links to real runs on the live engine.</p></div></div>
-        <div className="home-start-grid">
-          <button type="button" className="home-start-card" onClick={() => go("Try it live")}>
-            <strong>1. Try it live</strong><span>One click: Muse Spark converts a sample, Muse Wonder reads a printout, or ask a program a question out loud. GnuCOBOL checks each answer.</span>
-          </button>
-          <button type="button" className="home-start-card" onClick={() => go("Delivery")}>
-            <strong>2. Import a repository</strong><span>Paste a public GitHub link with COBOL. Diocle analyzes it, converts each program it can and certifies it against the original.</span>
-          </button>
-          <button type="button" className="home-start-card" onClick={() => go("Current run")}>
-            <strong>3. Watch what is running</strong><span>Whatever the engine is doing right now, stage by stage.</span>
-          </button>
-          <button type="button" className="home-start-card" onClick={() => go("Evidence")}>
-            <strong>4. Check the proof</strong><span>Every run, every cost and every refusal, with a link to verify each claim yourself.</span>
-          </button>
-        </div>
-      </section>
+      <Pitch go={go} />
 
       <section className="panel home-headline" aria-label="Measured result">
         <div className="panel-heading">
@@ -285,18 +320,12 @@ export default function HomeView({ go }: { go: Go }) {
         </p>
       </section>
 
-      <WhatIsCobol />
-
       <SampleHero go={go} />
 
-      <div className="home-steps">
-        {STEPS.map(([title, text], i) => (
-          <section key={title} className="panel home-step">
-            <div className="panel-heading"><div><h2>{i + 1}. {title}</h2></div></div>
-            <p>{text}</p>
-          </section>
-        ))}
-      </div>
+      <Evidence go={go} />
+
+      <WhatIsCobol />
+
 
       <section className="panel" aria-label="Use Diocle from your editor">
         <div className="panel-heading">
@@ -326,8 +355,6 @@ muse plugins approve diocle:mcp_server:diocle`}</pre>
           </div>
         </div>
       </section>
-
-      <Evidence go={go} />
 
       <div className="home-columns">
         <section className="panel">
