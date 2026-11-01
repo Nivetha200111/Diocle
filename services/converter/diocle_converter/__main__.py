@@ -673,8 +673,8 @@ def _atomic_write_text(path: Path, text: str) -> None:
 def _no_single_file(meta: dict) -> str:
     """Why the breaker and cross-check, which design records for one input file, have nothing to work on."""
     if meta.get("displayOnly"):
-        return "it designs input records, and this program reads no input file (it only writes to the screen)"
-    return "it designs single-file records, and this program has several files"
+        return "it designs records for one input and one output file, and this program writes no output file (it only writes to the screen)"
+    return "it designs records for one input and one output file, and this program does not have exactly one of each"
 
 
 def _attack(program, workspace, client, verify, agent, standing_cases, outcome, run_dir, settings, on_event,
@@ -686,7 +686,7 @@ def _attack(program, workspace, client, verify, agent, standing_cases, outcome, 
     if "layouts" not in meta and attacker is None:
         on_event({"type": "stage", "stage": "attacking", "message": f"Breaker skipped: {_no_single_file(meta)}"})
         return outcome, {"rounds": 0, "tried": 0, "broke": 0, "repairCycles": 0, "fixed": False, "counterexamples": [],
-                         "skipped": "no input file" if meta.get("displayOnly") else "multi-file program"}
+                         "skipped": "display-only program" if meta.get("displayOnly") else "multi-file program"}
     breaker = attacker or Breaker(program, workspace, client, verify, meta["layouts"]["input"], on_event,
                                   model=settings.tier_model(settings.breaker_tier) if tiered else None)  # tier 2 by default
     found: list[dict] = []
