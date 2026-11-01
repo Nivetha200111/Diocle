@@ -10,6 +10,24 @@ Differential testing: compile the original COBOL with GnuCOBOL, compile the conv
 3. **Converted:** `javac`, then `java <mainClass>` with the same `DD_<name>` variables.
 4. **Diff:** parse both outputs with the output record layout and compare values per field; flag records whose length is wrong (a field overflowed and shifted the rest); compare stdout.
 
+The converted Java runs **first**, in its own subdirectory, before the original's executable or output files exist, so
+it cannot read or run the answer it is compared with. The files the original reads or is built from (inputs, seeds,
+source, modules, copybooks) are hashed before the Java runs and checked after; if one changed, or the Java left a new
+file where the original will run, the original is not run and verification fails closed with that reason. This holds on
+every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). It does not stop a Java
+program that compiles and runs the COBOL source itself or leaves a background process behind: that is the sandbox's job.
+
+## Limits of the generated inputs
+- **Always well-formed.** Every generated numeric field holds a valid value for its PIC and usage: no invalid packed
+  nibbles, no non-numeric bytes in zoned fields, no bad signs. The data-exception class (an S0C7 abend on a mainframe)
+  is not exercised by generated inputs; only records that do not come from the generator (`fixtureCases`, a corpus,
+  golden files, designed cases) can contain such bytes.
+- **Alphanumeric fields without 88-levels get fixed placeholders.** Such a field holds `C0001`, `C0002`, ... (the case
+  number, cut to the field's length), not seeded text (`inputs.py`, `generate_cases`); fields with 88-levels draw from
+  their listed values and spaces. So a held-out seed varies the numeric fields (and 88-level choices) only, never the
+  free-text fields. Multi-file samples are the exception for key fields listed in `sharedKeys` (and fields linked to a
+  keyed file's RECORD KEY), which draw from a seeded pool of keys.
+
 ## Copybooks as SQL tables
 `python -m diocle_verifier.sqlschema SAMPLE_DIR [--out DIR] [--data DD=PATH ...] [--ebcdic]` writes `schema.sql` and
 `sql-schema.json` (`contracts/sql-schema.schema.json`). Deterministic, no model calls, no GnuCOBOL. One table per
