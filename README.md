@@ -25,7 +25,7 @@ I have worked on a COBOL modernization project at a global finance company. Revi
 
 ## Judge path: three clicks
 
-1. Open [diocle.vercel.app](https://diocle.vercel.app): CHQCLR's COBOL next to its certified Java. Press **Try the sample**: both programs run again on about 1,000 inputs from a seed chosen right then (free, no model call).
+1. Open [diocle.vercel.app](https://diocle.vercel.app): the first screen is the catch (the COBOL charged a 20.00 fee, the AI-written Java 0.00, after passing 1,004 tests), the four steps and the numbers behind them. Scroll once for CHQCLR's COBOL next to its certified Java and press **Try the sample**: both programs run again on about 1,000 inputs from a seed chosen right then (free, no model call).
 2. Open the [CHQCLR run trace](https://diocle.vercel.app/#run=chqclr-20261028-214355): the Java passed 1,004 held-out inputs, then the breaker found 2 of 24 designed inputs that broke it (fee 20.00 vs 0.00), the repair agent fixed it, and it re-certified on 1,006 fresh inputs.
 3. Open [Evidence](https://diocle.vercel.app/evidence) for every run and the cost scoreboard, then [docs/CLAIMS_TO_EVIDENCE.md](docs/CLAIMS_TO_EVIDENCE.md) to check each headline claim in under a minute. Optional: the two live buttons on [Try it live](https://diocle.vercel.app/try) (capped, no input accepted).
 
