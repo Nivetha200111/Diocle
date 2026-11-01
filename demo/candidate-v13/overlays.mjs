@@ -8,7 +8,7 @@ const FONT = `<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans
 .bar{position:absolute;left:44px;right:44px;background:#f6f2e8;border:5px solid #8c1c13;border-radius:8px;padding:18px 28px;color:#17130c}
 .bar b{display:block;font-size:44px;line-height:1.14;color:#8c1c13;font-weight:700}.bar span{display:block;font-size:31px;line-height:1.26;margin-top:6px}
 .info{border-color:#1f5c3a}.info b{color:#1f5c3a}
-.stamp{position:absolute;background:#f6f2e8;border:6px solid #8c1c13;border-radius:6px;text-align:center;color:#8c1c13;padding:12px 30px;transform:rotate(-4deg)}
+.stamp{position:absolute;width:668px;height:182px;display:flex;flex-direction:column;justify-content:center;background:#f6f2e8;border:6px solid #8c1c13;border-radius:12px;text-align:center;color:#8c1c13;transform:rotate(-5.7deg);box-shadow:0 5px 0 #6e140e}
 .stamp b{display:block;font:700 62px/1.05 'IBM Plex Mono',monospace;letter-spacing:3px}.stamp span{font:600 26px/1.2 'IBM Plex Mono',monospace;color:#3a2b20}
 .patch{position:absolute;background:#f4f1e8;font:700 37px/56px 'IBM Plex Sans';color:#17130c;padding-left:4px}
 .card{position:absolute;inset:0;background:#f4f1e8;padding:56px 82px;color:#17130c}.card small{font:400 22px 'IBM Plex Mono',monospace;letter-spacing:1px;color:#444;display:block;border-bottom:2px solid #555;padding-bottom:14px;margin-bottom:34px}
@@ -17,10 +17,12 @@ const FONT = `<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans
 const O = {
   'patch-passed': `<div class="patch" style="left:58px;top:452px;width:590px;height:56px">about 1,000 generated records</div>`,
   'patch-broken': `<div class="patch" style="left:58px;top:452px;width:590px;height:56px">differed under attack</div>`,
-  'hook-stamp': `<div class="stamp" style="left:1215px;top:165px;width:610px"><b>DIFFERS</b><span>CL-FEE · COBOL 20.00 · Java 0.00</span></div>`,
-  'hook-bar': `<div class="bar" style="top:872px;height:188px"><b>Matched on 1,004 generated records. Differed on a malformed one.</b><span>CHQCLR, stored run. The fee field held a space where PIC 9 expects a digit. Under GnuCOBOL; IBM not tested. Repaired, then matched on 1,006.</span></div>`,
+  'hook-stamp': `<div class="stamp" style="left:1185px;top:153px"><b>DIFFERS</b><span>CL-FEE · COBOL 20.00 · Java 0.00</span></div>`,
+  'hook-stamp-slam': `<div class="stamp" style="left:1185px;top:153px;transform:rotate(-5.7deg) scale(1.18)"><b>DIFFERS</b><span>CL-FEE · COBOL 20.00 · Java 0.00</span></div>`,
+  'hook-bar': `<div class="bar" style="left:26px;right:26px;top:876px;height:198px"><b>Matched on 1,004 generated records. Differed on a malformed one.</b><span>CHQCLR, stored run. The fee field held a space where PIC 9 expects a digit. Under GnuCOBOL; IBM not tested. Repaired, then matched on 1,006.</span></div>`,
   'hood-malformed': `<div class="bar" style="top:886px"><b>The three inputs: letters where numbers belong.</b><span>Malformed data designed by Muse Spark, compared under GnuCOBOL. Not ordinary transactions; IBM not tested.</span></div>`,
-  'hood-stamp': `<div class="stamp" style="left:1240px;top:190px;width:600px"><b>DIFFERS</b><span>COBOL ABCDEFGH · Java 12345678</span></div>`,
+  'hood-stamp': `<div class="stamp" style="left:1203px;top:159px"><b>DIFFERS</b><span>COBOL ABCDEFGH · Java 12345678</span></div>`,
+  'hood-stamp-slam': `<div class="stamp" style="left:1203px;top:159px;transform:rotate(-5.7deg) scale(1.18)"><b>DIFFERS</b><span>COBOL ABCDEFGH · Java 12345678</span></div>`,
   'hood-weak': `<div class="bar info" style="top:886px"><b>A weak check for this program, and we fixed it.</b><span>Its generated records then had zero amounts. Generator fixed Nov 1; this Java then matched on 1,000 well-formed records with real amounts.</span></div>`,
   'ci': `<div class="bar info" style="top:886px"><b>The same comparison, re-run by this repository's CI.</b><span>Fresh inputs, pinned verifier, under GnuCOBOL. It re-checks the result; it shares the verifier's assumptions and is not a formal proof.</span></div>`,
   'measured': `<div class="bar" style="top:826px"><b>4 of 10: 1 on malformed data, 3 on a negative-zero sign byte at overflow.</b><span>37/45 counts attempts and 14/15 programs, so this is not model vs Diocle. CHQCLR was not certified in this run, and was in others with different settings. One model, small sample.</span></div>`,
