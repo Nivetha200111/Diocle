@@ -81,7 +81,7 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
     Each program run is limited to `timeout` seconds. A single-file program with no output layout is compared on stdout
     and exit code."""
     from .diff import compare
-    from .inputs import Case, generate_cases
+    from .inputs import Case, generate_for_layout
     from .layout import load_fields, record_format, record_length
     from .multi import is_multi
     from .runners import CLOCK_ENV, Run, _exec, build_cobol, read_records, write_records
@@ -101,7 +101,7 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
     in_fields = load_fields(layouts["input"])
     out_fields = load_fields(layouts["output"]) if has_out else []
     fixtures = [Case(f"fixture-{c['id']}", "fixture", c["record"]) for c in meta.get("fixtureCases", [])]
-    cases = fixtures + generate_cases(in_fields, seed=seed, random_count=random_count)
+    cases = fixtures + generate_for_layout(layouts["input"], seed=seed, random_count=random_count)
     in_fmt = record_format(layouts["input"])
     out_fmt = (record_format(layouts["output"]), record_length(out_fields)) if has_out else ("line", 0)
     copybooks = against / meta["copybookDir"]

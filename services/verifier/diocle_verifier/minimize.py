@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Callable
 
 from .diff import compare
-from .inputs import Case, generate_cases
+from .inputs import Case, generate_for_layout
 from .layout import Field, _parse_value, format_value, load_fields, parse_record, record_format, record_length
 from .multi import is_multi
 from .runners import CLOCK, Run, build_cobol, build_java, read_records, run_files, write_records
@@ -619,7 +619,7 @@ def reconstruct_cases(sample_dir: Path, meta: dict, seed: int = 1026, random_cou
     fixtures = [c["record"] for c in meta.get("fixtureCases", [])]
     fmt, length = record_format(meta["layouts"]["input"]), record_length(in_fields)
     corpus = [r for p in meta.get("corpus", []) for r in read_records(sample_dir / p, fmt, length)]
-    return fixtures + corpus + [c.record for c in generate_cases(in_fields, seed=seed, random_count=random_count)]
+    return fixtures + corpus + [c.record for c in generate_for_layout(meta["layouts"]["input"], seed=seed, random_count=random_count)]
 
 
 def locate_case(run_dir: Path, case_id: str, sample_dir: Path, meta: dict,

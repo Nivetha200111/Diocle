@@ -78,6 +78,33 @@ def load_fields(spec: dict) -> list[Field]:
     return fields
 
 
+def redefine_views(spec: dict) -> dict[str, list[list[Field]]]:
+    """The REDEFINES views of each alphanumeric field, as groups of fields that fill it exactly: {base: [view, ...]}. The
+    layout is flat, so a view ends where the items so far add up to the base's length. A base whose views do not add up
+    (a short view, or nesting a flat list cannot show) is left out: it keeps the generator's placeholder, nothing is guessed."""
+    views: dict[str, list[list[Field]]] = {}
+    lengths = {f["name"]: f["length"] for f in spec["fields"] if f["kind"] == "alnum" and not f.get("redefines")}
+    open_view: dict[str, list[Field]] = {}
+    bad: set[str] = set()
+    for f in spec["fields"]:
+        base = f.get("redefines")
+        if not base:
+            continue
+        if base not in lengths:
+            bad.add(base)
+            continue
+        current = open_view.setdefault(base, [])
+        current.append(load_fields({"fields": [{k: v for k, v in f.items() if k != "redefines"}]})[0])
+        size = sum(x.length for x in current)
+        if size > lengths[base]:
+            bad.add(base)
+        elif size == lengths[base]:
+            views.setdefault(base, []).append(current)
+            open_view[base] = []
+    bad |= {base for base, current in open_view.items() if current}
+    return {base: v for base, v in views.items() if base not in bad}
+
+
 def record_length(fields: list[Field]) -> int:
     return sum(f.length for f in fields)
 
