@@ -55,13 +55,15 @@ export const RUN_NOTES: Record<string, string> = {
     "Read this count with care: when this run was made, the generator filled this program's shared REDEFINES body with a placeholder, so its held-out records had zero amounts and fees (found and fixed Nov 1, 2026; docs/SHOWCASE_CHQCLR.md).",
 };
 
-const FLAT_RECORD_NOTE = "Read this count with care: this program reads one flat 160-byte text record, so generated records are placeholders that take its reject path (1,000 of them give one distinct output). What exercised it here was the repository's own 400 sample records and, where it ran, the breaker. The target repository's CI has only the generated records.";
+const FLAT_RECORD_NOTE = "Read this count with care: this program reads one flat 160-byte text record, so generated records are placeholders that take its reject path (1,000 of them give one distinct output). What exercised it here was 400 records taken from the repository's data files and, where it ran, the breaker. The target repository's CI has only the generated records.";
+const FLAT_MULTI_NOTE = "Read this count with care: this program reads flat 160-byte text records, so generated records are placeholders that take its reject path. What exercised it here was records taken from the repository's data files. The breaker does not attack multi-file programs, and the target repository's CI has only the generated records.";
 
-// Harbor Trust's single-file programs share one flat record. The others have their own layouts and are not covered by this note.
+// Harbor Trust's programs share one flat record: single-file ones, then multi-file ones. HTDBDEF only prints a line.
 const FLAT_RECORD_RUN = /^ht(cbr|chk|dor|dormsw|fxc|fxconv|glr|iacr|intacc|loanam|lon|nsf|ovdfee|srt|stm)-/;
+const FLAT_MULTI_RUN = /^ht(chqclr|ctrlbr|glreco|stmtm)-/;
 
 export function runNote(id: string): string | null {
-  return RUN_NOTES[id] ?? (FLAT_RECORD_RUN.test(id) ? FLAT_RECORD_NOTE : null);
+  return RUN_NOTES[id] ?? (FLAT_RECORD_RUN.test(id) ? FLAT_RECORD_NOTE : FLAT_MULTI_RUN.test(id) ? FLAT_MULTI_NOTE : null);
 }
 
 // The program on the front page: the breaker agent made it differ after 1,000 generated held-out records had matched.

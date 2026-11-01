@@ -166,7 +166,7 @@ function Evidence({ go }: { go: Go }) {
         <a href="https://github.com/Nivetha200111/harbor-trust-mainframe-java/pull/2" target="_blank" rel="noreferrer">harbor-trust-mainframe-java#2</a>,
         {" "}19 programs. Read its{" "}
         <a href="https://github.com/Nivetha200111/harbor-trust-mainframe-java/actions/runs/41301995356" target="_blank" rel="noreferrer">CI run</a>
-        {" "}with care: for its 14 single-file programs the generated records are one placeholder line, so those programs were really exercised by the repository&apos;s 400 sample records during conversion, which CI does not have.
+        {" "}with care: for 18 of those programs the generated records give one identical placeholder line, so they were really exercised during conversion by records taken from the repository&apos;s data files, which CI does not have; the 19th only prints a line.
         {" "}<strong>{runs ? `${certified}/${runs.length}` : "…"}</strong> counts every run this engine has kept,
         including failed and interrupted attempts. <button type="button" className="link-button" onClick={() => go("Evidence")}>All evidence</button>
       </p>
@@ -214,7 +214,7 @@ const PIPELINE: [string, string, string][] = [
   ["Translate", "Muse Spark, as translator", "writes the Java from the COBOL; it never certifies"],
   ["Compare", "GnuCOBOL, no model", "runs the original and the Java on 1,000+ generated records; every output byte must match"],
   ["Attack", "Muse Spark, as breaker", "designs inputs aimed at Java that passed; Muse Spark, as repair agent with tools, fixes what differs"],
-  ["Deliver", "Pull request", "the target repository's own CI re-checks every program on fresh inputs"],
+  ["Deliver", "Pull request", "the target repository's own CI re-runs the comparison on generated inputs"],
 ];
 
 // The first screen: one real catch a judge can read without sound, the pipeline, and the numbers that back it.

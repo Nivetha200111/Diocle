@@ -393,7 +393,7 @@ def certificate(run: dict, sample: dict, report: dict, program: dict, diocle_com
     after = run["after"]
     eff = run["efficiency"]
     return {
-        "version": "0.1",
+        "version": "0.2",
         "program": program["name"],
         "legacy": {"repository": report["source"]["location"], "commit": report["source"]["commit"],
                    "path": program["path"], "copybooks": _copybook_paths(report, program),
@@ -440,8 +440,8 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         scope = cert.get("scope") or certificate_scope(run)
         attack = scope["attack"]
         attacked = ("**not run**" if attack["status"] == "not-run" else
-                    f"{attack['tried']} designed, none differed" if attack["status"] == "survived" else
-                    f"{attack['tried']} designed, {attack['broke']} differed; repaired")
+                    f"{attack['tried']} attack inputs, none differed" if attack["status"] == "survived" else
+                    f"{attack['tried']} attack inputs, {attack['broke']} differed; repaired")
         guarded = {"pass": "pass", "flag": "**flag**", "block": "**block**", "skipped": "**skipped**", "not-run": "not run"}[scope["guardReview"]]
         lines.append(f"| `{cert['program']}` | {before} | **{v['passed']}/{v['total']}** output records match, stdout "
                      f"{'matches' if v['stdoutMatch'] else 'differs'} | {attacked} | {guarded} | {a['modelCalls']} calls, {a['rounds']} round(s), "
@@ -475,7 +475,7 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
     lines += build_section(build, len(delivered))
     lines += ["", *(["Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
                     "The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
-                    "so this PR does not ask you to trust Diocle's own result."] if delivered else []), "",
+                    "so this PR does not rest only on Diocle's own run. It shares the verifier's assumptions, and a flat text record's generated inputs do not change with the seed."] if delivered else []), "",
               ("Converted by Meta Muse Spark and certified by [Diocle](https://github.com/Nivetha200111/Diocle). "
                if delivered else
                "Converted by Meta Muse models with [Diocle](https://github.com/Nivetha200111/Diocle); nothing here is certified. ")

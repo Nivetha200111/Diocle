@@ -23,7 +23,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 **Findings to keep in mind when writing anything:**
 - 54 distinct stored breaks: 30 malformed, 15 negative zero, 9 from a round with no Java output (`eval/results-stored-breaks-20261101.json`). None shows a wrong amount on a well-formed record. Do not write "wrong cent" about the breaker.
 - The attack compared output records only until this branch; a stored private-mode CHQCLR Java prints a wrong total on a valid return. "Survived" in stored runs is about output records.
-- Flat text records (Harbor's 14 single-file programs) get one placeholder output whatever the seed. Do not quote Harbor's 18,019 CI records as if they exercised those programs; Home now leads with quillmark-modern#4 (6,719).
+- Flat text records (18 of Harbor's 19 programs) get one placeholder output whatever the seed. Do not quote Harbor's 18,019 CI records as if they exercised those programs; Home now leads with quillmark-modern#4 (6,719).
 - A count like 1,004 is output records from one run of each program on one generated file.
 - The showcased certified CHQCLR Java still differs on a malformed blank return (`R` + 39 spaces).
 - The bundled clip `waiver-tenure.wav` mistranscribes on the real speech model; `fee-overdrawn.wav` is exact. Re-record if convenient.

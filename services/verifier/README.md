@@ -24,6 +24,7 @@ ends).
   nibbles, no non-numeric bytes in zoned fields, no bad signs. The data-exception class (an S0C7 abend on a mainframe)
   is not exercised by generated inputs; only records that do not come from the generator (`fixtureCases`, a corpus,
   golden files, designed cases) can contain such bytes.
+- **A wrong guess at a REDEFINES view can give a record that does not fit its type.** Both programs read the same bytes, so it is still a fair input, but it is not well-formed for that type.
 - **A body shared by REDEFINES views is filled through one view** (since Nov 1, 2026, single-file path only): generated records carry real values in the view, paired with a record-type field when its value count equals the view count, otherwise chosen at random. Views that do not fill the body exactly keep the placeholder below. Before this, CHQCLR's records had zero amounts and fees ([audit](../../docs/SHOWCASE_CHQCLR.md)); layouts without such a body get exactly the records they always got.
 - **Alphanumeric fields without 88-levels get fixed placeholders.** Such a field holds `C0001`, `C0002`, ... (the case
   number, cut to the field's length), not seeded text (`inputs.py`, `generate_cases`); fields with 88-levels draw from

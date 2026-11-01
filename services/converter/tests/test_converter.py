@@ -248,6 +248,54 @@ def test_breaker_counts_a_display_difference_and_names_the_input_responsible(tmp
     assert [a["broke"] for a in breaker.attempts] == [False, True]
 
 
+@pytest.mark.parametrize("order", [("1.00", "2.00"), ("2.00", "1.00")])
+def test_a_display_break_is_found_among_replays_of_earlier_breaks(tmp_path, order):
+    """TEST DOUBLE for the verifier, which puts standing cases (earlier breaks) in front of the designed inputs."""
+    from diocle_converter.breaker import Breaker
+    from diocle_verifier.inputs import Case
+
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    case = lambda bal: {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": bal},
+                                   {"name": "ACCT-RATE", "value": "0.0500"}, {"name": "ACCT-DAYS", "value": "1"},
+                                   {"name": "ACCT-TIER", "value": "S"}], "why": "total"}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [case(b) for b in order]}))])
+    standing = [Case("breaker-attack-r1-08", "model", "OLD-BREAK")]
+
+    def verify(java_dir, seed, random_count, extra_cases):
+        cases = standing + list(extra_cases or [])
+        bad = any("0000000200" in c.record for c in cases)
+        return {"results": [{"inputId": c.id, "inputSource": c.source, "input": c.record, "match": True} for c in cases],
+                "runs": {"stdoutMatch": not bad, "exitCodeMatch": True, "original": {"stdout": "a"}, "converted": {"stdout": "b"}}}
+
+    breaker = Breaker(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), verify, layout)
+    broken = breaker.attack(rounds=1)
+    assert len(broken) == 1 and "0000000200" in broken[0]["case"].record
+    assert [a["broke"] for a in breaker.attempts if "0000000200" in a["input"]] == [True]
+    assert [a["broke"] for a in breaker.attempts if a["id"] == "breaker-attack-r1-08"] == [False]  # the replay is not blamed
+
+
+def test_a_difference_with_none_of_the_inputs_blames_the_round_not_a_guess(tmp_path):
+    from diocle_converter.breaker import Breaker
+
+    ws = Workspace(tmp_path / "java")
+    ws.write("IntAccr.java", "class IntAccr {}")
+    layout = json.loads((SAMPLE / "sample.json").read_text())["layouts"]["input"]
+    item = {"fields": [{"name": "ACCT-ID", "value": "X"}, {"name": "ACCT-BALANCE", "value": "1.00"}, {"name": "ACCT-RATE", "value": "0.0500"},
+                       {"name": "ACCT-DAYS", "value": "1"}, {"name": "ACCT-TIER", "value": "S"}], "why": "w"}
+    sdk = ScriptedSDK([ChatCompletionMessage(role="assistant", content=json.dumps({"cases": [item]}))])
+    runs = []
+
+    def verify(java_dir, seed, random_count, extra_cases):
+        runs.append(list(extra_cases or []))
+        return {"results": [{"inputId": c.id, "inputSource": c.source, "input": c.record, "match": True} for c in extra_cases or []],
+                "runs": {"stdoutMatch": False, "exitCodeMatch": True, "original": {"stdout": "a"}, "converted": {"stdout": "b"}}}
+
+    assert len(Breaker(Program.load(SAMPLE), ws, ModelClient(settings(), _sdk=sdk), verify, layout).attack(rounds=1)) == 1
+    assert len(runs) == 2  # the round, then the same run with no designed input; no point running inputs alone
+
+
 def test_breaker_blames_the_round_when_no_input_differs_alone(tmp_path):
     from diocle_converter.breaker import Breaker
 
