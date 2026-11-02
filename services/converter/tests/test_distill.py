@@ -1,6 +1,7 @@
 """Verified distillation gates (docs/DISTILLATION.md). No model or host is called: the fakes below are labelled as such."""
 
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -145,6 +146,24 @@ def test_a_data_name_containing_call_is_not_a_refusal():
 
 def test_generator_asks_for_the_copy_form_the_analyzer_reads():
     assert 'COPY GEN0001I.' in distill.GENERATOR_SYSTEM
+
+
+@pytest.mark.skipif(shutil.which("cobc") is None, reason="needs GnuCOBOL")
+def test_compile_errors_are_reported_before_a_translation_is_paid_for(tmp_path):
+    (tmp_path / "GOOD.cbl").write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. GOOD.\n       PROCEDURE DIVISION.\n           STOP RUN.\n")
+    assert distill.compile_errors(tmp_path, "GOOD") is None
+    (tmp_path / "BAD.cbl").write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. BAD.\n       PROCEDURE DIVISION.\n           NOT-A-VERB.\n")
+    assert "error" in distill.compile_errors(tmp_path, "BAD")
+
+
+def test_fix_messages_carry_the_errors_and_keep_the_prompt():
+    first = distill.generation_messages("GEN0001", "d", "t")
+    fixed = distill.fix_messages(first, "{}", "line 3: error: nope")
+    assert fixed[:2] == first and fixed[2]["role"] == "assistant" and "line 3: error: nope" in fixed[3]["content"]
+
+
+def test_generator_forbids_the_wrapper_01_that_broke_the_first_pass():
+    assert "never write your own 01" in distill.GENERATOR_SYSTEM
 
 
 def test_topics_are_stable_and_unique_and_avoid_the_held_out_domains():
