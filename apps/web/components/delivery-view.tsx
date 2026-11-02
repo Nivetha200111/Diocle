@@ -281,6 +281,7 @@ function StartDelivery({ busy, onStarted }: { busy: boolean; onStarted: (id: str
               <label>
                 <span>Admin passcode</span>
                 <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} autoComplete="current-password" />
+                {open && <span className="dlv-note">Owner only. Use Convert only to try this yourself, no passcode needed.</span>}
               </label>
             )}
           </>

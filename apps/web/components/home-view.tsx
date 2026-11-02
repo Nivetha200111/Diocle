@@ -151,7 +151,7 @@ function Evidence({ go }: { go: Go }) {
       </div>
       <dl className="eff-grid home-evidence">
         <div><dt>Programs in {CANONICAL.pr}</dt><dd className="mono">{CANONICAL.programs.length}/{CANONICAL.programs.length}</dd></div>
-        <div><dt>Fresh inputs in its CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
+        <div><dt>Fresh output records in its CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
         <div><dt>Differences</dt><dd className="mono">{CANONICAL.differences}</dd></div>
         <div><dt>All runs on this engine</dt><dd className="mono">{runs ? `${certified}/${runs.length}` : "…"}</dd></div>
         {repaired > 0 && <div><dt>Verified against repaired COBOL (not certified)</dt><dd className="mono">{repaired}</dd></div>}
@@ -374,7 +374,7 @@ muse plugins approve diocle:mcp_server:diocle`}</pre>
         <ul className="home-list home-links">
           <li><a href={LINKS.legacy} target="_blank" rel="noreferrer">quillmark-mainframe</a>: an export of z/OS libraries (COBOL, copybooks, JCL, procedures, DB2, CICS, IMS, EBCDIC extracts).</li>
           <li><a href={LINKS.target} target="_blank" rel="noreferrer">quillmark-java</a>: starts empty; Diocle delivers certified programs as pull requests and its CI re-checks them.</li>
-          <li><a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>: re-delivers INTACCR, and the repository&apos;s CI re-verifies all six programs under one pinned verifier on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh inputs.</li>
+          <li><a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>: re-delivers INTACCR, and the repository&apos;s CI re-verifies all six programs under one pinned verifier on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records.</li>
           <li><a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a>: what was built during the hackathon, including the mistakes we found.</li>
         </ul>
         <p className="home-more"><a href={LINKS.diocle} target="_blank" rel="noreferrer">Source on GitHub <ExternalLink size={11} /></a></p>

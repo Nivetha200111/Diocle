@@ -28,7 +28,7 @@
         <mxCell id="ab-guardpanel" value="Guard panel + guard row in the model card" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;strokeColor=#2e7d32;dashed=1;strokeWidth=2;fillColor=#e8f5e9;" vertex="1" parent="1">
           <mxGeometry x="745" y="160" width="210" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="ab-evidence" value="&lt;b&gt;Evidence&lt;/b&gt;&lt;br&gt;Canonical delivery quillmark-modern#4: 6 programs, 6,719 fresh CI inputs, 0 differences&lt;br&gt;Evaluation, private mode, corrections" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
+        <mxCell id="ab-evidence" value="&lt;b&gt;Evidence&lt;/b&gt;&lt;br&gt;Canonical delivery quillmark-modern#4: 6 programs, 6,719 fresh CI output records, 0 differences&lt;br&gt;Evaluation, private mode, corrections" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;align=left;spacingLeft=6;spacingTop=2;verticalAlign=top;arcSize=6;" vertex="1" parent="1">
           <mxGeometry x="970" y="95" width="220" height="95" as="geometry" />
         </mxCell>
         <mxCell id="ab-github" value="&lt;b&gt;GitHub&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontSize=12;arcSize=2;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">

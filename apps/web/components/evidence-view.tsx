@@ -49,7 +49,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </div>
         <dl className="eff-grid home-evidence">
           <div><dt>Programs</dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
-          <div><dt>Fresh inputs in CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
+          <div><dt>Fresh output records in CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
           <div><dt>Differences</dt><dd className="mono">{CANONICAL.differences}</dd></div>
           <div><dt>Model spend (est.)</dt><dd className="mono">≈{usd(CANONICAL.modelSpendUsd)}</dd></div>
         </dl>

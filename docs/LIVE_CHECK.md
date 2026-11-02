@@ -36,7 +36,7 @@ No delivery, no repository creation, no admin endpoint and no upload was used.
 | 23 | Bug of the day wall | page text | 22:28 | pass | CHQCLR fee 20.00 vs 0.00 and debit -121.23 vs 0.00 cards, "checked against the live run record" |
 | 24 | Run page panels | page text for CHQCLR | 22:28 | pass | Re-verify, "How strong is this verification?", schema.sql, source, model card present. No "Smallest reproducer" or "Behaviour spec" card for this run (no data, see rows 7 and 12) |
 | 25 | Delivery page | page text | 22:28 | pass (loads) | no delivery started |
-| 26 | Canonical delivery PR quillmark-modern#4 exists | HTTP HEAD to GitHub | 22:44 | pass | 200; its CI run (6,719 inputs) was not re-run |
+| 26 | Canonical delivery PR quillmark-modern#4 exists | HTTP HEAD to GitHub | 22:44 | pass | 200; its CI run (6,719 output records) was not re-run |
 | 27 | Quickstart script | `sh scripts/quickstart.sh --check`, then `--no-key` in a clean checkout (no venv) | Oct 30 | pass | `--check` found prerequisites; `--no-key` re-verified the checked-in Java, 1027/1027, 23 s wall including the one-time venv (first measurement 12 s). Key mode (about 2.5 min, a few cents on your own key) was measured once and not re-run |
 | 28 | Measurement numbers (37/45, 4/10, 14/15, $0.69) | compared the home page and README with `docs/MEASUREMENT.md` | 22:30 | pass (consistent) | the measurement itself was not re-run (spend), so these are copied, not re-measured |
 | 29 | Engine is the latest code | SSH `git log -1` on `/opt/diocle` | 22:20 | pass | `e93f2f7`, 2026-10-30 21:19 IST |
