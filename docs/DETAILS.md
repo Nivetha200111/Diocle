@@ -185,7 +185,7 @@ Diocle is for the teams that inherit COBOL batch programs that move money and ca
 ## Evidence and development tools
 
 - **Evidence, with links to every run:** [diocle.vercel.app/evidence](https://diocle.vercel.app/evidence), [docs/EVIDENCE.md](EVIDENCE.md) (the canonical delivery, [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4), with its CI) and [docs/EVALUATION.md](EVALUATION.md) (unseen programs, failures included).
-- **Bring your own repository:** open [Delivery](https://diocle.vercel.app/delivery) and paste any public COBOL repository (small daily budget; every compile and run of imported code happens in a sandbox with no network and no credentials, while cloning, analysis and the model calls run in the engine).
+- **Bring your own repository:** open [Delivery](https://diocle.vercel.app/delivery) and paste a public COBOL repository of up to 3 convertible programs and 1,500 lines. The public path converts and compares but opens no pull request. A repository of mostly CICS, IMS or other refused code ends with "no convertible programs" and the reason for each. A small synthetic one that works: `https://github.com/Nivetha200111/quarrystone-valley-cu-cobol` (3 of 3 certified on the live site Nov 3, about $0.04). (Small daily budget; every compile and run of imported code happens in a sandbox with no network and no credentials, while cloning, analysis and the model calls run in the engine).
 - **Commit history:** [github.com/Nivetha200111/Diocle/commits/main](https://github.com/Nivetha200111/Diocle/commits/main), [docs/BUILD_LOG.md](BUILD_LOG.md).
 
 ## Built during the hackathon (Oct 27–Nov 4, 2026)
