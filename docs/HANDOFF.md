@@ -12,8 +12,10 @@ This repository is public: never write secrets, passcodes, personal details or e
 ## Nov 2 night: verified distillation in progress (owner lifted the feature lock for this)
 - **What:** Muse Spark Open teaches a Muse Glimmer 30B LoRA; only translations that pass the differential test may become training data. Plan, gates, held-out programs and deviations: [DISTILLATION.md](DISTILLATION.md). Merged to `main` as PR #4; the engine was not deployed and the product does not call a tuned model.
 - **Teacher:** Muse Spark Open only. Section 10.1(ix) of the Meta Model API terms restricts training competing models on hosted outputs, so stored hosted runs are refused as training data.
-- **State:** the harvest is running locally and its output is not committed. The dataset, training job and evaluation have not run. Evaluation needs a paid dedicated deployment and the owner's dollar limit.
-- **Unverified:** the "directory scorer" and its open-weights tuning bonus were not found in any source we read. `HACKATHON_RULES.md` lists no such criterion.
+- **State:** harvest finished, $5.75, 31 examples, dataset committed (`eval/distill/`). **Training is blocked:** Fireworks answers `dataset uploads are temporarily disabled, please contact Fireworks AI to get access`, on both upload routes. No model is tuned. Evaluation has not run; it needs a tuning result, a paid deployment and the owner's dollar limit.
+- **Next:** the owner asks Fireworks or tries its dashboard. If uploads open, `eval/distill_glimmer.py train --go` picks up from here. Fallbacks, each the owner's call: Kaggle with Unsloth (free, may not fit), Modal on one H100 (about $4 an hour, a new paid service).
+- **Reviewer pass done Nov 2:** its findings are fixed or stated under "Deviations" in DISTILLATION.md.
+- **Rubric:** the owner supplied a checklist that gives +0.5 for open-weights tuning. We scored it 9.0 of 10 today and 9.5 once a job completes. Its source and official status are unconfirmed; `HACKATHON_RULES.md` has only the 30/25/20/25 weights.
 - **Analyzer gap seen, not changed:** it does not read the valid quoted form `COPY "X".`
 
 ## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)

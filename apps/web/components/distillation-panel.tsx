@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { DISTILLATION, LINKS } from "@/lib/config";
 
-const BADGE = { running: "badge-amber", done: "badge-green", "not run": "badge-neutral" } as const;
+const BADGE = { blocked: "badge-amber", done: "badge-green", "not run": "badge-neutral" } as const;
 
 // Typed from docs/DISTILLATION.md, not read from the engine: the experiment runs outside it. Update both together.
 export default function DistillationPanel() {
@@ -31,9 +31,9 @@ export default function DistillationPanel() {
         </table>
       </div>
       <ul className="home-list">
-        <li><strong>Teacher is open weights only.</strong> The Meta Model API terms restrict training competing models on hosted outputs, so the code refuses Muse Spark outputs, including every stored hosted run.</li>
+        <li><strong>Teacher is open weights only.</strong> The Meta Model API terms restrict training competing models on hosted outputs, so stored hosted runs are not used, and an example is refused if any call behind it was not Muse Spark Open.</li>
         <li><strong>The test is fixed in advance.</strong> Four held-out programs, 12 attempts each for base and tuned, reported whatever the outcome. We claim an improvement only if tuned passes at least 3 more attempts than base.</li>
-        <li><strong>A small dataset.</strong> Few programs pass the gates, so there are far fewer examples than the 500 or so Meta suggests. A match on generated inputs is a test, not a proof.</li>
+        <li><strong>A small dataset.</strong> 31 examples, far fewer than the 500 or so Meta suggests. A match on generated inputs is a test, not a proof.</li>
       </ul>
       <p className="home-pr">
         <a href={LINKS.distillation} target="_blank" rel="noreferrer">The plan, written before any model call, and every change to it <ExternalLink size={11} /></a>

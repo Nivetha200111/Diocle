@@ -24,12 +24,12 @@ export const LINKS = {
 
 // Status of the experiment in docs/DISTILLATION.md, typed by hand. Change both together; a step is "done" only when its
 // evidence is committed.
-export const DISTILLATION: { asOf: string; steps: { name: string; what: string; status: "running" | "done" | "not run" }[] } = {
+export const DISTILLATION: { asOf: string; steps: { name: string; what: string; status: "blocked" | "done" | "not run" }[] } = {
   asOf: "Nov 2, 2026",
   steps: [
-    { name: "Teach", what: "Muse Spark Open translates synthetic COBOL: repository samples and new programs it writes itself", status: "running" },
-    { name: "Filter", what: "Only Java that matches GnuCOBOL on 1,000 generated inputs may become a training example", status: "running" },
-    { name: "Tune", what: "One LoRA on Muse Glimmer 30B, trained on Fireworks", status: "not run" },
+    { name: "Teach", what: "Muse Spark Open translated 134 synthetic COBOL programs: repository samples and new programs it wrote itself", status: "done" },
+    { name: "Filter", what: "Only Java that matched GnuCOBOL on 1,000 generated inputs became a training example: 31 of the 134", status: "done" },
+    { name: "Tune", what: "One LoRA on Muse Glimmer 30B. Fireworks is refusing dataset uploads on this account, so nothing has been tuned", status: "blocked" },
     { name: "Measure", what: "Base vs tuned Muse Glimmer, first translations of four held-out programs, 1,000 inputs each", status: "not run" },
   ],
 };
