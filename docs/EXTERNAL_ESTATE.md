@@ -121,6 +121,87 @@ call showed that adding the period lets 11 of the 15 compile. The other 4 fail o
 - **Run:** `caffeinate -i services/verifier/.venv/bin/python eval/run_external_estate.py --second-pass --max-total-usd 2.00 --workers 4`.
   Results: `eval/results-external-estate-second-pass.json`. Both passes are published together.
 
+## Third pass (protocol pinned Nov 3, 2026, before any model call of this pass; NOT RUN)
+
+> **Not a blind test.** This pass re-runs programs after a product fix made in response to this same course's failures.
+> Wherever a result of it is quoted, it must say so. It does not replace, and may not be added silently to, the two passes
+> above, whose results stand as recorded and are never overwritten. Until it runs there is no result here: the numbers in
+> this section are from stored Java and a compiler, with no model call.
+
+### What was checked first (Nov 3, no model calls)
+
+GnuCOBOL 3.2 under the verifier's flags, on small synthetic programs (`services/verifier/tests/test_write_advancing.py`):
+the advancing goes into the file as bytes, on fixed-length SEQUENTIAL files too. On a SEQUENTIAL file, four 4-byte `WRITE`s
+with the second `AFTER ADVANCING 1 LINE` give `AAAA\nBBBBCCCC\n`. `0x0D` stands in for 0 LINES and `0x0C` for PAGE, and one
+`0x0A` closes a file whose last advance was AFTER, even an implicit close at `STOP RUN`.
+
+The write-up above calls the cause a gap in the translator and repair prompts. **That was only part of it. The verifier
+itself could not certify these programs.** It cuts a fixed-length output into pieces of the record length and refused any
+piece of another length, and these files never end on a whole record, so the last piece was short on both sides. Java whose
+bytes were identical to GnuCOBOL's was refused with "converted record is 2 bytes, expected 62: a field overflowed". The
+repair agent spent its budget on a difference that no Java could remove.
+
+Taking each stored final Java, changing only newline writes and left-over probe lines in a scratch copy, and running the real
+verifier on 1,000 generated records (the edits are not published, and they are ours, not the model's, so this shows the
+cause and is not a certification):
+
+| Program | Output bytes after those edits | Verifier before the fix | After it | What else differs |
+|---|---|---:|---:|---|
+| `CBL0004` | identical | 1,021 of 1,022 | passes | Its last repair step added a throwing debug line, so the final check exited 1: confirmed |
+| `CBL0005` | identical | 1,021 of 1,022 | passes | Nothing |
+| `CBL0006` | identical | 1,022 of 1,023 | passes | Nothing |
+| `CBL0008` | identical | 1,023 of 1,024 | passes | Nothing |
+| `CBL0011` | identical | 1,023 of 1,024 | passes | Nothing |
+| `CBL006A` | identical | 1,022 of 1,023 | passes | Nothing |
+| `CBL0106C` | identical | 37 of 38 | passes | Its last patch did not compile; removing that line was one of the edits. The original ends early, exit 232, on its own table check |
+| `COBOL` | identical | 13 of 14 | passes | The agent's stored Java wrote a stray `ABCDE`; removing it was one of the edits |
+| `CBL0010` | differ | 398 of 1,024 | 398 of 1,024 | A separate defect: edited amounts lose the `$` |
+| `CBL0012` | differ | 1,022 of 1,024 | 1,023 of 1,024 | A separate defect: an edited total keeps a digit the picture drops |
+| `CBL0106` | differ | 1,021 of 1,024 | 1,021 of 1,024 | A separate defect: the original overruns an `OCCURS 5` table and overwrites its own storage, which the Java does not reproduce |
+| `CBL0033` | not tested | | | No `ADVANCING`. The ordinary check matched; breaker inputs differ. Not explained by this |
+| `CBL0015` | not tested | | | No file to compare: the original never ends. Not explained by this |
+
+So **this cause blocked 11 of the 13**: in all 11 the original's output is no whole number of records, so no Java could have
+certified. It is the whole difference in 8 of them, on stored Java. In 3 there is a second defect as well, and the other 2 of
+the 13 have nothing to do with it. The fix is not expected to certify those 5. That is an expectation, not a result.
+
+### What changed
+
+- **Verifier.** Identical bytes are not refused for their length. The only pairs this newly accepts are byte-identical ones.
+  Output text lines now end at a newline byte and nothing else, and a last line with no newline is reported: before, a Java
+  writing `0x0A` where GnuCOBOL wrote a form feed certified on LINE SEQUENTIAL. That makes the check stricter on every
+  LINE SEQUENTIAL program. Its stored Java still passes, per the test suite. Nothing was normalized.
+- **Translator and repair prompts.** They state the rule above, tested against the compiler's real bytes, only if the program
+  has a `WRITE` with `AFTER` or `BEFORE`. For every other program both prompts are unchanged byte for byte, and a test pins
+  that (`services/converter/tests/test_advancing_prompt.py`), so earlier measurements still describe the same prompts.
+- **Hand-written proof.** A synthetic program's correct Java certifies through the real verifier on both file organizations.
+  Java that ignores the newlines, drops only the closing one, or writes a newline for a form feed fails.
+
+**The target is GnuCOBOL's file, not IBM's.** IBM documents its `ADV` option as carrying the print control in a byte of the
+record (IBM's compiler was not tested), so these Java programs reproduce what GnuCOBOL writes, not a mainframe print file. A
+person must decide which of them a downstream consumer needs.
+
+### Protocol (fixed before the run)
+
+- **Which programs.** Only the 13 not certified in the earlier passes: `CBL0004`, `CBL0005`, `CBL0006`, `CBL0008`, `CBL0010`,
+  `CBL0011`, `CBL0012`, `CBL0015`, `CBL0033`, `CBL006A`, `CBL0106`, `CBL0106C`, `COBOL`. All the others are reported as
+  `not in this pass` or keep their refused or not-converted outcome, with their result in the earlier passes.
+- **Against what.** These 11 do not compile as distributed, so each can only be **certified against repaired COBOL**, never
+  plain certified, with its patch published and to be confirmed by a person: `CBL0004`, `CBL0005`, `CBL0006`, `CBL0008`,
+  `CBL0010`, `CBL0011`, `CBL0012`, `CBL0033`, `CBL006A`, `CBL0106`, `CBL0106C`. `COBOL` and `CBL0015` compile as
+  distributed, so `--convert-anyway` leaves them unpatched. If `CBL0015`'s Java cannot be compared because the original never
+  ends, the outcome is `compiled, not verified`.
+- **Settings.** The pinned commit above, a fresh import, `--breaker --no-memory --convert-anyway`, normal caps, $0.40 per
+  program, four at a time, one pass, no tuning during it. **Ceiling $2.00**, which needs the owner's OK before the run. The
+  same 13 cost about $1.19 in the earlier passes. A program the ceiling leaves no room for is reported as `not run`.
+- **Fresh seeds.** 9001 to 9005, as above. What a certification rests on stays as narrow as the measured table says: 2 of 10
+  input fields vary, and `COBOL` has fixed input. The split is reported as before.
+- **Reporting.** Results go to a new file, `eval/results-external-estate-third-pass.json`, whose `pass` says this is not a
+  blind test and whose `blindTest` is `false`. The runner refuses to overwrite any results file. Published results list the
+  three passes separately, with no merged headline that hides which pass or which label a program's result came from.
+- **Run:** `sh scripts/test.sh --no-install`, then
+  `caffeinate -i services/verifier/.venv/bin/python eval/run_external_estate.py --third-pass --max-total-usd 2.00 --workers 4`.
+
 ## Results
 
 ### Analysis phase (Nov 2, 2026, Windows; no model calls)
