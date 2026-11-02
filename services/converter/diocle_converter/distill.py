@@ -132,16 +132,23 @@ def training_line(program: Program, result: dict, java_source: str) -> dict:
 
 
 def final_answer(text: str) -> dict:
-    """The translator's JSON from a raw Muse Glimmer completion: after its reasoning, in the channel addressed to the user.
-    Same rule for base and tuned. No schema ran on the training host, so text around one JSON object is tolerated."""
-    tail = text.rsplit("to=user<|message|>", 1)[-1].split("<|eot|>", 1)[0]
+    """The Java from a raw Muse Glimmer completion, read from the channel addressed to the user, after any reasoning.
+    The hosted route forces the JSON shape with a schema, and no prompt names it, so a base model that never saw the shape
+    must not fail for answering in plain Java: the same rule accepts the JSON or the Java, for base and tuned."""
+    tail = text.rsplit("to=user<|message|>", 1)[-1].split("<|eot|>", 1)[0].split("<|end_of_text|>", 1)[0]
     start, end = tail.find("{"), tail.rfind("}")
-    if start < 0 or end < start:
-        raise ValueError("no JSON object in the answer")
-    answer = json.loads(tail[start:end + 1], strict=False)
-    if not isinstance(answer.get("javaSource"), str):
-        raise ValueError("no javaSource in the answer")
-    return {"mainClass": answer.get("mainClass", ""), "javaSource": answer["javaSource"], "notes": str(answer.get("notes", ""))}
+    if start >= 0 and end > start:
+        try:
+            answer = json.loads(tail[start:end + 1], strict=False)
+        except ValueError:
+            answer = None
+        if isinstance(answer, dict) and isinstance(answer.get("javaSource"), str):
+            return {"mainClass": answer.get("mainClass", ""), "javaSource": answer["javaSource"], "notes": str(answer.get("notes", ""))}
+    fence = re.search(r"```(?:java)?[ \t]*\n(.*?)```", tail, re.S)
+    java = fence.group(1) if fence else tail
+    if not re.search(r"\bclass\s+\w+", java):
+        raise ValueError("no JSON answer and no Java class in the answer")
+    return {"mainClass": "", "javaSource": java.strip() + "\n", "notes": ""}
 
 
 def check_no_leak(lines: list[dict], held_out_sources: dict[str, str]) -> None:

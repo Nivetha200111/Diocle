@@ -26,6 +26,7 @@ EVAL_SEED, K, MAX_NEW = 8801, 3, 16 if SMOKE else 8000
 TARGETS = r".*language_model\.layers\.\d+\.(self_attn\.(q|k|v|o)_proj|mlp\.(up|down)_proj)"
 STARTED = time.monotonic()
 LIMIT = float(os.environ.get("TUNE_MINUTES", "100")) * 60
+TRAIN_LIMIT = 55 * 60  # training that would take longer leaves no time for the answers, so it stops early and cheaply
 
 
 def log(**fields) -> None:
@@ -68,6 +69,7 @@ def train(model, tok, lines) -> None:
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=LR, weight_decay=0.0)
     rng = random.Random(SEED)
+    started, done = time.monotonic(), 0
     for epoch in range(1, EPOCHS + 1):
         rng.shuffle(examples)
         total = 0.0
@@ -80,11 +82,14 @@ def train(model, tok, lines) -> None:
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             total += loss.item()
+            done += 1
+            projected = (time.monotonic() - started) / done * EPOCHS * len(examples)
+            if done >= 5 and projected > TRAIN_LIMIT:
+                raise SystemExit(f"too slow: training would take {projected / 60:.0f} minutes")
             if step == 1 or step % 5 == 0:
                 log(stage="train", epoch=epoch, step=step, loss=round(loss.item(), 4))
-        log(stage="epoch", epoch=epoch, meanLoss=round(total / len(examples), 4))
-    model.save_pretrained(OUT / "adapter")
-    log(stage="adapter-saved", trainedExamples=len(examples), epochs=EPOCHS)
+        model.save_pretrained(OUT / "adapter")
+        log(stage="epoch", epoch=epoch, meanLoss=round(total / len(examples), 4), adapterSaved=True)
 
 
 def generate(model, tok, program: dict, which: str, device) -> None:
@@ -128,8 +133,8 @@ def main() -> int:
     for program in programs:
         for which in ("base", "tuned"):
             if time.monotonic() - STARTED > LIMIT:
-                log(stage="out-of-time", program=program["name"], which=which)
-                return 3
+                log(stage="out-of-time", program=program["name"], which=which)  # exits 0: the host uploads files fully only then
+                return 0
             if which == "base":
                 with model.disable_adapter():
                     generate(model, tok, program, which, device)

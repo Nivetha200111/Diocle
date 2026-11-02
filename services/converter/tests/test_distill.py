@@ -293,9 +293,17 @@ def test_final_answer_reads_the_user_channel_after_reasoning():
     assert distill.final_answer(text) == {"mainClass": "A", "javaSource": "class A {}", "notes": "n"}
 
 
-def test_final_answer_tolerates_text_around_the_object_and_refuses_no_object():
+def test_final_answer_tolerates_text_around_the_object():
     assert distill.final_answer('Here:\n```json\n{"javaSource": "x"}\n```')["javaSource"] == "x"
-    with pytest.raises(ValueError):
-        distill.final_answer("public class A {}")
-    with pytest.raises(ValueError):
-        distill.final_answer('{"notes": "no source"}')
+
+
+def test_final_answer_accepts_plain_java_so_the_base_model_is_not_failed_for_the_shape():
+    assert distill.final_answer(" to=user<|message|>public class A {}<|eot|>")["javaSource"] == "public class A {}\n"
+    fenced = distill.final_answer("Here it is:\n```java\npublic class A {\n}\n```\nDone.")
+    assert fenced["javaSource"] == "public class A {\n}\n"
+
+
+def test_final_answer_refuses_an_answer_with_no_java():
+    for text in ('{"notes": "no source"}', "I cannot do that."):
+        with pytest.raises(ValueError):
+            distill.final_answer(text)

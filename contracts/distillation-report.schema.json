@@ -19,7 +19,7 @@
     "student": {
       "type": "object",
       "required": ["baseModel"],
-      "properties": { "baseModel": { "type": "string", "pattern": "muse-glimmer" } }
+      "properties": { "baseModel": { "type": "string", "pattern": "[Mm]use-[Gg]limmer" } }
     },
     "dataset": {
       "type": "object",

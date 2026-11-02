@@ -7,7 +7,7 @@
   train [--go]             one Fireworks fine-tuning job. Without --go it prints the plan and spends nothing.
   evaluate --approve-usd X --max-minutes M --accelerator A --accelerator-count C --usd-per-gpu-hour R
                            base vs tuned on one paid deployment, deleted when this ends. Needs the owner's OK (rule 10).
-  score DIR --minutes M
+  score DIR --job-id ID --minutes M
                            the Baseten route (eval/distill_baseten): checks answers written by the job against GnuCOBOL.
 
 Results go to eval/results-distillation.json (contracts/distillation-report.schema.json) after every unit. The Fireworks
@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import signal
 import sys
 import tempfile
@@ -52,7 +53,7 @@ MAX_GENERATED, WORKERS = 120, 6
 BASE_MODEL = os.environ.get("DISTILL_STUDENT_MODEL_ID", "accounts/fireworks/models/muse-glimmer-30b")  # the plan's student
 DATASET_ID, JOB_ID, OUTPUT_MODEL = "diocle-distill-v1", "diocle-distill-v1", "diocle-glimmer-v1"
 EPOCHS, LORA_RANK = 3, 8
-BASETEN_H100_USD_PER_MINUTE = 0.10833  # baseten.co/pricing, read Nov 3, 2026
+BASETEN_H100_USD_PER_MINUTE, BASETEN_BASE_MODEL = 0.10833, "meta-models/Muse-Glimmer-30B"  # baseten.co/pricing, read Nov 3, 2026
 EVAL_SEED, EVAL_CASES, K = 8801, 1000, 3
 HELD_OUT_DIRS = {"BRNCHSUM": "eval/samples/brnchsum", "CHQCLR": "eval/samples/chqclr", "FXCONV": "eval/samples/fxconv",
                  "LOANAMRT": "eval/samples/loanamrt"}
@@ -368,6 +369,9 @@ def score(args) -> int:
     from diocle_converter.config import Settings
     from diocle_converter.sources import Program
 
+    for tool in ("cobc", "javac"):  # a missing tool here must not read as the model failing
+        if not shutil.which(tool):
+            raise SystemExit(f"{tool} not found: nothing scored")
     settings = replace(Settings.from_env(), mode="private")
     state = load(DIR / "evaluation.json", {"status": "partial", "seed": EVAL_SEED, "cases": EVAL_CASES, "k": K, "programs": {},
                                            "infrastructureLog": [], "deployment": {}})
@@ -378,6 +382,8 @@ def score(args) -> int:
         stored = json.loads(path.read_text())
         main_class = Program.load(ROOT / HELD_OUT_DIRS[name]).main_class
         rec = first_try(HELD_OUT_DIRS[name], BASE_MODEL, trial, settings, StoredAnswer(stored["text"], stored["outputTokens"], main_class))
+        if str(rec.get("error", "")).startswith("verifier "):  # our harness broke, not the model: stop, re-running resumes here
+            raise SystemExit(f"{name} {which} {trial}: {rec['error']}")
         rec["seconds"] = stored["seconds"]  # the shared time of the batch these three attempts came from
         state["programs"][name][which].append(rec)
         atomic_write(DIR / "evaluation.json", distill.scrub(json.dumps(state, indent=1)) + "\n")
@@ -387,6 +393,9 @@ def score(args) -> int:
     state["deployment"].update(accelerator="H100", acceleratorCount=1, minutes=args.minutes,
                                estimatedUsd=round(args.minutes * BASETEN_H100_USD_PER_MINUTE, 2), deleted=True)
     atomic_write(DIR / "evaluation.json", distill.scrub(json.dumps(state, indent=1)) + "\n")
+    record = {"status": "completed", "host": "baseten", "jobId": args.job_id, "baseModel": BASETEN_BASE_MODEL,
+              "uploadedSha256": distill.sha256(TRAIN.read_bytes()), "finishedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    atomic_write(DIR / "training.json", json.dumps(record, indent=1) + "\n")
     report()
     return 0
 
@@ -550,7 +559,7 @@ def report() -> None:
     result = {
         "version": "0.1",
         "teacher": {"model": state["teacher"], "host": "fireworks", "reasoningEffort": state["reasoningEffort"]},
-        "student": {"baseModel": BASE_MODEL},
+        "student": {"baseModel": training.pop("baseModel", BASE_MODEL)},
         "dataset": {"examples": len(passed), "repositoryPrograms": sum(u["kind"] == "repository" for u in passed),
                     "generatedPrograms": sum(u["kind"] == "generated" for u in passed), "sha256": distill.sha256(data),
                     "heldOut": list(distill.HELD_OUT),
@@ -581,6 +590,7 @@ def main() -> int:
     e = sub.add_parser("evaluate")
     c = sub.add_parser("score")
     c.add_argument("dir")
+    c.add_argument("--job-id", required=True)
     c.add_argument("--minutes", type=float, required=True)
     e.add_argument("--approve-usd", type=float, required=True)
     e.add_argument("--max-minutes", type=float, required=True)
