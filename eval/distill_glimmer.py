@@ -62,7 +62,7 @@ REPOSITORY = ("account-match", "addfee", "call-identifier", "daily-control", "di
 LIMITS = ["Small dataset: Meta's post-training guide suggests roughly 500 or more examples.",
           "Passing 1,000 generated inputs is not a proof; generated inputs are well-formed and the breaker is not run on training examples.",
           "Answers only: no reasoning traces in the training data.",
-          "The tuned model runs only on a paid dedicated deployment; it is not on the public site.",
+          "The adapter is not published, and no run on the public site uses it.",
           "Hosted Muse Spark outputs are refused as training data (Meta Model API terms, section 10.1(ix))."]
 
 lock = threading.Lock()

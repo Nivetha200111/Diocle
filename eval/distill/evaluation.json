@@ -1,0 +1,314 @@
+{
+ "status": "complete",
+ "seed": 8801,
+ "cases": 1000,
+ "k": 3,
+ "programs": {
+  "BRNCHSUM": {
+   "base": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": true,
+     "outputTokens": 3946,
+     "seconds": 262.6
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Brnchsum.java:9 reads a variable named at run time: getenv(IN_ENV); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Brnchsum.java:10 reads a variable named at run time: getenv(OUT_ENV); name environment variables literally, e.g. System.getenv(\"",
+     "outputTokens": 3240,
+     "seconds": 262.6
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Brnchsum.java:6 reads a variable named at run time: getenv(ENV_IN); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Brnchsum.java:7 reads a variable named at run time: getenv(ENV_OUT); name environment variables literally, e.g. System.getenv(\"D",
+     "outputTokens": 3406,
+     "seconds": 262.6
+    }
+   ],
+   "tuned": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": true,
+     "outputTokens": 5765,
+     "seconds": 525.8
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": true,
+     "outputTokens": 4141,
+     "seconds": 525.8
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 766,
+     "failedCases": 766,
+     "exitCodeMatch": false,
+     "stdoutMatch": true,
+     "outputTokens": 3684,
+     "seconds": 525.8
+    }
+   ]
+  },
+  "CHQCLR": {
+   "base": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1004,
+     "failedCases": 651,
+     "exitCodeMatch": true,
+     "stdoutMatch": false,
+     "outputTokens": 3751,
+     "seconds": 273.5
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Chqclr.java:11 reads a variable named at run time: getenv(IN_ENV); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Chqclr.java:12 reads a variable named at run time: getenv(OUT_ENV); name environment variables literally, e.g. System.getenv(\"DD_",
+     "outputTokens": 4112,
+     "seconds": 273.5
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Chqclr.java:9 reads a variable named at run time: getenv(IN_ENV); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Chqclr.java:10 reads a variable named at run time: getenv(OUT_ENV); name environment variables literally, e.g. System.getenv(\"DD_I",
+     "outputTokens": 3255,
+     "seconds": 273.5
+    }
+   ],
+   "tuned": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1004,
+     "failedCases": 1004,
+     "exitCodeMatch": true,
+     "stdoutMatch": false,
+     "outputTokens": 4552,
+     "seconds": 436.8
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1004,
+     "failedCases": 1003,
+     "exitCodeMatch": true,
+     "stdoutMatch": false,
+     "outputTokens": 4179,
+     "seconds": 436.8
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1205,
+     "failedCases": 1205,
+     "exitCodeMatch": true,
+     "stdoutMatch": false,
+     "outputTokens": 4771,
+     "seconds": 436.8
+    }
+   ]
+  },
+  "FXCONV": {
+   "base": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Fxconv.java:17 reads a variable named at run time: getenv(INPUT_ENV); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Fxconv.java:18 reads a variable named at run time: getenv(OUTPUT_ENV); name environment variables literally, e.g. System.geten",
+     "outputTokens": 3693,
+     "seconds": 244.1
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1016,
+     "failedCases": 1016,
+     "exitCodeMatch": true,
+     "stdoutMatch": true,
+     "outputTokens": 3457,
+     "seconds": 244.1
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": true,
+     "outputTokens": 2601,
+     "seconds": 244.1
+    }
+   ],
+   "tuned": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1016,
+     "failedCases": 1016,
+     "exitCodeMatch": false,
+     "stdoutMatch": true,
+     "outputTokens": 3775,
+     "seconds": 372.4
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1016,
+     "failedCases": 1016,
+     "exitCodeMatch": true,
+     "stdoutMatch": true,
+     "outputTokens": 3700,
+     "seconds": 372.4
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 1016,
+     "failedCases": 1016,
+     "exitCodeMatch": true,
+     "stdoutMatch": true,
+     "outputTokens": 4088,
+     "seconds": 372.4
+    }
+   ]
+  },
+  "LOANAMRT": {
+   "base": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Loanamrt.java:22 reads a variable named at run time: getenv(IN_ENV); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Loanamrt.java:23 reads a variable named at run time: getenv(OUT_ENV); name environment variables literally, e.g. System.getenv(",
+     "outputTokens": 3426,
+     "seconds": 248.5
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "blockedByPolicy": true,
+     "error": "guard: refused to run this Java: Loanamrt.java:11 reads a variable named at run time: getenv(IN_ENV); name environment variables literally, e.g. System.getenv(\"DD_INFILE\"); Loanamrt.java:12 reads a variable named at run time: getenv(OUT_ENV); name environment variables literally, e.g. System.getenv(",
+     "outputTokens": 3586,
+     "seconds": 248.5
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": false,
+     "outputTokens": 3735,
+     "seconds": 248.5
+    }
+   ],
+   "tuned": [
+    {
+     "trial": 1,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": false,
+     "outputTokens": 5033,
+     "seconds": 449.5
+    },
+    {
+     "trial": 2,
+     "passed": false,
+     "translated": true,
+     "compiled": false,
+     "total": 0,
+     "failedCases": 0,
+     "exitCodeMatch": false,
+     "stdoutMatch": false,
+     "outputTokens": 5099,
+     "seconds": 449.5
+    },
+    {
+     "trial": 3,
+     "passed": false,
+     "translated": true,
+     "compiled": true,
+     "total": 2031,
+     "failedCases": 2031,
+     "exitCodeMatch": false,
+     "stdoutMatch": false,
+     "outputTokens": 4458,
+     "seconds": 449.5
+    }
+   ]
+  }
+ },
+ "infrastructureLog": [],
+ "deployment": {
+  "accelerator": "H100",
+  "acceleratorCount": 1,
+  "minutes": 60.0,
+  "estimatedUsd": 4.9,
+  "deleted": true
+ }
+}

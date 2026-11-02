@@ -25,12 +25,12 @@ export const LINKS = {
 // Status of the experiment in docs/DISTILLATION.md, typed by hand. Change both together; a step is "done" only when its
 // evidence is committed.
 export const DISTILLATION: { asOf: string; steps: { name: string; what: string; status: "blocked" | "done" | "not run" }[] } = {
-  asOf: "Nov 2, 2026",
+  asOf: "Nov 3, 2026",
   steps: [
     { name: "Teach", what: "Muse Spark Open translated 134 synthetic COBOL programs: repository samples and new programs it wrote itself", status: "done" },
     { name: "Filter", what: "Only Java that matched GnuCOBOL on 1,000 generated inputs became a training example: 31 of the 134", status: "done" },
-    { name: "Tune", what: "One LoRA on Muse Glimmer 30B. Fireworks is refusing dataset uploads on this account, so nothing has been tuned", status: "blocked" },
-    { name: "Measure", what: "Base vs tuned Muse Glimmer, first translations of four held-out programs, 1,000 inputs each", status: "not run" },
+    { name: "Tune", what: "One LoRA on Muse Glimmer 30B, on Modal after Fireworks and Baseten refused the job: 31 examples, 3 epochs, about 10 minutes", status: "done" },
+    { name: "Measure", what: "Base vs tuned, first translations of four held-out programs, 1,000 inputs each: base 0 of 12, tuned 0 of 12. Tuned Java reached the comparison more often (8 vs 2), mostly because the safety policy refused 7 base answers; on compiling alone it is 8 vs 5", status: "done" },
   ],
 };
 

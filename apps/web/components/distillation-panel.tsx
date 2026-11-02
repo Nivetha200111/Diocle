@@ -11,8 +11,8 @@ export default function DistillationPanel() {
         <div>
           <h2>Verified distillation: tuning open weights on checked translations</h2>
           <p>
-            GnuCOBOL decides what the model may learn from. <strong>In progress as of {DISTILLATION.asOf}: no tuned model exists yet, and
-            no run on this site uses one.</strong>
+            GnuCOBOL decides what the model may learn from. <strong>Measured {DISTILLATION.asOf}: base passed 0 of 12 and tuned 0 of 12, so we
+            claim no improvement. No run on this site uses the tuned model.</strong>
           </p>
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function DistillationPanel() {
       </div>
       <ul className="home-list">
         <li><strong>Teacher is open weights only.</strong> The Meta Model API terms restrict training competing models on hosted outputs, so stored hosted runs are not used, and an example is refused if any call behind it was not Muse Spark Open.</li>
-        <li><strong>The test is fixed in advance.</strong> Four held-out programs, 12 attempts each for base and tuned, reported whatever the outcome. We claim an improvement only if tuned passes at least 3 more attempts than base.</li>
+        <li><strong>The test is fixed in advance.</strong> Four held-out programs, 12 attempts each for base and tuned, reported whatever the outcome. We would claim an improvement only if tuned passes at least 3 more attempts than base.</li>
         <li><strong>A small dataset.</strong> 31 examples, far fewer than the 500 or so Meta suggests. A match on generated inputs is a test, not a proof.</li>
       </ul>
       <p className="home-pr">

@@ -1,6 +1,6 @@
 # Verified distillation: Muse Spark Open to Muse Glimmer
 
-> **Status: dataset built, tuning blocked, nothing evaluated (Nov 2, 2026).** The host refuses dataset uploads on this account, so no tuned model exists. See "Results".
+> **Status: measured, no improvement (Nov 3, 2026).** One LoRA was trained and scored on four held-out programs: base 0 of 12, tuned 0 of 12. See "Results".
 > The plan below was written and committed before any model call. Results are appended at the end and nothing above "Results" changes after the first call, except a dated entry under "Deviations".
 > All programs are **synthetic**. This is a small experiment, not a benchmark of general COBOL.
 
@@ -94,7 +94,7 @@ The Muse Spark figures in MEASUREMENT.md are context only: same harness, differe
 
 ## Results
 
-Reported as they stand on Nov 2, 2026. **No model has been tuned and nothing has been evaluated.**
+Reported Nov 3, 2026. **Tuning did not make Muse Glimmer's first translations match the COBOL: base 0 of 12, tuned 0 of 12. We claim no improvement.**
 
 **Harvest ([results](../eval/results-distillation.json), [data](../eval/distill/harvest.json)).** 134 programs went in and **31 became training examples** (4 from the repository, 27 generated). All 133 units that made a model call used Muse Spark Open. Estimated teacher spend: **$5.75** at list prices, of which $2.07 went on the pilot and on first-pass units later retried.
 
@@ -112,8 +112,27 @@ The first pass alone gave 13 examples for $2.72. A low pass rate is expected her
 
 **Dataset ([train.jsonl](../eval/distill/train.jsonl)).** 31 examples, about 200,000 tokens by a rough estimate (601,000 over three epochs), SHA-256 `f565c9197019ce66ac5d3875bd48f65295af29a822495e5e4a5241c5f8f7398c`. The leak check passed against the four held-out programs. This is far below the roughly 500 examples Meta suggests.
 
-**Training, Nov 3: not started.** The job is written and passes a tiny-model test on a CPU. Baseten refused to start it, so nothing has run or been charged.
+**Training: completed on Modal, Nov 3 (job `ap-EKPrf2X8tkUSZKc4lGE80j`).** One H100, the 31 examples, LoRA rank 8, 3 epochs, in about 10 minutes of training after about 3 of loading. Mean loss by epoch: 0.304, 0.211, 0.144. That only says it learned the training set. The whole job, attempts included, ran about 60 minutes, an estimated $4.90 at list prices against Modal's free credit. The adapter is not published and the product does not use it. Baseten refused to start the job and charged nothing.
 
-**Fireworks:** it still answers `dataset uploads are temporarily disabled, please contact Fireworks AI to get access` ([record](../eval/distill/training.json)). We do not know whether this is an outage or a limit on this account.
+**Fireworks:** it was still refusing when the job moved, answering `dataset uploads are temporarily disabled, please contact Fireworks AI to get access` ([record](../eval/distill/training.json)). We do not know whether this is an outage or a limit on this account.
 
-**Evaluation: not run.**
+**Evaluation ([results](../eval/results-distillation.json), [per attempt](../eval/distill/evaluation.json)).** Three first translations per held-out program per model, 1,000 generated inputs, seed 8801, same weights with the adapter off and on.
+
+| | Base | Tuned |
+|---|---:|---:|
+| **Passed (primary number)** | **0 of 12** | **0 of 12** |
+| Programs with at least one pass | 0 of 4 | 0 of 4 |
+| Java refused by the safety policy before building | 7 | 0 |
+| Did not build, or the run failed | 3 | 4 |
+| Built and ran, and differed from the COBOL | 2 | 8 |
+
+The plan's threshold is 3 more passes than base, and the gap is 0. **No improvement is claimed.** No second job follows, as the plan says.
+
+What the table does and does not show:
+- **Tuning changed how the model answers.** All 12 tuned answers were the translator's JSON with no reasoning. All 12 base answers reasoned first and then gave fenced Java.
+- **Tuned Java reached the comparison more often, 8 against 2. That is not better translation.** The base count is mostly the safety policy: 7 of its answers read an environment variable named at run time, which the policy refuses, so they were never run. A separate `javac` check after scoring shows 4 of those 7 do not compile either, so on compiling alone it is tuned 8 of 12, base 5 of 12. The other 3 stay unrun, because the policy is not bypassed to score them. A parsing check confirmed every base answer held one fenced block with a whole Java class, so the failures are the model's and not the parser's.
+- **Nothing came close.** Attempts that ran mostly differed on every record. The best was a base CHQCLR attempt that differed on 651 of 1,004; the best tuned attempt differed on 1,003 of 1,004.
+- **The base model was not served as in production.** This is a 4-bit model on `transformers`, with no schema and at most 8,000 new tokens, so these numbers say nothing about Muse Glimmer on Fireworks, and they are not comparable with [MEASUREMENT.md](MEASUREMENT.md).
+- **One LoRA on 31 examples, against the roughly 500 Meta suggests.** This does not show that distillation cannot work. It shows that this one did not.
+
+What did work is the pipeline: GnuCOBOL decided what the model could learn from, the held-out programs stayed out of the data, and the test was fixed before the result was known.

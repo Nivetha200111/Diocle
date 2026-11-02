@@ -27,7 +27,7 @@ Translator writes Java. Repair agent uses tools to address mismatches the compar
 | Muse Spark 1.1 and 1.2 | Available on the owner's key. The product's default is `muse-spark-1.3-contributor` (set by `META_MODEL_ID`); no result in this repository is claimed for the older versions. |
 | Muse Image | Not used. It was removed from the video plan; the code and docs do not call it. |
 | SAM 3.1 | Not used. |
-| Muse Glimmer | Not used by the product. A local Glimmer experiment was tried and dropped during development ([HANDOFF.md](HANDOFF.md)). Tuning it on Muse Spark Open's verified translations is planned but blocked; no tuned model exists ([DISTILLATION.md](DISTILLATION.md)). |
+| Muse Glimmer | Not used by the product. A local Glimmer experiment was tried and dropped during development ([HANDOFF.md](HANDOFF.md)). One LoRA was tuned on Muse Spark Open's verified translations on Nov 3 and measured: base 0 of 12, tuned 0 of 12, no improvement ([DISTILLATION.md](DISTILLATION.md)). The product does not use it. |
 
 ## Not Meta models, and why they are disclosed
 

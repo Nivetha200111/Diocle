@@ -1,5 +1,8 @@
 {
- "status": "blocked",
- "reason": "POST /v1/accounts/<account>/datasets/diocle-distill-v1:upload: 403 dataset uploads are temporarily disabled, please contact Fireworks AI to get access\n",
- "at": "2026-11-02T18:23:42Z"
+ "status": "completed",
+ "host": "modal",
+ "jobId": "ap-EKPrf2X8tkUSZKc4lGE80j",
+ "baseModel": "meta-models/Muse-Glimmer-30B",
+ "uploadedSha256": "f565c9197019ce66ac5d3875bd48f65295af29a822495e5e4a5241c5f8f7398c",
+ "finishedAt": "2026-11-02T20:37:28Z"
 }
