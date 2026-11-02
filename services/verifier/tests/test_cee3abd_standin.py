@@ -51,6 +51,47 @@ def test_the_stand_in_is_shipped_and_detected():
     assert stand_ins_for([FIXTURE / "src" / "ACCTCHK.cbl", STANDINS / "CEE3ABD.cbl"]) == []
 
 
+FREE_FORMAT = """>>SOURCE FORMAT FREE
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FREECHK.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 ABCODE PIC S9(9) BINARY VALUE 7.
+01 TIMING PIC S9(9) BINARY VALUE 0.
+PROCEDURE DIVISION.
+DISPLAY 'BEFORE'.
+CALL "CEE3ABD" USING ABCODE, TIMING.
+DISPLAY 'AFTER'.
+STOP RUN.
+"""
+
+
+def test_a_free_format_call_is_detected_and_linked_like_the_analyzer_reads_it(tmp_path):
+    """A CALL in the first columns of a free-format line is outside columns 8-72, where the analyzer does see it."""
+    source = tmp_path / "src" / "FREECHK.cbl"
+    source.parent.mkdir()
+    source.write_text(FREE_FORMAT)
+    [program] = [p for p in analyze(tmp_path)["programs"] if p["name"] == "FREECHK"]
+    assert program["standIns"] == ["CEE3ABD"]
+    assert stand_ins_for([source]) == ["CEE3ABD"]
+    work = tmp_path / "work"
+    work.mkdir()
+    command, failed = build_cobol(source, tmp_path, work)  # free-format main, fixed-format stand-in: linked per file
+    assert failed is None, failed
+    run = run_files(command, {}, {}, work, "original")
+    assert run.exit_code == 16 and run.stdout == "BEFORE\n" and "CEE3ABD abend code 7" in run.stderr
+
+
+def test_a_free_format_comment_or_past_column_72_is_read_correctly(tmp_path):
+    commented, far, own = (tmp_path / n for n in ("c.cbl", "f.cbl", "o.cbl"))
+    commented.write_text(FREE_FORMAT.replace('CALL "CEE3ABD" USING ABCODE, TIMING.', '*> CALL "CEE3ABD" USING ABCODE, TIMING.'))
+    far.write_text(FREE_FORMAT.replace('CALL "CEE3ABD"', " " * 80 + 'CALL "CEE3ABD"'))  # fixed format would cut this off
+    own.write_text(FREE_FORMAT.replace("PROGRAM-ID. FREECHK.", "PROGRAM-ID. CEE3ABD."))  # its own routine, at column 1
+    assert stand_ins_for([commented]) == []
+    assert stand_ins_for([far]) == ["CEE3ABD"]
+    assert stand_ins_for([own]) == []
+
+
 def test_normal_path_is_certified_and_the_report_states_the_stand_in(tmp_path):
     report = verify_sample(_sample(tmp_path), seed=11, random_count=80)
     validate_report(report)

@@ -26,9 +26,11 @@ NOTE = {"CEE3ABD": ("Diocle's CEE3ABD stand-in, not IBM Language Environment: th
 
 
 def _code(path: Path) -> str:
-    """Fixed-format code area without comment lines (column 7 '*' or '/')."""
-    lines = path.read_text(errors="replace").splitlines()
-    return "\n".join(l[7:72] for l in lines if not (len(l) > 6 and l[6] in "*/")).upper()
+    """The code without comments, read the way the analyzer reads it: columns 8-72 of fixed-format source, whole lines
+    of free-format source (>>SOURCE FORMAT FREE, compiled with -free), so the two agree on what a program calls."""
+    from diocle_analyzer.cobol import source_lines  # as in reverify.py: only here, the package has no hard dependency
+
+    return "\n".join(code for _, code in source_lines(path.read_text(errors="replace"))).upper()
 
 
 def stand_ins_for(sources: list[Path]) -> list[str]:
