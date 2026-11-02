@@ -91,6 +91,8 @@ export type Verification = {
   database?: DatabaseComparison | null;
   keyed?: Record<string, unknown> | null;
   standIns?: { routine: string; exitCode?: number; note?: string }[];
+  endedAtStandIn?: { routine: string; reason: string } | null;  // run v0.19: the original stopped at a stand-in; not a verdict on the Java
+  tampering?: string[] | null;  // run v0.19: what the Java did to the files the original depends on; the original was not run
   failingExamples: { inputId: string; inputSource?: string; diff: string; fieldDiffs?: FieldDiff[] }[];
 };
 
@@ -115,6 +117,8 @@ export function caseCount(v: { passed: number; total: number }): string {
 
 export function countTile(v: Verification | null | undefined, opts: { error?: string | null; heldOut?: boolean }):
   { value: string; note: string } {
+  if (v?.tampering?.length) return { value: "—", note: "the Java interfered with the check, so the original was not run" };
+  if (v?.endedAtStandIn) return { value: "—", note: `the original stopped at the ${v.endedAtStandIn.routine} stand-in, so this is not a measure of the Java` };
   if (!v || v.total === 0) {
     if (originalDidNotCompile(opts.error)) return { value: "—", note: "the original COBOL did not compile, so nothing ran" };
     if (!v) return { value: "n/a", note: opts.heldOut ? "no certification" : "not recorded" };

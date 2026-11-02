@@ -558,7 +558,11 @@ function RunDetail({ run }: { run: Run }) {
             <div>
               <h2>What was wrong before</h2>
               <p>
-                {!run.before || run.before.total === 0
+                {run.before?.tampering?.length
+                  ? `The starting Java interfered with the check, so the original was not run: ${run.before.tampering.join("; ")}.`
+                  : run.before?.endedAtStandIn
+                  ? `The original COBOL stopped at Diocle's ${run.before.endedAtStandIn.routine} stand-in, so the inputs after that point ran on neither program. That is not a fault of the Java.`
+                  : !run.before || run.before.total === 0
                   ? (originalDidNotCompile(run.error) ? "The original COBOL did not compile, so the starting Java could not be compared with it."
                     : run.before ? "No test case was compared: the starting Java did not build, or neither program wrote output." : "No verification of the starting Java was recorded for this run.")
                   : run.before.failed === 0

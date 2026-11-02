@@ -37,6 +37,8 @@ export function verdictSentence(run: Run): string {
     return `The Java matched the original COBOL on ${counts} held-out output records (one run of each program on generated inputs the repair agent never saw), byte for byte${after?.stdoutMatch === false ? ", except printed output" : ""}${reported}.${first} "Certified" means on the inputs tried, not proven for every input.`;
   }
   if (run.certified) return `Certified${reported}, but this record has no held-out input counts to quote.`;
+  if (after?.tampering?.length) return `Not certified: the Java interfered with the check (${clip(after.tampering.join("; "), 240)}), so the original was not built or run. That is the Java's fault and says nothing about the COBOL.`;
+  if (after?.endedAtStandIn) return `Not certified: the original COBOL stopped at Diocle's ${after.endedAtStandIn.routine} stand-in, so the inputs after that point ran on neither program and this run cannot vouch for them. That is not a fault of the Java. ${clip(after.endedAtStandIn.reason, 320)}`;
   if (counts && after && after.failed === 0 && !after.stdoutMatch) return `Not certified: all ${counts} held-out output records matched, but the printed display output differed.`;
   if (counts) return `Not certified: the Java matched the original on only ${counts} held-out output records${after && originalWroteNothing(after) ? " (the original COBOL wrote no records on them)" : ""}.`;
   const why = run.error ? ` The run record says: ${clip(run.error.replace(/\s+/g, " "), 320)}` : "";
@@ -67,10 +69,14 @@ export function checkLines(run: Run): CheckLine[] {
   const lines: CheckLine[] = [];
   const compared = !!after && after.total > 0;
   const patched = run.assurance === "certified-against-repaired-cobol";
-  lines.push(compared
+  lines.push(after?.tampering?.length
+    ? { check: "Compiled and ran", state: "failed", label: "stopped: the Java interfered", detail: `The Java ran and changed what the original depends on: ${clip(after.tampering.join("; "), 200)}. The original was not built or run, so nothing was compared.` }
+    : compared
     ? { check: "Compiled and ran", state: "done", label: "yes", detail: patched ? "The original did not compile as written. A patched copy and the Java built and produced output." : "Both the original and the Java built and produced output." }
     : { check: "Compiled and ran", state: run.assurance === "compiled-unverified" ? "not-run" : "failed", label: run.assurance === "compiled-unverified" ? "compile only" : "no comparison", detail: "Nothing was compared on this record." });
-  if (compared) {
+  if (compared && after.endedAtStandIn) {
+    lines.push({ check: "Agreement on tested inputs", state: "failed", label: "original stopped early", detail: clip(after.endedAtStandIn.reason, 400) });
+  } else if (compared) {
     lines.push({
       check: "Agreement on tested inputs",
       state: after.failed === 0 && after.stdoutMatch ? "done" : "failed",

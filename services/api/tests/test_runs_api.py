@@ -93,6 +93,21 @@ def test_keyed_file_comparison_passthrough(client, tmp_path):
     assert after["after"]["keyed"] == report["runs"]["keyed"]
 
 
+def test_stand_in_end_and_tampering_passthrough(client, tmp_path):
+    run = tmp_path / "demo-20261028-124509"
+    before = client.get("/runs/demo-20261028-124509").json()["after"]
+    assert "endedAtStandIn" not in before and "tampering" not in before
+    report = _report(1, 2)
+    report["runs"]["endedAtStandIn"] = {"routine": "CEE3ABD", "exitCode": 16, "abendCode": "999", "inputRecords": {"IN": 90},
+                                        "outputRecords": {"OUT": 1}, "reason": "the original ended at the stand-in"}
+    report["runs"]["tampering"] = ["the converted program changed input.dat"]
+    (run / "verification-report.json").write_text(json.dumps(report))
+    after = client.get("/runs/demo-20261028-124509").json()
+    jsonschema.validate(after, CONTRACT)
+    assert after["after"]["endedAtStandIn"] == report["runs"]["endedAtStandIn"]
+    assert after["after"]["tampering"] == report["runs"]["tampering"]
+
+
 def test_rejects_unknown_and_unsafe_ids(client):
     assert client.get("/runs/missing-run").status_code == 404
     assert client.get("/runs/..%2F..%2Fetc").status_code == 404
