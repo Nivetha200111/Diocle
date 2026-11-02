@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import subprocess
 import tempfile
@@ -48,9 +49,31 @@ from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
 from .runners import (CLOCK, CLOCK_ENV, ProgramTimeout, Run, _exec, _exec_side, attribute_timeout, build_cobol, guard_after,
                       guard_before, not_run, original_sources, read_records, safe_env, write_records)
-from .standin import end_result, ended_at_stand_in, stand_ins_run
+from .standin import _code, end_result, ended_at_stand_in, stand_ins_run
 
 RUN_LIMIT = 120  # seconds, each side: the same limit as a single-program run
+
+
+def _extended_dds(source: Path) -> set[str]:
+    """DDs of the files the program opens EXTEND. sample.json calls them output (the analyzer's direction), but they must
+    exist first, and their records are kept. Read as the analyzer's parse_program reads SELECT and OPEN."""
+    code = " ".join(_code(source).split())
+    selects = dict(re.findall(r"\bSELECT\s+(?:OPTIONAL\s+)?([A-Z0-9-]+)\s+ASSIGN\s+(?:TO\s+)?['\"]?(?!USING\b)([A-Z0-9-]+)['\"]?", code))
+    tokens = re.findall(r"[A-Z0-9][A-Z0-9-]*|[^\sA-Z0-9]", code)
+    extended: set[str] = set()
+    for i, token in enumerate(tokens):
+        if token != "OPEN":
+            continue
+        mode = None
+        for word in tokens[i + 1 :]:  # the statement ends at the first word that is neither a mode nor a file
+            if word in ("INPUT", "OUTPUT", "EXTEND", "I-O"):
+                mode = word
+            elif word in selects and mode:
+                if mode == "EXTEND":
+                    extended.add(selects[word])
+            else:
+                break
+    return extended
 
 
 def _seed_free_dds(job: dict) -> set[str]:
@@ -252,10 +275,11 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
             break
 
     # A COBOL step's output files are not inputs: seeded, a step that stops before opening them would leave those records
-    # on both sides, compared as if it had written them.
+    # on both sides, compared as if it had written them. Files opened EXTEND are the exception: they must exist already.
     output_dds = [f["dd"] for f in meta["files"] if f["direction"] == "output"]
+    fresh_dds = set(output_dds) - _extended_dds(sample_dir / meta["source"])
     seeded_cases: dict[str, list[Case]] = {}
-    for dd in external_dds.difference(output_dds):
+    for dd in external_dds - fresh_dds:
         if dd in meta.get("fixtureFiles", {}):
             seeded_cases[dd] = [Case(f"{dd}-fixture-{i + 1:04d}", "fixture", r)
                                  for i, r in enumerate(meta["fixtureFiles"][dd])]
@@ -284,6 +308,12 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                 dd_paths_o[(step["step"], dd)] = work_o / f"{step['step']}.{dd}.dat"
         for e in job["wiring"]:  # wiring edges share the exact same path on each side of the hand-off
             dd_paths_o[(e["toStep"], e["toDd"])] = dd_paths_o[(e["fromStep"], e["fromDd"])]
+
+        # The pipeline's paths are fixed when it is generated, so an earlier run's datasets may still be there; a Java that
+        # writes nothing must not be compared against them. Everything not seeded just below is for this run to write.
+        for (_, dd), path in pipeline_dd_paths.items():
+            if dd not in seeded_cases and dd not in ("SYSIN", "SYSOUT"):
+                Path(path).unlink(missing_ok=True)
 
         # Seeded externals are written to BOTH this run's own original-side path AND the exact path the
         # generated pipeline was built with (its driver's source has that path baked in -- see

@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from diocle_analyzer.analyze import analyze
-from diocle_verifier.jobs import verify_job
+from diocle_verifier.jobs import _extended_dds, verify_job
 from diocle_verifier.verify import validate_report
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -186,6 +186,70 @@ def _pipeline(tmp: Path, java_source: str | None = None) -> tuple[dict, dict]:
     job = _job()
     dd_paths = {name.split(".")[0]: str(tmp / name) for name in _DD_PATHS}
     return job, _generate_pipeline(job, tmp / "job", dd_paths, java_source=java_source)
+
+
+def _quiet_java(exit_code: int) -> str:
+    return f"public class Acctmtch {{ public static void main(String[] a) {{ System.exit({exit_code}); }} }}\n"
+
+
+@requires_toolchain
+def test_a_java_that_writes_nothing_cannot_match_output_left_on_a_reused_path(tmp_path):
+    """The pipeline's paths are fixed when it is generated. A good run leaves the right datasets there; a Java that writes
+    nothing, with the right exit code, must not be compared against them."""
+    job, good = _pipeline(tmp_path)
+    [first] = verify_job(SAMPLE, job, good, seed=4242, random_count=5)["jobs"]
+    assert first["certified"] is True
+    left = tmp_path / "NEWMST.out"
+    assert left.stat().st_size > 0
+    (tmp_path / "job" / "Acctmtch.java").write_text(_quiet_java(first["runs"]["original"]["exitCode"]))
+    [second] = verify_job(SAMPLE, job, good, seed=4242, random_count=5)["jobs"]
+    assert second["certified"] is False and second["runs"]["exitCodeMatch"] is True
+    assert {"NEWMST", "EXCOUT"} <= {r["outputDd"] for r in second["results"] if not r["match"]}
+    assert not left.exists()
+
+
+def _appends(java: str) -> str:
+    out = 'Files.write(Path.of(System.getenv("DD_NEWMST")), p.newMaster)'
+    assert out in java
+    return java.replace(out, 'Files.write(Path.of(System.getenv("DD_NEWMST")), p.newMaster, java.nio.file.StandardOpenOption.APPEND)')
+
+
+@requires_toolchain
+def test_a_file_opened_extend_is_seeded_on_both_sides_and_kept(tmp_path):
+    """OPEN EXTEND on a missing file is status 35 and exit code 1, so an unseeded one would refuse a faithful Java."""
+    sample = _sample_with_source(tmp_path, lambda s: s.replace("OPEN OUTPUT NEW-FILE EXC-FILE", "OPEN EXTEND NEW-FILE\n           OPEN OUTPUT EXC-FILE"))
+    job, pipeline = _pipeline(tmp_path, _appends(FAITHFUL_ACCTMTCH.read_text()))
+    [result] = verify_job(sample, job, pipeline, seed=4242, random_count=5)["jobs"]
+    assert result["runs"]["original"]["exitCode"] in (0, 4), result["runs"]["original"]["stderr"][-300:]
+    assert result["certified"] is True, result["results"][:2]
+
+
+@requires_toolchain
+def test_a_java_that_truncates_a_file_opened_extend_is_caught(tmp_path):
+    sample = _sample_with_source(tmp_path, lambda s: s.replace("OPEN OUTPUT NEW-FILE EXC-FILE", "OPEN EXTEND NEW-FILE\n           OPEN OUTPUT EXC-FILE"))
+    job, pipeline = _pipeline(tmp_path)  # the faithful Java for OPEN OUTPUT: it overwrites instead of appending
+    [result] = verify_job(sample, job, pipeline, seed=4242, random_count=5)["jobs"]
+    assert result["certified"] is False and "NEWMST" in {r["outputDd"] for r in result["results"] if not r["match"]}
+
+
+def test_only_files_opened_extend_are_found(tmp_path):
+    source = tmp_path / "X.cbl"
+    source.write_text("""       IDENTIFICATION DIVISION.
+       PROGRAM-ID. X.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT A-FILE ASSIGN TO ADD.
+           SELECT OPTIONAL B-FILE ASSIGN TO 'BDD'.
+           SELECT C-FILE ASSIGN CDD.
+           SELECT D-FILE ASSIGN TO DDD.
+       PROCEDURE DIVISION.
+           OPEN INPUT A-FILE OUTPUT D-FILE EXTEND B-FILE
+           OPEN EXTEND C-FILE
+      *    OPEN EXTEND D-FILE
+           STOP RUN.
+""")
+    assert _extended_dds(source) == {"BDD", "CDD"}
 
 
 @requires_toolchain
