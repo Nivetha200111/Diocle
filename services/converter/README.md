@@ -160,6 +160,8 @@ python3 -m venv .venv && .venv/bin/pip install -e ../verifier -e . pytest jsonsc
 ```
 Each run is saved under `runs/` at the repo root (gitignored): `java/`, `events.jsonl` (the agent trace), `run.json` (rounds, model calls, cost), `verification-report.json`.
 
+A translator answer that is cut off (`finish_reason` "length") or is not JSON with the required fields is retried once in `run` and `run-job`, within the same call and dollar caps; both calls are counted and the retry is a `stage` event. If the cap refuses the retry, or the retry is bad too, the run fails with a plain sentence ("no Java was produced") in `run.json`. `translate()` itself does not retry by default, so the first-translation measurements in `eval/` still measure one answer. There is deliberately no `max_tokens` on the translator: hosted translators legitimately use over 23,000 output tokens, and a limit just under a host's 32,768 would save about $0.003 of a $0.14 bad answer while raising the dollar cap's up-front estimate fourfold.
+
 ## Convert anyway (`run --convert-anyway`, `repo`)
 See the root README ("Running on your own repo"). `run --convert-anyway` always has a dollar cap: `--max-usd`, else `REPO_MAX_USD`, else
 $0.25. The cap is projected: a call is refused before it is made when spend so far plus its worst-case cost would pass the cap (guard and

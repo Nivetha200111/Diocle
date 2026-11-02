@@ -335,7 +335,8 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         on_event({"type": "stage", "stage": "translating", "message": f"Translating {program.name} with {settings.model}"})
         try:
             domain_hint = _domain_hint(args, program, on_event)
-            translation = translate(program, client, workspace, anyway_reason=force_reason, domain_hint=domain_hint)
+            translation = translate(program, client, workspace, anyway_reason=force_reason, domain_hint=domain_hint,
+                                    retry=True, on_event=on_event)
         except Exception as e:
             if not anyway_on:
                 raise
@@ -607,7 +608,7 @@ def _run_job(sample_dir: Path, settings: Settings, client: ModelClient) -> int:
     run_dir.mkdir(parents=True)
     workspace = Workspace(run_dir / "java")
     print(f"Translating {program.name} (job {job['name']}'s {cobol_step['step']} step) with {settings.model}")
-    translation = translate(program, client, workspace)
+    translation = translate(program, client, workspace, retry=True, on_event=_print_event)
     print(f"wrote {translation['file']}; translator notes: {translation['notes'][:400]}")
 
     try:
