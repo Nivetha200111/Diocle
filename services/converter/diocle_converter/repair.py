@@ -13,7 +13,7 @@ from diocle_verifier.verify import passes
 from .client import BudgetExceeded, ModelClient
 from .guard import GuardBlocked
 from .memory import LESSON_SCHEMA, clean_lessons, lesson_key
-from .prompts import REPAIR
+from .prompts import REPAIR, REPAIR_ADVANCING
 from .sources import Program
 from .workspace import Workspace
 
@@ -129,7 +129,7 @@ class RepairAgent:
         # Everything the agent needs up front, stable content first so later calls hit the prompt cache.
         java = "\n".join(f"=== {f} ===\n{self.workspace.read(f)}" for f in self.workspace.list_files())
         self.messages = [
-            {"role": "system", "content": REPAIR},
+            {"role": "system", "content": REPAIR + self.program.advancing_text(REPAIR_ADVANCING)},
             {"role": "user", "content": (f"{self.hints}\n\n" if self.hints else "")
              + f"Original COBOL (source of truth):\n{self.program.as_text()}\n\n"
              + (f"{self.program.support_text()}\n\n" if (self.program.sql or self.program.ksds) else "")

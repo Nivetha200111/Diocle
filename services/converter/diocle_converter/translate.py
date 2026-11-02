@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from .client import BudgetExceeded, ModelClient
-from .prompts import TRANSLATOR, TRANSLATOR_ANYWAY, TRANSLATOR_KSDS, TRANSLATOR_SQL
+from .prompts import TRANSLATOR, TRANSLATOR_ADVANCING, TRANSLATOR_ANYWAY, TRANSLATOR_KSDS, TRANSLATOR_SQL
 from .sources import Program
 from .workspace import Workspace
 
@@ -40,6 +40,7 @@ def translation_messages(program: Program, anyway_reason: str | None = None, dom
     system = (TRANSLATOR_ANYWAY.format(reason=reason, io=program.io_text(), main_class=program.main_class) if reason
               else TRANSLATOR.format(io=program.io_text(), main_class=program.main_class) + (TRANSLATOR_SQL if program.sql else "")
               + (TRANSLATOR_KSDS if program.ksds else "") + program.stand_in_text()
+              + program.advancing_text(TRANSLATOR_ADVANCING)
               + (domain_hint if not reason else ""))  # EXPERIMENTAL hint: only on the verified path
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 

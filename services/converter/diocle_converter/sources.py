@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from diocle_verifier.runners import _FREE_DIRECTIVE
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,15 @@ class Program:
 
         return TRANSLATOR_CEE3ABD if "CEE3ABD" in self.stand_ins else ""
 
+    def uses_advancing(self) -> bool:
+        """A WRITE with AFTER or BEFORE [ADVANCING] anywhere in what the model is given. Never on the convert-anyway prompt's
+        path, which nothing compares. DISPLAY ... WITH NO ADVANCING does not count: it does not write a file."""
+        return not self.anyway and any(_writes_advancing(text) for text in (self.cobol, *self.modules.values(), *self.copybooks.values()))
+
+    def advancing_text(self, text: str) -> str:
+        """text if the program writes with AFTER/BEFORE ADVANCING, otherwise nothing: every other program's prompt is unchanged."""
+        return text if self.uses_advancing() else ""
+
     def as_text(self) -> str:
         parts = [f"=== {self.name}.cbl ===\n{self.cobol}"]
         parts += [f"=== {name} (CALLed by {self.name}; translate it too) ===\n{text}" for name, text in self.modules.items()]
@@ -111,6 +123,24 @@ class Program:
         from diocle_verifier.sqlpre import SUPPORT
 
         return "=== DioSql.java (the verifier's support class, provided; do not rewrite it) ===\n" + (SUPPORT / "DioSql.java").read_text()
+
+
+_LITERAL = re.compile(r"\"[^\"\n]*\"|'[^'\n]*'")
+_NO_ADVANCING = re.compile(r"(?<![\w-])NO\s+ADVANCING(?![\w-])", re.I)  # DISPLAY ... WITH NO ADVANCING
+_ADVANCING_WORD = re.compile(r"(?<![\w-])ADVANCING(?![\w-])", re.I)
+_WRITE_ADVANCING = re.compile(  # the word ADVANCING is optional: WRITE R AFTER 2 LINES
+    r"(?<![\w-])WRITE\s+[\w-]+"  # the record
+    r"(?:\s+FROM\s+(?:''|[\w-]+)(?:\s+(?:OF|IN)\s+[\w-]+)*(?:\s*\([^)]*\))*)?"  # FROM an item, qualified or subscripted, or a literal
+    r"\s+(?:AFTER|BEFORE)(?![\w-])", re.I)
+
+
+def _writes_advancing(source: str) -> bool:
+    """Comments, literals and (in fixed format) the columns past 72 are not code, so they cannot turn the rule on."""
+    lines = source.splitlines()
+    free = bool(_FREE_DIRECTIVE.match(next((line for line in lines if line.strip()), "")))
+    code = "\n".join((line if free else line[:72]).split("*>")[0] for line in lines if free or line[6:7] not in ("*", "/"))
+    code = _NO_ADVANCING.sub("", _LITERAL.sub("''", code))
+    return bool(_WRITE_ADVANCING.search(code) or _ADVANCING_WORD.search(code))
 
 
 def _table_line(t: dict) -> str:

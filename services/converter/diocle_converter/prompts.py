@@ -114,6 +114,33 @@ original is built with Diocle's stand-in for it (not IBM's), and the Java must b
 - Translate it as one private method (e.g. `abend(int code)`) called where the COBOL CALLs CEE3ABD.
 """
 
+# Measured on GnuCOBOL 3.2 under the verifier's flags; services/verifier/tests/test_write_advancing.py checks this rule, and
+# these examples, against the compiler's real bytes. Added to a prompt only when the program uses it (sources.py).
+_ADVANCING_RULE = """\
+WRITE ... AFTER/BEFORE [ADVANCING] (this program uses it). GnuCOBOL writes the advancing into the file as bytes, on a
+SEQUENTIAL file too, so that file is not a plain run of fixed-length records, and these bytes are compared exactly.
+Advance bytes: n LINES (or a bare n) is n times 0x0A; 0 LINES is one 0x0D; PAGE or a SPECIAL-NAMES mnemonic is one 0x0C.
+Keep one flag per file, false at each OPEN:
+- ORGANIZATION SEQUENTIAL (the default), the record's full length:
+  plain WRITE: record. The flag does not change.
+  WRITE AFTER: advance bytes, then record. Flag true.
+  WRITE BEFORE: record, then advance bytes. Flag false.
+- ORGANIZATION LINE SEQUENTIAL, the record without its trailing spaces:
+  plain WRITE: record, then 0x0A. Flag false.
+  WRITE AFTER: advance bytes, then record, with no 0x0A after it. Flag true.
+  WRITE BEFORE: record, then advance bytes, with no other 0x0A. Flag false.
+- Closing: if the flag is true, write one 0x0A. This applies to every CLOSE and to a file still open when the program ends
+  (STOP RUN, GOBACK), which GnuCOBOL closes itself.
+Examples with 4-byte records, \\n being 0x0A, each ending with a CLOSE:
+  SEQUENTIAL, WRITE A; WRITE B AFTER 1; WRITE C:     AAAA\\nBBBBCCCC\\n
+  SEQUENTIAL, WRITE A AFTER 2; WRITE B AFTER 1:      \\n\\nAAAA\\nBBBB\\n
+  SEQUENTIAL, WRITE A BEFORE 1; WRITE B:             AAAA\\nBBBB
+  LINE SEQUENTIAL, WRITE A; WRITE B AFTER 1; WRITE C: AAAA\\n\\nBBBBCCCC\\n
+An FD with a LINAGE clause does not follow this rule (not specified here): follow the differential test.
+"""
+
+TRANSLATOR_ADVANCING = "\n" + _ADVANCING_RULE
+
 REPAIR = """\
 You are Diocle's repair agent. A Java translation of a COBOL program fails differential testing against the
 original compiled with GnuCOBOL. The COBOL program's behaviour is the source of truth, including its quirks.
@@ -144,6 +171,13 @@ Rules:
   FILE STATUS test, START relation, READ vs READ NEXT, key built from the wrong field or padding) that produces it. Never
   special-case keys. DioKsds.java is the verifier's own class and cannot be edited.
 - You have a limited budget of steps and tokens: no exploratory calls, no cosmetic changes.
+"""
+
+REPAIR_ADVANCING = "\n" + _ADVANCING_RULE + """\
+Reading the test result for such a file: it is cut into pieces of the record length, so after the first advance byte the
+pieces no longer line up with records and the field names are not meaningful; compare the bytes. The file need not end on a
+whole record, and a short last piece is only wrong if its bytes differ. Leave no probe or debug line in the Java: certification
+runs on whatever is there when your budget ends.
 """
 
 TRANSLATOR_ANYWAY = """\
