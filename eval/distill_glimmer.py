@@ -45,7 +45,7 @@ SCHEMA = ROOT / "contracts" / "distillation-report.schema.json"
 QUARRYSTONE = Path(os.environ.get("DIOCLE_QUARRYSTONE_SAMPLES", ROOT / "runs/deliveries/delivery-20261101-011738/samples"))
 
 STOP_USD, HARD_CAP_USD, PROGRAM_CAP_USD = 7.00, 8.00, 0.25
-MAX_GENERATED, WORKERS = 60, 4
+MAX_GENERATED, WORKERS = 120, 6
 BASE_MODEL = "accounts/fireworks/models/muse-glimmer-30b"
 DATASET_ID, JOB_ID, OUTPUT_MODEL = "diocle-distill-v1", "diocle-distill-v1", "diocle-glimmer-v1"
 EPOCHS, LORA_RANK = 3, 8
@@ -61,7 +61,7 @@ LIMITS = ["Small dataset: Meta's post-training guide suggests roughly 500 or mor
           "Hosted Muse Spark outputs are refused as training data (Meta Model API terms, section 10.1(ix))."]
 
 lock = threading.Lock()
-verify_lock = threading.Lock()  # one differential test at a time: builds and 1,000 inputs are CPU heavy
+verify_lock = threading.BoundedSemaphore(3)  # builds and 1,000 inputs are CPU heavy; each test has its own temp directory
 
 
 def load(path: Path, default: dict) -> dict:
@@ -162,7 +162,7 @@ def harvest_unit(kind: str, name: str, state: dict, held: dict[str, str], topic:
                 outputTokens=usage["outputTokens"], models=sorted({c.model for c in client.calls}), seconds=round(time.time() - started, 1))
     with lock:
         state["units"][name] = unit
-        state["spentUsd"] = round(sum(u.get("costUsd") or 0 for u in state["units"].values()), 6)
+        state["spentUsd"] = round(state.get("pilotUsd", 0) + sum(u.get("costUsd") or 0 for u in state["units"].values()), 6)
         atomic_write(HARVEST, json.dumps(state, indent=1, ensure_ascii=False) + "\n")
         print(f"{name}: {unit.get('gate') or 'PASSED'} ${unit['costUsd']} {unit['seconds']}s | spend ${state['spentUsd']:.3f}", flush=True)
 
