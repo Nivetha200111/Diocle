@@ -19,6 +19,19 @@ export const LINKS = {
   museCode: "https://github.com/Nivetha200111/Diocle/tree/main/editors/muse-code",
   certified: "https://github.com/Nivetha200111/Diocle/blob/main/docs/DETAILS.md#what-certified-means-and-does-not",
   buildLog: "https://github.com/Nivetha200111/Diocle/blob/main/docs/BUILD_LOG.md",
+  distillation: "https://github.com/Nivetha200111/Diocle/blob/main/docs/DISTILLATION.md",
+};
+
+// Status of the experiment in docs/DISTILLATION.md, typed by hand. Change both together; a step is "done" only when its
+// evidence is committed.
+export const DISTILLATION: { asOf: string; steps: { name: string; what: string; status: "running" | "done" | "not run" }[] } = {
+  asOf: "Nov 2, 2026",
+  steps: [
+    { name: "Teach", what: "Muse Spark Open translates synthetic COBOL: repository samples and new programs it writes itself", status: "running" },
+    { name: "Filter", what: "Only Java that matches GnuCOBOL on 1,000 generated inputs may become a training example", status: "running" },
+    { name: "Tune", what: "One LoRA on Muse Glimmer 30B, trained on Fireworks", status: "not run" },
+    { name: "Measure", what: "Base vs tuned Muse Glimmer, first translations of four held-out programs, 1,000 inputs each", status: "not run" },
+  ],
 };
 
 // The one delivery cited everywhere: quillmark-modern#4 (it re-delivers INTACCR; the repo's CI re-verifies all six programs

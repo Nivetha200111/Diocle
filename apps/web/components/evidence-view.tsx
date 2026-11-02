@@ -8,6 +8,7 @@ import { Skeleton, Term } from "./ui";
 import { TRAPS, type Evidence } from "@/lib/cobol-traps";
 import ScoreboardPanel from "./scoreboard-panel";
 import CoverageMatrix from "./coverage-matrix";
+import DistillationPanel from "./distillation-panel";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
@@ -119,6 +120,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           {privateRun && <p className="home-more"><a href={runLink(privateRun.id)} onClick={open(privateRun.id)}>Open the private-mode run</a></p>}
         </section>
       </div>
+
+      <DistillationPanel />
 
       <CoverageMatrix />
 
