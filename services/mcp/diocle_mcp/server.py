@@ -57,13 +57,14 @@ def _source(source: str) -> tuple[Path, dict]:
 def _summary(report: dict, limit: int = 5) -> dict:
     runs, s = report["runs"], report["summary"]
     failing = [r for r in report["results"] if not r["match"]]
-    builds = {side: runs[side]["stderr"][-1500:] for side in ("original", "converted") if not runs[side]["compiled"]}
-    crashes = None if runs.get("exitCodeMatch") else {
+    tampering = runs.get("tampering")  # the Java's fault; the original was not built or run (compiled is null, not false)
+    builds = {side: runs[side]["stderr"][-1500:] for side in ("original", "converted") if runs[side]["compiled"] is False}
+    crashes = None if runs.get("exitCodeMatch") or tampering else {
         side: f"exit {runs[side]['exitCode']}: {runs[side]['stderr'][-1500:]}" for side in ("original", "converted")}
     return {
         "passed": s["passed"], "total": s["total"], "stdoutMatches": runs["stdoutMatch"],
         "allMatch": passes(report),
-        "buildErrors": builds or None, "crashes": crashes or None,
+        "buildErrors": builds or None, "crashes": crashes or None, "tampering": tampering or None,
         "mismatchedFields": dict(Counter(d["field"] for r in failing for d in r.get("fieldDiffs", [])).most_common()),
         "examples": [{"input": r.get("input"), "diff": r.get("diff")} for r in failing[:limit]],
         "stdout": None if runs["stdoutMatch"] else {"original": runs["original"]["stdout"][-400:],
