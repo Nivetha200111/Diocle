@@ -44,7 +44,7 @@ from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
-from .runners import (CLOCK, CLOCK_ENV, FAIL_CLOSED, Run, _exec, _exec_side, build_cobol, guard_after, guard_before,
+from .runners import (CLOCK, CLOCK_ENV, Run, _exec, _exec_side, build_cobol, guard_after, guard_before, not_run,
                       original_sources, read_records, safe_env, write_records)
 
 
@@ -295,17 +295,18 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
         converted = _run_converted(pipeline, work_c, collation)
         tamper = guard_after(snapshot, work_o)
         if tamper:
-            original = {"outputs": {}, "cobolRun": Run(False, None, "", FAIL_CLOSED + "; ".join(tamper))}
+            original = {"outputs": {}, "cobolRun": not_run(tamper)}
         else:
             original = _run_original(sample_dir, job, dd_paths_o, work_o)
 
+        # Nothing to compare after tampering: the original wrote nothing, and that is not what the rows would blame it for.
         step_reports = []
         for step in job["steps"]:
             step_reports.append({"step": step["step"], "kind": step["kind"], "program": step["program"],
-                                 "outputDds": [], "passed": True})
+                                 "outputDds": [], "passed": not tamper})
         step_by_name = {s["step"]: s for s in step_reports}
 
-        for step_name, dd, layout in _output_dd_specs(job, meta, layout_by_dd):
+        for step_name, dd, layout in [] if tamper else _output_dd_specs(job, meta, layout_by_dd):
             o_records = original["outputs"].get(dd, [])
             fmt = record_format(layout) if layout else "line"
             if layout:
@@ -329,8 +330,8 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                 results.append(r)
 
     passed = sum(r["match"] for r in results)
-    exit_match = (original["cobolRun"].compiled and converted["run"].compiled
-                 and original["cobolRun"].exit_code == converted["run"].exit_code)
+    exit_match = bool(original["cobolRun"].compiled and converted["run"].compiled
+                      and original["cobolRun"].exit_code == converted["run"].exit_code)
     all_steps_passed = all(s["passed"] for s in step_reports)
     # One certificate per job (same equivalence definition verify.py's passes() uses for a single program):
     # both sides must have compiled, every step's output DD must match byte for byte, and the job's final
@@ -351,6 +352,7 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                 "exitCodeMatch": exit_match,
                 "clock": CLOCK,
                 "collation": collation,
+                **({"tampering": tamper} if tamper else {}),
             },
             "certified": certified,
         }],

@@ -379,6 +379,7 @@ def test_java_that_rewrites_the_verifiers_databases_fails_closed(tmp_path):
     report = verify_sample(SAMPLE, java, seed=3, random_count=10)
     assert not passes(report)
     assert "changed seed.db" in report["runs"]["original"]["stderr"]
+    assert report["runs"]["original"]["compiled"] is None and any("changed seed.db" in t for t in report["runs"]["tampering"])
 
 
 @needs_engine

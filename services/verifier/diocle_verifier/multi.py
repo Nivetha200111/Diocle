@@ -16,7 +16,7 @@ from pathlib import Path
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import Field, format_record, load_fields, parse_record, record_format, record_length
-from .runners import (CLOCK, FAIL_CLOSED, Run, build_cobol, build_java, guard_after, guard_before, original_sources,
+from .runners import (CLOCK, Run, build_cobol, build_java, guard_after, guard_before, not_run, original_sources,
                       read_records, run_files, write_records)
 from .standin import stand_ins_run
 
@@ -161,7 +161,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                 if (work / stray).exists():
                     tamper.append(f"the converted program created {stray}")
             if tamper:
-                original = Run(False, None, "", "not run, verification fails closed: " + "; ".join(tamper))
+                original = not_run(tamper)
             else:
                 cobol_cmd, original = sqlrun.build_cobol_sql(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
                                                              sql["tables"], [sample_dir / m for m in meta.get("modules", [])],
@@ -170,7 +170,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                     shutil.copyfile(work / "seed.db", work / "original.db")
                     original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
         elif plan:
-            original, converted, keyed_results, keyed_report = ksds.run_both(
+            original, converted, keyed_results, keyed_report, tamper = ksds.run_both(
                 plan, meta, sample_dir, java_dir, work, paths, out_spec, seeds, [s["dd"] for s in inputs],
                 [s["dd"] for s in updated], collation, seed)
         else:
@@ -185,7 +185,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
                                       {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
             tamper = guard_after(snapshot, work)
             if tamper:
-                original = Run(False, None, "", FAIL_CLOSED + "; ".join(tamper))
+                original = not_run(tamper)
             else:
                 cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
                                                   [sample_dir / m for m in meta.get("modules", [])], collation)
@@ -225,7 +225,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             "original": meta_run(original),
             "converted": meta_run(converted),
             "stdoutMatch": original.stdout == converted.stdout,
-            "exitCodeMatch": original.compiled and converted.compiled and original.exit_code == converted.exit_code,
+            "exitCodeMatch": bool(original.compiled and converted.compiled and original.exit_code == converted.exit_code),
             "clock": CLOCK,
             "collation": collation,
             "golden": None,
@@ -233,6 +233,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             **({"database": db_report} if db_report else {}),
             **({"keyed": keyed_report} if keyed_report else {}),
             **stand_ins_run(sample_dir, meta),
+            **({"tampering": tamper} if tamper else {}),
             "files": {"inputs": {s["dd"]: len(data[s["dd"]]) for s in inputs},
                       **({"updated": {s["dd"]: {"seeded": len(data[s["dd"]]),
                                                 "original": len(original.output_files.get(s["dd"], [])),

@@ -11,7 +11,7 @@ from pathlib import Path
 
 @dataclass
 class Run:
-    compiled: bool
+    compiled: bool | None  # None: not attempted (the converted program tampered, see not_run); False: it does not compile
     exit_code: int | None = None
     stdout: str = ""
     stderr: str = ""
@@ -213,7 +213,14 @@ def build_java(src_dir: Path, main_class: str, workdir: Path) -> tuple[list[str]
     return ["java", "-cp", str(classes), main_class], None
 
 
-FAIL_CLOSED = "not run, verification fails closed: "
+FAIL_CLOSED = ("the original was not built or run, which says nothing about whether it compiles; verification fails closed "
+               "because of what the converted Java did: ")
+
+
+def not_run(tamper: list[str]) -> Run:
+    """The original's Run when the converted program tampered: compiled is None (not attempted), never False, which
+    would read as "the original COBOL does not compile" and stop a run for a fault that is the Java's."""
+    return Run(None, None, "", FAIL_CLOSED + "; ".join(tamper))
 
 
 def original_sources(sample_dir: Path, meta: dict) -> list[Path]:

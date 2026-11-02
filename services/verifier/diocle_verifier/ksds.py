@@ -23,7 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from .layout import Field, format_record, load_fields, parse_record, record_length
-from .runners import IBM_FLAGS, Run, _exec, build_cobol, run_files
+from .runners import IBM_FLAGS, Run, _exec, build_cobol, not_run, run_files
 
 SUBSET = "ksds-subset-1"
 SUPPORT = Path(__file__).resolve().parent / "dbsupport"
@@ -368,7 +368,7 @@ def run_both(plan: Plan, meta: dict, sample_dir: Path, java_dir: Path, work: Pat
     if handler is None:
         original = Run(False, None, "", "this GnuCOBOL has no indexed-file handler (cobc --info), so keyed files cannot be verified here")
     elif tamper:
-        original = Run(False, None, "", "not run, verification fails closed: " + "; ".join(tamper))
+        original = not_run(tamper)
     else:
         tools, original = _build_tools(plan, work)
         if tools is not None:
@@ -411,4 +411,4 @@ def run_both(plan: Plan, meta: dict, sample_dir: Path, java_dir: Path, work: Pat
                             "match": False, "fieldDiffs": [], "diff": why})
     report = ({"engine": "gnucobol-indexed", "engineVersion": engine_version(), "subset": SUBSET,
                "seededFrom": f"generated records (seed {seed})", "files": files} if files else None)
-    return original, converted, results, report
+    return original, converted, results, report, tamper

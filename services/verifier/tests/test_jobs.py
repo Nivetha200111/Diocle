@@ -218,3 +218,6 @@ def test_a_pipeline_that_copies_the_original_sides_outputs_is_not_certified(tmp_
     assert result["certified"] is False
     stderr = result["runs"]["original"]["stderr"]
     assert "fails closed" in stderr and "planted.dat" in stderr, stderr
+    assert result["runs"]["original"]["compiled"] is None and any("planted.dat" in t for t in result["runs"]["tampering"])
+    assert not any(s["passed"] for s in result["steps"]) and result["results"] == []
+    validate_report({"version": "0.12", "results": [], "summary": {"total": 0, "passed": 0, "failed": 0}, "jobs": [result]})

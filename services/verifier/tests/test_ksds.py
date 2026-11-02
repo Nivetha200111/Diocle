@@ -237,6 +237,8 @@ def test_java_that_overwrites_a_seed_the_original_reads_fails_closed(tmp_path):
     assert not passes(report)
     assert report["runs"]["converted"]["compiled"] and "fails closed" in report["runs"]["original"]["stderr"]
     assert "changed" in report["runs"]["original"]["stderr"]
+    assert report["runs"]["original"]["compiled"] is None and report["runs"]["tampering"]
+    validate_report(report)
 
 
 @needs_engine

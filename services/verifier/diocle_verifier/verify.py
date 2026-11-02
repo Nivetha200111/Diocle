@@ -13,7 +13,7 @@ from .diff import compare
 from .inputs import Case, generate_for_layout
 from .layout import load_fields, record_format, record_length
 from .multi import is_multi, verify_multi
-from .runners import (CLOCK, FAIL_CLOSED, Run, guard_after, guard_before, original_sources, read_records, run_cobol,
+from .runners import (CLOCK, Run, guard_after, guard_before, not_run, original_sources, read_records, run_cobol,
                       run_java, write_records)
 from .standin import stand_ins_run
 
@@ -64,11 +64,9 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
         converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, jrun, out_format,
                              collation)
         tamper = guard_after(snapshot, work)
-        if tamper:
-            original = Run(False, None, "", FAIL_CLOSED + "; ".join(tamper))
-        else:
-            original = run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path,
-                                 work, out_format, [sample_dir / m for m in meta.get("modules", [])], collation)
+        original = not_run(tamper) if tamper else run_cobol(
+            sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work, out_format,
+            [sample_dir / m for m in meta.get("modules", [])], collation)
 
     results, golden_report = [], None
     if original.compiled and converted.compiled:
@@ -88,11 +86,12 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
             "original": _run_meta(original),
             "converted": _run_meta(converted),
             "stdoutMatch": original.stdout == converted.stdout,
-            "exitCodeMatch": original.compiled and converted.compiled and original.exit_code == converted.exit_code,
+            "exitCodeMatch": bool(original.compiled and converted.compiled and original.exit_code == converted.exit_code),
             "clock": CLOCK,
             "collation": meta.get("collation", "ascii"),
             "golden": golden_report,
             **stand_ins_run(sample_dir, meta),
+            **({"tampering": tamper} if tamper else {}),
         },
     }
 

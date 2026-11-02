@@ -13,7 +13,9 @@ from pathlib import Path
 
 import pytest
 
-from diocle_verifier.verify import passes, verify_sample
+from diocle_converter.__main__ import original_failure
+from diocle_verifier.__main__ import main as verifier_main
+from diocle_verifier.verify import passes, validate_report, verify_sample
 
 ROOT = Path(__file__).resolve().parents[3]
 SAMPLES = ROOT / "samples"
@@ -72,8 +74,12 @@ def _cheat(tmp: Path, main_class: str, out_dd: str = "NONE") -> Path:
 def _assert_not_certified_and_failed_closed(report: dict) -> None:
     assert report["runs"]["converted"]["compiled"], report["runs"]["converted"]["stderr"][-500:]
     assert not passes(report)
+    validate_report(report)
     stderr = report["runs"]["original"]["stderr"]
-    assert not report["runs"]["original"]["compiled"] and "fails closed" in stderr and "planted.out" in stderr, stderr
+    assert report["runs"]["original"]["compiled"] is None and "fails closed" in stderr and "planted.out" in stderr, stderr
+    assert any("planted.out" in t for t in report["runs"]["tampering"])
+    # The Java's fault, not an uncompilable original: the converter does not stop before repair, or write that down.
+    assert original_failure(report) is None
 
 
 @needs_toolchain
@@ -95,6 +101,13 @@ def test_display_only_java_cannot_run_the_original_for_its_stdout(tmp_path):
     """multi.py's stdout-only path: the answer is the original's DISPLAY text, so the cheat runs the executable."""
     report = verify_sample(SAMPLES / "display-report", _cheat(tmp_path, "Txnlist"), random_count=20)
     _assert_not_certified_and_failed_closed(report)
+
+
+@needs_toolchain
+def test_the_cli_reports_tampering_as_a_failure_not_a_failed_build(tmp_path, capsys):
+    code = verifier_main([str(SAMPLES / "addfee"), "--java-dir", str(_cheat(tmp_path, "Addfee", "ACCTOUT")), "--random", "5"])
+    err = capsys.readouterr().err
+    assert code == 1 and "planted.out" in err and "BUILD FAILED" not in err
 
 
 @needs_toolchain

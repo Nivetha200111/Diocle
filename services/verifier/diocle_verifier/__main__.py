@@ -124,6 +124,9 @@ def main(argv: list[str] | None = None) -> int:
         args.out.write_text(json.dumps(report, indent=2) + "\n")
 
     runs = report["runs"]
+    if runs.get("tampering"):  # a verdict on the Java, not a build problem: the original was never built
+        print(f"FAIL  verification failed closed: {'; '.join(runs['tampering'])}", file=sys.stderr)
+        return 1
     for side in ("original", "converted"):
         if not runs[side]["compiled"]:
             print(f"BUILD FAILED ({side}):\n{runs[side]['stderr']}", file=sys.stderr)
