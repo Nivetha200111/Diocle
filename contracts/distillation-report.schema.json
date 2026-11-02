@@ -43,6 +43,11 @@
           "type": "object",
           "description": "Programs refused, by gate. A gate with zero refusals is still listed.",
           "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "firstPassRejected": {
+          "type": "object",
+          "description": "The same counts before the second pass, which retried only generated programs whose Java never met a real comparison.",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
         }
       }
     },

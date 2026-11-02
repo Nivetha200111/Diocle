@@ -85,7 +85,7 @@ def teacher_settings():
     s = Settings.from_env()
     if distill.TEACHER_MARK not in s.model:
         raise SystemExit("OPEN_MODEL_ID is not Muse Spark Open: refused")
-    return replace(s, max_usd=PROGRAM_CAP_USD, max_calls_per_run=2, max_calls_per_round=2)
+    return replace(s, max_usd=PROGRAM_CAP_USD, max_calls_per_run=3, max_calls_per_round=3)  # write, fix once, translate
 
 
 def teach(sample: Path, client, unit: dict, held: dict[str, str]) -> None:
@@ -170,17 +170,25 @@ def harvest_unit(kind: str, name: str, state: dict, held: dict[str, str], topic:
 def generate(name: str, domain: str, technique: str, client, unit: dict, held: dict[str, str], state: dict) -> Path | None:
     """Teacher writes a new synthetic COBOL program. Returns its sample directory, or None with unit['gate'] set."""
     messages = distill.generation_messages(name, domain, technique)
-    choice = client.chat(role="generator", round=0, messages=messages, response_format=distill.generation_format())
-    try:
-        answer = json.loads(choice.message.content)
-    except (TypeError, ValueError):
-        unit["gate"] = "generation-failed"
-        return None
-    if not distill.contained(answer["cobol"]):
-        unit["gate"] = "analyzer-refused"
-        unit["detail"] = "touches other files or uses CALL, ACCEPT or EXEC"
-        return None
-    repo = distill.write_generated(name, answer, WORK / "repos" / name)
+    for attempt in (1, 2):
+        choice = client.chat(role="generator", round=attempt - 1, messages=messages, response_format=distill.generation_format())
+        try:
+            answer = json.loads(choice.message.content)
+        except (TypeError, ValueError):
+            unit["gate"] = "generation-failed"
+            return None
+        if not distill.contained(answer["cobol"]):
+            unit["gate"] = "analyzer-refused"
+            unit["detail"] = "touches other files or uses CALL, ACCEPT or EXEC"
+            return None
+        repo = distill.write_generated(name, answer, WORK / "repos" / name)
+        errors = distill.compile_errors(repo, name)
+        if errors is None:
+            break
+        if attempt == 2:
+            unit.update(gate="does-not-compile", detail=errors[:300])
+            return None
+        messages = distill.fix_messages(messages, choice.message.content, errors)
     sample = distill.sample_from_repo(repo, name, WORK / "samples")
     if sample is None:
         unit["gate"] = "analyzer-refused"
@@ -203,10 +211,26 @@ def generate(name: str, domain: str, technique: str, client, unit: dict, held: d
     return sample
 
 
-def harvest(generated: int) -> int:
+def retry_unreached(state: dict) -> None:
+    """Second pass (see Deviations): generated programs whose Java never met a real comparison go round again. A program
+    whose Java differed on real records stays rejected: that is the oracle's answer, not a prompt problem."""
+    if "firstPassRejected" in state:
+        return
+    units = state["units"]
+    state["firstPassRejected"] = {g: sum(u.get("gate") == g for u in units.values()) for g in distill.GATES}
+    state["pilotUsd"] = state["spentUsd"]
+    for name in [n for n, u in units.items() if u["kind"] == "generated" and not u.get("line") and not u.get("total")]:
+        del units[name]
+    state["pilotUsd"] = round(state["pilotUsd"] - sum(u.get("costUsd") or 0 for u in units.values()), 6)
+
+
+def harvest(generated: int, second_pass: bool = False) -> int:
     if generated > MAX_GENERATED:
         raise SystemExit(f"--generate is capped at {MAX_GENERATED}")
     state = load(HARVEST, {"teacher": teacher_settings().model, "reasoningEffort": "low", "spentUsd": 0.0, "units": {}})
+    if second_pass:
+        retry_unreached(state)
+        atomic_write(HARVEST, json.dumps(state, indent=1, ensure_ascii=False) + "\n")
     held = held_out_sources()
     jobs = [("repository", name.upper(), None, ROOT / "samples" / name) for name in REPOSITORY]
     jobs += [("repository", p.name.upper(), None, p) for p in sorted(QUARRYSTONE.glob("qv*")) if (p / "sample.json").exists()]
@@ -411,7 +435,8 @@ def report() -> None:
                     "generatedPrograms": sum(u["kind"] == "generated" for u in passed), "sha256": distill.sha256(data),
                     "heldOut": list(distill.HELD_OUT),
                     "oracle": {"seed": distill.ORACLE_SEED, "cases": distill.ORACLE_CASES, "minRecords": distill.MIN_RECORDS},
-                    "rejected": {g: sum(u.get("gate") == g for u in units) for g in distill.GATES}},
+                    "rejected": {g: sum(u.get("gate") == g for u in units) for g in distill.GATES},
+                    "firstPassRejected": state.get("firstPassRejected", {})},
         "training": {"host": "fireworks", "loraRank": LORA_RANK, "epochs": EPOCHS,
                      "trainingTokensEstimate": distill.estimate_training_tokens(data, EPOCHS), **training},
         "evaluation": evaluation,
@@ -427,6 +452,7 @@ def main() -> int:
     sub = ap.add_subparsers(dest="stage", required=True)
     h = sub.add_parser("harvest")
     h.add_argument("--generate", type=int, default=0)
+    h.add_argument("--second-pass", action="store_true", help="retry generated programs whose Java never met a real comparison")
     sub.add_parser("dataset")
     t = sub.add_parser("train")
     t.add_argument("--go", action="store_true")
@@ -438,7 +464,7 @@ def main() -> int:
     e.add_argument("--usd-per-gpu-hour", type=float, required=True)
     args = ap.parse_args()
     if args.stage == "harvest":
-        return harvest(args.generate)
+        return harvest(args.generate, args.second_pass)
     if args.stage == "dataset":
         return dataset()
     if args.stage == "train":

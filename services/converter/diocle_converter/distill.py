@@ -7,6 +7,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,7 +23,7 @@ HELD_OUT_SIMILARITY, GENERATED_SIMILARITY = 0.30, 0.60
 MAX_TRAINING_TOKENS = 3_000_000
 FIREWORKS = "https://api.fireworks.ai/v1"
 
-GATES = ("generation-failed", "analyzer-refused", "weak-oracle", "too-similar", "not-open-weights", "translation-failed",
+GATES = ("generation-failed", "does-not-compile", "analyzer-refused", "weak-oracle", "too-similar", "not-open-weights", "translation-failed",
          "policy-blocked", "differential-failed", "too-few-records", "spend-cap")
 
 # Topics for generated programs. Cheque clearing, branch totals, FX and loan amortization are left out: they are held out.
@@ -38,7 +40,10 @@ GENERATOR_SYSTEM = """You write small synthetic COBOL batch programs for GnuCOBO
 Rules:
 - Fictional data and names only. The first line of every file is the comment `      * SYNTHETIC. Fictional.`
 - Fixed-format COBOL. PROGRAM-ID exactly as asked. 60 to 180 lines. Terminate with GOBACK or STOP RUN and exit code 0.
-- One input file and one output file, each `ORGANIZATION IS LINE SEQUENTIAL`, each record in its own copybook pulled in with COPY under its FD.
+- Code starts in column 8 and stops by column 72; column 7 holds only a space or `*`. Every comment line has `*` in column 7.
+- One input file and one output file, each record in its own copybook. Use `ORGANIZATION IS LINE SEQUENTIAL`, except that a file whose record has COMP-3 fields must use `ORGANIZATION IS SEQUENTIAL` and no text fields after the packed ones are needed.
+- Each copybook holds exactly one 01 level. Under each FD write only the COPY line: never write your own 01 above or below it, in the FD or for the same file.
+- A REDEFINES goes inside that single 01; never give a file a second 01.
 - The input record has at least four separate fields, including at least two numeric ones, so generated data exercises the logic.
 - Every input record yields one or more output records.
 - No CALL, no EXEC SQL, no CICS, no ACCEPT, no INDEXED or RELATIVE files, no SORT, no date or time functions.
@@ -162,6 +167,23 @@ def contained(cobol: str) -> bool:
     text = "\n".join(line for line in cobol.upper().splitlines() if line[6:7] != "*")
     assigns = re.findall(r"\bASSIGN\s+(?:TO\s+)?(\S+?)\.?(?=\s|$)", text)
     return sorted(assigns) == ["INFILE", "OUTFILE"] and not re.search(r"(?<![A-Z0-9-])(CALL|ACCEPT|EXEC)(?![A-Z0-9-])", text)
+
+
+def compile_errors(root: Path, name: str) -> str | None:
+    """Free check before any translation is paid for: cobc's first errors, or None when the program parses."""
+    cobc = shutil.which("cobc")
+    if cobc is None:
+        raise RuntimeError("cobc not found")
+    done = subprocess.run([cobc, "-x", "-fsyntax-only", "-I", str(root), str(root / f"{name}.cbl")], capture_output=True, text=True, timeout=60)
+    if done.returncode == 0:
+        return None
+    return "\n".join(line for line in done.stderr.splitlines() if "error" in line)[:1500] or "cobc failed"
+
+
+def fix_messages(messages: list[dict], answer: str, errors: str) -> list[dict]:
+    """One chance for the teacher to fix its own compile errors."""
+    return [*messages, {"role": "assistant", "content": answer},
+            {"role": "user", "content": f"GnuCOBOL refused this:\n{errors}\nReturn the corrected source and both copybooks."}]
 
 
 def write_generated(name: str, answer: dict, root: Path) -> Path:
