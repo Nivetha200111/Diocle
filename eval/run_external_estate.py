@@ -65,6 +65,11 @@ SECOND_PASS = False
 EXTRA_FLAGS: list[str] = []
 NOT_COMPILING_IN_FIRST_PASS = {"CBL0001", "CBL0002", "CBL0004", "CBL0005", "CBL0006", "CBL0007", "CBL0008", "CBL0009", "CBL0010", "CBL0011",
                                "CBL0012", "CBL0033", "CBL006A", "CBL0106", "CBL0106C", "PAYROL0X"}
+THIRD_PASS = False
+NOT_CERTIFIED_IN_EARLIER_PASSES = {"CBL0004", "CBL0005", "CBL0006", "CBL0008", "CBL0010", "CBL0011", "CBL0012", "CBL0015", "CBL0033",
+                                   "CBL006A", "CBL0106", "CBL0106C", "COBOL"}
+THIRD_PASS_LABEL = ("third, after a product fix made in response to this same course's failures: "
+                    "not a blind test, and it must say so wherever it is quoted")
 REPAIRED = "certified against repaired COBOL"
 _procs: set[subprocess.Popen] = set()
 _procs_lock = threading.Lock()
@@ -299,6 +304,25 @@ def use_second_pass() -> None:
     OUT, SECOND_PASS, EXTRA_FLAGS = ROOT / "eval" / "results-external-estate-second-pass.json", True, ["--convert-anyway"]
 
 
+def use_third_pass() -> None:
+    """The dated re-run docs/EXTERNAL_ESTATE.md pins, after the WRITE ... ADVANCING fix: its own import and files, and only
+    the 13 programs that were not certified. --convert-anyway, because 11 of them need the repaired copy again; the two whose
+    original compiles (CBL0015, COBOL) pass through it unpatched. Never a blind test: the fix was made in response to them."""
+    global WORK, REPORT, SAMPLES, OUT, PARTIAL, LOGS, THIRD_PASS, EXTRA_FLAGS
+    WORK = ROOT / "runs" / "external-estate-third-pass"
+    REPORT, SAMPLES, PARTIAL, LOGS = WORK / "report.json", WORK / "samples", WORK / "results.partial.json", WORK / "logs"
+    OUT, THIRD_PASS, EXTRA_FLAGS = ROOT / "eval" / "results-external-estate-third-pass.json", True, ["--convert-anyway"]
+
+
+def _outside_this_pass(name: str) -> str | None:
+    """Why a convertible program is not converted in this pass, or None if it is."""
+    if SECOND_PASS and name not in NOT_COMPILING_IN_FIRST_PASS:
+        return "its original compiled in the first pass; see that result"
+    if THIRD_PASS and name not in NOT_CERTIFIED_IN_EARLIER_PASSES:
+        return "certified, or never compared, in an earlier pass; see those results"
+    return None
+
+
 def _classify(program: dict, samples: dict[str, Path], holders: dict[Path, str]) -> dict | None:
     """The outcome of a program that needs no conversion, or None if it is to be converted (and now holds its sample)."""
     name, path = program["name"], program["path"]
@@ -312,9 +336,8 @@ def _classify(program: dict, samples: dict[str, Path], holders: dict[Path, str])
         return {"program": name, "path": path, "outcome": "not converted",
                 "reason": f"PROGRAM-ID {name} is already held by {holders[samples[name]]}; the analyzer writes one sample per PROGRAM-ID, so this source was never converted"}
     holders[samples[name]] = path
-    if SECOND_PASS and name not in NOT_COMPILING_IN_FIRST_PASS:
-        return {"program": name, "path": path, "outcome": "not in this pass", "reason": "its original compiled in the first pass; see that result"}
-    return None
+    outside = _outside_this_pass(name)
+    return {"program": name, "path": path, "outcome": "not in this pass", "reason": outside} if outside else None
 
 
 def _convert_entry(program: dict, sample: Path) -> dict:
@@ -353,7 +376,8 @@ def run_estate(max_total: float, workers: int = 1) -> dict[str, int]:
     samples = {json.loads((s / "sample.json").read_text())["program"]: s
                for s in sorted(SAMPLES.iterdir()) if (s / "sample.json").exists() and not s.name.endswith(".repaired")}
     names = {s.name for s in samples.values()}
-    header = {"pass": "second, --convert-anyway on what did not compile" if SECOND_PASS else "first, as found", "estate": ESTATE_URL, "pinnedCommit": PINNED_COMMIT, "analyzedCommit": commit, "memory": False,
+    header = {"pass": THIRD_PASS_LABEL if THIRD_PASS else "second, --convert-anyway on what did not compile" if SECOND_PASS else "first, as found",
+              **({"blindTest": False} if THIRD_PASS else {}), "estate": ESTATE_URL, "pinnedCommit": PINNED_COMMIT, "analyzedCommit": commit, "memory": False,
               "converterFlags": ["--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD), *EXTRA_FLAGS], "freshSeeds": FRESH_SEEDS,
               "maxTotalUsd": max_total, "programCapUsd": PROGRAM_CAP_USD, "workers": workers, "timeoutMinutes": TIMEOUT_MINUTES,
               "diocleCommit": _git("rev-parse", "HEAD"), "startedAt": time.strftime("%Y%m%d-%H%M%S"),
@@ -464,7 +488,7 @@ def plan() -> list[dict]:
             rows.append({**row, "outcome": "refused", "reason": program["notConvertibleReason"]})
         elif name in seen:
             rows.append({**row, "outcome": "not converted", "reason": f"PROGRAM-ID {name} is already held by an earlier source"})
-        elif SECOND_PASS and name not in NOT_COMPILING_IN_FIRST_PASS:
+        elif _outside_this_pass(name):
             seen.add(name)
             rows.append({**row, "outcome": "not in this pass"})
         else:
@@ -478,12 +502,16 @@ if __name__ == "__main__":
     parser.add_argument("--plan", action="store_true", help="print what would be exercised; no model calls")
     parser.add_argument("--max-total-usd", type=float, help="the approved ceiling for the whole run (required for a run)")
     parser.add_argument("--workers", type=int, default=1, help="conversions at a time (default 1)")
-    parser.add_argument("--second-pass", action="store_true", help="the dated re-run, with --convert-anyway, of the programs whose original did not compile")
+    which = parser.add_mutually_exclusive_group()
+    which.add_argument("--second-pass", action="store_true", help="the dated re-run, with --convert-anyway, of the programs whose original did not compile")
+    which.add_argument("--third-pass", action="store_true", help="the dated re-run, after the WRITE ... ADVANCING fix, of the 13 not certified; not a blind test")
     args = parser.parse_args()
     for sig in (signal.SIGTERM, signal.SIGHUP):  # a kill or a closed terminal stops the conversions too
         signal.signal(sig, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     if args.second_pass:
         use_second_pass()
+    if args.third_pass:
+        use_third_pass()
     if args.plan:
         print(json.dumps(plan(), indent=2))
     elif args.max_total_usd is None:

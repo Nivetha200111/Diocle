@@ -457,3 +457,58 @@ def test_the_second_pass_keeps_its_own_files_and_never_calls_a_repair_plain_cert
     assert r["UNPATCHABLE.cobol"]["outcome"] == "not certified" and r["UNRUN.cobol"]["outcome"] == "compiled, not verified"
     assert r["COMPILED.cobol"]["outcome"] == "not in this pass" and r["REFUSED.cobol"]["outcome"] == "refused"
 
+
+def test_the_third_pass_has_its_own_files_says_it_is_not_blind_and_takes_only_the_13_not_certified(estate, monkeypatch):
+    first = estate.tmp / "eval" / "results-external-estate.json"
+    second = estate.tmp / "eval" / "results-external-estate-second-pass.json"
+    first.write_text('{"first": true}')
+    second.write_text('{"second": true}')
+    estate.use_third_pass()  # the fixture's module is this test's alone, and ROOT is the throwaway tree
+    estate.WORK.mkdir(parents=True)
+    assert estate.OUT.name == "results-external-estate-third-pass.json" and estate.WORK.name == "external-estate-third-pass"
+    assert estate.PARTIAL.parent == estate.WORK and estate.SAMPLES.parent == estate.WORK and estate.LOGS.parent == estate.WORK
+
+    repair = {"method": "deterministic", "outcome": "compiles", "changedLines": [7], "diff": "-PROGRAM-ID. A\n+PROGRAM-ID. A.", "diagnostics": ["x"]}
+    estate.add("CBL0006", fake_behaviour={"certified": False, "assurance": "certified-against-repaired-cobol", "assuranceReason": "patched", "cobolRepair": repair})
+    estate.add("CBL0010", fake_behaviour={"certified": False, "assurance": "failed", "error": "still differs"})
+    estate.add("CBL0015", fake_behaviour={"certified": False, "assurance": "compiled-unverified", "error": "the original did not terminate"})
+    estate.add("COBOL")  # its original compiles: --convert-anyway leaves it alone, and plain certified is plain certified
+    estate.add("HELLO")  # certified in the first pass
+    estate.add("CBL0001")  # certified against repaired COBOL in the second
+    estate.add("CBL0007")  # could not be patched: never compared
+    estate.add("ADDAMT", convertible=False, reason="ACCEPT reads the console")
+    shutil.copytree(estate.SAMPLES / "cbl0006", estate.SAMPLES / "cbl0006.repaired")
+    compared = []
+    stub = estate.verify_sample
+    monkeypatch.setattr(estate, "verify_sample", lambda sample, java, **k: (compared.append(sample.name), stub(sample, java, **k))[1])
+    estate.write_report()
+    rows = {row["program"]: row["outcome"] for row in estate.plan()}
+    assert rows == {"CBL0006": "to convert", "CBL0010": "to convert", "CBL0015": "to convert", "COBOL": "to convert",
+                    "HELLO": "not in this pass", "CBL0001": "not in this pass", "CBL0007": "not in this pass", "ADDAMT": "refused"}
+    assert estate.calls() == []  # the plan spends nothing
+
+    tally = estate.run_estate(2.0, workers=4)
+    data, r = by_path(estate)
+    assert sorted(estate.calls()) == ["cbl0006", "cbl0010", "cbl0015", "cobol"]
+    assert first.read_text() == '{"first": true}' and second.read_text() == '{"second": true}'  # the earlier passes stand
+    assert data["blindTest"] is False and "not a blind test" in data["pass"] and data["pass"].startswith("third")
+    assert data["converterFlags"] == ["--breaker", "--no-memory", "--max-usd", "0.4", "--convert-anyway"]
+    assert data["maxTotalUsd"] == 2.0 and data["programCapUsd"] == 0.40 and data["pinnedCommit"] == estate.PINNED_COMMIT
+    assert r["CBL0006.cobol"]["outcome"] == "certified against repaired COBOL" and r["CBL0006.cobol"]["certified"] is False
+    assert estate.level(r["CBL0006.cobol"]) == "certified against repaired COBOL, inputs vary, attacked" and r["CBL0006.cobol"]["cobolRepair"]["changedLines"] == [7]
+    assert set(compared) == {"cbl0006.repaired", "cobol"} and len(compared) == 10  # the repaired copy's seeds compare the repaired copy
+    assert r["CBL0010.cobol"]["outcome"] == "not certified" and r["CBL0015.cobol"]["outcome"] == "compiled, not verified"
+    assert r["COBOL.cobol"]["outcome"] == "certified" and tally["certified, inputs vary, attacked"] == 1
+    for name in ("HELLO", "CBL0001", "CBL0007"):
+        assert r[f"{name}.cobol"]["outcome"] == "not in this pass" and "earlier pass" in r[f"{name}.cobol"]["reason"]
+    assert r["ADDAMT.cobol"]["outcome"] == "refused"
+    with pytest.raises(SystemExit, match="never overwritten"):  # one pass
+        estate.run_estate(2.0, workers=4)
+
+
+def test_the_set_is_the_13_the_published_results_name_and_the_flags_exclude_each_other(estate):
+    assert estate.NOT_CERTIFIED_IN_EARLIER_PASSES == {"CBL0004", "CBL0005", "CBL0006", "CBL0008", "CBL0010", "CBL0011", "CBL0012", "CBL0015", "CBL0033", "CBL006A", "CBL0106", "CBL0106C", "COBOL"}
+    assert len(estate.NOT_CERTIFIED_IN_EARLIER_PASSES) == 13
+    proc = subprocess.run([sys.executable, str(SCRIPT), "--second-pass", "--third-pass", "--plan"], capture_output=True, text=True, cwd=REPO)
+    assert proc.returncode == 2 and "not allowed with" in proc.stderr
+
