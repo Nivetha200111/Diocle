@@ -1,6 +1,8 @@
 # External estate: COBOL Programming Course, run as found
 
-> **Status: PROTOCOL PINNED Nov 2, 2026, before any model call against this estate, and corrected the same
+> **Status Nov 3, 2026: both passes ran on Nov 2 to 3. [Results](#conversion-phase-nov-2-to-3-2026-mac) are below.**
+>
+> **Status when pinned: PROTOCOL PINNED Nov 2, 2026, before any model call against this estate, and corrected the same
 > day after a read-only review, still before any model call. Analysis phase run Nov 2 (see Results);
 > conversion not yet run.** Results go in the Results section and in
 > `eval/results-external-estate.json`; the protocol below does not change afterwards. Until the
@@ -22,15 +24,18 @@ before the run. The result is evidence about these programs at this commit.
 ## The estate
 
 - Repository: [openmainframeproject/cobol-programming-course](https://github.com/openmainframeproject/cobol-programming-course)
-  (Open Mainframe Project, Linux Foundation). Licence: see the repository's `LICENSE`.
+  (Open Mainframe Project, Linux Foundation). Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
+  by its authors, the Open Mainframe Project community.
 - Pinned commit: `780b1c9624e066b9d784a738896e493282c5fbf4` (2026-10-15, "Merge pull request #349").
 - Inventory at that commit: **32 COBOL sources** — 25 `.cobol` under
   `COBOL Programming Course #2 - Learning COBOL/Labs/cbl/`, 5 `.cbl` under Course #3 (the DB2 labs
   `CBLDB21`–`CBLDB23` and the Debugging challenge pair), and `DEPTPAY.CBL` / `EMPPAY.CBL` under
   Course #4. The runner enumerates programs from the analyzer's report, not from this list, so the
   published denominator is the analyzer's count.
-- No estate source is committed to this repository (same rule as CardDemo): the clone and the derived
-  samples live in git-ignored `runs/external-estate/`; only results and this write-up are committed.
+- No estate source file is committed to this repository (same rule as CardDemo): the clone and the derived
+  samples live in git-ignored `runs/external-estate/`; only results and this write-up are committed. The second-pass
+  results publish each patch as a diff, so they reproduce short excerpts of the course's programs (138 of 2,439
+  lines), shown with the patch's changes, under the licence above.
 
 ## Protocol (fixed before the run)
 
@@ -158,9 +163,68 @@ can reach that branch.
 This is reported rather than fixed, because the run tests the product as found. Teaching programs like these need
 real data files or constrained values to be tested well, which is a finding in itself.
 
-### Conversion phase
+### Conversion phase (Nov 2 to 3, 2026, Mac)
 
-_Not run yet._ The 27 distinct convertible programs convert on the Mac with
-`eval/run_external_estate.py` (GnuCOBOL, JDK and model keys are not on the Windows machine). Certified /
-not-certified outcomes, run ids, fresh-seed re-verification and total cost go here and in
-`eval/results-external-estate.json` when that run exists. Nothing about conversion is claimed until then.
+Both passes ran to the end with no resume and no restart. They cost **$1.42** in estimated model spend (rounded): $0.25 for the first (Diocle commit `6ccc86b`, branch `external-estate`) and $1.18 for the second (`7bc8bc8`, branch `estate-second-pass`). Raw records, including each patch: [`eval/results-external-estate.json`](../eval/results-external-estate.json) and [`eval/results-external-estate-second-pass.json`](../eval/results-external-estate-second-pass.json).
+
+| Final result of the 32 programs | Count | Programs |
+|---|---:|---|
+| Certified against the file as distributed | 9 | `CBL0013`, `CBL0014`, `CBLC2`, `DEPTPAY`, `EMPPAY`, `HELLO`, `PAYROL00`, `SRCHBIN`, `SRCHSER` |
+| Certified against repaired COBOL | 2 | `CBL0001`, `CBL0002` |
+| Not certified: the Java differed or did not finish | 13 | `CBL0004`, `CBL0005`, `CBL0006`, `CBL0008`, `CBL0010`, `CBL0011`, `CBL0012`, `CBL0015`, `CBL0033`, `CBL006A`, `CBL0106`, `CBL0106C`, `COBOL` |
+| Original does not compile and could not be patched | 3 | `CBL0007`, `CBL0009`, `PAYROL0X` |
+| Refused, with the reason | 4 | `ADDAMT`, `CBLDB21`, `CBLDB22`, `CBLDB23` |
+| Not converted (duplicate PROGRAM-ID) | 1 | `CBLC1` |
+
+**So 11 of 32 certified, and what that rests on is narrow.** The 9 rest on one comparison on fixed input, because their inputs never vary. `CBL0001` and `CBL0002` vary 2 of 10 input fields and took 24 and 23 attacks with no difference, but they matched a patched copy, not the file as distributed. `CBL0001` needed the missing period. `CBL0002` needed a two-line model patch that a person must still confirm. All 11 had a guard review verdict of pass. No program in this repository was certified as distributed on inputs that vary.
+
+The first pass stands as recorded. In it, `CBL0015` did not finish within 120 seconds (the original loops forever), and `COBOL` used all 60 calls and reached 13 of 14.
+
+#### Second pass, the 16 that did not compile
+
+| Program | Result | Patch: method, lines | Comparison | `AFTER ADVANCING` | Model calls | Cost |
+|---|---|---|---|:---:|---:|---:|
+| `CBL0001` | **certified against repaired COBOL** | deterministic, 1 | 24 attacks, 0 differed; 5 of 5 fresh seeds passed | no | 5 | $0.024 |
+| `CBL0002` | **certified against repaired COBOL** | model, 2 | 23 attacks, 0 differed; 5 of 5 fresh seeds passed | no | 10 | $0.027 |
+| `CBL0004` | not certified | deterministic, 1 | final check 1,021 of 1,022, and the Java exited 1 on a debug exception the repair agent left in | yes | 60 | $0.122 |
+| `CBL0005` | not certified | deterministic, 1 | 221 of 222 at best, 3 of 1,022 after the last patch | yes | 60 | $0.093 |
+| `CBL0006` | not certified | deterministic, 1 | 1,022 of 1,023 | yes | 60 | $0.104 |
+| `CBL0007` | COBOL could not be patched | model, 2 | no comparison | yes | 9 | $0.009 |
+| `CBL0008` | not certified | deterministic, 1 | 1,022 of 1,024 at best, 2 of 1,024 after the last patch | yes | 60 | $0.114 |
+| `CBL0009` | COBOL could not be patched | model, 3 | no comparison | yes | 9 | $0.006 |
+| `CBL0010` | not certified | deterministic, 1 | 403 of 1,024 | yes | 60 | $0.108 |
+| `CBL0011` | not certified | deterministic, 1 | 1,022 of 1,024 at best, 3 of 1,024 after the last patch | yes | 60 | $0.090 |
+| `CBL0012` | not certified | model, 2 | 1,022 of 1,024 | yes | 60 | $0.099 |
+| `CBL0033` | not certified | deterministic, 1 | 45 of 45, then 15 of 15 breaker inputs differed | no | 23 | $0.059 |
+| `CBL006A` | not certified | deterministic, 1 | 1,022 of 1,023 | yes | 60 | $0.103 |
+| `PAYROL0X` | COBOL could not be patched | model, 0 | no comparison | no | 6 | $0.005 |
+| `CBL0106` | not certified | deterministic, 1 | 1,021 of 1,024 | yes | 60 | $0.123 |
+| `CBL0106C` | not certified | deterministic, 1 | 37 of 38 at best, then the last patch did not compile | yes | 60 | $0.091 |
+
+"At best" and the closest-match counts below come from the run logs, which are not committed; the results files hold the final comparison.
+
+How to read the raw file:
+
+- **`certified: false` on `CBL0001` and `CBL0002`** is by design: plain certified is reserved for the original file. Read `outcome`, "certified against repaired COBOL". Their `assuranceReason` says "Muse changed" a line even where the patch `method` is `deterministic`; `method` is the correct one.
+- **`compiled, not verified`** is the runner's level for the three programs in the "could not be patched" row. The COBOL never compiled, so nothing was compared.
+- **`45/45 cases matched` for `CBL0033`** sits beside the words "still differs". The ordinary check matched on all 45 cases compared, and the breaker's inputs then differed. The log's "1000 held-out inputs" is the number the code asks for; the comparison counted 45. The product's wording was left as it ran, and is listed as a fix to make.
+
+### What the failures have in common
+
+**11 of the 13 not-certified programs use `WRITE ... AFTER ADVANCING`. None of the 11 certified programs does.** The other two are `CBL0015` and `CBL0033`. `CBL0007` and `CBL0009` also use it but never reached a comparison.
+
+GnuCOBOL 3.2 (`-std=ibm`) writes extra newlines when a fixed-length sequential file uses it. A small test program, four `WRITE`s of a 4-byte record with the second `AFTER ADVANCING 1 LINES`, produces:
+
+```
+AAAA\n    BBBBCCCC\n
+```
+
+That is a newline before the advanced record and another at close, with the records that follow shifted. It fits the mismatches: `original Account` against `converted Accoun`, and a last output record of 1 byte against an expected 62. Ten of these 11 came within 1 to 3 records of matching at some point (all but `CBL0010`). All 11 used their 60 model calls without matching, and on some a last patch made the result far worse.
+
+This is a correlation plus one reproduced mechanism. A second check found the same newlines in the output of patched `CBL0006`. It was not tested program by program, and it does not show the rest of each Java is right. It is GnuCOBOL's behaviour, and IBM's compiler was not tested. The comparison was correct to refuse these: the bytes do differ.
+
+### What this shows, and what it does not
+
+- **Shown:** on a public repository we did not write, Diocle accounted for all 32 programs, certified 11, and did not certify 13: 12 whose Java did not match, and `CBL0015`, whose original never ends. Its failures were reported rather than hidden.
+- **Not shown:** that Diocle works on any repository. This is one repository of small teaching programs, one model, one pass of each kind, and thin inputs (see the table above). A confirmed false certification or a missed defect was not measured here.
+- **Likely gap:** the translator and the repair agent have no rule for how GnuCOBOL writes `AFTER ADVANCING`. No fix is part of these results.

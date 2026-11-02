@@ -1,6 +1,6 @@
 # Build log
 
-What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 2026), the decisions behind it, and what went wrong along the way. All programs and data are synthetic. Commit history is the detailed record; this is the readable summary.
+What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 2026), the decisions behind it, and what went wrong along the way. The programs in the measurement and the deliveries are synthetic; public repositories used as test input are named where they appear. Commit history is the detailed record; this is the readable summary.
 
 ## Oct 27: plan
 - Chose the Indie Developer track and "Build for Your World". The problem comes from firsthand experience with large COBOL migrations: converted code re-checked by hand, and manual fix-rebuild-rescan cycles for code-quality findings.
@@ -61,6 +61,10 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 - Re-measured the attack with both fixes under a plan written first: 4 of 10 again, the same four programs, about $0.18.
 - Visitors may ask in their own voice and send their own image, under separate caps, after two security reviews (an owner-approved exception to the lock). A kill switch turns it off.
 - README cut to a short front page, with the rest in `docs/DETAILS.md`. Commit messages were rewritten to drop co-author lines; code, dates and authors did not change.
+
+## Nov 2 to 3: a public repository we did not write
+- Ran every program in the Open Mainframe Project's COBOL course under a protocol pinned first, then a second pass on the 16 that did not compile. 11 of 32 certified (9 on fixed input, 2 against a repaired copy), for $1.42.
+- 11 of the 13 not certified use `WRITE ... AFTER ADVANCING`, where GnuCOBOL writes extra newlines: the likely cause, not tested program by program. Reported, not fixed: [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md).
 
 ## Still open (as of Nov 2, 2026)
 - A review of the converted Java by an experienced COBOL maintainer (not done).

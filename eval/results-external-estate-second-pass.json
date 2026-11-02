@@ -1,0 +1,1268 @@
+{
+  "pass": "second, --convert-anyway on what did not compile",
+  "estate": "https://github.com/openmainframeproject/cobol-programming-course",
+  "pinnedCommit": "780b1c9624e066b9d784a738896e493282c5fbf4",
+  "analyzedCommit": "780b1c9624e066b9d784a738896e493282c5fbf4",
+  "memory": false,
+  "converterFlags": [
+    "--breaker",
+    "--no-memory",
+    "--max-usd",
+    "0.4",
+    "--convert-anyway"
+  ],
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "maxTotalUsd": 2.0,
+  "programCapUsd": 0.4,
+  "workers": 4,
+  "timeoutMinutes": 150,
+  "diocleCommit": "7bc8bc87c38083cac9ebbc68f8518575688ee12b",
+  "startedAt": "20261102-205130",
+  "cobc": "cobc (GnuCOBOL) 3.2.0",
+  "java": "java version \"27\" 2026-09-15",
+  "resumes": 0,
+  "complete": true,
+  "programsAccounted": 32,
+  "tally": {
+    "refused": 4,
+    "certified against repaired COBOL, inputs vary, attacked": 2,
+    "not certified": 11,
+    "compiled, not verified": 3,
+    "not in this pass": 11,
+    "not converted": 1
+  },
+  "recordedCostUsd": 1.177435,
+  "costComplete": true,
+  "restartedPrograms": [],
+  "certifiedWithoutGuardPass": [],
+  "results": [
+    {
+      "program": "ADDAMT",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/ADDAMT.cobol",
+      "outcome": "refused",
+      "reason": "ACCEPT reads the console: a DISPLAY-only program is compared on stdout, and its console input cannot be varied"
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0001.cobol",
+      "program": "CBL0001",
+      "outcome": "certified against repaired COBOL",
+      "runId": "cbl0001-20261102-205130",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 5,
+        "inputTokens": 19955,
+        "cachedInputTokens": 3441,
+        "outputTokens": 74485,
+        "estimatedCostUsd": 0.02367
+      },
+      "breaker": {
+        "rounds": 2,
+        "tried": 24,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": []
+      },
+      "status": "not-certified",
+      "assurance": "certified-against-repaired-cobol",
+      "assuranceReason": "The original did not compile under GnuCOBOL. Muse changed 1 line(s) (diff in the run record) so it compiles; the Java was verified against the patched COBOL, not the original. A person must confirm the patch preserves what the IBM compiler accepted.",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0001.cobol\n+++ b/CBL0001.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0001\n+       PROGRAM-ID.    CBL0001.\n        AUTHOR.        Otto B. Fun.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java reads DD_ACCTREC and writes DD_PRTLINE via env vars only, handles 170-byte records with correct COMP-3 unpacking and $$,$$$,$$9.99 formatting, no disallowed I/O, network, reflection, native, threading or encoded logic; missing-DD exits rather than falling back, which is permitted."
+      },
+      "minutes": 14.1,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0002.cobol",
+      "program": "CBL0002",
+      "outcome": "certified against repaired COBOL",
+      "runId": "cbl0002-20261102-205130",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 10,
+        "inputTokens": 36202,
+        "cachedInputTokens": 11332,
+        "outputTokens": 87045,
+        "estimatedCostUsd": 0.026713
+      },
+      "breaker": {
+        "rounds": 2,
+        "tried": 23,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": []
+      },
+      "status": "not-certified",
+      "assurance": "certified-against-repaired-cobol",
+      "assuranceReason": "The original did not compile under GnuCOBOL. Muse changed 2 line(s) (diff in the run record) so it compiles; the Java was verified against the patched COBOL, not the original. A person must confirm the patch preserves what the IBM compiler accepted.",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "compiles",
+        "changedLines": 2,
+        "diff": "--- a/CBL0002.cobol\n+++ b/CBL0002.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0002\n+       PROGRAM-ID.    CBL0002.\n        AUTHOR.        Otto B. Fun.\n       *--------------------\n        ENVIRONMENT DIVISION.\n@@ -75,5 +75,5 @@\n            MOVE LAST-NAME    TO  LAST-NAME-O.\n            MOVE FIRST-NAME   TO  FIRST-NAME-O.\n            MOVE COMMENTS     TO  COMMENTS-O.\n-           WRITE PRINT-REX.\n+           WRITE PRINT-REC.\n       *\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java only accesses DD_ACCTREC and DD_PRTLINE via System.getenv with relative fallback (ACCTREC/PRTLINE) matching GnuCOBOL semantics, reads/writes those paths via NIO, and contains no network, process, reflection, native, additional env/sysprop, thread, obfuscation or test-gaming code. Allowed actions only. No block/flag triggers."
+      },
+      "minutes": 16.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1016,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0004.cobol",
+      "program": "CBL0004",
+      "outcome": "not certified",
+      "runId": "cbl0004-20261102-205130",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1179805,
+        "cachedInputTokens": 1123881,
+        "outputTokens": 571402,
+        "estimatedCostUsd": 0.122121
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (1021/1022 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0004.cobol\n+++ b/CBL0004.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0004\n+       PROGRAM-ID.    CBL0004.\n        AUTHOR.        Otto B. Formatted\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 120.4,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "exit codes differ (COBOL RETURN-CODE 0, Java 1):\nJava stderr: Exception in thread \"main\" java.lang.RuntimeException: DBG acctLen=172720 first=67\n\tat Cbl0004.closeStop(Cbl0004.java:98)\n\tat Cbl0004.main(Cbl0004.java:39)\n"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0005.cobol",
+      "program": "CBL0005",
+      "outcome": "not certified",
+      "runId": "cbl0005-20261102-205130",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1106841,
+        "cachedInputTokens": 1039529,
+        "outputTokens": 423307,
+        "estimatedCostUsd": 0.093472
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (3/1022 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0005.cobol\n+++ b/CBL0005.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0005\n+       PROGRAM-ID.    CBL0005.\n        AUTHOR.        Otto B. Formatted\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 100.8,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "3/1022 cases match; stdout matches.\nMismatched fields: FILLER x4067, ACCT-NO-O x1018, LAST-NAME-O x1018, ACCT-LIMIT-O x1018, ACCT-BALANCE-O x1018\n- output-0004 input='': ACCT-NO-O: original Account converted Account; LAST-NAME-O: original Last Name converted Last Name; ACCT-LIMIT-O: original Limit c"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0006.cobol",
+      "program": "CBL0006",
+      "outcome": "not certified",
+      "runId": "cbl0006-20261102-210537",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1418599,
+        "cachedInputTokens": 1291192,
+        "outputTokens": 444681,
+        "estimatedCostUsd": 0.104259
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (1022/1023 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0006.cobol\n+++ b/CBL0006.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0006\n+       PROGRAM-ID.    CBL0006.\n        AUTHOR.        Otto B. Boolean.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 96.4,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "1022/1023 cases match; stdout matches.\nMismatched fields: ACCT-NO-O x1\n- output-1023 input='': converted record is 1 bytes, expected 62: a field overflowed its width and shifted the fields after it; ACCT-NO-O: original ' \\n' converted ' ' (same value, different bytes)"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0007.cobol",
+      "program": "CBL0007",
+      "outcome": "compiled, not verified",
+      "runId": "cbl0007-20261102-210802",
+      "exitCode": 3,
+      "certified": false,
+      "error": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (CBL0007.cobol:10: error: syntax error, unexpected ENVIRONMENT)",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 9,
+        "inputTokens": 50035,
+        "cachedInputTokens": 33830,
+        "outputTokens": 34877,
+        "estimatedCostUsd": 0.008664
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "compiled-unverified",
+      "assuranceReason": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (CBL0007.cobol:10: error: syntax error, unexpected ENVIRONMENT)",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "cap-reached",
+        "changedLines": 2,
+        "diff": "--- a/CBL0007.cobol\n+++ b/CBL0007.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0007\n+       PROGRAM-ID.    CBL0007.\n        AUTHOR.        Otto B. Boolean.\n       *--------------------\n        ENVIRONMENT DIVISION.\n@@ -146,7 +146,7 @@\n       *\n        IS-STATE-VIRGINIA.\n            IF STATE ADD 1 TO VIRGINIA-CLIENTS.\n-           END-IF.\n+           END-IF THEN.\n       *    When the current value of USA-STATE equals 'Virginia' \n       *    the conditional data-name STATE is TRUE.\n       *\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 6.8,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Asking the model to fix only what the compiler reports (bounded)",
+        "Translating CBL0007 with muse-spark-1.3-contributor",
+        "Java compiles; a developer must review it; the differential test could not run because the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (CBL0007.cobol:10: error: syntax error, unexpected ENVIRONMENT)"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0008.cobol",
+      "program": "CBL0008",
+      "outcome": "not certified",
+      "runId": "cbl0008-20261102-211450",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1474393,
+        "cachedInputTokens": 1344312,
+        "outputTokens": 492948,
+        "estimatedCostUsd": 0.114286
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (2/1024 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0008.cobol\n+++ b/CBL0008.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0008\n+       PROGRAM-ID.    CBL0008.\n        AUTHOR.        Otto B. Mathwiz.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 101.9,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "2/1024 cases match; stdout matches.\nMismatched fields: FILLER x4073, ACCT-NO-O x1019, LAST-NAME-O x1019, ACCT-LIMIT-O x1019, ACCT-BALANCE-O x1019\n- output-0003 input='': ACCT-NO-O: original '\\n       ' converted '        '\n- output-0004 input='': ACCT-NO-O: original Account converted Account; LAST-N"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0009.cobol",
+      "program": "CBL0009",
+      "outcome": "compiled, not verified",
+      "runId": "cbl0009-20261102-224203",
+      "exitCode": 3,
+      "certified": false,
+      "error": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (CBL0009.cobol:10: error: syntax error, unexpected ENVIRONMENT)",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 9,
+        "inputTokens": 68218,
+        "cachedInputTokens": 43302,
+        "outputTokens": 17521,
+        "estimatedCostUsd": 0.006082
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "compiled-unverified",
+      "assuranceReason": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (CBL0009.cobol:10: error: syntax error, unexpected ENVIRONMENT)",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "cap-reached",
+        "changedLines": 3,
+        "diff": "--- a/CBL0009.cobol\n+++ b/CBL0009.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0009\n+       PROGRAM-ID.    CBL0009.\n        AUTHOR.        Otto B. Mathwiz.\n       *--------------------\n        ENVIRONMENT DIVISION.\n@@ -151,7 +151,7 @@\n            .\n       * \n        WRITE-TLIMIT-TBALANCE.\n-           MOVE TLIMIT   TO TLIMIT-O.\n+           MOVE TLIMITED   TO TLIMIT-O.\n            MOVE TBALANCE TO TBALANCE-O.\n            WRITE PRINT-REC FROM TRAILER-1.\n            WRITE PRINT-REC FROM TRAILER-2.\n@@ -171,7 +171,7 @@\n       *     in order to calculate the final limit and balance report.\n       *\n        LIMIT-BALANCE-TOTAL.\n-           COMPUTE TLIMIT   = TLIMIT   + ACCT-LIMIT   END-COMPUTE\n+           COMPUTE TLIMITED   = TLIMIT   + ACCT-LIMIT   END-COMPUTE\n            COMPUTE TBALANCE = TBALANCE + ACCT-BALANCE END-COMPUTE\n            .\n       *    The COMPUTE verb assigns the value of the arithmetic \n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.4,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Asking the model to fix only what the compiler reports (bounded)",
+        "Translating CBL0009 with muse-spark-1.3-contributor",
+        "Java compiles; a developer must review it; the differential test could not run because the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (CBL0009.cobol:10: error: syntax error, unexpected ENVIRONMENT)"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0010.cobol",
+      "program": "CBL0010",
+      "outcome": "not certified",
+      "runId": "cbl0010-20261102-224529",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1610003,
+        "cachedInputTokens": 1416391,
+        "outputTokens": 429950,
+        "estimatedCostUsd": 0.108184
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (403/1024 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0010.cobol\n+++ b/CBL0010.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0010\n+       PROGRAM-ID.    CBL0010.\n        AUTHOR.        Otto B. Computational.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 91.0,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "403/1024 cases match; stdout matches.\nMismatched fields: FILLER x314, ACCT-BALANCE-O x277, ACCT-LIMIT-O x221, ACCT-NO-O x1\n- output-0006 input='': ACCT-LIMIT-O: original $0.0 converted 0.0; ACCT-BALANCE-O: original $0.2 converted 0.2\n- output-0007 input='': ACCT-LIMIT-O: original $0.0 converted 0.0;"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0011.cobol",
+      "program": "CBL0011",
+      "outcome": "not certified",
+      "runId": "cbl0011-20261102-225151",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1292476,
+        "cachedInputTokens": 1189176,
+        "outputTokens": 385387,
+        "estimatedCostUsd": 0.089786
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (3/1024 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0011.cobol\n+++ b/CBL0011.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0011\n+       PROGRAM-ID.    CBL0011.\n        AUTHOR.        Otto B. Intrisic.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 83.6,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "3/1024 cases match; stdout matches.\nMismatched fields: FILLER x4073, ACCT-LIMIT-O x1020, ACCT-BALANCE-O x1020, ACCT-NO-O x1019, LAST-NAME-O x1019\n- output-0004 input='': ACCT-NO-O: original Account converted Accoun; FILLER: original '  ' converted 't ' (same value, different bytes); LAST-NAME-O: ori"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0012.cobol",
+      "program": "CBL0012",
+      "outcome": "not certified",
+      "runId": "cbl0012-20261102-225644",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1245300,
+        "cachedInputTokens": 1143623,
+        "outputTokens": 434115,
+        "estimatedCostUsd": 0.099278
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (1022/1024 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "compiles",
+        "changedLines": 2,
+        "diff": "--- a/CBL0012.cobol\n+++ b/CBL0012.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0012\n+       PROGRAM-ID.    CBL0012.\n        AUTHOR.        Otto B. Intrisic.\n       *--------------------\n        ENVIRONMENT DIVISION.\n@@ -115,7 +115,7 @@\n            OPEN OUTPUT PRINT-LINE.\n       *\n        WRITE-HEADERS.\n-           MOVE FUNCTION CURRENT-DATA TO WS-CURRENT-DATE-DATA.\n+           MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE-DATA.\n            MOVE WS-CURRENT-YEAR  TO HDR-YR.\n            MOVE WS-CURRENT-MONTH TO HDR-MO.\n            MOVE WS-CURRENT-DAY   TO HDR-DAY.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 93.0,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "1022/1024 cases match; stdout matches.\nMismatched fields: ACCT-LIMIT-O x1, ACCT-BALANCE-O x1, ACCT-NO-O x1\n- output-1023 input='': ACCT-LIMIT-O: original $83,446,477.9 converted 183,446,477.9; ACCT-BALANCE-O: original $31,854,824.0 converted 331,854,824.0\n- output-1024 input='': converted record is "
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "program": "CBL0013",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0013.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "CBL0014",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0014.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "CBL0015",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0015.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0033.cobol",
+      "program": "CBL0033",
+      "outcome": "not certified",
+      "runId": "cbl0033-20261103-001528",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 23,
+        "inputTokens": 191178,
+        "cachedInputTokens": 141652,
+        "outputTokens": 266819,
+        "estimatedCostUsd": 0.0586
+      },
+      "breaker": {
+        "rounds": 2,
+        "tried": 15,
+        "broke": 15,
+        "repairCycles": 1,
+        "fixed": false,
+        "counterexamples": [
+          {
+            "input": "ACC00001\u0000\u0000\u0000\u0000\f\u0000\u0000\u0000\u0000\fZero                Test           1 Main St                City                CA             R1     zero test                                         ",
+            "why": "Zero exercises floating-$ placement for $0.00.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00002\u0000\u0000\u0000\u0000\u001c\u0000\u0000\u0000\u0001\fCent                Test           2 Main St                City                CA             R2     small cents test                                  ",
+            "why": "Sub-dollar values check $0.xx formatting and frac digits.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00003\u0000\u0000\u0099\u0099\u009c\u0000\u0001\u0000\u0000\fComma               Test           3 Main St                City                CA             R3     1k comma boundary                                 ",
+            "why": "999.99 vs 1000.00 tests first comma insertion and $ float over comma.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00004\u0000\t\u0099\u0099\u009c\u0000\u0010\u0000\u0000\fComma               Test           4 Main St                City                CA             R4     10k boundary test                                 ",
+            "why": "Tests second digit width and comma suppression before $.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00005\u0000\u0099\u0099\u0099\u009c\u0001\u0000\u0000\u0000\fHundredK            Test           5 Main St                City                CA             R5     100k boundary test                                ",
+            "why": "100k boundary where $ overwrites first comma position.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00006\t\u0099\u0099\u0099\u009c\u0010\u0000\u0000\u0000\fMillion             Test           6 Main St                City                CA             R6     1M boundary test                                  ",
+            "why": "1M boundary tests both commas with floating $ at leftmost.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00007\u0099\u0099\u0099\u0099\u009c\u0099\u0099\u0099\u0099\u009dMaxMin              Test           7 Main St                City                CA             R7     max min test                                      ",
+            "why": "Maximum magnitude and negative max test sign loss in unsigned edit.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00008\u0000\u0000\u0000\u0000\u001d\u0000\u0000\u0000\u0005\rNegCent             Test           8 Main St                City                CA             R8     negative cents                                    ",
+            "why": "Negative sub-dollar checks abs vs sign handling of zero integer part.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00009\u0000\u0000\u0099\u0099\u009d\u0000\u0001\u0000\u0000\rNegComma            Test           9 Main St                City                CA             R9     negative comma test                               ",
+            "why": "Negative comma boundary tests sign suppression in edited output.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00010\u0010\u0000\u0000\u0000\r\u0000\u0000\u0000\u0010\fNegMil              Test           10 Main St               City                CA             R10    neg million test                                  ",
+            "why": "Large negative tests abs formatting with two commas.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00011\u0000\u0000\u0001\u0000\f\u0000\u0000\u0010\u0000\fTenHun              Test           11 Main St               City                CA             R11    tens hundreds test                                ",
+            "why": "10 and 100 test $ float just left of digits without commas.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "ACC00012\u0000\u0000\u0001#L\u0000\u0000\u0005g\u008dMixed               Test           12 Main St               City                CA             R12    mixed sign cents test                             ",
+            "why": "Mixed signs with cents check truncation vs rounding and sign loss.",
+            "diff": "output record 30: the original program wrote 29 records, the other wrote more"
+          },
+          {
+            "input": "A0000001\u0000\u0001\u0000\u0000\f\u0000\u0000\u0010\u0000\fSmith               John           123 Main St              Springfield         Illinois       RESVD01First record comment                              ",
+            "why": "Short file with only 3 records forces AT END so COBOL rewrites last record to 45 lines while Java suppresses writes.",
+            "diff": "output record 32: the converted program wrote 31 records, the other wrote more"
+          },
+          {
+            "input": "A0000002\u0000\u0002\u0000\u0005\f\u0000\u0000\u0005\u0002]Jones               Mary           456 Oak Ave              Riverton            Ohio           RESVD02Second record comment                             ",
+            "why": "Second distinct record makes duplicated tail after EOF observable versus Java truncated output.",
+            "diff": "output record 32: the converted program wrote 31 records, the other wrote more"
+          },
+          {
+            "input": "A0000003\u0000\u0000\u0000\u0000\f\u0099\u0099\u0099\u0099\u009cBrown               Bob            789 Pine Rd              Lakeside            Texas          RESVD03Third record max balance                          ",
+            "why": "Third record with zero limit and max balance pins the duplicated values COBOL repeats 42 times after EOF.",
+            "diff": "output record 32: the converted program wrote 31 records, the other wrote more"
+          }
+        ]
+      },
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (45/45 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0033.cobol\n+++ b/CBL0033.cobol\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0033\n+       PROGRAM-ID.    CBL0033.\n        AUTHOR.        Otto B. Fun.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 55.0,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Breaker attacks the repaired Java again",
+        "Breaker round 1: 3 of 3 designed inputs break the Java",
+        "Not certified: 3 breaker input(s) still break the Java and the repair budget is spent"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL006A.cobol",
+      "program": "CBL006A",
+      "outcome": "not certified",
+      "runId": "cbl006a-20261103-001631",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1346106,
+        "cachedInputTokens": 1161174,
+        "outputTokens": 412979,
+        "estimatedCostUsd": 0.103411
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (1022/1023 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL006A.cobol\n+++ b/CBL006A.cobol\n@@ -1,7 +1,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL006A\n+       PROGRAM-ID.    CBL006A.\n        AUTHOR.       Athar Ramzan\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 87.5,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "1022/1023 cases match; stdout matches.\nMismatched fields: ACCT-NO-O x1\n- output-1023 input='': converted record is 1 bytes, expected 62: a field overflowed its width and shifted the fields after it; ACCT-NO-O: original ' \\n' converted ' ' (same value, different bytes)"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "program": "CBL0006",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBLC1.cobol",
+      "outcome": "not converted",
+      "reason": "PROGRAM-ID CBL0006 is already held by COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0006.cobol; the analyzer writes one sample per PROGRAM-ID, so this source was never converted"
+    },
+    {
+      "program": "CBLC2",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBLC2.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "COBOL",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/COBOL.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "HELLO",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/HELLO.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "PAYROL00",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/PAYROL00.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/PAYROL0X.cobol",
+      "program": "PAYROL0X",
+      "outcome": "compiled, not verified",
+      "runId": "payrol0x-20261103-011031",
+      "exitCode": 3,
+      "certified": false,
+      "error": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (PAYROL0X.cobol:25: error: '...' is not ... numeric or numeric-edited name)",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 6,
+        "inputTokens": 11996,
+        "cachedInputTokens": 3554,
+        "outputTokens": 19188,
+        "estimatedCostUsd": 0.004689
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "compiled-unverified",
+      "assuranceReason": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (PAYROL0X.cobol:25: error: '...' is not ... numeric or numeric-edited name)",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "still-fails",
+        "changedLines": 0,
+        "diff": ""
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.8,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Asking the model to fix only what the compiler reports (bounded)",
+        "Translating PAYROL0X with muse-spark-1.3-contributor",
+        "Java compiles; a developer must review it; the differential test could not run because the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (PAYROL0X.cobol:25: error: '...' is not ... numeric or numeric-edited name)"
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "program": "SRCHBIN",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/SRCHBIN.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "SRCHSER",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/SRCHSER.cobol",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "path": "COBOL Programming Course #3 - Advanced Topics/Challenges/Debugging/cbl/CBL0106.cbl",
+      "program": "CBL0106",
+      "outcome": "not certified",
+      "runId": "cbl0106-20261103-014359",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1856643,
+        "cachedInputTokens": 1497475,
+        "outputTokens": 422212,
+        "estimatedCostUsd": 0.123354
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (1021/1024 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0106.cbl\n+++ b/CBL0106.cbl\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0106\n+       PROGRAM-ID.    CBL0106.\n        AUTHOR.        Otto B. Boolean.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 90.1,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "1021/1024 cases match; stdout matches.\nMismatched fields: FILLER x5, ACCT-NO-O x3, ACCT-LIMIT-O x2, ACCT-BALANCE-O x2, LAST-NAME-O x1\n- output-1022 input='': ACCT-NO-O: original V\u0000\u0000\u0000\tL\u0000 converted Virgini; FILLER: original \u0000E converted '  '; LAST-NAME-O: original h\u008cC00000000000000009 converted \u0000\u0000\tL\u0000\u0000"
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #3 - Advanced Topics/Challenges/Debugging/cbl/CBL0106C.cbl",
+      "program": "CBL0106C",
+      "outcome": "not certified",
+      "runId": "cbl0106c-20261103-011421",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1318250,
+        "cachedInputTokens": 1152982,
+        "outputTokens": 360166,
+        "estimatedCostUsd": 0.090866
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (0/0 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "deterministic",
+        "outcome": "compiles",
+        "changedLines": 1,
+        "diff": "--- a/CBL0106C.cbl\n+++ b/CBL0106C.cbl\n@@ -4,7 +4,7 @@\n       *-----------------------\n        IDENTIFICATION DIVISION.\n       *-----------------------\n-       PROGRAM-ID.    CBL0106C\n+       PROGRAM-ID.    CBL0106C.\n        AUTHOR.        Otto B. Boolean.\n       *--------------------\n        ENVIRONMENT DIVISION.\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 78.5,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "converted did not compile:\n<repo>/runs/cbl0106c-20261103-011421/java/Cbl0106c.java:211: error: cannot find symbol\n            if (acctSep && acctPos < acctBytes.length && acctBytes[acctPos] == 0x0A) {\n        "
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "program": "CBLDB21",
+      "path": "COBOL Programming Course #3 - Advanced Topics/Labs/cbl/CBLDB21.cbl",
+      "outcome": "refused",
+      "reason": "EXEC SQL outside the verified subset (db2-subset-1): line 53: line 53: table name Z#####T is outside the subset (letters, digits and underscores)"
+    },
+    {
+      "program": "CBLDB22",
+      "path": "COBOL Programming Course #3 - Advanced Topics/Labs/cbl/CBLDB22.cbl",
+      "outcome": "refused",
+      "reason": "EXEC SQL outside the verified subset (db2-subset-1): line 70: line 70: table name Z#####T is outside the subset (letters, digits and underscores)"
+    },
+    {
+      "program": "CBLDB23",
+      "path": "COBOL Programming Course #3 - Advanced Topics/Labs/cbl/CBLDB23.cbl",
+      "outcome": "refused",
+      "reason": "EXEC SQL outside the verified subset (db2-subset-1): line 67: line 67: table name Z#####T is outside the subset (letters, digits and underscores)"
+    },
+    {
+      "program": "DEPTPAY",
+      "path": "COBOL Programming Course #4 - Testing/Labs/cbl/DEPTPAY.CBL",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    },
+    {
+      "program": "EMPPAY",
+      "path": "COBOL Programming Course #4 - Testing/Labs/cbl/EMPPAY.CBL",
+      "outcome": "not in this pass",
+      "reason": "its original compiled in the first pass; see that result"
+    }
+  ]
+}

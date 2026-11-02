@@ -1,0 +1,1960 @@
+{
+  "estate": "https://github.com/openmainframeproject/cobol-programming-course",
+  "pinnedCommit": "780b1c9624e066b9d784a738896e493282c5fbf4",
+  "analyzedCommit": "780b1c9624e066b9d784a738896e493282c5fbf4",
+  "memory": false,
+  "converterFlags": [
+    "--breaker",
+    "--no-memory",
+    "--max-usd",
+    "0.4"
+  ],
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "maxTotalUsd": 2.0,
+  "programCapUsd": 0.4,
+  "workers": 4,
+  "timeoutMinutes": 150,
+  "diocleCommit": "6ccc86b529368583a6da7d5c7946db31c1b229d1",
+  "startedAt": "20261102-194415",
+  "cobc": "cobc (GnuCOBOL) 3.2.0",
+  "java": "java version \"27\" 2026-09-15",
+  "resumes": 0,
+  "complete": true,
+  "programsAccounted": 32,
+  "tally": {
+    "refused": 4,
+    "not certified": 18,
+    "certified, inputs never vary": 9,
+    "not converted": 1
+  },
+  "recordedCostUsd": 0.247088,
+  "costComplete": true,
+  "restartedPrograms": [],
+  "certifiedWithoutGuardPass": [],
+  "results": [
+    {
+      "program": "ADDAMT",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/ADDAMT.cobol",
+      "outcome": "refused",
+      "reason": "ACCEPT reads the console: a DISPLAY-only program is compared on stdout, and its console input cannot be varied"
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0001.cobol",
+      "program": "CBL0001",
+      "outcome": "not certified",
+      "runId": "cbl0001-20261102-194415",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0001.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 1688,
+        "cachedInputTokens": 0,
+        "outputTokens": 19335,
+        "estimatedCostUsd": 0.004036
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.7,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0001.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0002.cobol",
+      "program": "CBL0002",
+      "outcome": "not certified",
+      "runId": "cbl0002-20261102-194415",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0002.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 1391,
+        "cachedInputTokens": 0,
+        "outputTokens": 22179,
+        "estimatedCostUsd": 0.004575
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 4.2,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0002.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0004.cobol",
+      "program": "CBL0004",
+      "outcome": "not certified",
+      "runId": "cbl0004-20261102-194415",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0004.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2456,
+        "cachedInputTokens": 0,
+        "outputTokens": 33224,
+        "estimatedCostUsd": 0.00689
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 6.6,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0004.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0005.cobol",
+      "program": "CBL0005",
+      "outcome": "not certified",
+      "runId": "cbl0005-20261102-194415",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0005.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2467,
+        "cachedInputTokens": 0,
+        "outputTokens": 25556,
+        "estimatedCostUsd": 0.005358
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 4.7,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0005.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0006.cobol",
+      "program": "CBL0006",
+      "outcome": "not certified",
+      "runId": "cbl0006-20261102-194759",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0006.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2462,
+        "cachedInputTokens": 0,
+        "outputTokens": 25812,
+        "estimatedCostUsd": 0.005409
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 5.0,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0006.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0007.cobol",
+      "program": "CBL0007",
+      "outcome": "not certified",
+      "runId": "cbl0007-20261102-194828",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0007.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2421,
+        "cachedInputTokens": 0,
+        "outputTokens": 29149,
+        "estimatedCostUsd": 0.006072
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 5.7,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0007.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0008.cobol",
+      "program": "CBL0008",
+      "outcome": "not certified",
+      "runId": "cbl0008-20261102-194856",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0008.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2884,
+        "cachedInputTokens": 0,
+        "outputTokens": 25856,
+        "estimatedCostUsd": 0.00546
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 5.1,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0008.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0009.cobol",
+      "program": "CBL0009",
+      "outcome": "not certified",
+      "runId": "cbl0009-20261102-195049",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0009.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2886,
+        "cachedInputTokens": 0,
+        "outputTokens": 19951,
+        "estimatedCostUsd": 0.004279
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.8,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0009.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0010.cobol",
+      "program": "CBL0010",
+      "outcome": "not certified",
+      "runId": "cbl0010-20261102-195257",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0010.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2784,
+        "cachedInputTokens": 0,
+        "outputTokens": 17198,
+        "estimatedCostUsd": 0.003718
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.3,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0010.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0011.cobol",
+      "program": "CBL0011",
+      "outcome": "not certified",
+      "runId": "cbl0011-20261102-195400",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0011.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2640,
+        "cachedInputTokens": 0,
+        "outputTokens": 44943,
+        "estimatedCostUsd": 0.009253
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 8.6,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0011.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0012.cobol",
+      "program": "CBL0012",
+      "outcome": "not certified",
+      "runId": "cbl0012-20261102-195411",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0012.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2563,
+        "cachedInputTokens": 0,
+        "outputTokens": 18081,
+        "estimatedCostUsd": 0.003873
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.4,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0012.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0013.cobol",
+      "program": "CBL0013",
+      "outcome": "certified",
+      "runId": "cbl0013-20261102-195438",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 9,
+        "inputTokens": 25295,
+        "cachedInputTokens": 15925,
+        "outputTokens": 10864,
+        "estimatedCostUsd": 0.009534
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java only prints to stdout and performs BigDecimal arithmetic as equivalent to COBOL DISPLAY/DIVIDE. No network, process, reflection, native, environment, file, threading, encoding, or test-gaming logic with external data exfiltration/affecting machine beyond allowed operations."
+      },
+      "minutes": 2.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0014.cobol",
+      "program": "CBL0014",
+      "outcome": "certified",
+      "runId": "cbl0014-20261102-195613",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 6,
+        "inputTokens": 15780,
+        "cachedInputTokens": 6114,
+        "outputTokens": 13298,
+        "estimatedCostUsd": 0.008329
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "No security-relevant operations detected: Java only prints to stdout and performs packed-decimal arithmetic, matching COBOL's DISPLAY-only behavior. No file/network/process/reflection/native/env access beyond allowed set, no obfuscation or test-gaming logic."
+      },
+      "minutes": 2.7,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0015.cobol",
+      "program": "CBL0015",
+      "outcome": "not certified",
+      "runId": "cbl0015-20261102-195716",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the converted Java did not terminate within 120 seconds, so it cannot be certified",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 987,
+        "cachedInputTokens": 0,
+        "outputTokens": 5292,
+        "estimatedCostUsd": 0.001157
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.1,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Translating CBL0015 with muse-spark-1.3-contributor",
+        "Running GnuCOBOL and the Java on the same inputs",
+        "run failed: the converted Java did not terminate within 120 seconds, so it cannot be certified"
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0033.cobol",
+      "program": "CBL0033",
+      "outcome": "not certified",
+      "runId": "cbl0033-20261102-195735",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0033.cobol:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2097,
+        "cachedInputTokens": 0,
+        "outputTokens": 18581,
+        "estimatedCostUsd": 0.003926
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.5,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0033.cobol:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL006A.cobol",
+      "program": "CBL006A",
+      "outcome": "not certified",
+      "runId": "cbl006a-20261102-195901",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL006A.cobol:7: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2594,
+        "cachedInputTokens": 0,
+        "outputTokens": 23695,
+        "estimatedCostUsd": 0.004998
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 4.5,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL006A.cobol:7: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "program": "CBL0006",
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBLC1.cobol",
+      "outcome": "not converted",
+      "reason": "PROGRAM-ID CBL0006 is already held by COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBL0006.cobol; the analyzer writes one sample per PROGRAM-ID, so this source was never converted"
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/CBLC2.cobol",
+      "program": "CBLC2",
+      "outcome": "certified",
+      "runId": "cblc2-20261102-200020",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 2090,
+        "cachedInputTokens": 0,
+        "outputTokens": 6833,
+        "estimatedCostUsd": 0.008417
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "No integrity issues detected: loop and BigDecimal arithmetic stay within allowed computation and stdout writes, matching COBOL control flow. No network, file, env-var, reflection, native, threading, or test-gaming behavior found."
+      },
+      "minutes": 1.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/COBOL.cobol",
+      "program": "COBOL",
+      "outcome": "not certified",
+      "runId": "cobol-20261102-200103",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 681202,
+        "cachedInputTokens": 639145,
+        "outputTokens": 386337,
+        "estimatedCostUsd": 0.082751
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 78.5,
+      "freshSeeds": [],
+      "lastEvents": [
+        "13/14 cases match; stdout matches.\nMismatched fields: \n- PRTLINE#0013 input='': converted record is 1 bytes, expected 5: a field overflowed its width and shifted the fields after it",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "13/14 cases match; stdout matches.\nMismatched fields: PRT-REC x1\n- PRTLINE#0013 input='': PRT-REC: original '     ' converted ABCDE"
+      ],
+      "exercised": {
+        "shape": "multi-file",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/HELLO.cobol",
+      "program": "HELLO",
+      "outcome": "certified",
+      "runId": "hello-20261102-200152",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1673,
+        "cachedInputTokens": 0,
+        "outputTokens": 2352,
+        "estimatedCostUsd": 0.004931
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Hello.java only writes 'HELLO WORLD!\\n' to stdout (line 3 System.out.print), which is explicitly allowed. No file I/O, no environment variable access, no network/process/reflection/native/thread/encoding, and no test-gaming. Matches COBOL HELLO.cbl DISPLAY 'HELLO WORLD!'."
+      },
+      "minutes": 0.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/PAYROL00.cobol",
+      "program": "PAYROL00",
+      "outcome": "certified",
+      "runId": "payrol00-20261102-200230",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 2678,
+        "cachedInputTokens": 0,
+        "outputTokens": 5431,
+        "estimatedCostUsd": 0.005739
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java only uses String formatting, BigDecimal arithmetic and System.out.print to mirror COBOL DISPLAYs. No file I/O, network, process, reflection, env-var, or other disallowed operations present. Behavior is limited to stdout as permitted."
+      },
+      "minutes": 1.1,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/PAYROL0X.cobol",
+      "program": "PAYROL0X",
+      "outcome": "not certified",
+      "runId": "payrol0x-20261102-200236",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: PAYROL0X.cobol:25: error: 'GROSS-PAY' is not a numeric or numeric-edited name",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 1072,
+        "cachedInputTokens": 0,
+        "outputTokens": 18374,
+        "estimatedCostUsd": 0.003782
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.5,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: PAYROL0X.cobol:25: error: 'GROSS-PAY' is not a numeric or numeric-edited name. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/SRCHBIN.cobol",
+      "program": "SRCHBIN",
+      "outcome": "certified",
+      "runId": "srchbin-20261102-200328",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 3770,
+        "cachedInputTokens": 640,
+        "outputTokens": 18221,
+        "estimatedCostUsd": 0.009997
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Reviewed Srchbin.java against SRCHBIN.cbl. Java only accesses DD_ACCTREC and DIOCLE_COLLATION via System.getenv, reads file data via Files.readAllBytes on the DD path, writes to stdout, and implements table load and binary search matching COBOL logic. No network, process, reflection, native code, additional env vars/system properties, absolute-path fallback, background threads, encoded payloads, or test-gaming special cases present. Behavior is within allowed DD/DIOCLE_COLLATION/stdout scope."
+      },
+      "minutes": 3.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 1,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #2 - Learning COBOL/Labs/cbl/SRCHSER.cobol",
+      "program": "SRCHSER",
+      "outcome": "certified",
+      "runId": "srchser-20261102-200337",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 3642,
+        "cachedInputTokens": 640,
+        "outputTokens": 14039,
+        "estimatedCostUsd": 0.008597
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java only accesses DD_ACCTREC via System.getenv and DIOCLE_COLLATION (both allowed), reads that file via NIO, writes to stdout, and performs in-memory table search mirroring COBOL SEARCH. No network, process, reflection, native, system properties, absolute-path/file-system writes, threads, obfuscation, or test-gaming detected."
+      },
+      "minutes": 3.0,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 1,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #3 - Advanced Topics/Challenges/Debugging/cbl/CBL0106.cbl",
+      "program": "CBL0106",
+      "outcome": "not certified",
+      "runId": "cbl0106-20261102-200604",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0106.cbl:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2727,
+        "cachedInputTokens": 0,
+        "outputTokens": 27912,
+        "estimatedCostUsd": 0.005855
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 5.2,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0106.cbl:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "path": "COBOL Programming Course #3 - Advanced Topics/Challenges/Debugging/cbl/CBL0106C.cbl",
+      "program": "CBL0106C",
+      "outcome": "not certified",
+      "runId": "cbl0106c-20261102-200645",
+      "exitCode": 1,
+      "certified": false,
+      "error": "the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0106C.cbl:10: error: syntax error, unexpected ENVIRONMENT",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 1,
+        "inputTokens": 2832,
+        "cachedInputTokens": 0,
+        "outputTokens": 25715,
+        "estimatedCostUsd": 0.005426
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 4.9,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Running GnuCOBOL and the Java on the same inputs",
+        "Starting point: 0/0 cases match; repair agent takes over",
+        "Not certified: the original COBOL does not compile under GnuCOBOL (-std=ibm), so it cannot be verified: CBL0106C.cbl:10: error: syntax error, unexpected ENVIRONMENT. Stopped before any repair round."
+      ],
+      "exercised": {
+        "shape": "single-file",
+        "inputFiles": [
+          "ACCTREC"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "ACCT-LIMIT",
+          "ACCT-BALANCE"
+        ],
+        "breakerCanRun": true
+      }
+    },
+    {
+      "program": "CBLDB21",
+      "path": "COBOL Programming Course #3 - Advanced Topics/Labs/cbl/CBLDB21.cbl",
+      "outcome": "refused",
+      "reason": "EXEC SQL outside the verified subset (db2-subset-1): line 53: line 53: table name Z#####T is outside the subset (letters, digits and underscores)"
+    },
+    {
+      "program": "CBLDB22",
+      "path": "COBOL Programming Course #3 - Advanced Topics/Labs/cbl/CBLDB22.cbl",
+      "outcome": "refused",
+      "reason": "EXEC SQL outside the verified subset (db2-subset-1): line 70: line 70: table name Z#####T is outside the subset (letters, digits and underscores)"
+    },
+    {
+      "program": "CBLDB23",
+      "path": "COBOL Programming Course #3 - Advanced Topics/Labs/cbl/CBLDB23.cbl",
+      "outcome": "refused",
+      "reason": "EXEC SQL outside the verified subset (db2-subset-1): line 67: line 67: table name Z#####T is outside the subset (letters, digits and underscores)"
+    },
+    {
+      "path": "COBOL Programming Course #4 - Testing/Labs/cbl/DEPTPAY.CBL",
+      "program": "DEPTPAY",
+      "outcome": "certified",
+      "runId": "deptpay-20261102-200709",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 6,
+        "inputTokens": 15843,
+        "cachedInputTokens": 5986,
+        "outputTokens": 8843,
+        "estimatedCostUsd": 0.007543
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java performs only allowed operations: initializes fields, computes average salary, and writes to stdout. No file I/O, network, process, reflection, native code, environment variable access beyond allowed set, background threads, or encoded payloads detected. No test-gaming special cases. All behavior mirrors COBOL DISPLAY statements."
+      },
+      "minutes": 1.9,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "COBOL Programming Course #4 - Testing/Labs/cbl/EMPPAY.CBL",
+      "program": "EMPPAY",
+      "outcome": "certified",
+      "runId": "emppay-20261102-200909",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 11,
+        "inputTokens": 45993,
+        "cachedInputTokens": 31767,
+        "outputTokens": 48747,
+        "estimatedCostUsd": 0.017183
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": ""
+      },
+      "minutes": 10.3,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    }
+  ]
+}

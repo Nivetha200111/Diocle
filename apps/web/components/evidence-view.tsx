@@ -123,6 +123,24 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
 
       <CoverageMatrix />
 
+      <section className="panel" id="course-estate">
+        <div className="panel-heading">
+          <div>
+            <h2>Every program in a public repository we did not write</h2>
+            <p>All 32 programs of the Open Mainframe Project&apos;s COBOL course, at a pinned commit, under a protocol written before the run. Two passes, $1.42 of model spend.</p>
+          </div>
+        </div>
+        <ul className="home-list">
+          <li><strong>11 certified:</strong> 9 as distributed, each on fixed input, and 2 against a repaired copy whose patch is published. None was certified as distributed on inputs that vary.</li>
+          <li><strong>13 not certified, 3 could not be patched to compile, 4 refused, 1 not converted.</strong></li>
+          <li><strong>What the failures share:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>, and none of the 11 certified programs does. GnuCOBOL writes extra newlines there, and our translator and repair agent have no rule for it: the likely cause, not tested program by program. Not fixed.</li>
+          <li>These are small teaching programs, so this does not show Diocle works on any repository.</li>
+        </ul>
+        <p className="home-pr">
+          <a href="https://github.com/Nivetha200111/Diocle/blob/main/docs/EXTERNAL_ESTATE.md" target="_blank" rel="noreferrer">Results, patches and protocol <ExternalLink size={11} /></a>
+        </p>
+      </section>
+
       <section className="panel" id="course-import">
         <div className="panel-heading">
           <div>
