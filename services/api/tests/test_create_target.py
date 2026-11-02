@@ -1,6 +1,7 @@
 """Create-the-target-repository option: contract (delivery v0.5), validation, owner allowlist, admin-only path,
 and the delivery flow against a TEST DOUBLE for `gh` (see the fake_gh fixture). No real GitHub repository is ever created."""
 import json
+import subprocess
 
 import jsonschema
 import pytest
@@ -504,3 +505,69 @@ def test_a_failed_plan_is_recorded_on_the_delivery_the_dashboard_follows(tmp_pat
     record = json.loads((tmp_path / "runs" / "deliveries" / "delivery-20261101-000000" / "delivery.json").read_text())
     assert record["stage"] == "failed" and "GitHub login" in record["error"] and record["targetCreated"] is False
     jsonschema.validate(record, DELIVERY)
+
+
+NOT_LOGGED_IN = "To get started with GitHub CLI, please run:  gh auth login\nAlternatively, populate the GH_TOKEN environment variable"
+
+
+def _logged_out(args, check=True):
+    if check:
+        raise subprocess.CalledProcessError(4, ["gh", *args], stderr=NOT_LOGGED_IN)
+    return type("R", (), {"returncode": 4, "stderr": NOT_LOGGED_IN, "stdout": ""})()
+
+
+def test_a_hosted_engine_without_a_github_login_says_so_and_names_convert_only(tmp_path, monkeypatch):
+    monkeypatch.setenv("DIOCLE_HOSTED", "1")
+    monkeypatch.setattr(deliver, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(deliver, "_gh", _logged_out)
+    with pytest.raises(SystemExit, match="this engine has no GitHub login.*Convert only"):
+        deliver.main(["https://github.com/me/legacy", "--create-target", "legacy-java", "--id", "delivery-20261102-000000"])
+    record = json.loads((tmp_path / "runs" / "deliveries" / "delivery-20261102-000000" / "delivery.json").read_text())
+    assert record["stage"] == "failed" and "gh auth login" not in record["error"]
+    jsonschema.validate(record, DELIVERY)
+
+
+def test_a_named_owner_gets_the_same_message_not_gh_s_own_text(monkeypatch):
+    monkeypatch.setenv("DIOCLE_HOSTED", "1")
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "me")
+    monkeypatch.setattr(deliver, "_gh", _logged_out)
+    with pytest.raises(SystemExit, match="this engine has no GitHub login") as e:
+        deliver.plan_create({"name": "x-java", "owner": "me", "visibility": "public"}, "https://github.com/me/x")
+    assert "GH_TOKEN" not in str(e.value)
+
+
+def test_the_command_line_is_still_told_to_log_in(monkeypatch):
+    monkeypatch.delenv("DIOCLE_HOSTED", raising=False)
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "me")
+    monkeypatch.setattr(deliver, "_gh", _logged_out)
+    with pytest.raises(SystemExit, match="gh is not logged in; run `gh auth login`"):
+        deliver.plan_create({"name": "x-java", "owner": "me", "visibility": "public"}, "https://github.com/me/x")
+    with pytest.raises(SystemExit, match="or pass --target-owner"):
+        deliver.plan_create({"name": "x-java", "owner": None, "visibility": "public"}, "https://github.com/me/x")
+
+
+def test_a_hosted_engine_refuses_an_existing_target_before_any_model_spend(tmp_path, monkeypatch):
+    monkeypatch.setenv("DIOCLE_HOSTED", "1")
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "me")
+    monkeypatch.setattr(deliver, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(deliver, "_gh", _logged_out)
+    monkeypatch.setattr(deliver, "analyze", lambda *a, **k: pytest.fail("analysis must not start"))
+    with pytest.raises(SystemExit, match="this engine has no GitHub login"):
+        deliver.main(["https://github.com/me/legacy", "https://github.com/me/legacy-java", "--id", "delivery-20261102-000001"])
+
+
+@pytest.mark.parametrize("gh", [
+    lambda args, check=True: type("R", (), {"returncode": 0, "stderr": "", "stdout": "me\n"})(),
+    lambda args, check=True: (_ for _ in ()).throw(subprocess.CalledProcessError(1, ["gh"], stderr="HTTP 502")),
+], ids=["logged-in", "network-failure"])
+def test_a_hosted_engine_is_only_refused_for_a_missing_login(tmp_path, monkeypatch, gh):
+    monkeypatch.setenv("DIOCLE_HOSTED", "1")
+    monkeypatch.setenv("DIOCLE_IMPORT_OWNERS", "me")
+    monkeypatch.setattr(deliver, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(deliver, "_gh", gh)
+    def analysis_started(*a, **k):
+        raise SystemExit("analysis started")
+    monkeypatch.setattr(deliver, "analyze", analysis_started)
+    with pytest.raises(SystemExit, match="analysis started"):
+        deliver.main(["https://github.com/me/legacy", "https://github.com/me/legacy-java", "--id", "delivery-20261102-000002"])
+

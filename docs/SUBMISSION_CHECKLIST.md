@@ -6,7 +6,7 @@ Things only the owner can fill in or confirm. Nothing here is done by the build 
 - [ ] **YouTube title.** It says "then proves it's right", which the video and README no longer claim. Suggested: "Diocle: AI translates COBOL to Java, then checks it against the original".
 - [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
 - [x] **Engine deploy.** On `4fb1e8e`, Nov 2; Try the sample pressed afterwards: 1,004 of 1,004.
-- [ ] **PR #1 ("Nothing to convert").** Green, not merged, and not in that deploy. Either merge it and run `sh deploy/update-engine.sh` once more from the Mac, or leave it out; the refusal itself works either way.
+- [ ] **Engine deploy after PR #1.** PR #1 ("Nothing to convert") and the clearer no-GitHub-login message are merged; the page is live, and the engine half needs `sh deploy/update-engine.sh` once more from the Mac.
 
 - [x] **Demo video link.** https://youtu.be/ZkujXuDwNSM is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 1 through YouTube's public oEmbed endpoint).
 - [ ] **X post link.** Post the demo on X within the hour after submitting and add the post link to the submission form (Most Viral and Community Vote need it). No vertical cut exists; every cut is landscape, so post v13 or make one first.

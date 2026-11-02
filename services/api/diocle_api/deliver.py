@@ -100,6 +100,13 @@ def _gh_error(e: subprocess.CalledProcessError) -> str:
     return ((e.stderr or "").strip().splitlines() or [f"exit status {e.returncode}"])[-1][:200]
 
 
+def _no_github_login(local: str) -> str:
+    """Nobody on a deployed engine's web page can run gh auth login, so only the command line is told to."""
+    if os.environ.get("DIOCLE_HOSTED") == "1":
+        return "this engine has no GitHub login, so it cannot open pull requests. Use Convert only, or run the delivery from your own machine"
+    return local
+
+
 def plan_create(create: dict, legacy_url: str, dry_run: bool = False) -> dict:
     """Resolve owner and name, apply the allowlist, refuse an existing repository. Creates nothing.
     In a dry run, a missing or logged-out gh only marks that check as skipped."""
@@ -109,7 +116,7 @@ def plan_create(create: dict, legacy_url: str, dry_run: bool = False) -> dict:
             owner = _gh(["api", "user", "--jq", ".login"]).stdout.strip()
         except (OSError, subprocess.CalledProcessError) as e:
             if not dry_run:
-                raise SystemExit("could not find your GitHub login with gh; run `gh auth login` or pass --target-owner")
+                raise SystemExit(_no_github_login("could not find your GitHub login with gh; run `gh auth login` or pass --target-owner"))
             owner = "<your-github-login>"
             notes.append("the GitHub login could not be read (gh not logged in); owner and allowlist not checked")
         else:
@@ -130,6 +137,8 @@ def plan_create(create: dict, legacy_url: str, dry_run: bool = False) -> dict:
                 raise SystemExit(f"{full} already exists. Diocle never reuses or overwrites an existing repository when "
                                  f"asked to create one; pass https://github.com/{full} as the target instead.")
             if "404" not in exists.stderr and "Not Found" not in exists.stderr:  # anything but a clear "does not exist"
+                if not dry_run and "gh auth login" in exists.stderr:
+                    raise SystemExit(_no_github_login("gh is not logged in; run `gh auth login`"))
                 if not dry_run:
                     raise SystemExit(f"could not tell whether {full} exists ({exists.stderr.strip().splitlines()[-1][:120] if exists.stderr.strip() else 'no answer'}); nothing was created")
                 notes.append("existence not checked")
@@ -861,6 +870,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if target:
             target_repo(target)  # fail fast on a bad or disallowed target (a planned one passes the same allowlist)
+            if os.environ.get("DIOCLE_HOSTED") == "1" and not args.dry_run:  # before any model spend, not at the push
+                try:
+                    _gh(["api", "user", "--jq", ".login"])
+                except (OSError, subprocess.CalledProcessError) as e:
+                    if getattr(e, "returncode", 4) == 4:  # gh's exit status for "not logged in"; a network failure is not that
+                        raise SystemExit(_no_github_login(""))
         report, samples = analyze(args.legacy_url, progress.id, convert_anyway)
         wanted = set(args.programs.split(",")) if args.programs else None
         refused = _refusals([p for p in report["programs"] if not p["convertible"] and not convert_anyway and (wanted is None or p["name"] in wanted)])
