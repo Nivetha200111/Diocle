@@ -13,11 +13,19 @@ Differential testing: compile the original COBOL with GnuCOBOL, compile the conv
 The converted Java runs **first**, in its own subdirectory, before the original's executable or output files exist, so
 it cannot read or run the answer it is compared with. The files the original reads or is built from (inputs, seeds,
 source, modules, copybooks) are hashed before the Java runs and checked after; if one changed, or the Java left a new
-file where the original will run, the original is not run and verification fails closed with that reason. This holds on
+file where the original will run, the original is not run and verification fails closed with that reason. That is the
+Java's fault and is reported as such (report v0.12): `runs.tampering` says what it did, and `runs.original.compiled` is
+`null` (not attempted), never `false`, which would read as an original that does not compile. This holds on
 every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). Limit: a converted program
 that leaves a detached process running, or compiles the COBOL itself, is not stopped by this check; the sandbox limits
 what such a process can reach but does not kill it before the original runs (it kills every process only when the job
 ends).
+
+Each side runs under the same limit (120 seconds). Because the Java runs first, a Java past the limit does not yet say
+whose fault it is: a faithful Java of a program that never ends never ends either. So the original then runs under the
+same limit: if it times out too, "the original program did not terminate" is the verdict, otherwise "the converted Java
+did not terminate". A Java that also tampered is blamed without running the original. Either way there is no report,
+only that sentence (`NO VERDICT` from the command line).
 
 ## Limits of the generated inputs
 - **Always well-formed.** Every generated numeric field holds a valid value for its PIC and usage: no invalid packed
@@ -171,18 +179,31 @@ converter's prompt says so): flush stdout, close open files, print the message t
 
 On z/OS a real abend has no return code (the job shows `U0999`) and buffered output records may be lost; that is not
 modelled. The claim is "verified against GnuCOBOL with Diocle's CEE3ABD stand-in", never "IBM LE verified", and
-the verification report of a program built with it says so in `runs.standIns` (routine, exit code, note). The
-JCL job report (`jobs[].runs`, built by `jobs.py`) links the stand-in the same way but does not carry `standIns`:
-its contract has no such field. The API's run record, the equivalence report, the pull request text and the
-dashboard do not show it yet.
+the verification report of a program built with it says so in `runs.standIns` (routine, exit code, note), and so does
+the JCL job report (`jobs[].runs.standIns`, report v0.12). The API's run record, certificate `scope`, the pull request
+text and the run page show the single-program field; the job field is in the report only.
+
+**A run that ends at the stand-in certifies nothing (report v0.12, `runs.endedAtStandIn`).** All inputs go into one run,
+so once the original ends at the CALL, the inputs after that point, if any, run on neither side, and "k of k match" would
+overstate what was tested. Such a run is never certified, even with a faithful Java and everything compared equal: there
+is one failing result, first in `results`, with inputId `stand-in-end`, and `runs.endedAtStandIn` gives the abend code,
+the records supplied and the records written. It is recognised by the exit code together with the stand-in's stderr line.
+How many records the program read is not known, so this also fails closed for a program that abends after reading
+everything; the inputs are not re-run one batch at a time. A program built with the stand-in that never reaches it stays
+certifiable (the normal path, including its own `RETURN-CODE 16`), which is how such programs get certified: generated
+inputs rarely reach an abend path. Exception: a verification with no random inputs (the breaker's attack probe) gets the
+field but no failing result, because the breaker counts any failing result as a break of the Java; `passes()` is still
+false for it. Not a Java fault, so repair rounds cannot help; the converter does not yet stop early for this (it stops
+at its usual caps, not certified).
 
 Linking (`standin.py`): every cobc build path (single file, multi-file, keyed, EXEC SQL, mutation, claims, minimize,
 transcription) appends the stand-in when the source or a module contains the literal `'CEE3ABD'` and no source defines
-a program of that name (a repository's own CEE3ABD wins). It is copied into the job's work directory first, so the
+a program of that name (a repository's own CEE3ABD wins). The source is read the way the analyzer reads it (columns 8-72,
+or whole lines of free-format source), so the two agree. It is copied into the job's work directory first, so the
 read-only sandbox works, and it is package data, so the delivery CI's non-editable `pip install services/verifier`
 re-verifies with it. Proof: `tests/test_cee3abd_standin.py` (synthetic ACCTCHK: normal path certified; blank-id and
-open-failure abends end with 16 and keep the records written so far; a Java that exits 0 there is not certified; the
-same through the sandbox server and `reverify`).
+open-failure abends end with 16 and keep the records written so far; a Java that exits 0 there is not certified; a
+faithful Java on inputs that reach the abend is not certified either; the same through the sandbox server and `reverify`).
 
 ## Programs with EXEC SQL, on a stand-in database (report v0.9, subset `db2-subset-1`)
 

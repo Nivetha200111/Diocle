@@ -9,6 +9,10 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v13 (https://youtu.be/ZkujXuDwNSM), uses only the owner's own recorded voice; no synthetic voice is in it.
 
+## Nov 3: verifier review fixes (branch `review-fixes-verifier`, local, not pushed or deployed)
+- **What:** report v0.12. A run that ends at the CEE3ABD stand-in is no longer certified (`runs.endedAtStandIn`, one failing `stand-in-end` result saying how far it got; it had certified 1/1 from about 90 inputs). Tampering is the Java's fault (`runs.tampering`, `runs.original.compiled` null, repair continues), not "the original does not compile". A timeout on the Java side now runs the original under the same limit before blaming the Java; the job pipeline had no limit at all and hung. Job reports state `standIns`; job output files are no longer seeded as inputs. Free-format `CALL "CEE3ABD"` is detected. Needs `sh deploy/update-engine.sh` to take effect live.
+- **Note for the converter's owner (not changed here, own-folder rule):** (1) `repair.summarize_report` still opens with "original did not compile" for a tampering Java, because it treats null as not compiled, though the sentence after it says otherwise; check `runs.tampering` first. (2) `original_failure` could also stop on `runs.endedAtStandIn`: the Java cannot fix that, so repair rounds spend up to their caps and end not certified. (3) `services/mcp` lists the tamper sentence under `original` in its builds.
+
 ## Nov 3, early morning: more open-weights evidence, tuning job ready (owner limit: $20 for all further spend)
 - **Public runs:** the six Nov 1 open-weights runs are on the engine and the public list (66 runs), the two uncertified ones included, local paths removed from the copies.
 - **Guard review:** the Convert button's cap went from $0.02 to $0.05 (owner OK, rule 10). Engine on `55ab783`. First press: `addfee-20261102-184920`, certified, guard PASS, $0.00938, the first Convert-button run where the review finished. It already had a verdict on 22 other public runs.
