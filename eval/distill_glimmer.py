@@ -7,8 +7,8 @@
   train [--go]             one Fireworks fine-tuning job. Without --go it prints the plan and spends nothing.
   evaluate --approve-usd X --max-minutes M --accelerator A --accelerator-count C --usd-per-gpu-hour R
                            base vs tuned on one paid deployment, deleted when this ends. Needs the owner's OK (rule 10).
-  score DIR --job-id ID --minutes M
-                           the Baseten route (eval/distill_baseten): checks answers written by the job against GnuCOBOL.
+  score DIR --host H --job-id ID --minutes M --usd X
+                           the job in eval/distill_tune: checks the answers it wrote against GnuCOBOL.
 
 Results go to eval/results-distillation.json (contracts/distillation-report.schema.json) after every unit. The Fireworks
 account name is kept out of logs and result files (distill.scrub): it can be derived from an email address.
@@ -53,7 +53,7 @@ MAX_GENERATED, WORKERS = 120, 6
 BASE_MODEL = os.environ.get("DISTILL_STUDENT_MODEL_ID", "accounts/fireworks/models/muse-glimmer-30b")  # the plan's student
 DATASET_ID, JOB_ID, OUTPUT_MODEL = "diocle-distill-v1", "diocle-distill-v1", "diocle-glimmer-v1"
 EPOCHS, LORA_RANK = 3, 8
-BASETEN_H100_USD_PER_MINUTE, BASETEN_BASE_MODEL = 0.10833, "meta-models/Muse-Glimmer-30B"  # baseten.co/pricing, read Nov 3, 2026
+TUNE_BASE_MODEL = "meta-models/Muse-Glimmer-30B"  # the public weights eval/distill_tune trains on
 EVAL_SEED, EVAL_CASES, K = 8801, 1000, 3
 HELD_OUT_DIRS = {"BRNCHSUM": "eval/samples/brnchsum", "CHQCLR": "eval/samples/chqclr", "FXCONV": "eval/samples/fxconv",
                  "LOANAMRT": "eval/samples/loanamrt"}
@@ -391,9 +391,9 @@ def score(args) -> int:
     counted = sum(len(p[w]) for p in state["programs"].values() for w in ("base", "tuned"))
     state["status"] = "complete" if counted == 2 * K * len(HELD_OUT_DIRS) else "partial"
     state["deployment"].update(accelerator="H100", acceleratorCount=1, minutes=args.minutes,
-                               estimatedUsd=round(args.minutes * BASETEN_H100_USD_PER_MINUTE, 2), deleted=True)
+                               estimatedUsd=args.usd, deleted=True)
     atomic_write(DIR / "evaluation.json", distill.scrub(json.dumps(state, indent=1)) + "\n")
-    record = {"status": "completed", "host": "baseten", "jobId": args.job_id, "baseModel": BASETEN_BASE_MODEL,
+    record = {"status": "completed", "host": args.host, "jobId": args.job_id, "baseModel": TUNE_BASE_MODEL,
               "uploadedSha256": distill.sha256(TRAIN.read_bytes()), "finishedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     atomic_write(DIR / "training.json", json.dumps(record, indent=1) + "\n")
     report()
@@ -590,7 +590,9 @@ def main() -> int:
     e = sub.add_parser("evaluate")
     c = sub.add_parser("score")
     c.add_argument("dir")
+    c.add_argument("--host", required=True)
     c.add_argument("--job-id", required=True)
+    c.add_argument("--usd", type=float, required=True)
     c.add_argument("--minutes", type=float, required=True)
     e.add_argument("--approve-usd", type=float, required=True)
     e.add_argument("--max-minutes", type=float, required=True)

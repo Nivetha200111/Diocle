@@ -282,7 +282,7 @@ def test_score_counts_a_stored_answer_and_leaves_unreached_attempts_unrun(dg, tm
     monkeypatch.setattr(dg, "report", lambda: None)
     (tmp_path / "CHQCLR-tuned-1.json").write_text(json.dumps(
         {"text": ' to=user<|message|>{"mainClass": "wrong", "javaSource": "class C {}", "notes": ""}<|eot|>', "outputTokens": 9, "seconds": 7.5}))
-    assert dg.score(Namespace(dir=str(tmp_path), job_id="job1", minutes=60.0)) == 0
+    assert dg.score(Namespace(dir=str(tmp_path), host="modal", job_id="job1", minutes=60.0, usd=6.5)) == 0
     state = json.loads((dg.DIR / "evaluation.json").read_text())
     assert state["status"] == "partial"
     assert len(state["programs"]["CHQCLR"]["tuned"]) == 1 and state["programs"]["CHQCLR"]["base"] == []
@@ -290,4 +290,4 @@ def test_score_counts_a_stored_answer_and_leaves_unreached_attempts_unrun(dg, tm
     assert state["deployment"]["estimatedUsd"] == 6.5
     assert json.loads(seen[0])["mainClass"] != "wrong"
     training = json.loads((dg.DIR / "training.json").read_text())
-    assert training["status"] == "completed" and training["host"] == "baseten" and training["jobId"] == "job1"
+    assert training["status"] == "completed" and training["host"] == "modal" and training["jobId"] == "job1"

@@ -89,6 +89,9 @@ The Muse Spark figures in MEASUREMENT.md are context only: same harness, differe
   - **Limits.** The whole job, install included, stops at 110 minutes. Training stops early if five steps project past 55 minutes, which yields no result. A re-run is only allowed if the whole of Nov 3 onward stays inside the owner's $20.
   - **The numbers are not comparable with Fireworks' serving.** This is a quantized model on `transformers`. The threshold is unchanged: no improvement is claimed unless tuned passes at least 3 more of 12 than base.
 
+- **Nov 3, before any tuning: the job moves from Baseten to Modal.** Baseten refused to start it on both keys ("You are not authorized for Baseten training"). The owner approved Modal, the new paid service, within the same $20. Same `tune.py`, dataset, settings, and scoring (`eval/distill_tune/`). One H100 at $0.001097 a second, 4 CPU cores and 90 GiB of memory, stopped by Modal at 110 minutes: about $9 at most, against the account's $30 free credit. Answers are saved to a volume every minute, so those written before the limit survive it.
+  This entry was written before the job started, but a staging mistake left it out of the commit that names it (`b30e95b`), so it reached `main` about 30 minutes after the job began. Nothing about the job changed in between.
+
 ## Results
 
 Reported as they stand on Nov 2, 2026. **No model has been tuned and nothing has been evaluated.**
@@ -109,7 +112,7 @@ The first pass alone gave 13 examples for $2.72. A low pass rate is expected her
 
 **Dataset ([train.jsonl](../eval/distill/train.jsonl)).** 31 examples, about 200,000 tokens by a rough estimate (601,000 over three epochs), SHA-256 `f565c9197019ce66ac5d3875bd48f65295af29a822495e5e4a5241c5f8f7398c`. The leak check passed against the four held-out programs. This is far below the roughly 500 examples Meta suggests.
 
-**Training, Nov 3: not started.** The Baseten job is written and passes a tiny-model test on a CPU, but the Baseten key on file can read training projects and not create them (403), so nothing has run or been charged.
+**Training, Nov 3: not started.** The job is written and passes a tiny-model test on a CPU. Baseten refused to start it, so nothing has run or been charged.
 
 **Fireworks:** it still answers `dataset uploads are temporarily disabled, please contact Fireworks AI to get access` ([record](../eval/distill/training.json)). We do not know whether this is an outage or a limit on this account.
 
