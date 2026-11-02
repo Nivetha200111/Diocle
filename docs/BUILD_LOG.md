@@ -37,9 +37,33 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 **Demo estates**
 - `quillmark-legacy` (simple layout) and `quillmark-mainframe` (an export of z/OS libraries: extension-less members, cataloged PROCs, DFSORT and IDCAMS cards, DB2, CICS, IMS, EBCDIC extracts), with `quillmark-modern` and `quillmark-java` as targets.
 
-## Still open (as of Oct 31, 2026; this list was written on Oct 28 and updated then)
+## Oct 29: SQL schema, guard and whole jobs
+- Copybooks to SQL tables, proven by a byte-exact SQLite round trip (`GET /runs/{id}/schema`, schema.sql next to the Java).
+- Guard agent: a deterministic policy before Java runs, and a Muse Spark Open review that can revoke a certification, never grant one.
+- Independent cross-check on open weights (`--crosscheck`, CLI only) and whole JCL job v1.
+
+## Oct 30: more ways in, more ways to check
+- Printout intake (Muse Wonder), asking the original by voice (Muse Voice Transcribe), keyed files on a Berkeley DB stand-in, and a stated DB2 subset on a SQLite stand-in.
+- Compile precheck before any model spend on visitor imports, a smallest-reproducer tool, and mutation testing of the verification itself.
+- A scheduled uptime check of the site, the engine and one certified run.
+
+## Oct 31: feature lock
+- Hard feature lock until judging ends: fixes with a reviewer pass, docs, the video and submission chores only. Later additions that needed the owner's exception say so below.
+- Muse Code run transcripts recorded, feature manuals moved out of the README, and a judge page put at the top of it.
+
+## Nov 1: auditing our own evidence
+- Classified all 54 stored breaks: 30 on malformed data, 15 on a negative-zero sign byte, 9 from a round with no Java output. None shows a wrong amount on a well-formed record, so the wording that implied one was replaced.
+- **What went wrong:** the generator gave CHQCLR near-identical records (zero amounts behind a REDEFINES), and the attack compared output records but not printed totals, so it missed a wrong total in one stored private-mode Java. Both fixed; flat text records stay a stated limit.
+- Certificates now state their scope. One public AWS CardDemo program (`CBCUS01C`) went through conversion and the checks, with a thin result stated: 5 of 40 seeded faults detected.
+- The video was re-cut with only the owner's own recorded voice.
+
+## Nov 2: re-measurement and capped uploads
+- Re-measured the attack with both fixes under a plan written first: 4 of 10 again, the same four programs, about $0.18.
+- Visitors may ask in their own voice and send their own image, under separate caps, after two security reviews (an owner-approved exception to the lock). A kill switch turns it off.
+- README cut to a short front page, with the rest in `docs/DETAILS.md`. Commit messages were rewritten to drop co-author lines; code, dates and authors did not change.
+
+## Still open (as of Nov 2, 2026)
 - A review of the converted Java by an experienced COBOL maintainer (not done).
-- The demo video link (the owner adds it before submission; see [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md)).
 - Breaker test on a narrow defect that ordinary testing misses (`samples/loyalty-waiver`): the breaker found nothing on LOYWAIVE in the headline measurement (0 broke of 24 tried); no narrow defect was planted, so this stays open.
 
-Done since (Oct 28 to Oct 31): frozen evaluation (`eval-freeze-1` 2 of 4, then `eval-freeze-2` 4 of 4 with the corrected verifier, both in `docs/EVALUATION.md`); hosting; front page with COBOL next to certified Java and a public re-verify button; evidence page.
+Done since (Oct 28 to Oct 31): frozen evaluation (`eval-freeze-1` 2 of 4, then `eval-freeze-2` 4 of 4 with the corrected verifier, both in `docs/EVALUATION.md`); hosting; front page with COBOL next to certified Java and a public re-verify button; evidence page. Since Oct 31: the demo video is linked from the README.

@@ -1,14 +1,15 @@
 # Before submission
 
-Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Nov 1, 2026: open boxes below. Draft text to paste: [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md).
+Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Nov 2, 2026: open boxes below. Draft text to paste: [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md).
 
 - [x] **v13 uploaded:** https://youtu.be/ZkujXuDwNSM ([what changed](../demo/candidate-v13/README.md)).
 - [ ] **YouTube title.** It says "then proves it's right", which the video and README no longer claim. Suggested: "Diocle: AI translates COBOL to Java, then checks it against the original".
 - [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
-- [x] **Engine deploy.** On `debd697`, Nov 1; Try the sample pressed afterwards: 1,004 of 1,004.
+- [x] **Engine deploy.** On `4fb1e8e`, Nov 2; Try the sample pressed afterwards: 1,004 of 1,004.
+- [ ] **PR #1 ("Nothing to convert").** Green, not merged, and not in that deploy. Either merge it and run `sh deploy/update-engine.sh` once more from the Mac, or leave it out; the refusal itself works either way.
 
 - [x] **Demo video link.** https://youtu.be/ZkujXuDwNSM is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 1 through YouTube's public oEmbed endpoint).
-- [ ] **X post link.** Post the demo on X and add the post link to the submission form (Most Viral and Community Vote need it).
+- [ ] **X post link.** Post the demo on X within the hour after submitting and add the post link to the submission form (Most Viral and Community Vote need it). No vertical cut exists; every cut is landscape, so post v13 or make one first.
 - [ ] **Repository is public** and the default branch shows the latest commit (visibility was `PUBLIC` on Oct 31; recheck at submission).
 - [ ] **Meta Model API credits claimed** before Nov 4, 9 PM ET (the claim form is in the official participant guide), and a spend limit set.
 - [x] **Narration.** The submitted video uses only the author's own recorded voice, so no voice-licence check is needed.
@@ -18,3 +19,5 @@ Things only the owner can fill in or confirm. Nothing here is done by the build 
 - [ ] **Video opens with the "built Oct 27 to Nov 4, 2026" card** and shows only what was built in the window (rules: judges must be able to identify it).
 - [ ] **Counts and dates.** The README states an "as of" date for the live numbers; refresh it if runs are added before submission.
 - [ ] **Deploy freeze** after submission (Nov 4, 9 PM ET).
+- [ ] **Uptime check that really runs every few minutes.** `.github/workflows/uptime.yml` asks for every 15 minutes, but GitHub has been running it about every 3 to 6 hours. Add an external monitor on `https://diocle.vercel.app/api/health` for judging (Nov 5-9), or accept that gap.
+- [ ] **Watch visitor imports** during judging (`GET /api/deliveries`) and the spend limit.

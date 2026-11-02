@@ -73,6 +73,23 @@ Engine and site on `main`, through Vercel and Caddy, in Chromium. **The micropho
 
 Not tried live: a listing other than the bundled one, the one-hour removal (covered by tests), the visitor caps being reached (covered by tests).
 
+## Addendum: cold judge path, Nov 2, 2026, about 13:15 IST
+
+Fresh headless Chrome profile with no cookies, at 1366x800 and phone width (390), engine on `4fb1e8e`.
+
+| Step | Result |
+|---|---|
+| Open the site | Loaded in 1.7 s |
+| Press **Try the sample** | 2.3 s: seed 22488465, 1,004/1,004 output records, stdout matches, no model; the known malformed-input difference is stated beside it |
+| **Open the full run** | CHQCLR run page opens with the table of each check and its state, the breaker and the known-difference note |
+| schema.sql and Java tabs | `CREATE TABLE` and the Java class both show |
+| `/try`, `/evidence` | 200 |
+| README's doc links, quillmark-modern#4, its CI run, the video | All 200 with no sign-in |
+| Page errors and failed requests | None |
+| Phone width | No horizontal overflow |
+
+Not repeated in this pass: a real microphone, an image upload, `scripts/quickstart.sh`, and a person who has never seen it.
+
 ## Summary
 
 - **Pass: 25** (rows 1 to 13, 15, 16 and 20 to 29; row 12 passes for the route only).
