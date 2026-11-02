@@ -9,6 +9,13 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v13 (https://youtu.be/ZkujXuDwNSM), uses only the owner's own recorded voice; no synthetic voice is in it.
 
+## Nov 2 night: verified distillation in progress (owner lifted the feature lock for this)
+- **What:** Muse Spark Open teaches a Muse Glimmer 30B LoRA; only translations that pass the differential test may become training data. Plan, gates, held-out programs and deviations: [DISTILLATION.md](DISTILLATION.md). Merged to `main` as PR #4; the engine was not deployed and the product does not call a tuned model.
+- **Teacher:** Muse Spark Open only. Section 10.1(ix) of the Meta Model API terms restricts training competing models on hosted outputs, so stored hosted runs are refused as training data.
+- **State:** the harvest is running locally and its output is not committed. The dataset, training job and evaluation have not run. Evaluation needs a paid dedicated deployment and the owner's dollar limit.
+- **Unverified:** the "directory scorer" and its open-weights tuning bonus were not found in any source we read. `HACKATHON_RULES.md` lists no such criterion.
+- **Analyzer gap seen, not changed:** it does not read the valid quoted form `COPY "X".`
+
 ## START HERE: release candidate (written Nov 1, about 21:00 IST, on the Mac)
 
 **History rewrite (Nov 2, owner request):** commit messages only: the Co-Authored-By lines were removed from 90+ commits, so commit ids since Oct 31 changed; code, dates and authors did not. The old history is kept at tag `pre-rewrite-20261102`, so ids cited in these docs and pinned by delivered pull requests still resolve. Do not add that line again. The server needs one `git fetch origin && git reset --hard origin/main` in `/opt/diocle` before its next pull.

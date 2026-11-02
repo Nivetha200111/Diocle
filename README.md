@@ -53,6 +53,7 @@ On one [synthetic cheque-clearing run](docs/SHOWCASE_CHQCLR.md), Muse Spark desi
 | **Delivery** | A pull request with a report per program, and CI that re-runs the comparison | None |
 | **Copybooks as SQL** | Tables from the PICs, checked by a SQLite round trip | None |
 | **Private mode, cross-check, guard** | Agents on open weights, plus an optional second attacker and review; thinly tested | Muse Spark Open on Fireworks and Baseten |
+| **Verified distillation (in progress)** | Tunes Muse Glimmer on Muse Spark Open's translations, keeping only those GnuCOBOL matched. No tuned model exists yet and the product does not use one: [plan and status](docs/DISTILLATION.md) | Muse Spark Open, Muse Glimmer |
 | **Read a printout** | A photo of a listing, bundled or your own (capped), back into COBOL and compared | Muse Wonder |
 | **Ask by voice** | A question, bundled or in your own voice (capped), answered only from what GnuCOBOL confirmed | Muse Voice Transcribe, Muse Spark |
 | **Editors** | A VS Code extension and a Muse Code plugin, both local | Muse Spark; Muse Code |

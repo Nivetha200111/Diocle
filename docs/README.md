@@ -15,6 +15,7 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 | [EVALUATION.md](EVALUATION.md) | The frozen evaluation on four unseen programs, failures included. |
 | [LIVE_CHECK.md](LIVE_CHECK.md) | Which README claims were exercised on the live site on Oct 30, 2026, and which were not. |
 | [CLAIMS_TO_EVIDENCE.md](CLAIMS_TO_EVIDENCE.md) | One row per headline claim: where it is evidenced and how to check it in under a minute. |
+| [DISTILLATION.md](DISTILLATION.md) | Tuning Muse Glimmer on Muse Spark Open's verified translations: the plan, committed before any model call, and its deviations. In progress; no results yet. |
 | [META_MODELS.md](META_MODELS.md) | Where each Meta model is used, in which file, with what evidence (and which models are not used). |
 | [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md) | Building window, what was built here vs what pre-existed, licences, voice disclosure. |
 | [FEATURES.md](FEATURES.md) | Reference manuals for the larger features (live buttons, voice question, embedded SQL, keyed files, mutation testing, reproducer, build check, delivery options). |
