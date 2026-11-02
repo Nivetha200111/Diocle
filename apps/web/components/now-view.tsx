@@ -102,8 +102,10 @@ export default function NowView() {
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let inFlight = false; // a tick is awaiting the engine: showing the tab again must not start a second chain beside it
     // One request at a time (no overlapping ticks); every 3 s while something runs, every 10 s when idle; paused in a hidden tab.
     const loop = async () => {
+      inFlight = true;
       let running = false;
       if (!document.hidden) {
         try {
@@ -127,9 +129,10 @@ export default function NowView() {
           if (!stop) { setError(true); setBusy(null); setIdle(false); }
         }
       }
+      inFlight = false;
       if (!stop) timer = setTimeout(loop, running ? 3000 : 10000);
     };
-    const wake = () => { if (!document.hidden) { clearTimeout(timer); loop(); } };
+    const wake = () => { if (!document.hidden && !inFlight) { clearTimeout(timer); loop(); } };
     loop();
     document.addEventListener("visibilitychange", wake);
     const c = setInterval(() => setNow(Date.now()), 1000);
