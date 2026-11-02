@@ -260,6 +260,115 @@ def test_an_existing_target_keeps_its_own_ci(flow, tmp_path):
     assert "reverify.yml" not in (tmp_path / "gh.log").read_text()
 
 
+# ---- a push refused for the workflow file --------------------------------------------------------
+
+REFUSAL = "refusing to allow a Personal Access Token to create or update workflow `.github/workflows/reverify.yml` without `workflow` scope"
+
+
+def _refusing_remote(tmp_path, message=REFUSAL):
+    """TEST DOUBLE for GitHub's push rule: a server-side hook on the local bare repository refuses any push whose tree has a
+    workflow file, in GitHub's wording, and logs each attempt. GitHub itself is never contacted."""
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    attempts = tmp_path / "push-attempts"
+    attempts.write_text("")
+    hook = hooks / "pre-receive"
+    hook.write_text(f"""#!/bin/sh
+echo push >> '{attempts}'
+while read old new ref; do
+  if git ls-tree -r --name-only "$new" | grep -q '^\\.github/workflows/'; then
+    printf '%s\\n' '{message}' >&2
+    exit 1
+  fi
+done
+""")
+    hook.chmod(0o755)
+    with (tmp_path / "gitconfig").open("a") as f:  # the gh double's git config: every repository in the test takes the hook
+        f.write(f"[core]\n\thooksPath = {hooks}\n")
+    return lambda: len(attempts.read_text().splitlines())
+
+
+class _Progress:  # progress double
+    def __init__(self): self.updates = {}
+    def update(self, **f): self.updates.update(f)
+    def program(self, n): return {}
+    def save(self): pass
+
+
+def _tree(bare, branch):
+    return subprocess.run(["git", "-C", str(bare), "ls-tree", "-r", "--name-only", branch], capture_output=True, text=True).stdout.split()
+
+
+def test_a_push_refused_for_the_workflow_goes_again_without_it_and_says_so(flow, tmp_path, capsys):
+    report, samples, runs, gh = flow
+    bare = _existing_target(tmp_path)
+    pushes = _refusing_remote(tmp_path)
+    progress = _Progress()
+    url = deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False, progress)
+    assert url == "https://github.com/me/x-java/pull/1" and pushes() == 2
+    branch = subprocess.run(["git", "-C", str(bare), "branch", "--list", "diocle/*"], capture_output=True, text=True).stdout.strip()
+    files = _tree(bare, branch)
+    assert "programs/PROG/java/Prog.java" in files and not any(f.startswith(".github/") for f in files)
+    log = (tmp_path / "gh.log").read_text()
+    assert deliver.CI_NOT_ADDED in log and "This pull request adds" not in log
+    assert progress.updates["ciNotAdded"] == deliver.CI_NOT_ADDED and deliver.CI_NOT_ADDED in capsys.readouterr().out
+
+
+def test_a_refused_workflow_onto_an_existing_branch_says_so_in_the_result(flow, tmp_path):
+    report, samples, runs, gh = flow
+    bare = _existing_target(tmp_path)
+    subprocess.run(["git", "-C", str(bare), "branch", "feature", "main"], check=True)
+    pushes = _refusing_remote(tmp_path)
+    result = deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False, onto="feature")
+    assert pushes() == 2 and result == f"pushed to feature. {deliver.CI_NOT_ADDED}"
+    assert not any(f.startswith(".github/") for f in _tree(bare, "feature"))
+    assert "gh [pr]" not in (tmp_path / "gh.log").read_text()
+
+
+def test_a_created_target_still_fails_when_the_workflow_is_refused(flow, tmp_path):
+    report, samples, runs, gh = flow
+    pushes = _refusing_remote(tmp_path)
+    with pytest.raises(SystemExit, match="was created"):
+        deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False, create=plan())
+    assert pushes() == 2  # the gh double's own seed push of the new repository, then the delivery's one refused push
+    assert "gh [pr]" not in (tmp_path / "gh.log").read_text()
+
+
+def test_any_other_push_refusal_still_fails_and_nothing_is_dropped(flow, tmp_path):
+    report, samples, runs, gh = flow
+    _existing_target(tmp_path)
+    pushes = _refusing_remote(tmp_path, "protected branch hook declined")
+    with pytest.raises(subprocess.CalledProcessError):
+        deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False)
+    assert pushes() == 1 and "gh [pr]" not in (tmp_path / "gh.log").read_text()
+
+
+def test_the_owners_own_workflow_is_never_dropped_to_get_a_push_through(flow, tmp_path):
+    report, samples, runs, gh = flow
+    _existing_target(tmp_path, workflow="name: the owner's own\n")
+    pushes = _refusing_remote(tmp_path)
+    with pytest.raises(subprocess.CalledProcessError):
+        deliver.deliver(report, samples, runs, "https://github.com/me/x-java", False)
+    assert pushes() == 1
+
+
+@pytest.mark.parametrize("who", ["a Personal Access Token", "an OAuth App", "a GitHub App"])
+def test_every_wording_of_the_refusal_is_recognised(who):
+    assert deliver.WORKFLOW_REFUSED.search(f" ! [remote rejected] b -> b (refusing to allow {who} to create or update workflow `x.yml` without `workflow` scope)")
+
+
+def test_the_pr_body_promises_no_reverify_check_when_the_ci_was_not_added():
+    run = {"before": None, "after": {"passed": 1, "total": 1, "stdoutMatch": True}, "breaker": None}
+    cert = {"program": "PROG", "verification": {"passed": 1, "total": 1, "stdoutMatch": True},
+            "agent": {"modelCalls": 1, "rounds": 1, "memoryLessonsUsed": 0, "estimatedCostUsd": 0.01, "model": "m"},
+            "scope": {"attack": {"status": "not-run"}, "guardReview": "not-run", "standIns": []}}
+    report = {"source": SRC}
+    assert "The **reverify** check re-runs" in deliver._pr_body(report, [(run, cert)], [])
+    body = deliver._pr_body(report, [(run, cert)], [], ci_added=False)
+    assert "The **reverify** check re-runs" not in body and "the generated CI" not in body
+    assert "No **reverify** check runs on this pull request" in body
+
+
 def test_partial_failure_says_what_exists_and_deletes_nothing(flow, monkeypatch):
     report, samples, runs, gh = flow
     monkeypatch.setenv("FAKE_GH_FAIL_PR", "1")

@@ -284,14 +284,14 @@ def build_summary(result: dict | None) -> dict | None:
             "copybookDrift": len(result["copybooks"]["drift"]), "classCollisions": len(result["classCollisions"])}
 
 
-def build_section(result: dict | None, delivered_count: int) -> list[str]:
+def build_section(result: dict | None, delivered_count: int, ci_added: bool = True) -> list[str]:
     """PR body lines about the whole-repository build. Says plainly when it did not pass or did not run."""
     if not delivered_count:
         return []
     if not result:
         return ["", "## Whole-repository build check", "",
                 "**Not run.** The programs were not compiled together by Diocle for this pull request (the check could not run). "
-                "Each program is still verified on its own; the generated CI compiles all of them together."]
+                "Each program is still verified on its own" + ("; the generated CI compiles all of them together." if ci_added else ".")]
     verdict, reasons = result["verdict"], [_clean_line(r) for r in result["reasons"]]
     head = {"pass": f"**Pass.** All {len(result['programs'])} certified programs compiled together with `javac -proc:none`, and the copybook "
                     "and CALL checks found no mismatch. This is a compile and interface check, not a behavioural one.",
@@ -430,9 +430,10 @@ def _usd(cost: float | None) -> str:
 
 
 def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str], others: list[dict] | None = None,
-             build: dict | None = None) -> str:
+             build: dict | None = None, ci_added: bool = True) -> str:
     """others: convert-anyway programs that are NOT certified, each {name, assurance, reason, run}. They are listed under their
-    own headings, with a sentence saying what was and was not shown; nothing in this section says "certified" of them."""
+    own headings, with a sentence saying what was and was not shown; nothing in this section says "certified" of them.
+    ci_added False: GitHub refused the workflow file, so nothing here may promise a reverify check."""
     src = report["source"]
     others = others or []
     lines = [
@@ -482,10 +483,11 @@ def _pr_body(report: dict, delivered: list[tuple[dict, dict]], skipped: list[str
         lines += ["", "## Failed (not delivered)", ""] + [f"- `{o['name']}`: {o['reason']}" for o in failed]
     if skipped:
         lines += ["", "**Not delivered** (not certified or not convertible): " + ", ".join(f"`{s}`" for s in skipped)]
-    lines += build_section(build, len(delivered))
+    lines += build_section(build, len(delivered), ci_added)
     lines += ["", *(["Each `programs/<PROGRAM>/certificate.json` pins the legacy commit and the verifier. "
-                    "The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
-                    "so this PR does not rest only on Diocle's own run. It shares the verifier's assumptions, and a flat text record's generated inputs do not change with the seed."] if delivered else []), "",
+                    + ("The **reverify** check re-runs both sides on fresh inputs from a seed Diocle never used, "
+                       "so this PR does not rest only on Diocle's own run. It shares the verifier's assumptions, and a flat text record's generated inputs do not change with the seed."
+                       if ci_added else "No **reverify** check runs on this pull request, so it rests on Diocle's own run.")] if delivered else []), "",
               ("Converted by Meta Muse Spark and certified by [Diocle](https://github.com/Nivetha200111/Diocle). "
                if delivered else
                "Converted by Meta Muse models with [Diocle](https://github.com/Nivetha200111/Diocle); nothing here is certified. ")
@@ -502,6 +504,14 @@ def _other_programs(report: dict, run_ids: dict[str, str]) -> list[dict]:
             out.append({"name": program["name"], "assurance": run["assurance"], "run": run, "program": program,
                         "reason": run.get("assuranceReason") or run.get("error") or "no reason recorded"})
     return out
+
+
+# GitHub's refusal of a push that touches a workflow, for a personal access token, an OAuth app or a GitHub app without
+# the `workflow` scope (`workflows` permission for an app).
+WORKFLOW_REFUSED = re.compile(r"refusing to allow .+ to create or update workflow", re.IGNORECASE)
+CI_NOT_ADDED = ("The re-verify CI was not added: GitHub refused `.github/workflows/reverify.yml` because the pushing token does not "
+                "have the `workflow` permission, so the delivery was pushed without that file and no reverify check runs on it. "
+                "Deliver again with a token that has that permission to add it.")
 
 
 def unverified_sentence(assurance: str, reason: str) -> str:
@@ -647,11 +657,26 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
                    + ("Programs under not-certified/ are NOT certified (compiled only, or verified against repaired COBOL)." if others else "")])
         if create:
             created.append("committed")
-        _sh(git + ["push", "-q", "-u", "origin", branch])
+        ci_refused = False
+        try:
+            _sh(git + ["push", "-q", "-u", "origin", branch])
+        except subprocess.CalledProcessError as e:
+            # Only a file this delivery added to an existing target is dropped; a created target's delivery keeps failing,
+            # and any other refusal is not ours to work around.
+            if create or not added_ci or not WORKFLOW_REFUSED.search(e.stderr or ""):
+                raise
+            _sh(git + ["rm", "-q", "--", ".github/workflows/reverify.yml"])
+            _sh(git + ["commit", "-q", "--amend", "--no-edit"])
+            _sh(git + ["push", "-q", "-u", "origin", branch])
+            ci_refused, added_ci = True, False
+            body = f"**{CI_NOT_ADDED}**\n\n" + _pr_body(report, delivered, skipped, others, build, ci_added=False)
+            if progress:
+                progress.update(ciNotAdded=CI_NOT_ADDED)
         if create:
             created.append("pushed")
         if onto:  # an existing branch: its pull request (if any) picks up the new commit
-            return f"pushed to {branch}" + (" (with .github/workflows/reverify.yml, which it did not have)" if added_ci else "")
+            return f"pushed to {branch}" + (" (with .github/workflows/reverify.yml, which it did not have)" if added_ci else "") + (
+                f". {CI_NOT_ADDED}" if ci_refused else "")
         title = (f"Diocle: {', '.join(c['program'] for _, c in delivered)} converted and certified"
                  + (f"; {len(others)} more NOT certified" if others else "")) if delivered else \
             f"Diocle: {len(others)} program(s) converted, NONE certified (convert anyway)"
@@ -659,6 +684,8 @@ def _deliver(report: dict, samples: Path, run_ids: dict[str, str], target_url: s
                    "--title", title, "--body", body]).stdout.strip()
         if progress:
             progress.update(pullRequest={"url": url})
+        if ci_refused:
+            print(CI_NOT_ADDED, flush=True)
         return url
 
 

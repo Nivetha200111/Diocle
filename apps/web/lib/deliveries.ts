@@ -43,6 +43,8 @@ export type Delivery = {
   error: string | null;
   programs: DeliveryProgram[];
   pullRequest: { url: string; checks?: { name: string; state: string; link?: string }[] } | null;
+  /** GitHub refused the workflow file, so the delivery was pushed without the re-verify CI: the sentence that says so. */
+  ciNotAdded?: string | null;
   /** Whole-repository build check (contracts/build-report.schema.json, summarised): absent on older deliveries. */
   buildCheck?: {
     verdict: "pass" | "fail" | "warn";

@@ -69,7 +69,9 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
     { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
     { label: "2. Convert & certify", detail: `${certified}/${d.programs.length} certified${uncertified(d)}`, led: led(1) },
     { label: "3. Open pull request", detail: d.pullRequest ? "opened" : "waiting", led: d.pullRequest ? "ok" : led(2) },
-    { label: "4. CI re-verifies", detail: ci === "ok" ? "passed on generated inputs" : ci === "bad" ? "failed" : ci === "busy" ? "running" : "waiting", led: ci },
+    d.ciNotAdded
+      ? { label: "4. CI re-verifies", detail: "not added", led: "off" as Led }
+      : { label: "4. CI re-verifies", detail: ci === "ok" ? "passed on generated inputs" : ci === "bad" ? "failed" : ci === "busy" ? "running" : "waiting", led: ci },
   ];
 }
 
@@ -433,6 +435,7 @@ export default function DeliveryView() {
             </p>
           )}
           {failureReason(delivery, list) && <p className="dlv-reason">{failureReason(delivery, list)}</p>}
+          {delivery.ciNotAdded && <p className="dlv-reason">{delivery.ciNotAdded}</p>}
           <p className="dlv-canonical">
             The delivery we cite as evidence is <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>:
             it re-delivers INTACCR, and that repository&apos;s CI re-verifies all six programs under one pinned verifier.
@@ -487,7 +490,7 @@ export default function DeliveryView() {
               <h2><GitPullRequest size={14} /> Pull request</h2>
               <p>
                 Opened on {repoName(delivery.target ?? "")}{delivery.targetCreated ? ` (a ${delivery.createTarget?.visibility ?? "private"} repository created by this delivery)` : ""}.
-                CI re-runs the comparison on generated inputs from a new seed, under the same pinned verifier. A flat text record gets placeholders that do not change with the seed.
+                {delivery.ciNotAdded ? "The re-verify CI was not added, so no CI re-runs the comparison here." : "CI re-runs the comparison on generated inputs from a new seed, under the same pinned verifier. A flat text record gets placeholders that do not change with the seed."}
               </p>
             </div>
           </div>
@@ -496,7 +499,7 @@ export default function DeliveryView() {
               Open {delivery.pullRequest.url.split("/").slice(-2).join(" #")} <ExternalLink size={13} />
             </a>
             <ul>
-              {(delivery.pullRequest.checks ?? []).length === 0 && <li><span className="led led-busy" /> waiting for CI to start…</li>}
+              {(delivery.pullRequest.checks ?? []).length === 0 && !delivery.ciNotAdded && <li><span className="led led-busy" /> waiting for CI to start…</li>}
               {(delivery.pullRequest.checks ?? []).map((c) => (
                 <li key={c.name}>
                   <span className={`led led-${c.state === "SUCCESS" ? "ok" : ["FAILURE", "ERROR", "CANCELLED"].includes(c.state) ? "bad" : "busy"}`} />
