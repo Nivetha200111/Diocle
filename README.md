@@ -55,12 +55,13 @@ On one [synthetic cheque-clearing run](docs/SHOWCASE_CHQCLR.md), Muse Spark desi
 | **Delivery** | A pull request with a report per program, and CI that re-runs the comparison | None |
 | **Copybooks as SQL** | Tables from the PICs, checked by a SQLite round trip | None |
 | **Private mode, cross-check, guard** | Agents on open weights, plus an optional second attacker and review; thinly tested | Muse Spark Open on Fireworks and Baseten |
-| **Verified distillation (measured: no improvement)** | One LoRA tuned Muse Glimmer on 31 Muse Spark Open translations that GnuCOBOL had matched. On four held-out programs, base passed 0 of 12 and tuned 0 of 12. The product does not use it: [plan and results](docs/DISTILLATION.md) | Muse Spark Open, Muse Glimmer |
 | **Read a printout** | A photo of a listing, bundled or your own (capped), back into COBOL and compared | Muse Wonder |
 | **Ask by voice** | A question, bundled or in your own voice (capped), answered only from what GnuCOBOL confirmed | Muse Voice Transcribe, Muse Spark |
 | **Editors** | A VS Code extension and a Muse Code plugin, both local | Muse Spark; Muse Code |
 
 Hosted calls go through the Meta Model API ([dev.meta.ai](https://dev.meta.ai), endpoint `https://api.meta.ai/v1`, set in `.env`). Muse Spark Open runs on Fireworks and Baseten, the hackathon's inference partners. Not every run uses every model. Which model did what, with evidence for each: [docs/META_MODELS.md](docs/META_MODELS.md).
+
+<sub>Also tried, not part of the product: one LoRA on Muse Glimmer, trained on 31 Muse Spark Open translations that GnuCOBOL had matched. On four held-out programs, base passed 0 of 12 and tuned 0 of 12, so no improvement is claimed. [Details](docs/DISTILLATION.md). Built with Muse Spark Open.</sub>
 
 ## For engineering, risk and audit teams
 

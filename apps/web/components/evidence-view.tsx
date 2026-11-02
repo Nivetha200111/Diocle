@@ -8,7 +8,6 @@ import { Skeleton, Term } from "./ui";
 import { TRAPS, type Evidence } from "@/lib/cobol-traps";
 import ScoreboardPanel from "./scoreboard-panel";
 import CoverageMatrix from "./coverage-matrix";
-import DistillationPanel from "./distillation-panel";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
@@ -121,7 +120,6 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </section>
       </div>
 
-      <DistillationPanel />
 
       <CoverageMatrix />
 
