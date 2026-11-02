@@ -793,3 +793,19 @@ def test_tampering_is_described_as_the_java_not_as_an_original_that_does_not_com
     runs = {"original": {"compiled": None, "stderr": ""}, "converted": {"compiled": True, "stderr": ""}, "tampering": ["changed input.dat"]}
     text = summarize_report({"runs": runs})
     assert "changed input.dat" in text and "did not compile" not in text
+
+
+def test_run_job_records_usage_and_a_plain_reason_when_the_answer_is_unusable(tmp_path, monkeypatch, capsys):
+    import diocle_converter.__main__ as cli
+
+    monkeypatch.setattr(cli, "_analyzer_jobs", lambda sample_dir: [JOB_FIXTURE])
+    monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
+
+    def unusable(*_, **__):
+        raise cli.TranslationUnusable("The model's answer was cut off, so no Java was produced.")
+
+    monkeypatch.setattr(cli, "translate", unusable)
+    rc = cli._run_job(SAMPLE.parent / "account-match", settings(), ModelClient(settings(), _sdk=ScriptedSDK([])))
+    record = json.loads(next((tmp_path / "runs").glob("*/run.json")).read_text())
+    assert rc == 1 and record["status"] == "not-certified" and "cut off" in record["error"] and "usage" in record
+    assert "cut off" in capsys.readouterr().out

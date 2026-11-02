@@ -16,7 +16,7 @@ source, modules, copybooks) are hashed before the Java runs and checked after; i
 file where the original will run, the original is not run and verification fails closed with that reason. That is the
 Java's fault and is reported as such (report v0.12): `runs.tampering` says what it did, and `runs.original.compiled` is
 `null` (not attempted), never `false`, which would read as an original that does not compile. This holds on
-every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). Limit: a converted program
+every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). Limit, for the verifier run directly (on the converter's path, `guard.py` refuses `ProcessBuilder` by a static scan first): a converted program
 that leaves a process running (a plain `ProcessBuilder` helper is enough), or compiles the COBOL itself, is not stopped
 by this check: the helper can wait for the check to pass, then rewrite the original's files, which can falsify that
 run's verdict. The sandbox bounds what it reaches (no secrets, no internet, no shared files, nothing left after the job)

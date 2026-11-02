@@ -44,7 +44,7 @@ export const CANONICAL_FRESH_INPUTS = CANONICAL.programs.reduce((n, p) => n + p.
 // Runs certified under an older verifier that the current one rejects; kept, and labelled, rather than hidden.
 export const SUPERSEDED: Record<string, string> = {
   "intaccr-20261028-191523":
-    "Superseded: fails the later byte-exact verifier (-000000000 vs +000000000 on 30 to 43 of 1,019 inputs in the seeds tried; the count depends on the seed). Re-delivered in quillmark-modern#4.",
+    "Superseded: fails the later byte-exact verifier (-000000000 vs +000000000 on 28 to 43 of 1,019 inputs in the seeds tried; the count depends on the seed). Re-delivered in quillmark-modern#4.",
 };
 
 // Superseded runs keep their re-verify button; this says, on the run and beside the button, what pressing it will show.

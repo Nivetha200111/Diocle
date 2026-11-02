@@ -101,13 +101,13 @@ export async function startLiveUpload(image: Blob): Promise<string> {
 }
 
 export async function fetchJob(id: string): Promise<LiveJob> {
-  const r = await fetch(`${API_URL}/samples/live/${encodeURIComponent(id)}`, { cache: "no-store", headers: viewHeaders(id) });
+  const r = await fetch(`${API_URL}/samples/live/${encodeURIComponent(id)}`, { cache: "no-store", headers: viewHeaders(id), signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
 
 export async function fetchSamplesStatus(): Promise<SamplesStatus | null> {
-  const r = await fetch(`${API_URL}/config`, { cache: "no-store" });
+  const r = await fetch(`${API_URL}/config`, { cache: "no-store", signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return (await r.json()).publicImports?.samples ?? null;
 }

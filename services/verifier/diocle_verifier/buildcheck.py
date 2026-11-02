@@ -275,7 +275,7 @@ def build_check(programs: list[dict], report: dict | None = None, domain_classes
             (stage / "_support").mkdir()
             shutil.copyfile(SUPPORT / "DioSql.java", stage / "_support" / "DioSql.java")
             warn(f"{', '.join(sorted(support_used))} use DioSql, the verifier's own support class, which is not part of the delivered "
-                 "programs: they compile only with it added (the generated CI adds it from the pinned Diocle commit)")
+                 "programs: they compile only with it added (the generated CI adds it from the pinned Diocle commit; without that CI, add it yourself)")
         cp = domain["classpath"] if domain else None
         for pr in prog_reports:
             files = [f"{pr['name']}/{r}" for r in pr["javaFiles"]] + (["_support/DioSql.java"] if pr["_dio"] else [])

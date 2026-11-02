@@ -44,7 +44,7 @@ from .pipeline import generate_pipeline
 from .reproducer import Minimizing
 from .repair import CERT_CASES, CERT_SEED, TEST_CASES, TEST_SEED, RepairAgent, report_passes, summarize_report
 from .sources import Program
-from .translate import translate
+from .translate import TranslationUnusable, translate
 from .workspace import Workspace
 
 
@@ -608,7 +608,13 @@ def _run_job(sample_dir: Path, settings: Settings, client: ModelClient) -> int:
     run_dir.mkdir(parents=True)
     workspace = Workspace(run_dir / "java")
     print(f"Translating {program.name} (job {job['name']}'s {cobol_step['step']} step) with {settings.model}")
-    translation = translate(program, client, workspace, retry=True, on_event=_print_event)
+    try:
+        translation = translate(program, client, workspace, retry=True, on_event=_print_event)
+    except TranslationUnusable as e:  # say so plainly, and keep what the calls cost (rule 10)
+        _atomic_write(run_dir / "run.json", {"program": program.name, "command": "run-job", "status": "not-certified", "certified": False,
+                                             "rounds": [], "usage": usage_of(client.calls), "error": str(e)})
+        print(f"NOT CERTIFIED  ·  {e}")
+        return 1
     print(f"wrote {translation['file']}; translator notes: {translation['notes'][:400]}")
 
     try:
