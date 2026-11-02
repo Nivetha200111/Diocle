@@ -737,3 +737,9 @@ def test_tier_numbers_compact_over_what_is_configured():
     assert [only_two.tier_model(n) for n in (0, 1, 2, 3, 9)] == [None, None, "muse-spark-1.3", "muse-spark-1.3", "muse-spark-1.3"]
     none = settings()
     assert [none.tier_model(n) for n in (1, 2, 3)] == [None, None, None]  # nothing configured: the default model
+
+
+def test_tampering_is_described_as_the_java_not_as_an_original_that_does_not_compile():
+    runs = {"original": {"compiled": None, "stderr": ""}, "converted": {"compiled": True, "stderr": ""}, "tampering": ["changed input.dat"]}
+    text = summarize_report({"runs": runs})
+    assert "changed input.dat" in text and "did not compile" not in text

@@ -52,6 +52,8 @@ TOOLS = [
 
 def summarize_report(report: dict, limit: int = 6, for_agent: bool = True) -> str:
     runs = report["runs"]
+    if runs.get("tampering"):  # the original was not run (compiled is null): the Java touched what it may not, so say that
+        return "The Java changed files the original reads or its working directory, so nothing was compared:\n" + "\n".join(runs["tampering"])
     for side in ("original", "converted"):
         if not runs[side]["compiled"]:
             return f"{side} did not compile:\n{runs[side]['stderr'][-3000:]}"
