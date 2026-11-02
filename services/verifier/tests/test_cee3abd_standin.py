@@ -14,9 +14,11 @@ import pytest
 
 from diocle_analyzer.analyze import analyze, write_sample
 from diocle_verifier import sandbox
+from diocle_verifier.inputs import Case
 from diocle_verifier.reverify import reverify
 from diocle_verifier.runners import build_cobol, build_java, run_files
 from diocle_verifier.standin import STANDINS, stand_ins_for
+from diocle_verifier.transcript import differential
 from diocle_verifier.verify import passes, validate_report, verify_sample
 
 FIXTURE = Path(__file__).parent / "fixtures" / "abend"
@@ -145,6 +147,93 @@ def test_java_that_ignores_the_abend_is_not_certified(tmp_path):
     report = verify_sample(sample, seed=11, random_count=20)
     assert report["runs"]["original"]["exitCode"] == 16 and report["runs"]["converted"]["exitCode"] == 0
     assert not report["runs"]["exitCodeMatch"] and not passes(report)
+
+
+OK, BLANK, LATER = "A00001S+000001050", "      C+000000001", "A00003S+000000002"
+
+
+def _abends_on_the_second_record(sample: Path) -> Path:
+    meta = json.loads((sample / "sample.json").read_text())
+    meta["fixtureCases"] = [{"id": "ok", "record": OK}, {"id": "blank", "record": BLANK}, {"id": "later", "record": LATER}]
+    (sample / "sample.json").write_text(json.dumps(meta))
+    return sample
+
+
+def test_a_run_that_ends_at_the_stand_in_part_way_is_not_certified_and_says_how_far_it_got(tmp_path):
+    """A faithful Java abends at the same record, so everything compared matches, on 1 record of the 90 or so supplied:
+    every input after it ran on neither side. This was certified as 1/1."""
+    report = verify_sample(_abends_on_the_second_record(_sample(tmp_path)), seed=11, random_count=80)
+    validate_report(report)
+    runs = report["runs"]
+    assert not passes(report)
+    assert runs["exitCodeMatch"] and runs["stdoutMatch"] and runs["original"]["exitCode"] == 16  # both sides really agree
+    ended = runs["endedAtStandIn"]
+    assert (ended["routine"], ended["exitCode"], ended["abendCode"]) == ("CEE3ABD", 16, "999")
+    assert ended["outputRecords"] == {"ACCTOUT": 1} and ended["inputRecords"]["ACCTIN"] > 80
+    first = report["results"][0]  # first, so the run page's failing examples and the repair prompt lead with it
+    assert first["inputId"] == "stand-in-end" and not first["match"] and first["diff"] == ended["reason"]
+    assert "ACCTOUT 1" in first["diff"] and f"ACCTIN {ended['inputRecords']['ACCTIN']}" in first["diff"]
+    assert "not a fault of the converted Java" in first["diff"]
+    # Readers that add up the summary themselves (services/api/diocle_api/reverify.py) fail closed too.
+    assert report["summary"] == {"total": 2, "passed": 1, "failed": 1}
+
+
+def test_a_run_that_ends_at_the_stand_in_on_the_first_record_still_gives_the_reason(tmp_path):
+    sample = _sample(tmp_path)
+    meta = json.loads((sample / "sample.json").read_text())
+    meta["fixtureCases"] = [{"id": "blank", "record": BLANK}]
+    (sample / "sample.json").write_text(json.dumps(meta))
+    report = verify_sample(sample, seed=11, random_count=10)
+    assert not passes(report) and report["runs"]["endedAtStandIn"]["outputRecords"] == {"ACCTOUT": 0}
+    assert [r["inputId"] for r in report["results"]] == ["stand-in-end"]
+
+
+def test_the_multi_file_path_fails_closed_the_same_way(tmp_path):
+    sample = _sample(tmp_path)
+    meta = json.loads((sample / "sample.json").read_text())
+    meta["displayOnly"] = True  # takes the multi-file path; the output file is still compared
+    meta["fixtureFiles"] = {"ACCTIN": [OK, BLANK, LATER]}
+    (sample / "sample.json").write_text(json.dumps(meta))
+    report = verify_sample(sample, seed=11, random_count=30)
+    validate_report(report)
+    assert not passes(report) and report["runs"]["exitCodeMatch"]
+    ended = report["runs"]["endedAtStandIn"]
+    assert ended["outputRecords"] == {"ACCTOUT": 1} and ended["inputRecords"]["ACCTIN"] > 30
+    assert report["results"][0]["inputId"] == "stand-in-end" and report["summary"]["failed"] == 1
+
+
+def test_an_attack_probe_that_reaches_the_abend_is_not_a_break_and_still_certifies_nothing(tmp_path):
+    """The breaker verifies with no random inputs and treats any failing result as a break of the Java. Both sides agree here."""
+    report = verify_sample(_sample(tmp_path), seed=1026, random_count=0, extra_cases=[Case("breaker-1", "model", BLANK)])
+    validate_report(report)
+    assert all(r["match"] for r in report["results"]) and report["runs"]["endedAtStandIn"]["abendCode"] == "999"
+    assert not passes(report)
+
+
+def test_return_code_16_without_reaching_the_stand_in_stays_certified(tmp_path):
+    """Built with the stand-in, never reached (CBACT02C-style normal path), but its own RETURN-CODE is 16: it read everything."""
+    java = tmp_path / "own16" / "Acctchk.java"
+    java.parent.mkdir()
+    text = JAVA.read_text()
+    assert text.count("        out.close();\n    }\n") == 1
+    java.write_text(text.replace("        out.close();\n    }\n", "        out.close();\n        System.exit(16);\n    }\n"))
+    sample = _sample(tmp_path, java)
+    meta = json.loads((sample / "sample.json").read_text())
+    source = sample / meta["source"]
+    cobol = source.read_text()
+    assert cobol.count("           STOP RUN.\n") == 1
+    source.write_text(cobol.replace("           STOP RUN.\n", "           MOVE 16 TO RETURN-CODE\n           STOP RUN.\n"))
+    report = verify_sample(sample, seed=11, random_count=40)
+    assert passes(report), report["results"][:2]
+    assert report["runs"]["original"]["exitCode"] == 16 and "endedAtStandIn" not in report["runs"]
+    assert report["runs"]["standIns"][0]["routine"] == "CEE3ABD"  # still stated: it is linked
+
+
+def test_a_transcription_of_a_run_that_ends_at_the_stand_in_proves_nothing(tmp_path):
+    sample = _abends_on_the_second_record(_sample(tmp_path))
+    meta = json.loads((sample / "sample.json").read_text())
+    result = differential(sample, sample / meta["source"], random_count=20, sandbox=False)
+    assert result["ran"] is False and "CEE3ABD stand-in" in result["reason"]
 
 
 @pytest.fixture

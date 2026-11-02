@@ -18,7 +18,7 @@ from .inputs import Case, generate_cases
 from .layout import Field, format_record, load_fields, parse_record, record_format, record_length
 from .runners import (CLOCK, ProgramTimeout, Run, attribute_timeout, build_cobol, build_java, guard_after, guard_before,
                       not_run, original_sources, read_records, run_files, write_records)
-from .standin import stand_ins_run
+from .standin import end_result, ended_at_stand_in, stand_ins_run
 
 
 def file_specs(meta: dict) -> list[dict]:
@@ -228,6 +228,10 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
     results += db_results + keyed_results
     if stdout_only and original.compiled and converted.compiled:
         results.append(stdout_result(meta["program"], original, converted))
+    ended = ended_at_stand_in(sample_dir, meta, original, {s["dd"]: len(data[s["dd"]]) for s in inputs + updated},
+                              {s["dd"]: len(original.output_files.get(s["dd"], [])) for s in outputs})
+    if ended:
+        results.insert(0, end_result(meta["program"], ended))
     passed = sum(r["match"] for r in results)
     meta_run = lambda r: {"compiled": r.compiled, "exitCode": r.exit_code, "stdout": r.stdout, "stderr": r.stderr}
     return {
@@ -246,6 +250,7 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             **({"database": db_report} if db_report else {}),
             **({"keyed": keyed_report} if keyed_report else {}),
             **stand_ins_run(sample_dir, meta),
+            **({"endedAtStandIn": ended} if ended else {}),
             **({"tampering": tamper} if tamper else {}),
             "files": {"inputs": {s["dd"]: len(data[s["dd"]]) for s in inputs},
                       **({"updated": {s["dd"]: {"seeded": len(data[s["dd"]]),

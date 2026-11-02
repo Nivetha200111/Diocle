@@ -15,7 +15,7 @@ from .layout import load_fields, record_format, record_length
 from .multi import is_multi, verify_multi
 from .runners import (CLOCK, ProgramTimeout, Run, attribute_timeout, guard_after, guard_before, not_run, original_sources,
                       read_records, run_cobol, run_java, write_records)
-from .standin import stand_ins_run
+from .standin import end_result, ended_at_stand_in, stand_ins_run
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
 
@@ -83,6 +83,10 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
                                                     out_fields, golden_meta, record_format(meta["layouts"]["output"]))
         for r in results:
             r["program"] = meta["program"]
+    ended = ended_at_stand_in(sample_dir, meta, original, {meta["dd"]["input"]: len(cases)},
+                              {meta["dd"]["output"]: len(original.output_lines)})
+    if ended and random_count:  # no random inputs: an attack probe, which certifies nothing and must not count as a break
+        results.insert(0, end_result(meta["program"], ended))
     passed = sum(r["match"] for r in results)
     return {
         "version": REPORT_VERSION,
@@ -97,6 +101,7 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
             "collation": meta.get("collation", "ascii"),
             "golden": golden_report,
             **stand_ins_run(sample_dir, meta),
+            **({"endedAtStandIn": ended} if ended else {}),
             **({"tampering": tamper} if tamper else {}),
         },
     }
@@ -151,10 +156,11 @@ def _replay_golden(results, cases, golden_cases, expected, original, converted, 
 
 
 def passes(report: dict) -> bool:
-    """The one definition of equivalence: both built, same exit code (RETURN-CODE), every record and stdout equal."""
+    """The one definition of equivalence: both built, same exit code (RETURN-CODE), every record and stdout equal, and
+    the original got through its input (it did not end at a stand-in part way, leaving inputs that ran on neither side)."""
     runs, s = report["runs"], report["summary"]
     return bool(runs["original"]["compiled"] and runs["converted"]["compiled"] and runs.get("exitCodeMatch")
-                and s["total"] > 0 and s["failed"] == 0 and runs["stdoutMatch"])
+                and s["total"] > 0 and s["failed"] == 0 and runs["stdoutMatch"] and not runs.get("endedAtStandIn"))
 
 
 def validate_report(report: dict) -> None:

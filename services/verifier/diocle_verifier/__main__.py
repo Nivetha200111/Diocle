@@ -139,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
             if runs[side]["stderr"].strip():
                 print(f"  {side} stderr: {runs[side]['stderr'].strip()[-2000:]}", file=sys.stderr)
 
+    if runs.get("endedAtStandIn"):
+        print(runs["endedAtStandIn"]["reason"], file=sys.stderr)
     s = report["summary"]
     status = "PASS" if passes(report) else "FAIL"
     print(f"{status}  {s['passed']}/{s['total']} cases match  (stdout {'matches' if runs['stdoutMatch'] else 'DIFFERS'})")

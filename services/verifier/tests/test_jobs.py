@@ -170,6 +170,43 @@ def test_verify_job_report_validates_against_the_contract(tmp_path):
     jsonschema.validate(full_report, json.loads(CONTRACT.read_text()))
 
 
+def _sample_with_source(tmp: Path, edit) -> Path:
+    sample = tmp / "sample"
+    shutil.copytree(SAMPLE, sample)
+    meta = json.loads((sample / "sample.json").read_text())
+    source = sample / meta["source"]
+    source.write_text(edit(source.read_text()))
+    return sample
+
+
+_DD_PATHS = ("SORTIN.seed", "MSTIN.seed", "NEWMST.out", "EXCOUT.out")
+
+
+def _pipeline(tmp: Path, java_source: str | None = None) -> tuple[dict, dict]:
+    job = _job()
+    dd_paths = {name.split(".")[0]: str(tmp / name) for name in _DD_PATHS}
+    return job, _generate_pipeline(job, tmp / "job", dd_paths, java_source=java_source)
+
+
+@requires_toolchain
+def test_a_job_whose_cobol_step_ends_at_the_stand_in_is_not_certified(tmp_path):
+    """Both sides stop at the start of the COBOL step, so the SORT step's output matches and the exit codes agree. This was
+    certified, with the COBOL step having processed nothing."""
+    sample = _sample_with_source(tmp_path, lambda s: s.replace("PROCEDURE DIVISION.\n", "PROCEDURE DIVISION.\n           CALL 'CEE3ABD'.\n"))
+    stops = "public class Acctmtch { public static void main(String[] a) { System.exit(16); } }\n"
+    job, pipeline = _pipeline(tmp_path, stops)
+    report = verify_job(sample, job, pipeline, seed=4242, random_count=5)
+    [result] = report["jobs"]
+    validate_report({"version": report["version"], "results": [], "summary": {"total": 0, "passed": 0, "failed": 0}, "jobs": [result]})
+    assert result["runs"]["exitCodeMatch"] is True and result["certified"] is False
+    ended = result["runs"]["endedAtStandIn"]
+    assert ended["routine"] == "CEE3ABD" and ended["outputRecords"] == {"NEWMST": 0, "EXCOUT": 0}
+    assert "NEWMST" not in ended["inputRecords"] and ended["inputRecords"]["SORTIN"] > 0
+    assert result["results"][0]["inputId"] == "stand-in-end" and result["results"][0]["step"] == "MTCH010"
+    steps = {s["step"]: s["passed"] for s in result["steps"]}
+    assert steps == {"SORT005": True, "MTCH010": False}
+
+
 # Implements nothing: finds the original side's job directory (the newest diocle-verify-job-* next to its own), leaves
 # a file there, and copies the COBOL step's output datasets and exit code from it. Certified before the fix (the
 # original side had already run); now the original side has not run yet and the planted file makes it fail closed.

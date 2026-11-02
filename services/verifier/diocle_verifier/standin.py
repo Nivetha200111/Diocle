@@ -61,3 +61,36 @@ def stand_ins_run(sample_dir: Path, meta: dict) -> dict:
     """The verification report's `runs.standIns` (v0.11): which stand-ins the original was built with, if any."""
     names = stand_ins_for([sample_dir / meta["source"], *(sample_dir / m for m in meta.get("modules", []))])
     return {"standIns": [{"routine": n, "exitCode": EXIT_CODE[n], "note": NOTE[n]} for n in names]} if names else {}
+
+
+END_CHECK = "stand-in-end"
+
+
+def _counts(records: dict[str, int]) -> str:
+    return ", ".join(f"{dd} {n}" for dd, n in records.items()) or "none"
+
+
+def ended_at_stand_in(sample_dir: Path, meta: dict, original, inputs: dict[str, int], outputs: dict[str, int]) -> dict | None:
+    """The report's `runs.endedAtStandIn` (v0.12) when the original's run ended at a stand-in, else None.
+
+    Every input goes into one run, so the inputs after that point, if any, ran on neither side, and "k of k match" would
+    overstate what was tested. Both signs are needed: the stand-in's exit code and its stderr line, so a program that was
+    built with the stand-in but never reached it (or that sets RETURN-CODE 16 itself) stays certifiable. How many records
+    it read is not known, only what it was given and what it wrote, so this fails closed even if it read them all."""
+    if not original.compiled:
+        return None
+    for routine in stand_ins_for([sample_dir / meta["source"], *(sample_dir / m for m in meta.get("modules", []))]):
+        said = re.search(rf"^{routine} abend code (\S+)", original.stderr, re.M)
+        if said and original.exit_code == EXIT_CODE[routine]:
+            reason = (f"the original ended at Diocle's {routine} stand-in (exit code {original.exit_code}, abend code "
+                      f"{said.group(1)}) with records written: {_counts(outputs)}; records supplied: {_counts(inputs)}. Input "
+                      "after that point, if any, ran on neither side, so this run cannot certify the program, whatever "
+                      "else matched. This is not a fault of the converted Java.")
+            return {"routine": routine, "exitCode": original.exit_code, "abendCode": said.group(1),
+                    "inputRecords": inputs, "outputRecords": outputs, "reason": reason}
+    return None
+
+
+def end_result(program: str, ended: dict) -> dict:
+    """One failing result, so every reader of the report's results and summary fails closed and shows the reason."""
+    return {"program": program, "inputId": END_CHECK, "match": False, "fieldDiffs": [], "diff": ended["reason"]}

@@ -48,6 +48,7 @@ from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
 from .runners import (CLOCK, CLOCK_ENV, ProgramTimeout, Run, _exec, _exec_side, attribute_timeout, build_cobol, guard_after,
                       guard_before, not_run, original_sources, read_records, safe_env, write_records)
+from .standin import end_result, ended_at_stand_in
 
 RUN_LIMIT = 120  # seconds, each side: the same limit as a single-program run
 
@@ -250,8 +251,11 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
         if not changed:
             break
 
+    # A COBOL step's output files are not inputs: seeded, a step that stops before opening them would leave those records
+    # on both sides, compared as if it had written them.
+    output_dds = [f["dd"] for f in meta["files"] if f["direction"] == "output"]
     seeded_cases: dict[str, list[Case]] = {}
-    for dd in external_dds:
+    for dd in external_dds.difference(output_dds):
         if dd in meta.get("fixtureFiles", {}):
             seeded_cases[dd] = [Case(f"{dd}-fixture-{i + 1:04d}", "fixture", r)
                                  for i, r in enumerate(meta["fixtureFiles"][dd])]
@@ -343,6 +347,14 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                 r.pop("inputSource", None)
                 results.append(r)
 
+    cobol_step = next((s["step"] for s in job["steps"] if s["kind"] == "cobol"), "")
+    ended = ended_at_stand_in(sample_dir, meta, original["cobolRun"], {dd: len(seeded_cases[dd]) for dd in seeded_cases},
+                              {dd: len(original["outputs"].get(dd, [])) for dd in output_dds})
+    if ended:
+        results.insert(0, {**end_result(job["name"], ended), "step": cobol_step})
+        if cobol_step:
+            step_by_name[cobol_step]["passed"] = False
+
     passed = sum(r["match"] for r in results)
     exit_match = bool(original["cobolRun"].compiled and converted["run"].compiled
                       and original["cobolRun"].exit_code == converted["run"].exit_code)
@@ -366,6 +378,7 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                 "exitCodeMatch": exit_match,
                 "clock": CLOCK,
                 "collation": collation,
+                **({"endedAtStandIn": ended} if ended else {}),
                 **({"tampering": tamper} if tamper else {}),
             },
             "certified": certified,

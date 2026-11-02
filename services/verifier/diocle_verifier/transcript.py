@@ -85,6 +85,7 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
     from .layout import load_fields, record_format, record_length
     from .multi import is_multi
     from .runners import CLOCK_ENV, Run, _exec, build_cobol, read_records, write_records
+    from .standin import ended_at_stand_in
 
     rec = {"against": str(against), "ran": False, "seed": seed, "inputs": 0, "matched": 0, "mismatched": 0}
     meta = json.loads((against / "sample.json").read_text())
@@ -141,6 +142,10 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
         return {**rec, "reason": "the original does not compile with GnuCOBOL: " + orig.stderr.strip()[:300]}
     if not trans.compiled:
         return {**rec, "reason": "the transcription does not build: " + trans.stderr.strip()[:300]}
+    ended = ended_at_stand_in(against, meta, orig, {dd["input"]: len(cases)},
+                              {dd["output"]: len(orig.output_lines)} if has_out else {})
+    if ended:  # same reason as a Java: the inputs after that point ran on neither side
+        return {**rec, "reason": ended["reason"]}
     stdout_compared = bool(orig.stdout.strip())
     if not orig.output_lines and not stdout_compared:
         return {**rec, "reason": "the original wrote no output records and no stdout: nothing to compare, so no proof"}
