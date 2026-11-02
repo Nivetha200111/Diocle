@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Nivetha200111/Diocle/contracts/distillation-report.schema.json",
+  "title": "DistillationReport",
+  "description": "v0.1. One verified distillation: Muse Spark Open (teacher) to a Muse Glimmer LoRA (student). Every training example passed the differential test against GnuCOBOL; held-out programs never appear in the dataset. Plan and limits: docs/DISTILLATION.md.",
+  "type": "object",
+  "required": ["version", "teacher", "student", "dataset", "training", "evaluation", "spend", "limits"],
+  "properties": {
+    "version": { "const": "0.1" },
+    "teacher": {
+      "type": "object",
+      "required": ["model", "host", "reasoningEffort"],
+      "properties": {
+        "model": { "type": "string", "pattern": "muse-spark-open", "description": "Only Muse Spark Open may be the teacher: hosted Muse Spark outputs are refused" },
+        "host": { "type": "string" },
+        "reasoningEffort": { "type": "string" }
+      }
+    },
+    "student": {
+      "type": "object",
+      "required": ["baseModel"],
+      "properties": { "baseModel": { "type": "string", "pattern": "muse-glimmer" } }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["examples", "sha256", "heldOut", "oracle", "rejected"],
+      "properties": {
+        "examples": { "type": "integer", "minimum": 0 },
+        "repositoryPrograms": { "type": "integer", "minimum": 0 },
+        "generatedPrograms": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "description": "SHA-256 of the JSONL exactly as uploaded" },
+        "heldOut": { "type": "array", "items": { "type": "string" } },
+        "oracle": {
+          "type": "object",
+          "required": ["seed", "cases"],
+          "properties": {
+            "seed": { "type": "integer" },
+            "cases": { "type": "integer" },
+            "minRecords": { "type": "integer" }
+          }
+        },
+        "rejected": {
+          "type": "object",
+          "description": "Programs refused, by gate. A gate with zero refusals is still listed.",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "training": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["not-run", "running", "completed", "failed"] },
+        "host": { "type": "string" },
+        "jobId": { "type": ["string", "null"], "description": "The host's job name; the owner can look it up on the host's side" },
+        "outputModel": { "type": ["string", "null"] },
+        "loraRank": { "type": "integer" },
+        "epochs": { "type": "integer" },
+        "trainingTokensEstimate": { "type": "integer", "description": "Characters / 3 x epochs, computed before the job; the host's own count may differ" },
+        "startedAt": { "type": ["string", "null"] },
+        "finishedAt": { "type": ["string", "null"] }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["not-run", "partial", "complete"], "description": "partial: stopped by a cap; attempts not reached stay unrun and are not counted as failures" },
+        "seed": { "type": "integer" },
+        "cases": { "type": "integer" },
+        "k": { "type": "integer" },
+        "deployment": {
+          "type": "object",
+          "properties": {
+            "accelerator": { "type": "string" },
+            "acceleratorCount": { "type": "integer" },
+            "minutes": { "type": "number" },
+            "estimatedUsd": { "type": "number" },
+            "deleted": { "type": "boolean" }
+          }
+        },
+        "programs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["base", "tuned"],
+            "properties": {
+              "base": { "type": "array", "items": { "$ref": "#/$defs/attempt" } },
+              "tuned": { "type": "array", "items": { "$ref": "#/$defs/attempt" } }
+            }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "properties": {
+            "base": { "$ref": "#/$defs/total" },
+            "tuned": { "$ref": "#/$defs/total" }
+          }
+        },
+        "infrastructureLog": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "spend": {
+      "type": "object",
+      "required": ["teacherUsd"],
+      "properties": {
+        "teacherUsd": { "type": "number", "description": "Estimated from list prices" },
+        "deploymentUsd": { "type": "number", "description": "Estimated: GPU minutes x the host's list price" },
+        "trainingUsd": { "type": ["number", "null"], "description": "null until read from the host's billing; the offer states free until Nov 30, 2026" }
+      }
+    },
+    "limits": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+  },
+  "$defs": {
+    "attempt": {
+      "type": "object",
+      "required": ["trial", "passed"],
+      "properties": {
+        "trial": { "type": "integer" },
+        "passed": { "type": "boolean" },
+        "translated": { "type": "boolean" },
+        "compiled": { "type": "boolean" },
+        "total": { "type": "integer" },
+        "failedCases": { "type": "integer" },
+        "exitCodeMatch": { "type": ["boolean", "null"] },
+        "stdoutMatch": { "type": ["boolean", "null"] },
+        "error": { "type": "string" },
+        "blockedByPolicy": { "type": "boolean" },
+        "infrastructureFailure": { "type": "boolean" },
+        "outputTokens": { "type": "integer" },
+        "seconds": { "type": "number" }
+      }
+    },
+    "total": {
+      "type": "object",
+      "required": ["attempts", "passed"],
+      "properties": {
+        "attempts": { "type": "integer" },
+        "passed": { "type": "integer" },
+        "compiled": { "type": "integer" },
+        "programsWithAPass": { "type": "integer" }
+      }
+    }
+  }
+}
