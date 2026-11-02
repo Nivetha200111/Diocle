@@ -1,0 +1,12 @@
+# `docker compose up --build`: re-checks stored Java against GnuCOBOL in the engine's own image. No key, no model call.
+# The first build compiles GnuCOBOL and takes several minutes. deploy/docker-compose.yml is the production stack.
+services:
+  quickstart:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    image: diocle-quickstart
+    entrypoint:
+      - sh
+      - -c
+      - git clone -q --depth 1 https://github.com/Nivetha200111/Diocle /tmp/d && cd /tmp/d && sh scripts/quickstart.sh --no-key

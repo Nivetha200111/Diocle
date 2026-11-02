@@ -62,6 +62,14 @@ $s: $line"
   [ "$rc" -eq 0 ] || fail=1
 done
 
+echo "== repo"  # checks across the services; the api venv has pytest and jsonschema
+out=$(cd "$root" && "$root/services/api/.venv/bin/python" -m pytest -q -rfE tests 2>&1)
+rc=$?
+printf '%s\n' "$out" | tail -25
+summary="$summary
+repo: $(printf '%s\n' "$out" | tail -1)"
+[ "$rc" -eq 0 ] || fail=1
+
 if [ "$web" = 1 ]; then
   echo "== web (tsc --noEmit)"
   ( cd "$root/apps/web" && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npx --no-install tsc --noEmit )

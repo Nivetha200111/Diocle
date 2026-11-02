@@ -58,7 +58,7 @@ On one [synthetic cheque-clearing run](docs/SHOWCASE_CHQCLR.md), Muse Spark desi
 | **Ask by voice** | A question, bundled or in your own voice (capped), answered only from what GnuCOBOL confirmed | Muse Voice Transcribe, Muse Spark |
 | **Editors** | A VS Code extension and a Muse Code plugin, both local | Muse Spark; Muse Code |
 
-Not every run uses every model. Which model did what, with evidence for each: [docs/META_MODELS.md](docs/META_MODELS.md).
+Hosted calls go through the Meta Model API ([dev.meta.ai](https://dev.meta.ai), endpoint `https://api.meta.ai/v1`, set in `.env`). Muse Spark Open runs on Fireworks and Baseten, the hackathon's inference partners. Not every run uses every model. Which model did what, with evidence for each: [docs/META_MODELS.md](docs/META_MODELS.md).
 
 ## For engineering, risk and audit teams
 
@@ -95,7 +95,7 @@ sh scripts/quickstart.sh --check      # prerequisites: GnuCOBOL 3.2, JDK 21, Pyt
 sh scripts/quickstart.sh --no-key     # no key, no model: re-checks stored Java on fresh records; not a new conversion
 ```
 
-With your own Meta key in `.env`, `sh scripts/quickstart.sh` runs a real conversion, capped at $0.10. Docker and other options: [Run it yourself](docs/DETAILS.md#run-it-yourself-in-5-minutes).
+With Docker alone, `docker compose up --build` does the same no-key check in the engine's own image (the first build compiles GnuCOBOL and takes several minutes). With your own Meta key in `.env`, `sh scripts/quickstart.sh` runs a real conversion, capped at $0.10. More options: [Run it yourself](docs/DETAILS.md#run-it-yourself-in-5-minutes).
 
 ## Built here
 
