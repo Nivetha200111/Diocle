@@ -16,8 +16,8 @@ from pathlib import Path
 from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import Field, format_record, load_fields, parse_record, record_format, record_length
-from .runners import (CLOCK, Run, build_cobol, build_java, guard_after, guard_before, not_run, original_sources,
-                      read_records, run_files, write_records)
+from .runners import (CLOCK, ProgramTimeout, Run, attribute_timeout, build_cobol, build_java, guard_after, guard_before,
+                      not_run, original_sources, read_records, run_files, write_records)
 from .standin import stand_ins_run
 
 
@@ -152,23 +152,31 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             guarded += [work / "seed.db", sample_dir / meta["source"]] + [sample_dir / m for m in meta.get("modules", [])]
             guarded += sorted(p for p in (sample_dir / meta["copybookDir"]).rglob("*") if p.is_file())
             before = {str(p): sha(p) for p in guarded if p.is_file()}
-            if java_cmd:
-                converted = run_files(java_cmd, paths, out_spec, jrun, "converted",
-                                      {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
-            tamper += [f"the converted program changed {Path(p).name}" for p, h in before.items()
-                       if not Path(p).is_file() or sha(Path(p)) != h]
-            for stray in ("original", "original.db", "sqlpre", *(f"original-{dd}.out" for dd in out_spec)):
-                if (work / stray).exists():
-                    tamper.append(f"the converted program created {stray}")
-            if tamper:
-                original = not_run(tamper)
-            else:
-                cobol_cmd, original = sqlrun.build_cobol_sql(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
-                                                             sql["tables"], [sample_dir / m for m in meta.get("modules", [])],
-                                                             collation)
+
+            def find_tamper() -> list[str]:
+                found = [f"the converted program changed {Path(p).name}" for p, h in before.items()
+                         if not Path(p).is_file() or sha(Path(p)) != h]
+                return found + [f"the converted program created {stray}"
+                                for stray in ("original", "original.db", "sqlpre", *(f"original-{dd}.out" for dd in out_spec))
+                                if (work / stray).exists()]
+
+            def run_original() -> Run:
+                cobol_cmd, run = sqlrun.build_cobol_sql(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                                        sql["tables"], [sample_dir / m for m in meta.get("modules", [])],
+                                                        collation)
                 if cobol_cmd:
                     shutil.copyfile(work / "seed.db", work / "original.db")
-                    original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+                    run = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+                return run
+
+            if java_cmd:
+                try:
+                    converted = run_files(java_cmd, paths, out_spec, jrun, "converted",
+                                          {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
+                except ProgramTimeout as e:
+                    attribute_timeout(e, find_tamper(), run_original)
+            tamper += find_tamper()
+            original = not_run(tamper) if tamper else run_original()
         elif plan:
             original, converted, keyed_results, keyed_report, tamper = ksds.run_both(
                 plan, meta, sample_dir, java_dir, work, paths, out_spec, seeds, [s["dd"] for s in inputs],
@@ -180,17 +188,22 @@ def verify_multi(sample_dir: Path, meta: dict, java_dir: Path, seed: int, random
             jrun.mkdir()
             java_cmd, converted = build_java(java_dir, meta["javaConversion"]["mainClass"], jrun)
             snapshot = guard_before([*paths.values(), *seeds.values(), *original_sources(sample_dir, meta)], work)
-            if java_cmd:
-                converted = run_files(java_cmd, paths, out_spec, jrun, "converted",
-                                      {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
-            tamper = guard_after(snapshot, work)
-            if tamper:
-                original = not_run(tamper)
-            else:
-                cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
-                                                  [sample_dir / m for m in meta.get("modules", [])], collation)
+
+            def run_original() -> Run:
+                cobol_cmd, run = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                             [sample_dir / m for m in meta.get("modules", [])], collation)
                 if cobol_cmd:
-                    original = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+                    run = run_files(cobol_cmd, paths, out_spec, work, "original", db_env["original"], seeds=seeds)
+                return run
+
+            if java_cmd:
+                try:
+                    converted = run_files(java_cmd, paths, out_spec, jrun, "converted",
+                                          {"DIOCLE_COLLATION": collation.upper(), **db_env["converted"]}, seeds=seeds)
+                except ProgramTimeout as e:
+                    attribute_timeout(e, guard_after(snapshot, work), run_original)
+            tamper = guard_after(snapshot, work)
+            original = not_run(tamper) if tamper else run_original()
         db_results, db_report = [], None
         if sql and original.compiled and converted.compiled:
             from . import sqldb

@@ -13,8 +13,8 @@ from .diff import compare
 from .inputs import Case, generate_for_layout
 from .layout import load_fields, record_format, record_length
 from .multi import is_multi, verify_multi
-from .runners import (CLOCK, Run, guard_after, guard_before, not_run, original_sources, read_records, run_cobol,
-                      run_java, write_records)
+from .runners import (CLOCK, ProgramTimeout, Run, attribute_timeout, guard_after, guard_before, not_run, original_sources,
+                      read_records, run_cobol, run_java, write_records)
 from .standin import stand_ins_run
 
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "verification-report.schema.json"
@@ -61,12 +61,18 @@ def verify_sample(sample_dir: Path, java_dir: Path | None = None, *, seed: int =
         jrun = work / "jrun"
         jrun.mkdir()
         snapshot = guard_before([input_path, *original_sources(sample_dir, meta)], work)
-        converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, jrun, out_format,
-                             collation)
+
+        def run_original() -> Run:
+            return run_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work,
+                             out_format, [sample_dir / m for m in meta.get("modules", [])], collation)
+
+        try:
+            converted = run_java(java_dir, meta["javaConversion"]["mainClass"], meta["dd"], input_path, jrun, out_format,
+                                 collation)
+        except ProgramTimeout as e:
+            attribute_timeout(e, guard_after(snapshot, work), run_original)
         tamper = guard_after(snapshot, work)
-        original = not_run(tamper) if tamper else run_cobol(
-            sample_dir / meta["source"], sample_dir / meta["copybookDir"], meta["dd"], input_path, work, out_format,
-            [sample_dir / m for m in meta.get("modules", [])], collation)
+        original = not_run(tamper) if tamper else run_original()
 
     results, golden_report = [], None
     if original.compiled and converted.compiled:

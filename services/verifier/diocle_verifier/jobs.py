@@ -36,6 +36,8 @@ needed here, only a loop tagging each result with which step and DD it came from
 from __future__ import annotations
 
 import json
+import os
+import signal
 import subprocess
 import tempfile
 from pathlib import Path
@@ -44,8 +46,10 @@ from .diff import compare
 from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
-from .runners import (CLOCK, CLOCK_ENV, Run, _exec, _exec_side, build_cobol, guard_after, guard_before, not_run,
-                      original_sources, read_records, safe_env, write_records)
+from .runners import (CLOCK, CLOCK_ENV, ProgramTimeout, Run, _exec, _exec_side, attribute_timeout, build_cobol, guard_after,
+                      guard_before, not_run, original_sources, read_records, safe_env, write_records)
+
+RUN_LIMIT = 120  # seconds, each side: the same limit as a single-program run
 
 
 def _seed_free_dds(job: dict) -> set[str]:
@@ -123,7 +127,7 @@ def _run_original(sample_dir: Path, job: dict, dd_paths: dict[str, Path], work: 
                 break
             env = {f"DD_{dd}": str(dd_paths[(step["step"], dd)]) for dd in step["dds"]
                    if dd not in ("SYSIN", "SYSOUT")}
-            proc = _exec_side("original", cobol_cmd, env={**CLOCK_ENV, **env}, cwd=work)
+            proc = _exec_side("original", cobol_cmd, env={**CLOCK_ENV, **env}, cwd=work, timeout=RUN_LIMIT)
             cobol_run = Run(True, proc.returncode, proc.stdout, proc.stderr)
             for f in meta["files"]:
                 if f["direction"] == "output":
@@ -165,10 +169,17 @@ def _run_converted(pipeline: dict, work: Path, collation: str) -> dict:
     if build.returncode != 0:
         return {"run": Run(False, build.returncode, build.stdout, build.stderr), "outputs": {}}
 
-    proc = subprocess.run(["java", "-cp", str(classes), pipeline["driverClass"], str(classes)],
-                          env=safe_env({**CLOCK_ENV, "DIOCLE_COLLATION": collation.upper()}),
-                          cwd=work, capture_output=True, text=True)
-    run = Run(True, proc.returncode, proc.stdout, proc.stderr)
+    # In its own process group: the driver starts one JVM per step, and at the limit they must all die, not just the driver.
+    cmd = ["java", "-cp", str(classes), pipeline["driverClass"], str(classes)]
+    proc = subprocess.Popen(cmd, env=safe_env({**CLOCK_ENV, "DIOCLE_COLLATION": collation.upper()}), cwd=work,
+                            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+    try:
+        stdout, stderr = proc.communicate(timeout=RUN_LIMIT)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        raise ProgramTimeout("converted", cmd, RUN_LIMIT) from None
+    run = Run(True, proc.returncode, stdout.decode("latin-1"), stderr.decode("latin-1"))
 
     outputs: dict[str, dict] = {}  # step -> {dd: path}
     for step in pipeline["steps"]:
@@ -292,7 +303,10 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
         snapshot = guard_before([*sorted(p for p in work_o.rglob("*") if p.is_file()),
                                  sample_dir / "sample.json",  # _run_original reads it again after the Java ran
                                  *original_sources(sample_dir, meta)], work_o)
-        converted = _run_converted(pipeline, work_c, collation)
+        try:
+            converted = _run_converted(pipeline, work_c, collation)
+        except ProgramTimeout as e:
+            attribute_timeout(e, guard_after(snapshot, work_o), lambda: _run_original(sample_dir, job, dd_paths_o, work_o))
         tamper = guard_after(snapshot, work_o)
         if tamper:
             original = {"outputs": {}, "cobolRun": not_run(tamper)}

@@ -5,8 +5,10 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import NoReturn
 
 
 @dataclass
@@ -233,6 +235,16 @@ def _sha(p: Path) -> str:
     import hashlib
 
     return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def attribute_timeout(timed_out: ProgramTimeout, tamper: list[str], run_original: Callable[[], object]) -> NoReturn:
+    """The converted program ran past the limit, so the original has not run yet. Run it under the same limit before
+    blaming the Java: a faithful Java of a program that never ends also never ends, and run_original raising its own
+    ProgramTimeout reports that as the original's. A Java that also tampered gets the blame without it: the original
+    must not run on what the Java touched."""
+    if not tamper:
+        run_original()
+    raise timed_out
 
 
 def guard_before(guarded: list[Path], work: Path) -> tuple[dict[str, str], set[str]]:

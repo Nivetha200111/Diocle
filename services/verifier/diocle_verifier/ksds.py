@@ -23,7 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from .layout import Field, format_record, load_fields, parse_record, record_length
-from .runners import IBM_FLAGS, Run, _exec, build_cobol, not_run, run_files
+from .runners import IBM_FLAGS, ProgramTimeout, Run, _exec, attribute_timeout, build_cobol, not_run, run_files
 
 SUBSET = "ksds-subset-1"
 SUPPORT = Path(__file__).resolve().parent / "dbsupport"
@@ -358,31 +358,40 @@ def run_both(plan: Plan, meta: dict, sample_dir: Path, java_dir: Path, work: Pat
     guarded += [sample_dir / meta["source"]] + [sample_dir / m for m in meta.get("modules", [])]
     guarded += sorted(p for p in (sample_dir / meta["copybookDir"]).rglob("*") if p.is_file())
     before = {str(p): _sha(p) for p in guarded if p.is_file()}
+    tools = None
+
+    def find_tamper() -> list[str]:
+        found = [f"the converted program changed {Path(p).name}" for p, h in before.items() if not Path(p).is_file() or _sha(Path(p)) != h]
+        return found + [f"the converted program created {stray}"
+                        for stray in ["original", "ksds-tools", *[f"{dd}.kf" for dd in dds], *[f"{dd}.final" for dd in dds],
+                                      *[f"original-{dd}.out" for dd in out_spec]] if (work / stray).exists()]
+
+    def run_original() -> Run:
+        nonlocal tools
+        if handler is None:
+            return Run(False, None, "", "this GnuCOBOL has no indexed-file handler (cobc --info), so keyed files cannot be verified here")
+        tools, run = _build_tools(plan, work)
+        if tools is None:
+            return run
+        cobol_cmd, run = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
+                                     [sample_dir / m for m in meta.get("modules", [])], collation)
+        if not cobol_cmd:
+            return run
+        problem = None
+        for dd in plan.seeds:
+            problem = problem or _tool_run(tools[dd]["load"], work / f"{dd}.kseed", work / f"{dd}.kf", work)
+        if problem:
+            return Run(False, None, "", f"verifier error seeding the keyed file: {problem}")
+        return run_files(cobol_cmd, paths, out_spec, work, "original", {f"DD_{dd}": str(work / f"{dd}.kf") for dd in dds},
+                         seeds=seeds)
+
     if java_cmd:
-        converted = run_files(java_cmd, paths, out_spec, jrun, "converted", jenv, seeds=seeds)
-    tamper = [f"the converted program changed {Path(p).name}" for p, h in before.items() if not Path(p).is_file() or _sha(Path(p)) != h]
-    for stray in ["original", "ksds-tools", *[f"{dd}.kf" for dd in dds], *[f"{dd}.final" for dd in dds],
-                  *[f"original-{dd}.out" for dd in out_spec]]:
-        if (work / stray).exists():
-            tamper.append(f"the converted program created {stray}")
-    if handler is None:
-        original = Run(False, None, "", "this GnuCOBOL has no indexed-file handler (cobc --info), so keyed files cannot be verified here")
-    elif tamper:
-        original = not_run(tamper)
-    else:
-        tools, original = _build_tools(plan, work)
-        if tools is not None:
-            cobol_cmd, original = build_cobol(sample_dir / meta["source"], sample_dir / meta["copybookDir"], work,
-                                              [sample_dir / m for m in meta.get("modules", [])], collation)
-            problem = None
-            if cobol_cmd:
-                for dd in plan.seeds:
-                    problem = problem or _tool_run(tools[dd]["load"], work / f"{dd}.kseed", work / f"{dd}.kf", work)
-                if problem:
-                    original = Run(False, None, "", f"verifier error seeding the keyed file: {problem}")
-                else:
-                    original = run_files(cobol_cmd, paths, out_spec, work, "original", {f"DD_{dd}": str(work / f"{dd}.kf") for dd in dds},
-                                         seeds=seeds)
+        try:
+            converted = run_files(java_cmd, paths, out_spec, jrun, "converted", jenv, seeds=seeds)
+        except ProgramTimeout as e:
+            attribute_timeout(e, find_tamper(), run_original)
+    tamper = find_tamper()
+    original = not_run(tamper) if tamper else run_original()
     results, files = [], []
     if original.compiled and converted.compiled:
         for spec in plan.specs:
