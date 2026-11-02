@@ -1,0 +1,76 @@
+{
+  "version": "0.1",
+  "teacher": {
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "host": "fireworks",
+    "reasoningEffort": "low"
+  },
+  "student": {
+    "baseModel": "accounts/fireworks/models/muse-glimmer-30b"
+  },
+  "dataset": {
+    "examples": 31,
+    "repositoryPrograms": 4,
+    "generatedPrograms": 27,
+    "sha256": "f565c9197019ce66ac5d3875bd48f65295af29a822495e5e4a5241c5f8f7398c",
+    "heldOut": [
+      "BRNCHSUM",
+      "CHQCLR",
+      "FXCONV",
+      "LOANAMRT"
+    ],
+    "oracle": {
+      "seed": 7701,
+      "cases": 1000,
+      "minRecords": 100
+    },
+    "rejected": {
+      "generation-failed": 0,
+      "does-not-compile": 14,
+      "analyzer-refused": 9,
+      "weak-oracle": 1,
+      "too-similar": 0,
+      "not-open-weights": 0,
+      "translation-failed": 0,
+      "policy-blocked": 3,
+      "differential-failed": 75,
+      "too-few-records": 1,
+      "spend-cap": 0
+    },
+    "firstPassRejected": {
+      "generation-failed": 0,
+      "does-not-compile": 0,
+      "analyzer-refused": 48,
+      "weak-oracle": 2,
+      "too-similar": 0,
+      "not-open-weights": 0,
+      "translation-failed": 0,
+      "policy-blocked": 7,
+      "differential-failed": 63,
+      "too-few-records": 1,
+      "spend-cap": 0
+    }
+  },
+  "training": {
+    "host": "fireworks",
+    "loraRank": 8,
+    "epochs": 3,
+    "trainingTokensEstimate": 601179,
+    "status": "not-run"
+  },
+  "evaluation": {
+    "status": "not-run"
+  },
+  "spend": {
+    "teacherUsd": 5.7543,
+    "deploymentUsd": 0,
+    "trainingUsd": null
+  },
+  "limits": [
+    "Small dataset: Meta's post-training guide suggests roughly 500 or more examples.",
+    "Passing 1,000 generated inputs is not a proof; generated inputs are well-formed and the breaker is not run on training examples.",
+    "Answers only: no reasoning traces in the training data.",
+    "The tuned model runs only on a paid dedicated deployment; it is not on the public site.",
+    "Hosted Muse Spark outputs are refused as training data (Meta Model API terms, section 10.1(ix))."
+  ]
+}
