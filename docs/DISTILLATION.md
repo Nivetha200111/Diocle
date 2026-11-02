@@ -55,7 +55,7 @@ The Muse Spark figures in MEASUREMENT.md are context only: same harness, differe
 |---|---|
 | Teacher spend, whole harvest | $8.00, no new unit past $7.00 |
 | Teacher spend per program | $0.25 |
-| Generated programs | 60 |
+| Generated programs | 60 (raised to 120, see Deviations) |
 | Training tokens | 3,000,000 (at the host's $3 per 1M managed rate, at most $9 if the free offer does not apply) |
 | Deployment | Needs the owner's OK with a stated dollar limit, wall-clock limit enforced by the script, deleted when the script ends, scale-to-zero after 5 minutes as a backstop |
 
@@ -68,7 +68,7 @@ The Muse Spark figures in MEASUREMENT.md are context only: same harness, differe
 
 ## Deviations
 
-None yet.
+- **Nov 2, after a three-unit pilot and before the harvest ($0.028, one program passed, two generated programs refused).** The refusals came from the gates, not the teacher: the analyzer does not read the valid quoted form `COPY "X".`, so the generator's prompt now asks for the unquoted form; the CALL check also matched data names, and no longer does. The analyzer is unchanged. The pilot cost a translation about $0.013 rather than the estimate of about $0.10, so the generated-program cap went from 60 to 120 (every distinct topic pair), to get closer to Meta's suggested dataset size. The dollar caps did not change. The pilot's two generated units are dropped from the gate counts and their cost stays in the spend.
 
 ## Results
 

@@ -42,7 +42,8 @@ Rules:
 - The input record has at least four separate fields, including at least two numeric ones, so generated data exercises the logic.
 - Every input record yields one or more output records.
 - No CALL, no EXEC SQL, no CICS, no ACCEPT, no INDEXED or RELATIVE files, no SORT, no date or time functions.
-- Assign the files to the DD names INFILE and OUTFILE."""
+- Assign the files exactly as `ASSIGN TO INFILE` and `ASSIGN TO OUTFILE`, unquoted.
+- Pull each copybook in with an unquoted member name, as in `COPY GEN0001I.`, never `COPY "GEN0001I".`"""
 
 
 class NotOpenWeights(RuntimeError):
@@ -160,7 +161,7 @@ def contained(cobol: str) -> bool:
     """A generated program may touch only INFILE and OUTFILE and may call nothing. It is compiled and run on this machine."""
     text = "\n".join(line for line in cobol.upper().splitlines() if line[6:7] != "*")
     assigns = re.findall(r"\bASSIGN\s+(?:TO\s+)?(\S+?)\.?(?=\s|$)", text)
-    return sorted(assigns) == ["INFILE", "OUTFILE"] and not re.search(r"\b(CALL|ACCEPT|EXEC)\b", text)
+    return sorted(assigns) == ["INFILE", "OUTFILE"] and not re.search(r"(?<![A-Z0-9-])(CALL|ACCEPT|EXEC)(?![A-Z0-9-])", text)
 
 
 def write_generated(name: str, answer: dict, root: Path) -> Path:

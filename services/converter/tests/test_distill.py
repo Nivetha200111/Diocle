@@ -139,9 +139,17 @@ def test_a_comment_mentioning_call_is_not_a_refusal():
     assert distill.contained(COBOL.replace("       PROCEDURE", "      * CALL NOTHING HERE\n       PROCEDURE"))
 
 
+def test_a_data_name_containing_call_is_not_a_refusal():
+    assert distill.contained(COBOL.replace("STOP RUN", "MOVE 1 TO WS-CALL-COUNT ACCEPT-FLAG\n           STOP RUN"))
+
+
+def test_generator_asks_for_the_copy_form_the_analyzer_reads():
+    assert 'COPY GEN0001I.' in distill.GENERATOR_SYSTEM
+
+
 def test_topics_are_stable_and_unique_and_avoid_the_held_out_domains():
-    first = distill.topics(60)
-    assert first == distill.topics(60) and len({t[0] for t in first}) == 60 and len({t[1:] for t in first}) == 60
+    first = distill.topics(120)
+    assert first == distill.topics(120) and len({t[0] for t in first}) == 120 and len({t[1:] for t in first}) == 120
     assert not [t for t in first if any(w in t[1].lower() for w in ("cheque", "branch", "exchange", "amortiz"))]
 
 
