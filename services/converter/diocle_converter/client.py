@@ -1,4 +1,7 @@
-"""Meta model client (OpenAI-compatible Chat Completions) with call logging, retries and hard call caps."""
+"""Meta model client (OpenAI-compatible Chat Completions) with call logging, retries and hard call caps.
+
+Hosted calls go to the Meta Model API (dev.meta.ai); Muse Spark Open goes to an inference partner (Fireworks or Baseten).
+Hosts, models and keys come from .env (config.py)."""
 
 from __future__ import annotations
 

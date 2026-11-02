@@ -2,7 +2,7 @@
 
 Status: **working slice** for the `interest-accrual` sample (Layer 2 of [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)). Implemented: Meta model client with call caps and cost logging, whole-program translator (structured output), and the tool-using repair agent. Not yet implemented: Class Designer (2A), per-paragraph translation, SQL schema mapping, rule extractor, edge-case designer, judge, SonarQube issues, `conversion-output` contract emission.
 
-Meta models only (CLAUDE.md rule 9), through the OpenAI-compatible Chat Completions API at `https://api.meta.ai/v1`.
+Meta models only (CLAUDE.md rule 9), through the OpenAI-compatible Chat Completions API of the [Meta Model API](https://dev.meta.ai) at `https://api.meta.ai/v1`. Muse Spark Open runs on the inference partners Fireworks and Baseten.
 
 ## Repair agent
 Tools: `run_differential_test`, `read_cobol_source`, `list_java_files`, `read_java_file`, `patch_java` (exact unique replacement, with a required rationale), `compile_java`, `finish`.

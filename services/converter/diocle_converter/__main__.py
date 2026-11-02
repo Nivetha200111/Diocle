@@ -477,7 +477,7 @@ def _assurance_fields(outcome: dict, repaired: bool, cobol_repair: dict | None, 
     if ended:
         return {"assurance": anyway.FAILED, "cobolRepair": cobol_repair, "assuranceReason": ended["reason"]}
     last = (outcome.get("rounds") or [{}])[-1].get("summary") or {}
-    shown =f" ({last['passed']}/{last['total']} cases matched)" if last else ""
+    shown = f" ({last['passed']}/{last['total']} cases matched)" if last else ""
     return {"assurance": anyway.FAILED, "cobolRepair": cobol_repair,
             "assuranceReason": f"the differential test ran and the Java still differs from the COBOL{shown} after the repair caps"}
 
