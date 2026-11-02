@@ -82,7 +82,7 @@ def fake_job(root: Path, sample: str, n: int, age_s=60, status="done", printout_
     started = datetime.now(timezone.utc) - timedelta(seconds=age_s)
     job = {"version": "0.1", "id": f"live-20260101-{n // 3600:02d}{n // 60 % 60:02d}{n % 60:02d}-{kind}", "sample": sample,
            "status": status, "stage": "done", "startedAt": started.isoformat(timespec="seconds"), "finishedAt": None,
-           "error": None, "maxUsd": 0.02, "events": [], "runId": None,
+           "error": None, "maxUsd": 0.05, "events": [], "runId": None,
            "printout": {"usage": {"estimatedCostUsd": printout_cost}} if printout_cost is not None else None}
     path = root / "live-samples" / job["id"] / "job.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,7 +138,7 @@ def test_start_runs_the_fixed_command_only(client, tmp_path):
     assert "GH_TOKEN" not in kw["env"] and "DIOCLE_ADMIN_TOKEN" not in kw["env"]
     job = client.get(f"/samples/live/{job_id}").json()
     check(job, "job")
-    assert job["sample"] == "addfee" and job["status"] == "running" and job["maxUsd"] == 0.02 and "pid" not in job
+    assert job["sample"] == "addfee" and job["status"] == "running" and job["maxUsd"] == 0.05 and "pid" not in job
 
 
 def test_nothing_the_visitor_sends_reaches_a_command_line(client, tmp_path):
@@ -192,10 +192,10 @@ def test_jobs_older_than_a_day_do_not_count(client, tmp_path):
 
 
 def test_both_buttons_share_a_one_dollar_budget(client, tmp_path):
-    fake_job(tmp_path, "loyalty-waiver-printout", 1, printout_cost=0.97)  # 0.97 + a possible 0.02 = 0.99 <= 1.00
+    fake_job(tmp_path, "loyalty-waiver-printout", 1, printout_cost=0.94)  # 0.94 + a possible 0.05 = 0.99 <= 1.00
     assert client.post("/samples/live", json={"sample": "addfee"}, headers=headers()).status_code == 202
     finish_all(tmp_path)
-    fake_job(tmp_path, "loyalty-waiver-printout", 2, printout_cost=0.02)  # now 0.99 spent: 0.99 + 0.02 > 1.00
+    fake_job(tmp_path, "loyalty-waiver-printout", 2, printout_cost=0.05)  # now 0.99 spent: 0.99 + 0.05 > 1.00
     r = client.post("/samples/live", json={"sample": "addfee"}, headers=headers("5.5.5.5"))
     assert r.status_code == 429 and "$1.00 model budget" in r.json()["detail"]
     s = client.get("/config", headers=headers()).json()["publicImports"]["samples"]
@@ -348,7 +348,7 @@ def test_convert_flow_with_a_test_double(client, double, tmp_path, mode, certifi
     job_id = new_job(tmp_path, "addfee")
     assert samplejob.main([job_id, "convert"]) == 0
     argv = json.loads((tmp_path / "argv.json").read_text())
-    assert argv == ["run", str(samplejob.ADDFEE), "--max-usd", "0.020000", "--no-memory"]
+    assert argv == ["run", str(samplejob.ADDFEE), "--max-usd", "0.050000", "--no-memory"]
     job = client.get(f"/samples/live/{job_id}").json()
     check(job, "job")
     assert job["status"] == final and job["runId"] == "addfee-20261030-101010"
@@ -437,7 +437,7 @@ def test_a_forged_marker_is_ignored(client, tmp_path):
 
 def test_job_and_printout_contract_invalid_examples():
     job = {"version": "0.1", "id": "live-20261030-101010-convert", "sample": "addfee", "status": "running", "stage": "x", "startedAt": "t",
-           "finishedAt": None, "error": None, "maxUsd": 0.02, "events": [], "runId": None, "printout": None}
+           "finishedAt": None, "error": None, "maxUsd": 0.05, "events": [], "runId": None, "printout": None}
     check(job, "job")
     invalid({**job, "status": "paused"}, "job")
     invalid({**job, "pid": 1}, "job")

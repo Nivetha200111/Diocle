@@ -42,7 +42,7 @@ MAX_JOB_SECONDS = 30 * 60
 # The only things a start can mean. `kind` names the runner in samplejob.py; the numbers are hard caps (they can be lowered
 # by the owner's code change, never by a request).
 SAMPLES = {
-    "addfee": {"kind": "convert", "maxUsd": 0.02, "perVisitor": 3, "perDay": 20, "label": "conversions"},
+    "addfee": {"kind": "convert", "maxUsd": 0.05, "perVisitor": 3, "perDay": 20, "label": "conversions"},
     "loyalty-waiver-printout": {"kind": "printout", "maxUsd": 0.10, "perVisitor": 1, "perDay": 5, "label": "printout reads"},
 }
 BY_KIND = {v["kind"]: k for k, v in SAMPLES.items()}

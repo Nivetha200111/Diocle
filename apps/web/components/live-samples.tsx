@@ -223,7 +223,7 @@ function Card(p: {
       {p.reason && <p id={`${id}-note`} className="live-reason" role="status">Disabled: {p.reason}</p>}
       {!p.reason && <p id={`${id}-note`} className="sr-only">Ready.</p>}
       <p id={`${id}-caps`} className="live-caps">
-        Costs at most {usd(p.b?.maxUsd ?? (p.sample === "addfee" ? 0.02 : 0.1))} per press. Caps:{" "}
+        Costs at most {usd(p.b?.maxUsd ?? (p.sample === "addfee" ? 0.05 : 0.1))} per press. Caps:{" "}
         {p.b ? `${p.b.perVisitorPerDay} ${p.unit} per visitor per day, ${p.b.perDay} a day overall (${p.b.usedToday} used in the last 24 hours, ${p.b.visitorLeft} left for you)` : "loading"}
         , one live job at a time, shared with visitor imports.
       </p>
