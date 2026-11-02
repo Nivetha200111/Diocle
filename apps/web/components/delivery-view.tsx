@@ -41,7 +41,17 @@ function uncertified(d: Delivery): string {
   return other.length ? ` · ${other.length} not certified (${other.map((p) => p.assurance).join(", ")})` : "";
 }
 
+// The engine stopped after analysis because no program can be converted: a refusal, not an engine fault.
+const nothingToConvert = (d: Delivery) => d.stage === "failed" && !!d.error?.startsWith("no convertible programs");
+
 function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
+  if (nothingToConvert(d)) {
+    return [
+      { label: "1. Clone & analyze", detail: `${d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ` : ""}nothing convertible`, led: "bad" },
+      { label: "2. Convert & certify", detail: "not started", led: "off" },
+      { label: d.target ? "3. Open pull request" : "3. Results", detail: "none", led: "off" },
+    ];
+  }
   const order = ["analyzing", "converting", "delivering", "done"];
   const at = d.stage === "failed" ? -1 : order.indexOf(d.stage);
   const led = (i: number): Led => (d.stage === "failed" && i === Math.max(0, order.indexOf("converting")) ? "bad"
@@ -72,6 +82,12 @@ function failureReason(d: Delivery, list: DeliveryListItem[]): string | null {
   const later = list.find((o) => o.stage === "done" && o.legacy.repository === d.legacy.repository
     && o.target === d.target && o.startedAt > d.startedAt);
   const retried = later ? ` A later delivery of the same repository (${later.id}) completed.` : "";
+  if (nothingToConvert(d)) {
+    const listed = d.programs.length
+      ? ` Each program's reason is listed below${d.programs.length >= 30 ? " (30 at most)" : ""}.`
+      : " Among other things, Diocle refuses CICS and IMS programs and missing copybooks rather than guess.";
+    return `Nothing was converted and no model was called: ${d.error?.replace(/\.?$/, ".")}${listed}${retried}`;
+  }
   if (refused.length) {
     return `The verifier refused to certify ${refused.join(", ")}: Diocle opens no pull request for code that does not match the original. This is the product working.${retried}`;
   }
@@ -381,7 +397,7 @@ export default function DeliveryView() {
         <div>
           <div className="runs-badges">
             <span className={`badge ${running ? "badge-amber" : delivery.stage === "done" ? "badge-green" : "badge-amber"}`}>
-              {running ? "● LIVE" : delivery.stage === "failed" ? "Failed" : delivery.target ? "Delivered" : "Done"}
+              {running ? "● LIVE" : nothingToConvert(delivery) ? "Nothing to convert" : delivery.stage === "failed" ? "Failed" : delivery.target ? "Delivered" : "Done"}
             </span>
             {delivery.public && <span className="badge">Visitor import</span>}
 
@@ -394,14 +410,18 @@ export default function DeliveryView() {
           <h2>
             <a href={delivery.legacy.repository} target="_blank" rel="noreferrer">{repoName(delivery.legacy.repository)}</a>
             {"  →  "}
-            {delivery.target && delivery.createTarget && !delivery.targetCreated
+            {nothingToConvert(delivery)
+              ? "no Java"
+              : delivery.target && delivery.createTarget && !delivery.targetCreated
               ? <span>{repoName(delivery.target)} (to be created)</span>
               : delivery.target
               ? <a href={delivery.target} target="_blank" rel="noreferrer">{repoName(delivery.target)}</a>
               : delivery.convertAnyway ? "Java (see each label)" : "verified Java"}
           </h2>
           <p>
-            {delivery.convertAnyway
+            {nothingToConvert(delivery)
+              ? "Stopped after analysis."
+              : delivery.convertAnyway
               ? `Convert anyway: only programs labelled CERTIFIED were verified against the original. Model spend ${delivery.spentUsd == null ? "n/a" : `$${delivery.spentUsd.toFixed(4)}`} of $${(delivery.repoMaxUsd ?? 0).toFixed(2)} (REPO_MAX_USD).`
               : delivery.target ? "COBOL in, certified Java out as a pull request." : "COBOL in, Java verified against the original out."} Elapsed <span className="mono">{elapsed(delivery.startedAt, delivery.finishedAt, now)}</span>
             {delivery.error && delivery.stage !== "failed" ? ` · error: ${delivery.error}` : ""}
@@ -430,7 +450,7 @@ export default function DeliveryView() {
       </div>
 
       <div className="dlv-grid">
-        {delivery.programs.map((p) => <ProgramCard key={p.name} p={p} />)}
+        {delivery.programs.map((p) => <ProgramCard key={p.path ?? p.name} p={p} />)}
       </div>
 
       {delivery.buildCheck && (

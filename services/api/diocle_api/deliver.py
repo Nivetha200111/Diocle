@@ -28,6 +28,7 @@ import sys
 import tempfile
 import threading
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -767,6 +768,32 @@ def _visitor_caps(programs: list[dict], samples: Path, precheck: CompilePrecheck
     return keep, skipped
 
 
+REFUSALS_LISTED = 30  # a large repository's record stays small; the error still counts every program
+
+
+def _refusals(programs: list[dict]) -> list[dict]:
+    """The analyzer's refusals as skipped entries, so a delivery with nothing to convert says why, program by program."""
+    return [{"name": p["name"], "path": p["path"], "status": "skipped", "runId": None,
+             "reason": (p.get("notConvertibleReason") or "not convertible")[:300]} for p in programs]
+
+
+def _nothing_to_convert(refused: list[dict], skipped: list[dict], named: bool = False) -> str:
+    """The error of a delivery that stops before any model call: how many programs, and the commonest reasons."""
+    message = "no convertible programs"
+    if skipped:  # cut: a compiler diagnostic must not push the counts past the record's 500 characters
+        message += f" within the visitor limits ({skipped[0]['reason'][:150]})"
+    if refused:
+        counts = Counter(p["reason"] for p in refused).most_common(3)
+        total = len(refused)
+        message += (f" ({total} COBOL program{'' if total == 1 else 's'} refused). "
+                    + "; ".join(f"{n} of them: {reason}" for reason, n in counts))
+        if sum(n for _, n in counts) < total:
+            message += "; others for other reasons"
+    elif not skipped:
+        message += " (none of the named programs was found)" if named else " (no COBOL programs found)"
+    return message
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="diocle_api.deliver", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -836,6 +863,7 @@ def main(argv: list[str] | None = None) -> int:
             target_repo(target)  # fail fast on a bad or disallowed target (a planned one passes the same allowlist)
         report, samples = analyze(args.legacy_url, progress.id, convert_anyway)
         wanted = set(args.programs.split(",")) if args.programs else None
+        refused = _refusals([p for p in report["programs"] if not p["convertible"] and not convert_anyway and (wanted is None or p["name"] in wanted)])
         report["programs"] = [p for p in report["programs"] if (p["convertible"] or convert_anyway) and (wanted is None or p["name"] in wanted)]
         skipped, seen = [], {}
         for p in list(report["programs"]):  # samples are keyed by PROGRAM-ID, so a second file with the same one is skipped
@@ -858,7 +886,8 @@ def main(argv: list[str] | None = None) -> int:
                              "pass --programs or raise the cap")
         progress.state["legacy"]["commit"] = report["source"]["commit"]
         if not report["programs"]:
-            raise SystemExit("no convertible programs" + (f" within the visitor limits ({skipped[0]['reason']})" if skipped else ""))
+            progress.state["programs"] = (skipped + refused)[:REFUSALS_LISTED]
+            raise SystemExit(_nothing_to_convert(refused, skipped, wanted is not None))
         progress.update(stage="converting", programs=[
             {"name": p["name"], "path": p["path"], "status": "queued", "runId": None} for p in report["programs"]] + skipped)
         run_ids = {}

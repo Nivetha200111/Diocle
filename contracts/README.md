@@ -8,7 +8,7 @@ Change contracts first, then implementations.
 
 live-sample v0.1 (the two public "try it live" buttons: request, job and config status; the request is a name from a fixed list) and run v0.16 (`sampleRun`, additive: a run started by the live button; absent on all other runs).
 
-build-report v0.1 (whole-repository build check: all converted Java compiled together, copybook drift, CALL resolution and USING compatibility, dependency graph, verdict pass | fail | warn; `scope.notChecked` states what it did not look at) and delivery v0.6 (`buildCheck`, additive).
+build-report v0.1 (whole-repository build check: all converted Java compiled together, copybook drift, CALL resolution and USING compatibility, dependency graph, verdict pass | fail | warn; `scope.notChecked` states what it did not look at) and delivery v0.6 (`buildCheck`, additive). Delivery v0.7: a delivery that stops because nothing can be converted lists up to 30 programs as `skipped`, each with its reason, and its `error` starts with `no convertible programs` (additive).
 
 compile-check v0.1 (answer of the sandbox's compile-only job, run before any model call).
 
