@@ -17,6 +17,8 @@ import re
 import shutil
 from pathlib import Path
 
+from .runners import format_flags
+
 STANDINS = Path(__file__).resolve().parent / "standins"
 ROUTINES = ("CEE3ABD",)
 EXIT_CODE = {"CEE3ABD": 16}
@@ -25,12 +27,27 @@ NOTE = {"CEE3ABD": ("Diocle's CEE3ABD stand-in, not IBM Language Environment: th
                     "(not compared)")}
 
 
-def _code(path: Path) -> str:
-    """The code without comments, read the way the analyzer reads it: columns 8-72 of fixed-format source, whole lines
-    of free-format source (>>SOURCE FORMAT FREE, compiled with -free), so the two agree on what a program calls."""
-    from diocle_analyzer.cobol import source_lines  # as in reverify.py: only here, the package has no hard dependency
+def _free_line(line: str) -> str:
+    """A free-format line up to a *> comment outside any literal; directive lines (>>, $) are not code."""
+    quote = None
+    for i, ch in enumerate(line):
+        if quote is None and line.startswith("*>", i):
+            line = line[:i]
+            break
+        if ch in "'\"" and quote in (None, ch):
+            quote = None if quote else ch
+    return "" if line.lstrip().startswith((">>", "$")) else line
 
-    return "\n".join(code for _, code in source_lines(path.read_text(errors="replace"))).upper()
+
+def _code(path: Path) -> str:
+    """The code without comments, read the way the analyzer reads it (diocle_analyzer.cobol.source_lines, a test keeps the
+    two in step): columns 8-72 of fixed-format source, whole lines of free-format source (>>SOURCE FORMAT FREE, compiled
+    with -free). Not imported from there: every build comes through here, and the quickstart and the verifier's own
+    setup install the verifier without the analyzer."""
+    lines = path.read_text(errors="replace").splitlines()
+    if format_flags(path):
+        return "\n".join(_free_line(l) for l in lines).upper()
+    return "\n".join(l[7:72] for l in lines if not (len(l) > 6 and l[6] in "*/")).upper()
 
 
 def stand_ins_for(sources: list[Path]) -> list[str]:

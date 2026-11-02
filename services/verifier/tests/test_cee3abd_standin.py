@@ -6,6 +6,7 @@ with Diocle's CEE3ABD stand-in", never IBM Language Environment."""
 import json
 import shutil
 import subprocess
+import sys
 import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -13,11 +14,12 @@ from pathlib import Path
 import pytest
 
 from diocle_analyzer.analyze import analyze, write_sample
+from diocle_analyzer.cobol import source_lines
 from diocle_verifier import sandbox
 from diocle_verifier.inputs import Case
 from diocle_verifier.reverify import reverify
 from diocle_verifier.runners import build_cobol, build_java, run_files
-from diocle_verifier.standin import STANDINS, stand_ins_for
+from diocle_verifier.standin import STANDINS, _code, stand_ins_for
 from diocle_verifier.transcript import differential
 from diocle_verifier.verify import passes, validate_report, verify_sample
 
@@ -92,6 +94,31 @@ def test_a_free_format_comment_or_past_column_72_is_read_correctly(tmp_path):
     assert stand_ins_for([commented]) == []
     assert stand_ins_for([far]) == ["CEE3ABD"]
     assert stand_ins_for([own]) == []
+
+
+def test_the_source_is_read_as_the_analyzer_reads_it(tmp_path):
+    """standin.py keeps its own reading (the verifier must run without the analyzer); this keeps the two in step."""
+    tricky = (FREE_FORMAT + "DISPLAY '*> IN A LITERAL' *> A COMMENT\nDISPLAY 'IT''S' *> SECOND\n"
+              '$SET SOMETHING\nDISPLAY "A \'B" *> THIRD\n' + "x" * 90 + "\n")
+    samples = {"free.cbl": tricky, "fixed.cbl": (FIXTURE / "src" / "ACCTCHK.cbl").read_text() + "       " + "Y" * 80 + "\n"}
+    for name, text in samples.items():
+        path = tmp_path / name
+        path.write_text(text)
+        ours = [l.strip() for l in _code(path).splitlines() if l.strip()]
+        assert ours == [code.strip().upper() for _, code in source_lines(text)], name
+
+
+def test_verifying_does_not_need_the_analyzer():
+    """scripts/quickstart.sh and the README's setup install the verifier without it: a judge's first command. test.sh's
+    venvs have the analyzer, so only a blocked import shows this."""
+    sample = Path(__file__).resolve().parents[3] / "samples" / "interest-accrual"
+    script = ("import sys; sys.modules['diocle_analyzer'] = None\n"
+              "from pathlib import Path\n"
+              "from diocle_verifier.verify import passes, verify_sample\n"
+              f"report = verify_sample(Path({str(sample)!r}), Path({str(sample / 'certified-java')!r}), seed=1, random_count=5)\n"
+              "sys.exit(0 if passes(report) else 3)\n")
+    done = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr[-800:]
 
 
 def test_normal_path_is_certified_and_the_report_states_the_stand_in(tmp_path):
