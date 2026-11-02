@@ -6,7 +6,7 @@ Differential testing: compile the original COBOL with GnuCOBOL, compile the conv
 
 ## How it works
 1. **Inputs:** fixture cases from `sample.json` (`fixtureCases`: hand-written trap cases, or for an imported flat record `01 IN-RECORD PIC X(n)` up to 400 records from the repository's own data files, ids `repo-NNNN`, each with a `why` naming the file and line, kept in the delivered `sample.json`; the report shows the case id only; multi-file samples carry them as `fixtureFiles` with `fixtureFileOrigins`), then PIC boundary values (zero, smallest unit, max, negatives) per field, then seeded random records (log-uniform magnitudes). Deterministic for a given `--seed`.
-2. **Original:** `cobc -x -std=ibm -I <copybooks>` (plus `-free` for a source that opens with `>>SOURCE FORMAT FREE`; when the entry program, its CALLed modules and stand-ins mix free and fixed format, each is compiled to an object with its own format and then linked), run with `DD_<name>` environment variables pointing at the input and output files (JCL-style DD names).
+2. **Original:** `cobc -x -std=ibm -I <copybooks>` (plus `-free` for a source that opens with `>>SOURCE FORMAT FREE`, which applies to the copybooks it pulls in too; when the entry program, its CALLed modules and stand-ins mix free and fixed format, each is compiled to an object with its own format and then linked; EXEC SQL programs are built the same way, after the precompiler), run with `DD_<name>` environment variables pointing at the input and output files (JCL-style DD names).
 3. **Converted:** `javac`, then `java <mainClass>` with the same `DD_<name>` variables.
 4. **Diff:** parse both outputs with the output record layout and compare values per field; flag records whose length is wrong (a field overflowed and shifted the rest); compare stdout.
 
@@ -17,9 +17,12 @@ file where the original will run, the original is not run and verification fails
 Java's fault and is reported as such (report v0.12): `runs.tampering` says what it did, and `runs.original.compiled` is
 `null` (not attempted), never `false`, which would read as an original that does not compile. This holds on
 every path (single file, several files, DISPLAY only, EXEC SQL, keyed files, whole JCL job). Limit: a converted program
-that leaves a detached process running, or compiles the COBOL itself, is not stopped by this check; the sandbox limits
-what such a process can reach but does not kill it before the original runs (it kills every process only when the job
-ends).
+that leaves a process running (a plain `ProcessBuilder` helper is enough), or compiles the COBOL itself, is not stopped
+by this check: the helper can wait for the check to pass, then rewrite the original's files, which can falsify that
+run's verdict. The sandbox bounds what it reaches (no secrets, no internet, no shared files, nothing left after the job)
+but not the verdict of its own job: both sides run as the same user, and every process is killed only when the job ends.
+Without the sandbox nothing kills it. The process group is deliberately not killed when the Java ends: `setsid` escapes
+that, and its own group would take a stuck program out of the group the API kills when a delivery runs past its limit.
 
 Each side runs under the same limit (120 seconds). Because the Java runs first, a Java past the limit does not yet say
 whose fault it is: a faithful Java of a program that never ends never ends either. So the original then runs under the
