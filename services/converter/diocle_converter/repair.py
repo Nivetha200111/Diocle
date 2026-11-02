@@ -165,7 +165,7 @@ class RepairAgent:
                                 "seed": CERT_SEED + round_no, "summary": certification["summary"]})
             self.on_event({"type": "certification", "round": round_no, "passed": passed,
                            "result": summarize_report(certification, limit=3, for_agent=False)})
-            if passed:
+            if passed or certification["runs"].get("endedAtStandIn"):  # no repair can change where the original ended
                 break
             extra = ""
             if self.evidence is not None:

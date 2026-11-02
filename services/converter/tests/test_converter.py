@@ -561,6 +561,56 @@ def test_an_original_that_does_not_compile_stops_the_run_before_any_repair_round
     assert original_failure(None) is None and original_failure({}) is None
 
 
+def _ended_at_stand_in() -> dict:
+    ended = report(True)
+    ended["runs"]["endedAtStandIn"] = {"routine": "CEE3ABD", "exitCode": 16, "abendCode": "999", "inputRecords": {"IN": 90},
+                                       "outputRecords": {"OUT": 1}, "reason": "the original ended at Diocle's CEE3ABD stand-in."}
+    return ended
+
+
+def test_an_original_that_ended_at_a_stand_in_stops_the_run_with_its_own_reason():
+    from diocle_converter.__main__ import original_failure
+    why = original_failure(_ended_at_stand_in())
+    assert why == "the original ended at Diocle's CEE3ABD stand-in"  # not "does not compile", no doubled full stop
+
+
+@pytest.mark.parametrize("reports", [[_ended_at_stand_in()], [report(True), _ended_at_stand_in()]],
+                         ids=["starting-tests", "held-out"])
+def test_a_run_that_ended_at_a_stand_in_spends_nothing_on_repair_and_keeps_the_report(reports, tmp_path, monkeypatch):
+    import shutil
+    import diocle_converter.__main__ as cli
+    shutil.copytree(SAMPLE, tmp_path / "samples" / "s")
+    monkeypatch.setattr(cli, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(cli.Settings, "from_env", classmethod(lambda cls: settings()))
+    answers = iter(reports)
+    monkeypatch.setattr(cli, "_verifier", lambda: lambda sample_dir, standing: lambda *a, **k: next(answers))
+    monkeypatch.setattr(cli.RepairAgent, "run", lambda self: pytest.fail("a repair round was started"))
+    assert cli.main(["repair", str(tmp_path / "samples" / "s"), "--no-memory"]) == 1
+    [run_json] = (tmp_path / "runs").glob("*/run.json")
+    run = json.loads(run_json.read_text())
+    assert run["certified"] is False and run["rounds"] == [] and run["usage"]["calls"] == 0
+    assert run["error"] == "the original ended at Diocle's CEE3ABD stand-in"
+    assert json.loads((run_json.parent / "verification-report.json").read_text())["runs"]["endedAtStandIn"]
+
+
+def test_repair_stops_at_the_first_certification_that_ended_at_a_stand_in(tmp_path):
+    """A later round can reach the abend too (each certification has its own seed). No repair changes where the original ended."""
+    ws = Workspace(tmp_path / "java")
+    ws.write("Main.java", "public class Main {}")
+    sdk = ScriptedSDK([tool_call("finish", summary="done")] * 3)
+    agent = RepairAgent(Program.load(SAMPLE), ws, ModelClient(settings(max_rounds=3), _sdk=sdk), lambda *_: _ended_at_stand_in())
+    outcome = agent.run()
+    assert outcome["certified"] is False and len(outcome["rounds"]) == 1
+    assert outcome["certificationReport"]["runs"]["endedAtStandIn"]["routine"] == "CEE3ABD"
+
+
+def test_convert_anyway_labels_a_stand_in_end_with_its_reason_not_as_a_differing_java():
+    from diocle_converter.__main__ import _assurance_fields
+    ended = _ended_at_stand_in()
+    fields = _assurance_fields({"certified": False, "rounds": []}, False, None, ended)
+    assert fields["assuranceReason"] == ended["runs"]["endedAtStandIn"]["reason"] and "differs" not in fields["assuranceReason"]
+
+
 TIERS = ("muse-spark-1.3", "muse-wonder-1.0")
 
 

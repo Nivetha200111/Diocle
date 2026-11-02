@@ -385,14 +385,16 @@ def _convert(args, settings: Settings, client: ModelClient, program: Program, ru
         s0 = first["summary"]
         on_event({"type": "stage", "stage": "repairing",
                   "message": f"Starting point: {s0['passed']}/{s0['total']} cases match; repair agent takes over"})
-    unverifiable = original_failure(first)
     held_out = verify(workspace.root, CERT_SEED, CERT_CASES) if first is not None and report_passes(first) else None
-    if unverifiable and anyway_on:
+    unverifiable = original_failure(first) or original_failure(held_out)
+    # The Java did run here, so the report is kept (the run page shows it) and "never run" (below) would be untrue.
+    ended_report = next((r for r in (first, held_out) if stand_in_end(r)), None)
+    if unverifiable and anyway_on and not ended_report:
         return _finish_unverified(settings, client, program, run_dir, base, events, on_event, guard, translation, workspace,
                                   unverifiable, cobol_repair)
     if unverifiable:
         on_event({"type": "stage", "stage": "done", "message": f"Not certified: {unverifiable}. Stopped before any repair round."})
-        outcome = {"certified": False, "rounds": [], "certificationReport": None, "lessons": []}
+        outcome = {"certified": False, "rounds": [], "certificationReport": ended_report, "lessons": []}
     elif held_out is not None and report_passes(held_out):
         print("conversion already passes, including held-out inputs: no repair needed")
         outcome = {"certified": True, "rounds": [], "certificationReport": held_out, "certificationSeed": CERT_SEED,
@@ -471,8 +473,11 @@ def _assurance_fields(outcome: dict, repaired: bool, cobol_repair: dict | None, 
                 "cobolRepair": cobol_repair}
     if outcome["certified"]:
         return {"assurance": anyway.CERTIFIED, "assuranceReason": None, "cobolRepair": cobol_repair}
+    ended = stand_in_end(report)
+    if ended:
+        return {"assurance": anyway.FAILED, "cobolRepair": cobol_repair, "assuranceReason": ended["reason"]}
     last = (outcome.get("rounds") or [{}])[-1].get("summary") or {}
-    shown = f" ({last['passed']}/{last['total']} cases matched)" if last else ""
+    shown =f" ({last['passed']}/{last['total']} cases matched)" if last else ""
     return {"assurance": anyway.FAILED, "cobolRepair": cobol_repair,
             "assuranceReason": f"the differential test ran and the Java still differs from the COBOL{shown} after the repair caps"}
 
@@ -544,10 +549,19 @@ def _repo(args) -> int:
     return subprocess.call(cmd, cwd=REPO_ROOT / "services" / "api", env=env)
 
 
+def stand_in_end(report: dict | None) -> dict | None:
+    """verification-report v0.12: the original ended at a stand-in, so inputs after that point ran on neither side."""
+    return ((report or {}).get("runs") or {}).get("endedAtStandIn")
+
+
 def original_failure(report: dict | None) -> str | None:
     """Why this program can never be verified, when the verifier could not compile the ORIGINAL COBOL (e.g. a missing
-    period after PROGRAM-ID that IBM's compiler accepts and GnuCOBOL -std=ibm rejects). The Java cannot fix that, so no
-    repair rounds, breaker or review should be paid for."""
+    period after PROGRAM-ID that IBM's compiler accepts and GnuCOBOL -std=ibm rejects), or the original ended at a
+    stand-in part way through its inputs. The Java cannot fix either, so no repair rounds, breaker or review should be
+    paid for."""
+    ended = stand_in_end(report)
+    if ended:
+        return ended["reason"].rstrip(".")
     original = ((report or {}).get("runs") or {}).get("original") or {}
     if original.get("compiled") is not False:
         return None
