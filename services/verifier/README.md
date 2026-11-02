@@ -181,7 +181,8 @@ On z/OS a real abend has no return code (the job shows `U0999`) and buffered out
 modelled. The claim is "verified against GnuCOBOL with Diocle's CEE3ABD stand-in", never "IBM LE verified", and
 the verification report of a program built with it says so in `runs.standIns` (routine, exit code, note), and so does
 the JCL job report (`jobs[].runs.standIns`, report v0.12). The API's run record, certificate `scope`, the pull request
-text and the run page show the single-program field; the job field is in the report only.
+text and the run page show the single-program field; the job field is in the report only. A job's output files are not
+seeded (a file opened EXTEND is), and whatever its pipeline must write is deleted before it runs.
 
 **A run that ends at the stand-in certifies nothing (report v0.12, `runs.endedAtStandIn`).** All inputs go into one run,
 so once the original ends at the CALL, the inputs after that point, if any, run on neither side, and "k of k match" would
@@ -193,8 +194,8 @@ everything; the inputs are not re-run one batch at a time. A program built with 
 certifiable (the normal path, including its own `RETURN-CODE 16`), which is how such programs get certified: generated
 inputs rarely reach an abend path. Exception: a verification with no random inputs (the breaker's attack probe) gets the
 field but no failing result, because the breaker counts any failing result as a break of the Java; `passes()` is still
-false for it. Not a Java fault, so repair rounds cannot help; the converter does not yet stop early for this (it stops
-at its usual caps, not certified).
+false for it. Not a Java fault, so repair rounds cannot help: the converter stops there, not certified, with this reason
+and without paying for another round.
 
 Linking (`standin.py`): every cobc build path (single file, multi-file, keyed, EXEC SQL, mutation, claims, minimize,
 transcription) appends the stand-in when the source or a module contains the literal `'CEE3ABD'` and no source defines
