@@ -109,6 +109,8 @@ The first pass alone gave 13 examples for $2.72. A low pass rate is expected her
 
 **Dataset ([train.jsonl](../eval/distill/train.jsonl)).** 31 examples, about 200,000 tokens by a rough estimate (601,000 over three epochs), SHA-256 `f565c9197019ce66ac5d3875bd48f65295af29a822495e5e4a5241c5f8f7398c`. The leak check passed against the four held-out programs. This is far below the roughly 500 examples Meta suggests.
 
-**Training: blocked.** Fireworks answers `dataset uploads are temporarily disabled, please contact Fireworks AI to get access` ([record](../eval/distill/training.json)). We do not know whether this is an outage or a limit on this account.
+**Training, Nov 3: not started.** The Baseten job is written and passes a tiny-model test on a CPU, but the Baseten key on file can read training projects and not create them (403), so nothing has run or been charged.
+
+**Fireworks:** it still answers `dataset uploads are temporarily disabled, please contact Fireworks AI to get access` ([record](../eval/distill/training.json)). We do not know whether this is an outage or a limit on this account.
 
 **Evaluation: not run.**
