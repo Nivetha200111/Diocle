@@ -35,7 +35,7 @@ from .diff import compare
 from .inputs import Case, generate_for_layout
 from .layout import Field, _parse_value, format_value, load_fields, parse_record, record_format, record_length
 from .multi import is_multi
-from .runners import CLOCK, Run, build_cobol, build_java, read_records, run_files, write_records
+from .runners import CLOCK, Run, build_cobol, build_java, read_output, read_records, run_files, write_records
 
 VERSION = "0.1"
 CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "minimal-reproducer.schema.json"
@@ -584,7 +584,7 @@ def replay(case_dir: Path, java_dir: Path) -> dict:
                             {"DIOCLE_COLLATION": case["collation"].upper()}, timeout=RUN_TIMEOUT)
         except Exception as e:  # timeout
             return {**out, "detail": f"Java did not finish: {type(e).__name__}"}
-        want = read_records(case_dir / exp["file"], fmt, length)
+        want = read_output(case_dir / exp["file"], fmt, length)
         got = run.output_files[dd_out]
         fields = load_fields(case["outputLayout"])
         diff = first_difference(want, got, fields, fmt)

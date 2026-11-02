@@ -150,6 +150,21 @@ def read_records(path: Path, fmt: str = "line", length: int = 0) -> list[str]:
     return data.splitlines()
 
 
+NO_FINAL_NEWLINE = "<no newline at the end of the file>"
+
+
+def read_output(path: Path, fmt: str = "line", length: int = 0) -> list[str]:
+    """An output file's records for comparison. Text lines end at a newline byte and nothing else: a form feed or carriage
+    return (WRITE ... ADVANCING PAGE, 0 LINES) stays in the record and is compared, and a file whose last line has no
+    newline reads as one more entry, so that byte is compared too. read_records stays lenient for files we read as input."""
+    if fmt == "fixed" or not path.exists():
+        return read_records(path, fmt, length)
+    lines = path.read_bytes().decode("latin-1").split("\n")
+    if lines[-1]:
+        return [*lines, NO_FINAL_NEWLINE]
+    return lines[:-1]
+
+
 def write_records(path: Path, records: list[str], fmt: str = "line") -> None:
     path.write_bytes(("".join(records) if fmt == "fixed" else "".join(r + "\n" for r in records)).encode("latin-1"))
 
@@ -160,7 +175,7 @@ def _run_program(cmd: list[str], dd: dict[str, str], input_path: Path, workdir: 
     output_path = workdir / f"{label}.out"
     env = {**CLOCK_ENV, **(extra_env or {}), f"DD_{dd['input']}": str(input_path), f"DD_{dd['output']}": str(output_path)}
     proc = _exec_side(side_of(label), cmd, env=env, cwd=workdir, timeout=timeout)
-    return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(output_path, *out_format))
+    return Run(True, proc.returncode, proc.stdout, proc.stderr, read_output(output_path, *out_format))
 
 
 def _stand_ins(source: Path, modules: list[Path] | None, workdir: Path) -> list[str]:
@@ -277,5 +292,5 @@ def run_files(cmd: list[str], inputs: dict[str, Path], outputs: dict[str, tuple[
     env = {**CLOCK_ENV, **(extra_env or {}), **{f"DD_{dd}": str(p) for dd, p in inputs.items()},
            **{f"DD_{dd}": str(p) for dd, p in paths.items()}}
     proc = _exec_side(side_of(label), cmd, env=env, cwd=workdir, timeout=timeout)
-    files = {dd: read_records(paths[dd], *outputs[dd]) for dd in outputs}
+    files = {dd: read_output(paths[dd], *outputs[dd]) for dd in outputs}
     return Run(True, proc.returncode, proc.stdout, proc.stderr, output_files=files)

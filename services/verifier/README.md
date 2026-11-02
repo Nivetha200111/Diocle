@@ -142,6 +142,18 @@ generation arithmetic beyond an exact base-DSN match, and SORT `INCLUDE`/`OMIT C
 verifier at all, so `verify_job` only ever sees the one-SORT-then-one-COBOL shape). `verify_job` is not yet
 wired into the `diocle_verifier` CLI or `verify_sample()`'s auto-dispatch; call it directly for now.
 
+## WRITE ... ADVANCING: files that are not a whole number of records
+
+GnuCOBOL writes the advancing into the file as bytes, on fixed-length SEQUENTIAL files too (`0x0A` per line, `0x0C` for
+PAGE, `0x0D` for 0 LINES, and one `0x0A` at close after a WRITE AFTER; the exact rule is in
+`services/converter/diocle_converter/prompts.py`). So such a file is cut into pieces of the record length that do not line
+up with its records, and the last piece is short. Records still match only if their bytes are identical; identical bytes
+are not refused for their length, since the original wrote them too. Output text lines end at a newline byte and nothing
+else (`runners.read_output`), so a form feed or carriage return is compared, and a last line with no newline is reported.
+What remains lenient on `line` files: trailing spaces, and a carriage return at the end of a line.
+This is GnuCOBOL's behaviour, not IBM's: IBM documents `ADV` as carrying the control in a byte of the record (not tested
+here). Proof without model calls: `tests/test_write_advancing.py`.
+
 ## Programs with no output file, and files opened I-O (report v0.8)
 
 - **DISPLAY only** (`sample.json` `"displayOnly": true`, set by the analyzer): the one result is `stdout`

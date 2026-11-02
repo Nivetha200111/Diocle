@@ -48,7 +48,7 @@ from .inputs import Case, generate_cases
 from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
 from .runners import (CLOCK, CLOCK_ENV, ProgramTimeout, Run, _exec, _exec_side, attribute_timeout, build_cobol, guard_after,
-                      guard_before, not_run, original_sources, read_records, safe_env, write_records)
+                      guard_before, not_run, original_sources, read_output, read_records, safe_env, write_records)
 from .standin import _code, end_result, ended_at_stand_in, stand_ins_run
 
 RUN_LIMIT = 120  # seconds, each side: the same limit as a single-program run
@@ -156,8 +156,8 @@ def _run_original(sample_dir: Path, job: dict, dd_paths: dict[str, Path], work: 
             for f in meta["files"]:
                 if f["direction"] == "output":
                     fmt = record_format(f["layout"])
-                    outputs[f["dd"]] = read_records(dd_paths[(step["step"], f["dd"])], fmt,
-                                                     record_length(out_fields[f["dd"]]))
+                    outputs[f["dd"]] = read_output(dd_paths[(step["step"], f["dd"])], fmt,
+                                                    record_length(out_fields[f["dd"]]))
         else:
             raise ValueError(f"step {step['step']}: kind {step['kind']!r} is not supported by the job verifier")
 
@@ -360,12 +360,12 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
             if layout:
                 out_fields = load_fields(layout)
                 c_path = converted["outputs"].get(step_name, {}).get(dd)
-                c_records = read_records(Path(c_path), fmt, record_length(out_fields)) if c_path else []
+                c_records = read_output(Path(c_path), fmt, record_length(out_fields)) if c_path else []
                 cases = [Case(f"{step_name}.{dd}#{i + 1:04d}", "output", "") for i in range(len(o_records))]
                 dd_results = compare(cases, o_records, c_records, out_fields, fmt)
             else:  # SORT output: plain line records, no field layout -- compare whole lines
                 c_path = converted["outputs"].get(step_name, {}).get(dd)
-                c_records = read_records(Path(c_path), "line", 0) if c_path else []
+                c_records = read_output(Path(c_path), "line", 0) if c_path else []
                 cases = [Case(f"{step_name}.{dd}#{i + 1:04d}", "output", "") for i in range(len(o_records))]
                 dd_results = compare(cases, o_records, c_records, [], "line")
             step_passed = all(r["match"] for r in dd_results)

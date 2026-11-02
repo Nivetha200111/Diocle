@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from .inputs import Case
 from .layout import Field, parse_record, record_length
+from .runners import NO_FINAL_NEWLINE
 
 
 def _normal(record: str, fmt: str, length: int) -> str:
@@ -41,7 +42,8 @@ def _field_diffs(o: str, c: str, fields: list[Field], fmt: str) -> list[dict]:
 def compare(cases: list[Case], original: list[str], converted: list[str], out_fields: list[Field],
             fmt: str = "line") -> list[dict]:
     """fmt "line": text records whose trailing spaces the writer may trim (GnuCOBOL LINE SEQUENTIAL does), so only a
-    longer record means a field overflowed. fmt "fixed": byte records, whose length must be exact."""
+    longer record means a field overflowed. fmt "fixed": byte records, whose length must be exact unless both sides
+    wrote the same bytes."""
     one_to_one = len(original) == len(cases)
     expected_length = record_length(out_fields)
     results = []
@@ -57,14 +59,24 @@ def compare(cases: list[Case], original: list[str], converted: list[str], out_fi
         if c is not None:
             result["convertedOutput"] = c
         if o is None or c is None:
+            extra = c if o is None else o
             result |= {"match": False, "fieldDiffs": [],
-                       "diff": f"output record {i + 1}: the {'original' if o is None else 'converted'} program wrote "
+                       "diff": f"the {'converted' if o is None else 'original'} file has no newline after its last record; "
+                               "the other's does" if extra == NO_FINAL_NEWLINE else
+                               f"output record {i + 1}: the {'original' if o is None else 'converted'} program wrote "
                                f"{len(original) if o is None else len(converted)} records, the other wrote more"}
             results.append(result)
             continue
-        wrong_length = len(c) > expected_length if fmt == "line" else len(c) != expected_length
-        length_note = (f"converted record is {len(c)} bytes, expected {expected_length}: a field overflowed its width "
-                       "and shifted the fields after it" if wrong_length else "")
+        # Only bytes that differ can be wrong. Identical bytes of an unexpected length are what the original wrote too:
+        # WRITE ... ADVANCING puts control bytes between fixed records, so the file is no whole number of records and
+        # its last piece is short whichever program wrote it.
+        wrong_length = o != c and (len(c.rstrip("\r\n")) > expected_length if fmt == "line" else len(c) != expected_length)
+        length_note = ("" if not wrong_length else
+                       f"the file does not end on a whole record: its last piece is {len(o)} bytes in the original and "
+                       f"{len(c)} in the converted, record length {expected_length}: original {o!r} converted {c!r}"
+                       if fmt == "fixed" and len(o) != expected_length else
+                       f"converted record is {len(c)} bytes, expected {expected_length}: a field overflowed its width "
+                       "and shifted the fields after it")
         same = _normal(o, fmt, expected_length) == _normal(c, fmt, expected_length)
         field_diffs = [] if same else _field_diffs(o, c, out_fields, fmt)
         result["match"] = same and not length_note
