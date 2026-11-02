@@ -43,8 +43,8 @@ before the run. The result is evidence about these programs at this commit.
      recorded. What that certification rests on differs by program, so it is always reported as one of three:
      *inputs vary, attacked*; *inputs vary, not attacked*; or *inputs never vary* (a new seed changes nothing,
      so this is one comparison on fixed input, however many seeds are run);
-   - **not certified** — conversion ran and did not certify within the normal caps, or timed out; error,
-     stderr and the last events recorded;
+   - **not certified** — conversion ran and did not certify within the normal caps, or timed out; the
+     converter's error and last events recorded;
    - **not converted** — another source holds its PROGRAM-ID, so the analyzer wrote no sample for it;
    - **not run** — no sample was written, or the spending ceiling was reached first.
    Every converted program also records what was exercised: its shape, input files, how many fields a new seed
@@ -67,7 +67,9 @@ before the run. The result is evidence about these programs at this commit.
    estimate, and if any run's price is unknown the results say so.
 8. **Limits of the run itself.** The owner approved a total ceiling of $2 (`--max-total-usd 2.00`). Each program
    has a hard $0.40 limit (`--max-usd 0.40`, the converter's fail-closed cap; the dearest conversion in the
-   evaluations cost $0.1642), and is reported as not certified if it reaches it. A program starts only if the spend
+   evaluations cost $0.1642). Reaching it during translation or repair means not certified; reaching it during the
+   breaker or guard review leaves the certification standing, with what ran shown in the results, and certifications
+   without a passed guard review are listed. A program starts only if the spend
    so far plus $0.40 for each conversion running, itself included, stays within $2; the rest are reported as not
    run. A conversion is stopped after 150 minutes (the longest on record is 125.6). Four conversions run at a time
    (`--workers 4`), which changes the elapsed time and no setting of any program.
