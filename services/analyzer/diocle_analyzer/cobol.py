@@ -18,12 +18,17 @@ _COPY_WORD = r"(?<![A-Z0-9_'\"-])COPY"
 
 
 _FREE_FORMAT = re.compile(r"^\s*(?:>>\s*SOURCE\s+(?:FORMAT\s+)?(?:IS\s+)?FREE|\$\s*SET\s+SOURCEFORMAT\s*\(?[\"']?FREE)", re.I)
+_FIXED_FORMAT = re.compile(r"^\s*(?:>>\s*SOURCE\s+(?:FORMAT\s+)?(?:IS\s+)?FIXED|\$\s*SET\s+SOURCEFORMAT\s*\(?[\"']?FIXED)", re.I)
+
+
+def _first_line(text: str) -> str:
+    return next((line for line in text.splitlines() if line.strip()), "")
 
 
 def is_free_format(text: str) -> bool:
     """The source opens with >>SOURCE FORMAT FREE (or $SET SOURCEFORMAT"FREE"); the verifier compiles it with -free.
     Keep in step with diocle_verifier.runners.format_flags."""
-    return bool(_FREE_FORMAT.match(next((line for line in text.splitlines() if line.strip()), "")))
+    return bool(_FREE_FORMAT.match(_first_line(text)))
 
 
 def scan_line(line: str) -> tuple[str, str]:
@@ -50,11 +55,14 @@ def scan_line(line: str) -> tuple[str, str]:
     return "".join(code), "".join(blanked)
 
 
-def source_lines(text: str) -> list[tuple[int, str]]:
+def source_lines(text: str, *, free: bool = False) -> list[tuple[int, str]]:
     """(line number, code) for each non-comment line: columns 8-72 of fixed-format source, or the whole line of
-    free-format source (opening with >>SOURCE FORMAT FREE, which the verifier compiles with -free; *> comments)."""
+    free-format source (opening with >>SOURCE FORMAT FREE, which the verifier compiles with -free; *> comments).
+    free=True: the text is a COPY member of a free-format program. cobc -free reads every member as free-format
+    whatever its columns look like, unless the member itself opens with >>SOURCE FORMAT FIXED."""
     out = []
-    if is_free_format(text):
+    declared_fixed = free and bool(_FIXED_FORMAT.match(_first_line(text)))
+    if is_free_format(text) or (free and not declared_fixed):
         for number, line in enumerate(text.splitlines(), 1):
             code = scan_line(line)[0]
             if code.strip() and not code.lstrip().startswith((">>", "$")):
@@ -63,6 +71,8 @@ def source_lines(text: str) -> list[tuple[int, str]]:
     for number, line in enumerate(text.splitlines(), 1):
         if len(line) > 6 and line[6] in "*/":
             continue
+        if declared_fixed and line.lstrip().startswith((">>", "$")):
+            continue  # the directive itself, written from column 1
         code = line[7:72].rstrip()
         if code.strip():
             out.append((number, code))
@@ -82,9 +92,9 @@ def apply_replacing(text: str, pairs: list[tuple[str, str]]) -> str:
 _REPLACING = re.compile(r"(==.*?==|[A-Z0-9:-]+)\s+BY\s+(==.*?==|[A-Z0-9:-]+)")
 
 
-def _entries(text: str) -> list[str]:
+def _entries(text: str, *, free: bool = False) -> list[str]:
     """Data description entries: code joined across lines, split on periods that end an entry."""
-    joined = " ".join(code.strip() for _, code in source_lines(text))
+    joined = " ".join(code.strip() for _, code in source_lines(text, free=free))
     return [e.strip() for e in re.split(r"\.(?=\s|$)", joined) if e.strip()]
 
 
@@ -169,9 +179,10 @@ def _elementary(node: _Node, usage: str, sign: tuple[str, bool] | None) -> dict 
     return _numeric(node.name, pic, usage, sign)
 
 
-def parse_copybook(text: str, *, code: bool = False) -> Layout:
-    """Record layout of the 01 level in a copybook, or in already-extracted code (an FD's inline record) with code=True."""
-    entries = [e.strip() for e in re.split(r"\.(?=\s|$)", text) if e.strip()] if code else _entries(text)
+def parse_copybook(text: str, *, code: bool = False, free: bool = False) -> Layout:
+    """Record layout of the 01 level in a copybook, or in already-extracted code (an FD's inline record) with code=True.
+    free: the program pulling the member in is free-format (see source_lines)."""
+    entries = [e.strip() for e in re.split(r"\.(?=\s|$)", text) if e.strip()] if code else _entries(text, free=free)
     roots: list[_Node] = []
     stack: list[_Node] = []
     for entry in entries:

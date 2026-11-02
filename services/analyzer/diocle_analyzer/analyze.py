@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 from . import REPORT_VERSION
-from .cobol import _COPY_WORD, apply_replacing, parse_copybook, parse_program, scan_line, source_lines
+from .cobol import _COPY_WORD, apply_replacing, is_free_format, parse_copybook, parse_program, scan_line, source_lines
 import re
 
 from .jcl import SortSpec, group_jobs, is_sort_step, parse_jcl, parse_procs, parse_sort_fields, wire_steps
@@ -73,16 +73,17 @@ def classify(root: Path) -> tuple[list[Path], dict[str, Path], list[Path]]:
     return programs, other, jcl
 
 
-def nested_copybooks(names: list[str], copybooks: dict[str, Path]) -> list[str]:
+def nested_copybooks(names: list[str], copybooks: dict[str, Path], *, free: bool = False) -> list[str]:
     """names plus every copybook they COPY in turn (HTNEST copying HTSTATUS and HTERROR), in first-seen order,
-    so the sample carries all of them and a missing nested member is reported like a missing direct one."""
+    so the sample carries all of them and a missing nested member is reported like a missing direct one.
+    free: the program pulling them in is free-format, and so are its members (see source_lines)."""
     out, todo = list(dict.fromkeys(names)), list(dict.fromkeys(names))
     while todo:
         member = todo.pop(0)
         if member not in copybooks:
             continue
         text = copybooks[member].read_text(errors="replace")
-        code = " ".join(scan_line(c)[1].strip() for _, c in source_lines(text))  # VALUE 'COPY FAILED' is no COPY
+        code = " ".join(scan_line(c)[1].strip() for _, c in source_lines(text, free=free))  # VALUE 'COPY FAILED' is no COPY
         for nested in re.findall(_COPY_WORD + r"\s+([A-Z0-9-]+)", code):
             if nested not in out:
                 out.append(nested)
@@ -117,8 +118,8 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
     for path in sources:
         text = path.read_text(errors="replace")
         info = parsed[path]
+        free = is_free_format(text)  # compiled with -free, which reads the copybooks it pulls in as free-format too
         modules = modules_of(info.name, {info.name})
-        module_copybooks = [c for m in modules for c in parsed[root / m].copybooks]
         step = next((s for s in steps if s.program == info.name), None)
         files = []
         for file_name, dd in info.selects.items():
@@ -128,7 +129,7 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
             if member in copybooks:
                 copybook_text = apply_replacing(copybooks[member].read_text(errors="replace"),
                                                 info.replacing.get(file_name, []))
-                layout = parse_copybook(copybook_text)
+                layout = parse_copybook(copybook_text, free=free)
             elif file_name in info.fd_inline:
                 layout = parse_copybook(info.fd_inline[file_name], code=True)
             else:
@@ -156,8 +157,9 @@ def analyze(root: Path, *, kind: str = "directory", location: str | None = None,
                 **({"unsupported": layout.unsupported} if layout and layout.unsupported else {}),
             })
         sql = analyze_sql(text, sql_members, ddl_tables) if "SQL" in info.exec_blocks else None
-        used = nested_copybooks(info.copybooks, copybooks)
-        module_copybooks = nested_copybooks(module_copybooks, copybooks)
+        used = nested_copybooks(info.copybooks, copybooks, free=free)
+        module_copybooks = [c for m in modules for c in nested_copybooks(  # each module is built in its own format
+            parsed[root / m].copybooks, copybooks, free=is_free_format((root / m).read_text(errors="replace")))]
         reason = _not_convertible(files, used, copybooks, info, program_ids, sql)
         stand_ins = stand_ins_used(info.calls + [c for m in modules for c in parsed[root / m].calls], program_ids)
         includes = sql.includes if sql else []

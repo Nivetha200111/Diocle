@@ -190,3 +190,97 @@ def test_nested_copybooks_travel_with_the_program(tmp_path):
     (tmp_path / "NESTB.cpy").unlink()
     p = next(p for p in analyze(tmp_path)["programs"] if p["name"] == "FLATP")
     assert not p["convertible"] and "NESTB" in p["notConvertibleReason"]
+
+
+# --- a free-format program's format applies to the copybooks it pulls in (cobc -free reads them all as free) ---------
+
+FREE_PROGRAM = """>>SOURCE FORMAT FREE
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FREEPGM.
+ENVIRONMENT DIVISION.
+INPUT-OUTPUT SECTION.
+FILE-CONTROL.
+    SELECT IN-FILE ASSIGN TO INFILE ORGANIZATION IS SEQUENTIAL.
+    SELECT OUT-FILE ASSIGN TO OUTFILE ORGANIZATION IS SEQUENTIAL.
+DATA DIVISION.
+FILE SECTION.
+FD IN-FILE.
+COPY FREEIN.
+FD OUT-FILE.
+01 OUT-REC PIC X(10).
+WORKING-STORAGE SECTION.
+COPY FREEWS.
+PROCEDURE DIVISION.
+    OPEN INPUT IN-FILE OUTPUT OUT-FILE.
+    CLOSE IN-FILE OUT-FILE.
+    STOP RUN.
+"""
+FREE_IN = "01 IN-REC.\n   05 IN-ID PIC X(5).\n   05 IN-AMT PIC 9(5).\n"
+
+
+def _free_repo(tmp_path, source=FREE_PROGRAM, members=None):
+    (tmp_path / "FREEPGM.cbl").write_text(source)
+    for name, text in {"FREEIN": FREE_IN, "FREEWS": "COPY FREENEST.\n", "FREENEST": "01 WS-EOF PIC X.\n", **(members or {})}.items():
+        if text is not None:
+            (tmp_path / f"{name}.cpy").write_text(text)
+    return next(p for p in analyze(tmp_path)["programs"] if p["name"] == "FREEPGM")
+
+
+def test_a_free_programs_copybooks_are_read_as_free_format(tmp_path):
+    p = _free_repo(tmp_path)
+    assert p["convertible"], p["notConvertibleReason"]
+    assert [f["name"] for f in p["files"][0]["layout"]["fields"]] == ["IN-ID", "IN-AMT"]
+    assert p["copybooks"] == ["FREEIN", "FREEWS", "FREENEST"]  # the nested COPY in columns 1-7 is found
+
+
+def test_a_missing_nested_member_of_a_free_program_is_refused_before_any_translation(tmp_path):
+    p = _free_repo(tmp_path, members={"FREENEST": None})
+    assert not p["convertible"] and "FREENEST" in p["notConvertibleReason"]
+
+
+def test_a_member_that_declares_fixed_stays_fixed_in_a_free_program(tmp_path):
+    fixed = (">>SOURCE FORMAT FIXED\n000100 01  IN-REC.\n000200     05  IN-ID PIC X(5).\n      * a comment\n"
+             "000300     05  IN-AMT PIC 9(5).\n")
+    p = _free_repo(tmp_path, members={"FREEIN": fixed})
+    assert p["convertible"], p["notConvertibleReason"]
+    assert [f["name"] for f in p["files"][0]["layout"]["fields"]] == ["IN-ID", "IN-AMT"]
+
+
+def test_a_fixed_program_still_reads_its_copybooks_as_fixed(tmp_path):
+    fixed = FREE_PROGRAM.removeprefix(">>SOURCE FORMAT FREE\n")
+    fixed = "".join("       " + line + "\n" for line in fixed.splitlines())
+    p = _free_repo(tmp_path, fixed)
+    assert not p["convertible"] and "no 01 level" in p["notConvertibleReason"]  # cobc reads FREEIN by columns too
+
+
+def test_each_module_reads_its_copybooks_in_its_own_format(tmp_path):
+    (tmp_path / "MAINP.cbl").write_text("""       IDENTIFICATION DIVISION.
+       PROGRAM-ID. MAINP.
+       PROCEDURE DIVISION.
+           CALL 'FREESUB'
+           DISPLAY 'DONE'
+           STOP RUN.
+""")
+    (tmp_path / "FREESUB.cbl").write_text(""">>SOURCE FORMAT FREE
+IDENTIFICATION DIVISION.
+PROGRAM-ID. FREESUB.
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+COPY SUBWS.
+PROCEDURE DIVISION.
+    GOBACK.
+""")
+    (tmp_path / "SUBWS.cpy").write_text("COPY SUBNEST.\n")
+    (tmp_path / "SUBNEST.cpy").write_text("01 WS-A PIC X.\n")
+    p = next(p for p in analyze(tmp_path)["programs"] if p["name"] == "MAINP")
+    assert p["copybooks"] == ["SUBWS", "SUBNEST"]
+
+
+def test_interface_checks_read_a_free_programs_copybooks_as_free_format():
+    from diocle_analyzer.interfaces import Source, _sizes, copybook_drift
+    program = ">>SOURCE FORMAT FREE\nPROGRAM-ID. P{n}.\nFILE SECTION.\nFD F.\nCOPY REC.\nWORKING-STORAGE SECTION.\nCOPY WS.\n"
+    wide = "01 R.\n   05 A PIC X(9).\n"
+    assert _sizes(program.format(n=1), {"WS": ("WS.cpy", "01 WS-A PIC X(7).\n")})["WS-A"] == 7
+    _, drift = copybook_drift([Source("P1", "p1.cbl", program.format(n=1), {"REC": ("c/REC.cpy", wide)}),
+                               Source("P2", "p2.cbl", program.format(n=2), {"REC": ("d/REC.cpy", wide.replace("9", "4"))})])
+    assert drift  # read by columns, both members were empty and looked the same

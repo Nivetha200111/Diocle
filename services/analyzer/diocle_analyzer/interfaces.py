@@ -12,7 +12,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
-from .cobol import _REPLACING, _TOKEN, _VERBS, _entries, apply_replacing, parse_copybook, parse_program, source_lines
+from .cobol import _REPLACING, _TOKEN, _VERBS, _entries, apply_replacing, is_free_format, parse_copybook, parse_program, source_lines
 
 RUNTIME_ROUTINE = re.compile(r"^(CEE|ILB|CBL_|C\$|SYSTEM$|DFH|DSN|MQ|CBLTDLI|PLITDLI|ASMTDLI)")
 _COPY = re.compile(r"(?<![A-Z0-9_'\"-])COPY\s+([A-Z0-9-]+)(?:\s+REPLACING\s+(.*?))?\s*\.(?=\s|$)")  # a statement, not X-COPY
@@ -30,9 +30,9 @@ def _fingerprint(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:12]
 
 
-def normalize(text: str) -> str:
-    """Copybook text without comments, sequence columns or spacing differences."""
-    return re.sub(r"\s+", " ", " ".join(c for _, c in source_lines(text))).strip().upper()
+def normalize(text: str, *, free: bool = False) -> str:
+    """Copybook text without comments, sequence columns or spacing differences. free: read by a free-format program."""
+    return re.sub(r"\s+", " ", " ".join(c for _, c in source_lines(text, free=free))).strip().upper()
 
 
 def _bytes(f: dict) -> int:
@@ -73,8 +73,8 @@ def layouts_of(code_entries: list[str]) -> dict[str, dict | None]:
     return out
 
 
-def _entries_of(text: str) -> list[str]:
-    return _entries(text)
+def _entries_of(text: str, *, free: bool = False) -> list[str]:
+    return _entries(text, free=free)
 
 
 # ---- copybook drift ---------------------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ def _entries_of(text: str) -> list[str]:
 def copybook_drift(sources: list[Source]) -> tuple[list[str], list[dict]]:
     """(every copybook COPYed, drift findings). Content drift: the member's normalized text differs between files.
     Layout drift: for the same COPY with the same REPLACING, the analyzer's record layouts differ."""
-    used: dict[str, list[tuple[str, str, str, tuple]]] = {}  # name -> [(program, path, text, replacing)]
+    used: dict[str, list[tuple[str, str, str, tuple, bool]]] = {}  # name -> [(program, path, text, replacing, read as free format)]
     for s in sources:
         info = parse_program(s.text)
         replacing = {}
@@ -92,14 +92,14 @@ def copybook_drift(sources: list[Source]) -> tuple[list[str], list[dict]]:
         for name in info.copybooks:
             if name in s.copybooks:
                 path, text = s.copybooks[name]
-                used.setdefault(name, []).append((s.program, path, text, replacing.get(name, ())))
+                used.setdefault(name, []).append((s.program, path, text, replacing.get(name, ()), is_free_format(s.text)))
             else:
                 used.setdefault(name, [])
     findings = []
     for name, uses in sorted(used.items()):
         by_print: dict[str, dict] = {}
-        for program, path, text, _ in uses:
-            v = by_print.setdefault(_fingerprint(normalize(text)), {"programs": [], "paths": []})
+        for program, path, text, _, free in uses:
+            v = by_print.setdefault(_fingerprint(normalize(text, free=free)), {"programs": [], "paths": []})
             if program not in v["programs"]:
                 v["programs"].append(program)
             if path not in v["paths"]:
@@ -107,8 +107,8 @@ def copybook_drift(sources: list[Source]) -> tuple[list[str], list[dict]]:
         # layouts per (REPLACING) group
         layout_drift = None
         groups: dict[tuple, dict[str, dict]] = {}
-        for program, path, text, pairs in uses:
-            lay = layouts_of(_entries_of(apply_replacing(text, list(pairs))))
+        for program, path, text, pairs, free in uses:
+            lay = layouts_of(_entries_of(apply_replacing(text, list(pairs)), free=free))
             fp = _fingerprint(json.dumps(lay, sort_keys=True))
             g = groups.setdefault(pairs, {}).setdefault(fp, {"programs": [], "paths": [], "lay": lay})
             if program not in g["programs"]:
@@ -158,20 +158,20 @@ def _brief(f: dict) -> str:
 
 # ---- CALL ... USING ----------------------------------------------------------------------------------------------
 
-def _expand(code: str, copybooks: dict[str, tuple[str, str]], depth: int = 0) -> str:
+def _expand(code: str, copybooks: dict[str, tuple[str, str]], depth: int = 0, *, free: bool = False) -> str:
     def sub(m: re.Match) -> str:
         entry = copybooks.get(m.group(1))
         if entry is None or depth > 5:
             return " "
         pairs = _REPLACING.findall(m.group(2)) if m.group(2) else []
-        body = " ".join(c.strip() for _, c in source_lines(apply_replacing(entry[1], pairs)))
-        return " " + _expand(body, copybooks, depth + 1) + " "
+        body = " ".join(c.strip() for _, c in source_lines(apply_replacing(entry[1], pairs), free=free))
+        return " " + _expand(body, copybooks, depth + 1, free=free) + " "
     return _COPY.sub(sub, code)
 
 
 def _sizes(text: str, copybooks: dict[str, tuple[str, str]]) -> dict[str, int | None]:
     """Byte length of each 01/77 item in WORKING-STORAGE and LINKAGE (None = not modelled)."""
-    code = _expand(" ".join(c.strip() for _, c in source_lines(text)).upper(), copybooks)
+    code = _expand(" ".join(c.strip() for _, c in source_lines(text)).upper(), copybooks, free=is_free_format(text))
     m = re.search(r"\bWORKING-STORAGE\s+SECTION\s*\.(.*?)(?=\bLINKAGE\s+SECTION\b|\bPROCEDURE\s+DIVISION\b|$)", code, re.S)
     l = re.search(r"\bLINKAGE\s+SECTION\s*\.(.*?)(?=\bPROCEDURE\s+DIVISION\b|$)", code, re.S)
     sizes: dict[str, int | None] = {}
