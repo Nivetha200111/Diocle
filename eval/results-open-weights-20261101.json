@@ -1,6 +1,6 @@
 {
  "date": "2026-11-01",
- "protocol": "python -m diocle_converter run SAMPLE --no-memory --breaker --max-usd CAP (private mode: MODEL_MODE=private, cap $0.25; cross-check runs: hosted Muse Spark plus --crosscheck, cap $0.15). One run per program, local machine (GnuCOBOL 3.2, JDK 21), not on the public run list.",
+ "protocol": "python -m diocle_converter run SAMPLE --no-memory --breaker --max-usd CAP (private mode: MODEL_MODE=private, cap $0.25; cross-check runs: hosted Muse Spark plus --crosscheck, cap $0.15). One run per program, local machine (GnuCOBOL 3.2, JDK 21). Copied to the public run list on Nov 3, 2026, local paths removed, the two uncertified runs included.",
  "runs": [
   {
    "runId": "chqclr-20261101-142844",
