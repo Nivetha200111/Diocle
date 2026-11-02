@@ -44,7 +44,13 @@ export const CANONICAL_FRESH_INPUTS = CANONICAL.programs.reduce((n, p) => n + p.
 // Runs certified under an older verifier that the current one rejects; kept, and labelled, rather than hidden.
 export const SUPERSEDED: Record<string, string> = {
   "intaccr-20261028-191523":
-    "Superseded: fails the later byte-exact verifier (-000000000 vs +000000000 on 30 of 1,019 inputs). Re-delivered in quillmark-modern#4.",
+    "Superseded: fails the later byte-exact verifier (-000000000 vs +000000000 on 30 to 43 of 1,019 inputs in the seeds tried; the count depends on the seed). Re-delivered in quillmark-modern#4.",
+};
+
+// Superseded runs keep their re-verify button; this says, on the run and beside the button, what pressing it will show.
+export const EXPECTED_REVERIFY_FAILURE: Record<string, string> = {
+  "intaccr-20261028-191523":
+    "This run was certified before byte-exact comparison landed, so it is expected to fail a fresh re-verify: in OUT-INTEREST this Java writes -000000000 where the COBOL writes +000000000, a real difference the old comparison did not catch.",
 };
 
 // What a stored run's own counts cannot tell a reader. Shown on the run; the record is unchanged.

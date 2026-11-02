@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-react";
 import { API_URL, ASSURANCE_BADGE, callCostUsd, countTile, originalDidNotCompile, originalWroteNothing, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { AssuranceBadge, AssuranceNote } from "./assurance";
-import { KNOWN_DIFFERENCE, runNote, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
+import { EXPECTED_REVERIFY_FAILURE, KNOWN_DIFFERENCE, runNote, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
 import { Badge, PrivateModeBadge, Skeleton } from "./ui";
 import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
@@ -420,6 +420,7 @@ function ReverifyPanel({ run }: { run: Run }) {
         <div>
           <h2>Check it yourself</h2>
           <p>Run the original COBOL and this stored Java once each on about 1,000 generated records from a seed chosen now. No model is involved, so this re-checks the Java; it is not a new conversion.</p>
+          {EXPECTED_REVERIFY_FAILURE[run.id] && <p className="dlv-reason">{EXPECTED_REVERIFY_FAILURE[run.id]}</p>}
         </div>
       </div>
       <div className="reverify">
@@ -486,6 +487,7 @@ function RunDetail({ run }: { run: Run }) {
             Model: <span className="mono">{run.model ?? "none"}</span> · {run.createdAt?.replace("T", " ")} · run <span className="mono">{run.id}</span>
           </p>
           {SUPERSEDED[run.id] && <p className="dlv-reason">{SUPERSEDED[run.id]}</p>}
+          {EXPECTED_REVERIFY_FAILURE[run.id] && <p className="dlv-reason">{EXPECTED_REVERIFY_FAILURE[run.id]}</p>}
           {runNote(run.id) && <p className="dlv-reason">{runNote(run.id)}</p>}
         </div>
       </div>
