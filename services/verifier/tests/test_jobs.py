@@ -189,6 +189,20 @@ def _pipeline(tmp: Path, java_source: str | None = None) -> tuple[dict, dict]:
 
 
 @requires_toolchain
+def test_a_job_certified_with_the_stand_in_says_so(tmp_path):
+    """The stand-in is linked (the paragraph is never reached): the job's certificate must state it, like a program's."""
+    sample = _sample_with_source(tmp_path, lambda s: s.rstrip("\n") + "\n       9999-ABEND.\n           CALL 'CEE3ABD'.\n")
+    job, pipeline = _pipeline(tmp_path)
+    report = verify_job(sample, job, pipeline, seed=4242, random_count=5)
+    [result] = report["jobs"]
+    assert result["certified"] is True, result["results"][:2]
+    [standin] = result["runs"]["standIns"]
+    assert standin["routine"] == "CEE3ABD" and standin["exitCode"] == 16 and "not IBM" in standin["note"]
+    assert "endedAtStandIn" not in result["runs"]
+    validate_report({"version": report["version"], "results": [], "summary": {"total": 0, "passed": 0, "failed": 0}, "jobs": [result]})
+
+
+@requires_toolchain
 def test_a_job_whose_cobol_step_ends_at_the_stand_in_is_not_certified(tmp_path):
     """Both sides stop at the start of the COBOL step, so the SORT step's output matches and the exit codes agree. This was
     certified, with the COBOL step having processed nothing."""

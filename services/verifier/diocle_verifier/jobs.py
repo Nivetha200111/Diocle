@@ -48,7 +48,7 @@ from .layout import load_fields, record_format, record_length
 from .multi import _sort_key
 from .runners import (CLOCK, CLOCK_ENV, ProgramTimeout, Run, _exec, _exec_side, attribute_timeout, build_cobol, guard_after,
                       guard_before, not_run, original_sources, read_records, safe_env, write_records)
-from .standin import end_result, ended_at_stand_in
+from .standin import end_result, ended_at_stand_in, stand_ins_run
 
 RUN_LIMIT = 120  # seconds, each side: the same limit as a single-program run
 
@@ -378,6 +378,7 @@ def verify_job(sample_dir: Path, job: dict, pipeline: dict, seed: int = 1026, ra
                 "exitCodeMatch": exit_match,
                 "clock": CLOCK,
                 "collation": collation,
+                **stand_ins_run(sample_dir, meta),
                 **({"endedAtStandIn": ended} if ended else {}),
                 **({"tampering": tamper} if tamper else {}),
             },
