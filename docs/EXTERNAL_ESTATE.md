@@ -94,6 +94,28 @@ caffeinate -i services/verifier/.venv/bin/python eval/run_external_estate.py --m
 Then fill in the results section below from `eval/results-external-estate.json` and link this page from
 `docs/EVIDENCE.md` and the live Evidence page. Do not edit the protocol above after the run.
 
+## Second pass (pinned Nov 2, 2026, after the first pass found the gap and before this pass ran)
+
+The first pass stands as recorded in `eval/results-external-estate.json`. In it, 16 programs stopped before any
+comparison because their original does not compile under GnuCOBOL: 15 have `PROGRAM-ID.    CBL0001` with no closing
+period, which GnuCOBOL rejects under every `-std`, and `PAYROL0X` has a type error. A compile-only check with no model
+call showed that adding the period lets 11 of the 15 compile. The other 4 fail on errors in the source itself
+(`CBL0002`, `CBL0007`, `CBL0009`, `CBL0012`).
+
+- **No product change.** This pass runs the same 16 through the converter's existing `--convert-anyway`, added to the
+  flags above. It may patch an original that does not compile, within fixed limits (`cobolrepair.py`: a missing period,
+  one small identifier correction, or one added word per line), and never overwrites the file.
+- **What a result means.** The label is **certified against repaired COBOL**, never plain certified: the Java matched
+  the patched copy under GnuCOBOL, not the file as distributed. Each result publishes the patch. Nothing checks that a
+  corrected identifier is what the author meant, so a person must still confirm it. A program that cannot be patched,
+  or whose Java differs, is reported as not certified.
+- **Which programs.** Only those 16. Refused and not-converted programs keep those outcomes, and the rest are reported
+  as `not in this pass`, with their result in the first pass.
+- **Everything else as in the protocol above:** the pinned commit, `--breaker --no-memory`, normal caps, $0.40 per
+  program, four at a time, one pass, no tuning. The owner approved a separate $2 ceiling.
+- **Run:** `caffeinate -i services/verifier/.venv/bin/python eval/run_external_estate.py --second-pass --max-total-usd 2.00 --workers 4`.
+  Results: `eval/results-external-estate-second-pass.json`. Both passes are published together.
+
 ## Results
 
 ### Analysis phase (Nov 2, 2026, Windows; no model calls)

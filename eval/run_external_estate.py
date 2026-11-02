@@ -61,6 +61,11 @@ PROGRAM_CAP_USD = 0.40  # hard, per program (--max-usd fails closed); dearest in
 RUN_DIR = re.compile(r"^(.+)-(\d{8}-\d{6})$")
 # Not 400, 413 or 422: a request the provider rejects says something about this program, and would only repeat on resume.
 PROVIDER_FAILURE = re.compile(r"APIConnectionError|APITimeoutError|AuthenticationError|PermissionDeniedError|RateLimitError|InternalServerError|\bHTTP (?:401|402|403|408|429|5\d\d)\b")
+SECOND_PASS = False
+EXTRA_FLAGS: list[str] = []
+NOT_COMPILING_IN_FIRST_PASS = {"CBL0001", "CBL0002", "CBL0004", "CBL0005", "CBL0006", "CBL0007", "CBL0008", "CBL0009", "CBL0010", "CBL0011",
+                               "CBL0012", "CBL0033", "CBL006A", "CBL0106", "CBL0106C", "PAYROL0X"}
+REPAIRED = "certified against repaired COBOL"
 _procs: set[subprocess.Popen] = set()
 _procs_lock = threading.Lock()
 
@@ -133,16 +138,17 @@ def exercise(sample: Path) -> dict:
 
 def level(entry: dict) -> str:
     """The one line a results table needs: a certification only shows what its run exercised."""
-    if entry["outcome"] != "certified":
-        return entry["outcome"]
+    label = entry["outcome"]
+    if label not in ("certified", REPAIRED):
+        return label
     if not all(s.get("passed") for s in entry["freshSeeds"]):
-        return "certified, then failed a fresh seed"
+        return f"{label}, then failed a fresh seed"
     if "error" in entry["exercised"]:
-        return "certified, what it exercised is unknown"
+        return f"{label}, what it exercised is unknown"
     if not entry["exercised"]["seedsChangeInputs"]:
-        return "certified, inputs never vary"
+        return f"{label}, inputs never vary"
     tried = (entry.get("breaker") or {}).get("tried", 0)
-    return "certified, inputs vary, attacked" if tried else "certified, inputs vary, not attacked"
+    return f"{label}, inputs vary, attacked" if tried else f"{label}, inputs vary, not attacked"
 
 
 def _kill_running() -> None:
@@ -157,7 +163,7 @@ def _kill_running() -> None:
 def _run_converter(sample: Path) -> tuple[int | None, str, str]:
     """Runs one conversion in its own process group, so a timeout or Ctrl-C also stops the compilers and JVMs under it.
     The exit code is None after a timeout."""
-    proc = subprocess.Popen([*CONVERTER, "run", str(sample), "--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD)],
+    proc = subprocess.Popen([*CONVERTER, "run", str(sample), "--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD), *EXTRA_FLAGS],
                             cwd=CONVERTER_CWD, text=True, errors="replace", stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             start_new_session=True)
     with _procs_lock:
@@ -209,24 +215,30 @@ def convert(sample: Path, program: str) -> dict:
     meta = json.loads(run_file.read_text()) if run_file and run_file.exists() else {}
     settings = re.search(r"^model: (\S+) \((\w+)\), reasoning_effort=(\S+), caps: (.+)$", out, re.M)
     certified = meta.get("certified", False) is True and code is not None
+    assurance = meta.get("assurance") if code is not None else None  # --convert-anyway only; `certified` stays false on all but plain
+    repaired = assurance == "certified-against-repaired-cobol"
     error = meta.get("error") or (f"timed out after {TIMEOUT_MINUTES} minutes" if code is None else None)
-    if not certified and not error and meta.get("status", "running") == "running":  # the type only: a provider's message can echo account details
+    if not certified and not repaired and not error and meta.get("status", "running") == "running":  # the type only: a provider's message can echo account details
         last = (err.strip().splitlines() or [""])[-1]
         kind = re.match(r"[\w.]*(?:Error|Exception|Exceeded)\b", last)
         error = f"the converter exited with {code} and left {'an unfinished' if meta else 'no'} run record" + (f" ({kind.group(0)})" if kind else "")
     guard = meta.get("guard") or {}
     review = guard.get("review") or {}
-    result = {"program": program, "outcome": "certified" if certified else "not certified", "runId": run_id,
+    outcome = "certified" if certified else REPAIRED if repaired else "compiled, not verified" if assurance == "compiled-unverified" else "not certified"
+    repair = meta.get("cobolRepair") or {}
+    result = {"program": program, "outcome": outcome, "runId": run_id,
               "exitCode": code, "certified": certified, "error": _clean(error),
               "model": settings.group(1) if settings else None, "modelMode": settings.group(2) if settings else None,
               "reasoningEffort": settings.group(3) if settings else None, "caps": settings.group(4) if settings else None,
               "rounds": len(meta.get("rounds", [])), "usage": {k: v for k, v in meta.get("usage", {}).items() if k != "modelCalls"},
-              "breaker": meta.get("breaker"), "status": meta.get("status"),
+              "breaker": meta.get("breaker"), "status": meta.get("status"), "assurance": meta.get("assurance"), "assuranceReason": _clean(meta.get("assuranceReason")),
+              "cobolRepair": {"method": repair.get("method"), "outcome": repair.get("outcome"), "changedLines": repair.get("changedLines"), "diff": _clean(repair.get("diff"))} if repair else None,
               "guard": {"blocked": guard.get("blocked"), "stopped": guard.get("stopped"), "reviewVerdict": review.get("verdict"),
                         "reviewSummary": _clean(review.get("summary"))} if guard else None,
               "minutes": round((time.time() - started) / 60, 1), "freshSeeds": []}
-    if certified:
-        result["freshSeeds"] = [_fresh_seed(sample, ROOT / "runs" / run_id / "java", seed) for seed in FRESH_SEEDS]
+    if certified or repaired:  # a repair is compared in the sample's patched copy, next to it
+        compared = sample.with_name(f"{sample.name}.repaired") if repaired else sample
+        result["freshSeeds"] = [_fresh_seed(compared, ROOT / "runs" / run_id / "java", seed) for seed in FRESH_SEEDS]
     else:
         result["lastEvents"] = _last_events(run_id) if run_id else None
     return result
@@ -273,9 +285,18 @@ def _save(path: Path, header: dict, results: list[dict], spend: dict, complete: 
     tmp.write_text(json.dumps({**header, "complete": complete, "programsAccounted": len(results), "tally": tally,
                                "recordedCostUsd": round(spend["usd"], 6), "costComplete": not spend["unknown"],
                                "restartedPrograms": spend["restarted"],
-                               "certifiedWithoutGuardPass": [r["program"] for r in results if r.get("outcome") == "certified" and (r.get("guard") or {}).get("reviewVerdict") != "pass"],
+                               "certifiedWithoutGuardPass": [r["program"] for r in results if r.get("outcome") in ("certified", REPAIRED) and (r.get("guard") or {}).get("reviewVerdict") != "pass"],
                                "results": results}, indent=2) + "\n")
     tmp.replace(path)
+
+
+def use_second_pass() -> None:
+    """The dated re-run docs/EXTERNAL_ESTATE.md pins: its own import and files, and only the programs whose original did
+    not compile, through the product's existing --convert-anyway, whose results are never labelled plain certified."""
+    global WORK, REPORT, SAMPLES, OUT, PARTIAL, LOGS, SECOND_PASS, EXTRA_FLAGS
+    WORK = ROOT / "runs" / "external-estate-second-pass"
+    REPORT, SAMPLES, PARTIAL, LOGS = WORK / "report.json", WORK / "samples", WORK / "results.partial.json", WORK / "logs"
+    OUT, SECOND_PASS, EXTRA_FLAGS = ROOT / "eval" / "results-external-estate-second-pass.json", True, ["--convert-anyway"]
 
 
 def _classify(program: dict, samples: dict[str, Path], holders: dict[Path, str]) -> dict | None:
@@ -291,6 +312,8 @@ def _classify(program: dict, samples: dict[str, Path], holders: dict[Path, str])
         return {"program": name, "path": path, "outcome": "not converted",
                 "reason": f"PROGRAM-ID {name} is already held by {holders[samples[name]]}; the analyzer writes one sample per PROGRAM-ID, so this source was never converted"}
     holders[samples[name]] = path
+    if SECOND_PASS and name not in NOT_COMPILING_IN_FIRST_PASS:
+        return {"program": name, "path": path, "outcome": "not in this pass", "reason": "its original compiled in the first pass; see that result"}
     return None
 
 
@@ -328,10 +351,10 @@ def run_estate(max_total: float, workers: int = 1) -> dict[str, int]:
     commit = (report.get("source") or {}).get("commit")
     check_pin(commit)
     samples = {json.loads((s / "sample.json").read_text())["program"]: s
-               for s in sorted(SAMPLES.iterdir()) if (s / "sample.json").exists()}
+               for s in sorted(SAMPLES.iterdir()) if (s / "sample.json").exists() and not s.name.endswith(".repaired")}
     names = {s.name for s in samples.values()}
-    header = {"estate": ESTATE_URL, "pinnedCommit": PINNED_COMMIT, "analyzedCommit": commit, "memory": False,
-              "converterFlags": ["--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD)], "freshSeeds": FRESH_SEEDS,
+    header = {"pass": "second, --convert-anyway on what did not compile" if SECOND_PASS else "first, as found", "estate": ESTATE_URL, "pinnedCommit": PINNED_COMMIT, "analyzedCommit": commit, "memory": False,
+              "converterFlags": ["--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD), *EXTRA_FLAGS], "freshSeeds": FRESH_SEEDS,
               "maxTotalUsd": max_total, "programCapUsd": PROGRAM_CAP_USD, "workers": workers, "timeoutMinutes": TIMEOUT_MINUTES,
               "diocleCommit": _git("rev-parse", "HEAD"), "startedAt": time.strftime("%Y%m%d-%H%M%S"),
               "cobc": _version(["cobc", "--version"]), "java": _version(["java", "-version"]), "resumes": 0}
@@ -441,6 +464,9 @@ def plan() -> list[dict]:
             rows.append({**row, "outcome": "refused", "reason": program["notConvertibleReason"]})
         elif name in seen:
             rows.append({**row, "outcome": "not converted", "reason": f"PROGRAM-ID {name} is already held by an earlier source"})
+        elif SECOND_PASS and name not in NOT_COMPILING_IN_FIRST_PASS:
+            seen.add(name)
+            rows.append({**row, "outcome": "not in this pass"})
         else:
             seen.add(name)
             rows.append({**row, "outcome": "to convert", "exercised": exercise(SAMPLES / name.lower())})
@@ -452,9 +478,12 @@ if __name__ == "__main__":
     parser.add_argument("--plan", action="store_true", help="print what would be exercised; no model calls")
     parser.add_argument("--max-total-usd", type=float, help="the approved ceiling for the whole run (required for a run)")
     parser.add_argument("--workers", type=int, default=1, help="conversions at a time (default 1)")
+    parser.add_argument("--second-pass", action="store_true", help="the dated re-run, with --convert-anyway, of the programs whose original did not compile")
     args = parser.parse_args()
     for sig in (signal.SIGTERM, signal.SIGHUP):  # a kill or a closed terminal stops the conversions too
         signal.signal(sig, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+    if args.second_pass:
+        use_second_pass()
     if args.plan:
         print(json.dumps(plan(), indent=2))
     elif args.max_total_usd is None:

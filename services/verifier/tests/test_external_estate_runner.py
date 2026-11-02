@@ -20,7 +20,7 @@ from pathlib import Path
 sample, root = Path(sys.argv[2]), Path(os.environ["FAKE_ROOT"])
 with (root / "calls").open("a") as f:
     f.write(sample.name + "\n")
-assert sys.argv[1] == "run" and sys.argv[3:] == ["--breaker", "--no-memory", "--max-usd", "0.4"]
+assert sys.argv[1] == "run" and sys.argv[3:7] == ["--breaker", "--no-memory", "--max-usd", "0.4"]
 print("model: fake-model (hosted), reasoning_effort=medium, caps: 60 calls/run, 20/round, 3 rounds", flush=True)
 b = json.loads((sample / "fake.json").read_text()) if (sample / "fake.json").exists() else {}
 run_id = f"{sample.name}-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -41,6 +41,7 @@ if (sample / "java-conversion").exists():
 certified = b.get("certified", True)
 time.sleep(b.get("delay", 0))
 (run / "run.json").write_text(json.dumps({"certified": certified, "status": "certified" if certified else "not-certified", "error": b.get("error"), "rounds": [{}],
+    **{k: b[k] for k in ("assurance", "assuranceReason", "cobolRepair") if k in b},
     "guard": {"blocked": False, "stopped": 0, "review": {"verdict": b.get("guard", "pass"), "summary": "reviewed"}},
     "usage": {"estimatedCostUsd": b.get("usd", 0.01) if b.get("usd", 0.01) != "unpriced" else None, "calls": 3, "modelCalls": ["left out"]},
     "breaker": b.get("breaker", {"tried": 12, "broke": 0})}))
@@ -420,4 +421,39 @@ def test_a_provider_stop_keeps_a_conversion_that_already_finished(estate, monkey
                                           ("BadRequestError (HTTP 400)", False), ("spend cap: $0.39 spent", False), ("repair ran out of rounds", False)])
 def test_only_an_outage_counts_as_a_provider_failure(estate, error, stops):
     assert bool(estate.PROVIDER_FAILURE.search(error)) is stops
+
+
+def test_the_second_pass_keeps_its_own_files_and_never_calls_a_repair_plain_certified(estate, monkeypatch):
+    first = estate.OUT
+    first.write_text('{"first": true}')
+    second = estate.tmp / "second"
+    second.mkdir()
+    monkeypatch.setattr(estate, "REPORT", second / "report.json")
+    monkeypatch.setattr(estate, "SAMPLES", second / "samples")
+    monkeypatch.setattr(estate, "PARTIAL", second / "results.partial.json")
+    monkeypatch.setattr(estate, "OUT", estate.tmp / "eval" / "second.json")
+    monkeypatch.setattr(estate, "SECOND_PASS", True)
+    monkeypatch.setattr(estate, "EXTRA_FLAGS", ["--convert-anyway"])
+    monkeypatch.setattr(estate, "NOT_COMPILING_IN_FIRST_PASS", {"PATCHED", "UNPATCHABLE", "UNRUN"})
+    repair = {"method": "deterministic", "outcome": "compiles", "changedLines": [7], "diff": "-PROGRAM-ID. A\n+PROGRAM-ID. A.", "diagnostics": ["x"]}
+    estate.add("PATCHED", fake_behaviour={"certified": False, "assurance": "certified-against-repaired-cobol", "assuranceReason": "patched", "cobolRepair": repair})
+    estate.add("UNPATCHABLE", fake_behaviour={"certified": False, "assurance": "failed", "error": "patch rejected"})
+    estate.add("UNRUN", fake_behaviour={"certified": False, "assurance": "compiled-unverified", "error": "no test ran"})
+    estate.add("COMPILED")
+    estate.add("REFUSED", convertible=False, reason="EXEC SQL")
+    shutil.copytree(estate.SAMPLES / "patched", estate.SAMPLES / "patched.repaired")  # what the converter leaves next to it
+    compared = []
+    stub = estate.verify_sample
+    monkeypatch.setattr(estate, "verify_sample", lambda sample, java, **k: (compared.append(sample.name), stub(sample, java, **k))[1])
+    estate.write_report()
+    tally = estate.run_estate(5.0)
+    data, r = by_path(estate)
+    assert sorted(estate.calls()) == ["patched", "unpatchable", "unrun"] and first.read_text() == '{"first": true}'
+    assert "--convert-anyway" in data["converterFlags"] and data["pass"].startswith("second")
+    assert r["PATCHED.cobol"]["outcome"] == "certified against repaired COBOL" and r["PATCHED.cobol"]["certified"] is False
+    assert estate.level(r["PATCHED.cobol"]) == "certified against repaired COBOL, inputs vary, attacked" and "certified" not in tally
+    assert r["PATCHED.cobol"]["cobolRepair"]["changedLines"] == [7] and "diagnostics" not in r["PATCHED.cobol"]["cobolRepair"]
+    assert set(compared) == {"patched.repaired"} and len(compared) == 5  # fresh seeds compare the patched copy
+    assert r["UNPATCHABLE.cobol"]["outcome"] == "not certified" and r["UNRUN.cobol"]["outcome"] == "compiled, not verified"
+    assert r["COMPILED.cobol"]["outcome"] == "not in this pass" and r["REFUSED.cobol"]["outcome"] == "refused"
 
