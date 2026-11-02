@@ -1,0 +1,242 @@
+{
+ "date": "2026-11-03",
+ "protocol": "python -m diocle_converter run SAMPLE --no-memory --breaker --max-usd 0.25, MODEL_MODE=private, translator, repair, breaker and guard all on Baseten (meta-models/muse-spark-open-1026, the hackathon key), reasoning effort medium. One run per program, local machine (GnuCOBOL 3.2, JDK 21). Same flags as eval/results-open-weights-20261101.json, a different host: one run each is too few to compare hosts.",
+ "runs": [
+  {
+   "runId": "chqclr-20261103-004853",
+   "program": "CHQCLR",
+   "models": [
+    "meta-models/muse-spark-open-1026"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "finalVerification": {
+    "total": 1005,
+    "passed": 1005,
+    "failed": 0
+   },
+   "modelCallsByRole": {
+    "translator": 1,
+    "repair": 10,
+    "breaker": 2,
+    "guard": 1
+   },
+   "estimatedCostUsd": 0.16261,
+   "breaker": {
+    "rounds": 2,
+    "tried": 16,
+    "broke": 1,
+    "repairCycles": 1,
+    "fixed": true
+   },
+   "counterexamples": [
+    {
+     "input": "CACCT000004        +00000000020200101   ",
+     "why": "CL-NUMBER all spaces - Java normalizeNumber -> 00000000, COBOL MOVE 9(8) keeps spaces in CL-NUMBER DISPLAY field.",
+     "diff": "CL-NUMBER: original '        ' converted 0"
+    }
+   ],
+   "guardReview": {
+    "model": "meta-models/muse-spark-open-1026",
+    "verdict": "pass",
+    "summary": "Java only reads DD_CHQIN and writes DD_CLROUT via System.getenv, uses standard file I/O, stdout, and no network/process/reflection/native, other env vars, or test-gaming branches. No policy violation."
+   },
+   "error": null,
+   "translatorOutputTokens": 10025
+  },
+  {
+   "runId": "daily-control-20261103-004609",
+   "program": "DAYCTRL",
+   "models": [
+    "meta-models/muse-spark-open-1026"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "finalVerification": {
+    "total": 1022,
+    "passed": 1022,
+    "failed": 0
+   },
+   "modelCallsByRole": {
+    "translator": 1,
+    "breaker": 3,
+    "guard": 1
+   },
+   "estimatedCostUsd": 0.150137,
+   "breaker": {
+    "rounds": 3,
+    "tried": 24,
+    "broke": 0,
+    "repairCycles": 0,
+    "fixed": false
+   },
+   "counterexamples": [],
+   "guardReview": {
+    "model": "meta-models/muse-spark-open-1026",
+    "verdict": "flag",
+    "summary": "No block-grade violations: Java only reads DD_DAYIN, writes DD_CTLOUT, uses stdout/stderr and exit(16), no network/process/reflection/native/other env or property access, no encoded code, no test-gaming. The only extra filesystem effect is creating parent directories for the output DD path."
+   },
+   "error": null,
+   "translatorOutputTokens": 9076
+  },
+  {
+   "runId": "fxconv-20261103-004853",
+   "program": "FXCONV",
+   "models": [
+    "meta-models/muse-spark-open-1026"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": true,
+   "status": "certified",
+   "finalVerification": {
+    "total": 1019,
+    "passed": 1019,
+    "failed": 0
+   },
+   "modelCallsByRole": {
+    "translator": 1,
+    "breaker": 2,
+    "repair": 10,
+    "guard": 1
+   },
+   "estimatedCostUsd": 0.175044,
+   "breaker": {
+    "rounds": 2,
+    "tried": 25,
+    "broke": 3,
+    "repairCycles": 1,
+    "fixed": true
+   },
+   "counterexamples": [
+    {
+     "input": "OVERFLW1GBP+99999999999",
+     "why": "GBP max amount gives 105,333,299,998.95 -> 12 integer digits: COBOL WS-CONVERTED PIC S9(11)V99 truncates high digit to 5,333,299,998.95 before MOVE to FO-PRINT, Java FO-PRINT truncates to 12 digits directly to 105,333,299,998.95, FO-PRINT differs while FO-ZZZ truncates same.",
+     "diff": "FO-PRINT: original 5,333,299,998.95 converted 105,333,299,998.95"
+    },
+    {
+     "input": "OVERFLW2GBP-99999999999",
+     "why": "Same 12-digit overflow for negative: COBOL preserves sign after 11-digit truncation -5,333,299,998.95, Java FO-PRINT shows -105,333,299,998.95.",
+     "diff": "FO-PRINT: original -  5,333,299,998.95 converted -105,333,299,998.95"
+    },
+    {
+     "input": "OVERFLW3GBP+95000000000",
+     "why": "100,066,663,350.00 = 12 digits, COBOL overflows to 66,663,350.00, Java displays 100,066,663,350.00.",
+     "diff": "FO-PRINT: original 66,635,000.00 converted 100,066,635,000.00"
+    }
+   ],
+   "guardReview": {
+    "model": "meta-models/muse-spark-open-1026",
+    "verdict": "pass",
+    "summary": "No block or flag findings. Java only accesses DD_FXIN/DD_FXOUT via System.getenv, reads/writes those paths, handles fixed vs line-delimited records, implements COBOL rate table, KNOWN-CCY, SEARCH AT END, COMPUTE ROUNDED and PIC truncation without network, processes, reflection, native code, extra env vars, extra files, threads, obfuscation, or input-specific special cases."
+   },
+   "error": null,
+   "translatorOutputTokens": 7861
+  },
+  {
+   "runId": "interest-accrual-20261103-004609",
+   "program": "INTACCR",
+   "models": [
+    "meta-models/muse-spark-open-1026"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": false,
+   "status": "not-certified",
+   "finalVerification": null,
+   "modelCallsByRole": {
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.14229,
+   "breaker": null,
+   "counterexamples": [],
+   "guardReview": null,
+   "error": "JSONDecodeError: Expecting ',' delimiter: line 13085 column 2 (char 50418)",
+   "translatorOutputTokens": 32768
+  },
+  {
+   "runId": "loanamrt-20261103-004853",
+   "program": "LOANAMRT",
+   "models": [
+    "meta-models/muse-spark-open-1026"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": false,
+   "status": "not-certified",
+   "finalVerification": null,
+   "modelCallsByRole": {
+    "translator": 1
+   },
+   "estimatedCostUsd": 0.141728,
+   "breaker": null,
+   "counterexamples": [],
+   "guardReview": null,
+   "error": "JSONDecodeError: Expecting ',' delimiter: line 50979 column 1 (char 77157)",
+   "translatorOutputTokens": 32768
+  },
+  {
+   "runId": "txn-posting-20261103-004609",
+   "program": "TXNPOST",
+   "models": [
+    "meta-models/muse-spark-open-1026"
+   ],
+   "mode": [
+    "private"
+   ],
+   "certified": false,
+   "status": "not-certified",
+   "finalVerification": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0
+   },
+   "modelCallsByRole": {
+    "translator": 1,
+    "repair": 22,
+    "breaker": 1
+   },
+   "estimatedCostUsd": 0.184037,
+   "breaker": {
+    "rounds": 1,
+    "tried": 3,
+    "broke": 3,
+    "repairCycles": 1,
+    "fixed": false
+   },
+   "counterexamples": [
+    {
+     "input": "OVF000001P+000000001-9999999999910000",
+     "why": "WS-NEW-BAL = -1000000000.00 overflows S9(9)V99: Java compares unwrapped < FLOOR => NS, COBOL compares wrapped 0.00 < FLOOR? false => OK so STATUS/CHARGE/BAL differ.",
+     "diff": "POST-NEW-BAL: original 0.00 converted -999999999.99; POST-STATUS: original OK converted NS"
+    },
+    {
+     "input": "OVF000002P+000000002-9999999999905000",
+     "why": "Unwrapped -1000000000.01 < floor but wrapped wrapped 0.01 >= floor => Java NS (restore balance) vs COBOL OK (wrapped balance 0.01).",
+     "diff": "POST-NEW-BAL: original -0.01 converted -999999999.99; POST-STATUS: original OK converted NS"
+    },
+    {
+     "input": "OVF000003P+000010000-9999999500099999",
+     "why": "WS-NEW-BAL = -1000000051.25 wraps to -51.25 in COBOL; Java sees unwrapped < floor => NS vs COBOL sees wrapped -51.25 > -99999 => OK boundary flip.",
+     "diff": "POST-CHARGE: original 1.25 converted 0.00; POST-NEW-BAL: original -51.25 converted -999999950.00; POST-STATUS: original OK converted NS"
+    }
+   ],
+   "guardReview": null,
+   "error": null,
+   "translatorOutputTokens": 6289
+  }
+ ],
+ "totalEstimatedCostUsd": 0.9558,
+ "notes": [
+  "INTACCR and LOANAMRT: the first translation ran to 32,768 output tokens, nearly all blank lines, so its JSON was cut off and the run stopped with no Java. No repair was attempted. Each cost about $0.14."
+ ]
+}
