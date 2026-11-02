@@ -285,3 +285,17 @@ def test_a_host_error_is_raised_with_its_status_and_not_the_key():
     with pytest.raises(RuntimeError, match="403") as e:
         distill.Fireworks("acct", "secret-key", http).create_job("j", "b", "d", "o", 3, 8)
     assert "secret-key" not in str(e.value)
+
+
+def test_final_answer_reads_the_user_channel_after_reasoning():
+    text = ' to=self<|message|>think {"javaSource": "no"}<|eom|><|start|>assistant to=user<|message|>' \
+           '{"mainClass": "A", "javaSource": "class A {}", "notes": "n"}<|eot|>'
+    assert distill.final_answer(text) == {"mainClass": "A", "javaSource": "class A {}", "notes": "n"}
+
+
+def test_final_answer_tolerates_text_around_the_object_and_refuses_no_object():
+    assert distill.final_answer('Here:\n```json\n{"javaSource": "x"}\n```')["javaSource"] == "x"
+    with pytest.raises(ValueError):
+        distill.final_answer("public class A {}")
+    with pytest.raises(ValueError):
+        distill.final_answer('{"notes": "no source"}')

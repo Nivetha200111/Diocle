@@ -131,6 +131,19 @@ def training_line(program: Program, result: dict, java_source: str) -> dict:
     return {"messages": [*translation_messages(program), {"role": "assistant", "content": answer}]}
 
 
+def final_answer(text: str) -> dict:
+    """The translator's JSON from a raw Muse Glimmer completion: after its reasoning, in the channel addressed to the user.
+    Same rule for base and tuned. No schema ran on the training host, so text around one JSON object is tolerated."""
+    tail = text.rsplit("to=user<|message|>", 1)[-1].split("<|eot|>", 1)[0]
+    start, end = tail.find("{"), tail.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError("no JSON object in the answer")
+    answer = json.loads(tail[start:end + 1], strict=False)
+    if not isinstance(answer.get("javaSource"), str):
+        raise ValueError("no javaSource in the answer")
+    return {"mainClass": answer.get("mainClass", ""), "javaSource": answer["javaSource"], "notes": str(answer.get("notes", ""))}
+
+
 def check_no_leak(lines: list[dict], held_out_sources: dict[str, str]) -> None:
     """Fails if a held-out program's PROGRAM-ID or source shows up in a training line. The last check before an upload."""
     for i, line in enumerate(lines):

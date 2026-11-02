@@ -80,6 +80,13 @@ The Muse Spark figures in MEASUREMENT.md are context only: same harness, differe
   - The student model ID is pinned in `eval/distill_glimmer.py` as the plan's choice, with an environment override, as `eval/headline.py` does.
 - **Who decided what.** The owner asked for this work on Nov 2 and lifted the feature lock for it. Raising the generated cap to 120 and running the second pass were this session's decisions, reported to the owner, inside the same dollar caps.
 
+- **Nov 3, before any tuning: training moves from Fireworks to Baseten Training.** Fireworks kept refusing dataset uploads, and that refusal stands: nothing tried to get around it. The owner chose to continue with a limit of $20 for all further spend. What changes, all fixed before any training or evaluation:
+  - **Host and weights.** One Baseten Training job on one H100 ($0.10833 a minute, stopped after at most 110 minutes, so at most $11.92). It trains on the public Hugging Face weights `meta-models/Muse-Glimmer-30B`, not on Fireworks' copy, quantized to 4-bit so a 60 GB model can train on an 80 GB card (Fireworks would not have quantized). The dataset and its SHA-256 are unchanged.
+  - **Training settings.** LoRA rank 8 and 3 epochs as planned. The plan's "host's default" learning rate does not exist here, so these are stated: AdamW at 2e-4, batch size 1, alpha 16, no dropout, on the text model's attention and MLP layers. These settings are chosen, not tuned: this is still the one job, and none follows after the evaluation has been seen. A job that dies before it saves an adapter has produced no result, and is logged here if it is re-run.
+  - **Evaluation.** The same job writes the attempts, with the adapter off and on over the same quantized weights and the same seed, so the two still differ only by the adapter. They run at the plan's low reasoning effort, with at most 8,000 new tokens. They are scored afterwards on the owner's machine by the same `first_try` harness (policy, then GnuCOBOL, 1,000 inputs, seed 8801).
+  - **No schema at generation.** The hosted route forces the JSON shape with `response_format`; this job cannot. So the JSON is read from the answer by one rule for both models (`distill.final_answer`), and an attempt with no readable JSON counts as a failed attempt. This may favour the tuned model, which has seen the shape, over the base model. The result is read with that in mind.
+  - **The numbers are not comparable with Fireworks' serving.** This is a quantized model on `transformers`. The threshold is unchanged: no improvement is claimed unless tuned passes at least 3 more of 12 than base.
+
 ## Results
 
 Reported as they stand on Nov 2, 2026. **No model has been tuned and nothing has been evaluated.**

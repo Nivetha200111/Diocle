@@ -7,6 +7,8 @@
   train [--go]             one Fireworks fine-tuning job. Without --go it prints the plan and spends nothing.
   evaluate --approve-usd X --max-minutes M --accelerator A --accelerator-count C --usd-per-gpu-hour R
                            base vs tuned on one paid deployment, deleted when this ends. Needs the owner's OK (rule 10).
+  score DIR --minutes M
+                           the Baseten route (eval/distill_baseten): checks answers written by the job against GnuCOBOL.
 
 Results go to eval/results-distillation.json (contracts/distillation-report.schema.json) after every unit. The Fireworks
 account name is kept out of logs and result files (distill.scrub): it can be derived from an email address.
@@ -25,6 +27,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 for p in ("services/converter", "services/verifier", "services/analyzer"):
@@ -49,6 +52,7 @@ MAX_GENERATED, WORKERS = 120, 6
 BASE_MODEL = os.environ.get("DISTILL_STUDENT_MODEL_ID", "accounts/fireworks/models/muse-glimmer-30b")  # the plan's student
 DATASET_ID, JOB_ID, OUTPUT_MODEL = "diocle-distill-v1", "diocle-distill-v1", "diocle-glimmer-v1"
 EPOCHS, LORA_RANK = 3, 8
+BASETEN_H100_USD_PER_MINUTE = 0.10833  # baseten.co/pricing, read Nov 3, 2026
 EVAL_SEED, EVAL_CASES, K = 8801, 1000, 3
 HELD_OUT_DIRS = {"BRNCHSUM": "eval/samples/brnchsum", "CHQCLR": "eval/samples/chqclr", "FXCONV": "eval/samples/fxconv",
                  "LOANAMRT": "eval/samples/loanamrt"}
@@ -302,7 +306,7 @@ def train(go: bool) -> int:
     return 0 if record["status"] == "completed" else 1
 
 
-def first_try(directory: str, model: str, trial: int, settings) -> dict:
+def first_try(directory: str, model: str, trial: int, settings, client=None) -> dict:
     """Same harness as eval/headline.py, plus the Java policy before any build. Model-written Java runs on this machine.
     A host error of any kind is raised: only an answer that came back and was bad counts against the model."""
     from openai import APIError
@@ -317,7 +321,7 @@ def first_try(directory: str, model: str, trial: int, settings) -> dict:
     sample = ROOT / directory
     rec = {"trial": trial, "passed": False, "translated": False, "compiled": False}
     started = time.time()
-    client = ModelClient(replace(settings, model=model, max_calls_per_run=1))
+    client = client or ModelClient(replace(settings, model=model, max_calls_per_run=1))
     with tempfile.TemporaryDirectory() as tmp:
         ws = Workspace(Path(tmp) / "java")
         program = Program.load(sample)
@@ -343,6 +347,48 @@ def first_try(directory: str, model: str, trial: int, settings) -> dict:
     u = client.usage_summary()
     rec.update(outputTokens=u["outputTokens"], seconds=round(time.time() - started, 1))
     return rec
+
+
+class StoredAnswer:
+    """Stands in for ModelClient when the model already answered on the training host: gives translate() that one answer."""
+
+    def __init__(self, text: str, tokens: int, main_class: str):
+        self.text, self.tokens, self.main_class = text, tokens, main_class
+
+    def chat(self, **_):
+        answer = distill.final_answer(self.text)
+        answer["mainClass"] = self.main_class  # the hosted route forces this with a schema; no schema ran on the training host
+        return SimpleNamespace(message=SimpleNamespace(content=json.dumps(answer)))
+
+    def usage_summary(self) -> dict:
+        return {"outputTokens": self.tokens}
+
+
+def score(args) -> int:
+    from diocle_converter.config import Settings
+    from diocle_converter.sources import Program
+
+    settings = replace(Settings.from_env(), mode="private")
+    state = load(DIR / "evaluation.json", {"status": "partial", "seed": EVAL_SEED, "cases": EVAL_CASES, "k": K, "programs": {},
+                                           "infrastructureLog": [], "deployment": {}})
+    for name, which, trial in pending(state):
+        path = Path(args.dir) / f"{name}-{which}-{trial}.json"
+        if not path.exists():
+            continue  # the time limit ended the job: not reached, not a failure
+        stored = json.loads(path.read_text())
+        main_class = Program.load(ROOT / HELD_OUT_DIRS[name]).main_class
+        rec = first_try(HELD_OUT_DIRS[name], BASE_MODEL, trial, settings, StoredAnswer(stored["text"], stored["outputTokens"], main_class))
+        rec["seconds"] = stored["seconds"]  # the shared time of the batch these three attempts came from
+        state["programs"][name][which].append(rec)
+        atomic_write(DIR / "evaluation.json", distill.scrub(json.dumps(state, indent=1)) + "\n")
+        print(f"{name} {which} {trial}: passed={rec['passed']} compiled={rec.get('compiled')} {str(rec.get('error'))[:90]}", flush=True)
+    counted = sum(len(p[w]) for p in state["programs"].values() for w in ("base", "tuned"))
+    state["status"] = "complete" if counted == 2 * K * len(HELD_OUT_DIRS) else "partial"
+    state["deployment"].update(accelerator="H100", acceleratorCount=1, minutes=args.minutes,
+                               estimatedUsd=round(args.minutes * BASETEN_H100_USD_PER_MINUTE, 2), deleted=True)
+    atomic_write(DIR / "evaluation.json", distill.scrub(json.dumps(state, indent=1)) + "\n")
+    report()
+    return 0
 
 
 def answers(model: str, settings) -> bool:
@@ -533,6 +579,9 @@ def main() -> int:
     t = sub.add_parser("train")
     t.add_argument("--go", action="store_true")
     e = sub.add_parser("evaluate")
+    c = sub.add_parser("score")
+    c.add_argument("dir")
+    c.add_argument("--minutes", type=float, required=True)
     e.add_argument("--approve-usd", type=float, required=True)
     e.add_argument("--max-minutes", type=float, required=True)
     e.add_argument("--accelerator", required=True)
@@ -545,6 +594,8 @@ def main() -> int:
         return dataset()
     if args.stage == "train":
         return train(args.go)
+    if args.stage == "score":
+        return score(args)
     return evaluate(args)
 
 

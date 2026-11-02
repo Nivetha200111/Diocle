@@ -269,3 +269,23 @@ def test_a_blocked_upload_is_recorded_not_hidden(dg, monkeypatch, tmp_path):
     assert dg.train(True) == 1
     record = json.loads((tmp_path / "training.json").read_text())
     assert record["status"] == "blocked" and "403" in record["reason"] and ACCOUNT not in record["reason"]
+
+
+def test_score_counts_a_stored_answer_and_leaves_unreached_attempts_unrun(dg, tmp_path, monkeypatch):
+    seen = []
+
+    def attempt(directory, model, trial, settings, client=None):
+        seen.append(client.chat().message.content)
+        return {"trial": trial, "passed": True, "translated": True, "compiled": True, "outputTokens": 0, "seconds": 1.0}
+
+    monkeypatch.setattr(dg, "first_try", attempt)
+    monkeypatch.setattr(dg, "report", lambda: None)
+    (tmp_path / "CHQCLR-tuned-1.json").write_text(json.dumps(
+        {"text": ' to=user<|message|>{"mainClass": "wrong", "javaSource": "class C {}", "notes": ""}<|eot|>', "outputTokens": 9, "seconds": 7.5}))
+    assert dg.score(Namespace(dir=str(tmp_path), minutes=60.0)) == 0
+    state = json.loads((dg.DIR / "evaluation.json").read_text())
+    assert state["status"] == "partial"
+    assert len(state["programs"]["CHQCLR"]["tuned"]) == 1 and state["programs"]["CHQCLR"]["base"] == []
+    assert state["programs"]["CHQCLR"]["tuned"][0]["seconds"] == 7.5
+    assert state["deployment"]["estimatedUsd"] == 6.5
+    assert json.loads(seen[0])["mainClass"] != "wrong"
