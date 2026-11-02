@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Nivetha200111/Diocle/contracts/verification-report.schema.json",
   "title": "VerificationReport",
-  "description": "v0.11 (additive): `runs.standIns`, the runtime routines (CEE3ABD, abnormal termination) the original was linked with Diocle's stated stand-in for; the claim is equivalence on GnuCOBOL with that stand-in (exit code 16 at the CALL, output so far kept), never IBM Language Environment. v0.10 (additive): programs with keyed (INDEXED) files in the verified subset ksds-subset-1 also run on identically seeded keyed files, one per side, and the final contents of every keyed file are compared record by record in key order: runs.keyed, and one result per keyed file (outputDd `keyed:DD`, inputSource `keyed`). The claim is equivalence on GnuCOBOL's INDEXED file handler (Berkeley DB) for the subset, never IBM VSAM. v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
+  "description": "v0.12 (additive): `runs.endedAtStandIn`, the original ended at a stand-in (CEE3ABD) so inputs after that point ran on neither side: never certified, and one failing result (inputId `stand-in-end`) says how far it got; `runs.tampering`, the converted program changed or planted a file the original depends on: never certified, the original was not built or run, so `runs.original.compiled` is null (not attempted, never a statement that the COBOL does not compile); `jobs[].runs` carries `standIns`, `endedAtStandIn` and `tampering` too. v0.11 (additive): `runs.standIns`, the runtime routines (CEE3ABD, abnormal termination) the original was linked with Diocle's stated stand-in for; the claim is equivalence on GnuCOBOL with that stand-in (exit code 16 at the CALL, output so far kept), never IBM Language Environment. v0.10 (additive): programs with keyed (INDEXED) files in the verified subset ksds-subset-1 also run on identically seeded keyed files, one per side, and the final contents of every keyed file are compared record by record in key order: runs.keyed, and one result per keyed file (outputDd `keyed:DD`, inputSource `keyed`). The claim is equivalence on GnuCOBOL's INDEXED file handler (Berkeley DB) for the subset, never IBM VSAM. v0.9 (additive): programs with EXEC SQL in the verified subset also run on a seeded stand-in database (SQLite, never real DB2), the same seed on each side, and the final contents of every table the program touched are compared value for value: runs.database, and one result per table (outputDd `table:NAME`, inputSource `database`). Output of services/verifier (GnuCOBOL differential testing). v0.8 (additive): programs with no output file are compared on stdout and exit code (one result, inputSource and outputDd `stdout`, runs.stdoutCompared true; refused if the original printed nothing); sequential files opened I-O are seeded from generated records and their final contents compared byte for byte (runs.files.updated). v0.3: per-case input, input source and field-level diffs; run metadata; v0.3 adds exitCodeMatch (RETURN-CODE), the pinned clock and the collating sequence; v0.4 adds golden-file replay against captured mainframe output; v0.5 adds multi-file programs (results per output DD). v0.6: outputs compared as a sequence by position and byte for byte (inputSource 'output', fieldDiffs note). v0.7 adds jobs[] (additive): whole-JCL-job differential tests (v1 scope: one SORT step feeding one COBOL step), one certificate per job.",
   "type": "object",
   "required": [
     "version",
@@ -143,7 +143,11 @@
           ],
           "properties": {
             "compiled": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "false: it does not compile. null (v0.12): not attempted, because the converted program tampered (see runs.tampering); says nothing about the COBOL."
             },
             "exitCode": {
               "type": [
@@ -321,6 +325,25 @@
             "additionalProperties": false
           }
         },
+        "endedAtStandIn": {
+          "type": "object",
+          "description": "Additive (v0.12). The original ended at a stand-in (exit code and the stand-in's stderr line both seen). All inputs go into one run, so inputs after that point, if any, ran on neither side: this run is never certified, even when everything compared matches. Input records actually read are not recorded; the counts are what was supplied and what was written. Absent when the run did not end there (a program built with a stand-in it never reached stays certifiable).",
+          "required": ["routine", "exitCode", "inputRecords", "outputRecords", "reason"],
+          "properties": {
+            "routine": { "type": "string", "enum": ["CEE3ABD"] },
+            "exitCode": { "type": "integer" },
+            "abendCode": { "type": ["string", "null"], "description": "The first argument of the CALL as the stand-in printed it." },
+            "inputRecords": { "type": "object", "description": "Records supplied to the original, by DD.", "additionalProperties": { "type": "integer" } },
+            "outputRecords": { "type": "object", "description": "Records the original had written when it ended, by DD.", "additionalProperties": { "type": "integer" } },
+            "reason": { "type": "string", "description": "The same sentence as the failing `stand-in-end` result's diff." }
+          },
+          "additionalProperties": false
+        },
+        "tampering": {
+          "type": "array",
+          "description": "Additive (v0.12). What the converted program did to the files the original reads or the directory it runs in. Present means verification failed closed and the fault is the converted program's; the original was not built or run.",
+          "items": { "type": "string" }
+        },
         "stdoutCompared": {
           "type": "boolean",
           "description": "Additive (v0.8). True when stdout and exit code are the program's only compared output (a DISPLAY-only program); results then holds one `stdout` result."
@@ -462,7 +485,7 @@
                 "type": "object",
                 "required": ["compiled", "exitCode"],
                 "properties": {
-                  "compiled": { "type": "boolean" },
+                  "compiled": { "type": ["boolean", "null"], "description": "As runs.original.compiled: null when not attempted because the converted pipeline tampered." },
                   "exitCode": { "type": ["integer", "null"] },
                   "stdout": { "type": "string" },
                   "stderr": { "type": "string" }
@@ -478,6 +501,9 @@
                   "stderr": { "type": "string" }
                 }
               },
+              "standIns": { "$ref": "#/properties/runs/properties/standIns" },
+              "endedAtStandIn": { "$ref": "#/properties/runs/properties/endedAtStandIn" },
+              "tampering": { "$ref": "#/properties/runs/properties/tampering" },
               "exitCodeMatch": {
                 "type": "boolean",
                 "description": "Both sides' final step ended with the same exit code."
