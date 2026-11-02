@@ -152,7 +152,7 @@ def test_generator_asks_for_the_copy_form_the_analyzer_reads():
 def test_compile_errors_are_reported_before_a_translation_is_paid_for(tmp_path):
     (tmp_path / "GOOD.cbl").write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. GOOD.\n       PROCEDURE DIVISION.\n           STOP RUN.\n")
     assert distill.compile_errors(tmp_path, "GOOD") is None
-    (tmp_path / "BAD.cbl").write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. BAD.\n       PROCEDURE DIVISION.\n           NOT-A-VERB.\n")
+    (tmp_path / "BAD.cbl").write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. BAD.\n       PROCEDURE DIVISION.\n           MOVE 1 TO.\n")
     assert "error" in distill.compile_errors(tmp_path, "BAD")
 
 
