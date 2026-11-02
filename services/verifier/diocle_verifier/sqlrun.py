@@ -7,7 +7,7 @@ import re
 import shutil
 from pathlib import Path
 
-from .runners import IBM_FLAGS, Run, _exec, _stand_ins
+from .runners import IBM_FLAGS, Run, _exec, _stand_ins, build_executable
 from .sqlpre import SUPPORT, PrecompileError, precompile
 
 JDBC_NAMES = ("sqlite-jdbc.jar",)
@@ -27,7 +27,8 @@ def jdbc_jar() -> Path | None:
 
 def build_cobol_sql(source: Path, copybook_dir: Path, workdir: Path, tables: list[dict], modules: list[Path] | None = None,
                     collation: str = "ascii", timeout: int = 120) -> tuple[list[str] | None, Run | None]:
-    """Precompile the EXEC SQL statements, then compile program + statement table + shim with GnuCOBOL."""
+    """Precompile the EXEC SQL statements, then compile program + statement table + shim with GnuCOBOL, through the
+    same build as every other program: -free and full-name ASSIGN apply here too, or the two sides open different files."""
     try:
         pre = precompile(source, copybook_dir, tables)
     except PrecompileError as e:
@@ -39,9 +40,9 @@ def build_cobol_sql(source: Path, copybook_dir: Path, workdir: Path, tables: lis
     shutil.copy2(SUPPORT / "dioshim.c", src / "dioshim.c")
     exe = workdir / "original"
     colseq = ["-fdefault-colseq=EBCDIC"] if collation == "ebcdic" else []
-    build = _exec(["cobc", "-x", "-std=ibm", *IBM_FLAGS, *colseq, "-I", str(copybook_dir), "-o", str(exe),
-                   str(src / "program.cob"), str(src / "dio_stmts.c"), str(src / "dioshim.c"),
-                   *(str(m) for m in modules or []), *_stand_ins(source, modules, workdir), "-lsqlite3"], timeout=timeout)
+    build = build_executable(exe, src / "program.cob",
+                             [src / "dio_stmts.c", src / "dioshim.c", *(modules or []), *map(Path, _stand_ins(source, modules, workdir))],
+                             [*IBM_FLAGS, *colseq, "-I", str(copybook_dir)], workdir, timeout=timeout, libs=["-lsqlite3"])
     if build.returncode != 0:
         return None, Run(False, build.returncode, build.stdout, build.stderr)
     return [str(exe)], None

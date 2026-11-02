@@ -474,3 +474,63 @@ def test_database_size_cap_is_enforced_while_the_java_runs(tmp_path):
     rows = int(out.split("ROWS")[1])
     assert 0 < rows < 400000
     assert not any("grew past" in r.get("diff", "") for r in report["results"])
+
+
+def _hyphen_assign_sample(tmp_path):
+    """The sample with ASSIGN TO INPUT-FILE / OUTPUT-FILE: under -std=ibm both would open DD "FILE" without the flags
+    every other program is built with, and the Java reads DD_INPUT-FILE."""
+    root = tmp_path / "assign"
+    shutil.copytree(SAMPLE, root)
+    src = root / META["source"]
+    src.write_text(src.read_text().replace("ASSIGN TO ACCTIN", "ASSIGN TO INPUT-FILE").replace("ASSIGN TO RPTOUT", "ASSIGN TO OUTPUT-FILE"))
+    java = root / "java-conversion" / "Acctrpt.java"
+    java.write_text(java.read_text().replace("DD_ACCTIN", "DD_INPUT-FILE").replace("DD_RPTOUT", "DD_OUTPUT-FILE"))
+    meta = json.loads((root / "sample.json").read_text())
+    names = {"ACCTIN": "INPUT-FILE", "RPTOUT": "OUTPUT-FILE"}
+    for item in meta["files"] + meta["sql"]["keyLinks"]:
+        item["dd"] = names[item["dd"]]
+    (root / "sample.json").write_text(json.dumps(meta))
+    return root
+
+
+def _free_format_sample(tmp_path):
+    """The sample as free-format source: indented code stays valid, column-7 comments become *> comments."""
+    root = tmp_path / "free"
+    shutil.copytree(SAMPLE, root)
+    comments = lambda text: "".join(("       *>" + l[7:] if l[6:7] == "*" else l) + "\n" for l in text.splitlines())
+    src = root / META["source"]
+    src.write_text(">>SOURCE FORMAT FREE\n" + comments(src.read_text()))
+    for member in (root / META["copybookDir"]).iterdir():
+        member.write_text(comments(member.read_text()))
+    return root
+
+
+@needs_engine
+@pytest.mark.parametrize("variant", [_hyphen_assign_sample, _free_format_sample])
+def test_sql_programs_are_built_with_the_same_per_file_flags_as_every_other_program(tmp_path, variant):
+    root = variant(tmp_path)
+    report = verify_sample(root, seed=11, random_count=40)
+    assert report["runs"]["original"]["compiled"] and report["summary"]["total"] > 0
+    assert passes(report), [r for r in report["results"] if not r["match"]][:2]
+    java = root / "java-conversion" / "Acctrpt.java"  # and the comparison still bites
+    java.write_text(java.read_text().replace("ps.setLong(1, amount);", "ps.setLong(1, amount + 1);", 1))
+    assert not passes(verify_sample(root, seed=11, random_count=40))
+
+
+def test_a_free_format_sql_program_is_analyzed_like_the_build_reads_it(tmp_path):
+    from diocle_analyzer.analyze import analyze
+    root = _free_format_sample(tmp_path)
+    program = next(p for p in analyze(root)["programs"] if p["name"] == "ACCTRPT")
+    assert program["convertible"], program["notConvertibleReason"]
+    src = root / META["source"]
+    good = src.read_text()
+    # The precompiler reads columns 8-72: anything else is refused with a reason, not a failed build or a misread statement.
+    for bad in (good.replace("           EXEC SQL", "    EXEC SQL"),
+                good.replace("           EXEC SQL COMMIT END-EXEC\n           PERFORM 3000", "    EXEC SQL COMMIT END-EXEC\n           PERFORM 3000"),
+                good.replace("                WHERE ACCT_ID = :AI-ACCT-ID", "\n WHERE ACCT_ID = :AI-ACCT-ID"),
+                good.replace("                WHERE ACCT_ID = :AI-ACCT-ID", " " * 70 + "WHERE ACCT_ID = :AI-ACCT-ID"),
+                good.replace("           EXEC SQL COMMIT END-EXEC\n           PERFORM 3000", "           *> EXEC SQL COMMIT END-EXEC\n           PERFORM 3000")):
+        assert bad != good
+        src.write_text(bad)
+        program = next(p for p in analyze(root)["programs"] if p["name"] == "ACCTRPT")
+        assert not program["convertible"] and "EXEC SQL" in program["notConvertibleReason"]

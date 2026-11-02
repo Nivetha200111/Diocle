@@ -22,7 +22,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .cobol import _PIC, _entries, _expand, _usage, source_lines
+from .cobol import _PIC, _entries, _expand, _usage, is_free_format, scan_line, source_lines
 
 SUBSET_VERSION = "db2-subset-1"
 
@@ -739,6 +739,8 @@ def analyze_sql(text: str, copybooks: dict[str, tuple[str, str]], ddl_tables: li
         stmts.append(s)
         used_hosts += [x.host for x in s.inputs + s.outputs]
     refusal = next((s.reason for s in stmts if s.reason), None)
+    if refusal is None and is_free_format(text):
+        refusal = _free_format_refusal(expanded.splitlines(), blocks)
     if refusal is None and not any(s.kind == "include" for s in stmts):
         refusal = "EXEC SQL INCLUDE SQLCA is required: the program reads SQLCODE from it"
     touched = sorted({t for s in stmts for t in s.tables})
@@ -750,6 +752,17 @@ def analyze_sql(text: str, copybooks: dict[str, tuple[str, str]], ddl_tables: li
             refusal = (f"{bad.group(1)} is read by the program but the stand-in engine does not set it (only SQLCODE and "
                        "SQLERRD(3) are modelled)")
     return SqlFacts(tables, stmts, sorted(ctx.cursors), list(dict.fromkeys(used_hosts)), refusal, sorted(source["dclgen"]))
+
+
+def _free_format_refusal(lines: list[str], blocks: list[Block]) -> str | None:
+    """find_blocks and the precompiler read columns 8-72, while -free compiles whole lines, so in free-format source a
+    statement outside those columns or inside a *> comment would not be what the compiler sees: refuse it."""
+    in_block = [lines[i] for b in blocks for i in range(b.first, b.last + 1)]
+    if (any(line.strip() and (len(line.rstrip()) > 72 or not line[:7].isspace()) for line in in_block)
+            or any("*>" in b.prefix for b in blocks)
+            or any((m := _START.search(scan_line(line)[1])) and m.start() < 7 for line in lines)):
+        return "free-format EXEC SQL must stay within columns 8-72 and out of *> comments (the precompiler reads those columns)"
+    return None
 
 
 def _in_main(text: str, table: str) -> bool:

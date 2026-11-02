@@ -112,14 +112,16 @@ def assign_flags(source: Path) -> list[str]:
 
 
 def build_executable(exe: Path, main: Path, others: list[Path], flags: list[str], workdir: Path,
-                     timeout: int = 120) -> subprocess.CompletedProcess:
+                     timeout: int = 120, libs: list[str] | None = None) -> subprocess.CompletedProcess:
     """cobc -x the entry program with its CALLed modules and stand-ins. One command when every file needs the same
     per-file flags (source format, ASSIGN naming), as before; otherwise each file is compiled to an object with its
-    own flags and then linked, because -free on the command line would apply to a fixed-format module too."""
+    own flags and then linked, because -free on the command line would apply to a fixed-format module too.
+    libs: linker arguments (-lsqlite3 for the EXEC SQL shim), given to whichever command links."""
+    libs = libs or []
     files = [main, *others]
     formats = [format_flags(f) + assign_flags(f) for f in files]
     if all(f == formats[0] for f in formats):
-        return _exec(["cobc", "-x", "-std=ibm", *flags, *formats[0], "-o", str(exe), *map(str, files)], timeout=timeout)
+        return _exec(["cobc", "-x", "-std=ibm", *flags, *formats[0], "-o", str(exe), *map(str, files), *libs], timeout=timeout)
     objects = workdir / "objects"
     objects.mkdir(exist_ok=True)
     built = []
@@ -130,7 +132,7 @@ def build_executable(exe: Path, main: Path, others: list[Path], flags: list[str]
         if step.returncode != 0:
             return step
         built.append(str(obj))
-    return _exec(["cobc", "-x", "-std=ibm", "-o", str(exe), *built], timeout=timeout)
+    return _exec(["cobc", "-x", "-std=ibm", "-o", str(exe), *built, *libs], timeout=timeout)
 
 
 # Both sides see the same "now": GnuCOBOL through COB_CURRENT_DATE, Java through DIOCLE_CLOCK (ISO-8601, UTC).
