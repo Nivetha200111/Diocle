@@ -9,7 +9,7 @@
                            base vs tuned on one paid deployment, deleted when this ends. Needs the owner's OK (rule 10).
 
 Results go to eval/results-distillation.json (contracts/distillation-report.schema.json) after every unit. The Fireworks
-account name never goes into a result file: it can be derived from an email address.
+account name is kept out of logs and result files (distill.scrub): it can be derived from an email address.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
+import signal
 import sys
 import tempfile
 import threading
@@ -46,7 +46,7 @@ QUARRYSTONE = Path(os.environ.get("DIOCLE_QUARRYSTONE_SAMPLES", ROOT / "runs/del
 
 STOP_USD, HARD_CAP_USD, PROGRAM_CAP_USD = 7.00, 8.00, 0.25
 MAX_GENERATED, WORKERS = 120, 6
-BASE_MODEL = "accounts/fireworks/models/muse-glimmer-30b"
+BASE_MODEL = os.environ.get("DISTILL_STUDENT_MODEL_ID", "accounts/fireworks/models/muse-glimmer-30b")  # the plan's student
 DATASET_ID, JOB_ID, OUTPUT_MODEL = "diocle-distill-v1", "diocle-distill-v1", "diocle-glimmer-v1"
 EPOCHS, LORA_RANK = 3, 8
 EVAL_SEED, EVAL_CASES, K = 8801, 1000, 3
@@ -134,7 +134,7 @@ def teach(sample: Path, client, unit: dict, held: dict[str, str]) -> None:
 
 
 def harvest_unit(kind: str, name: str, state: dict, held: dict[str, str], topic: tuple | None, directory: Path | None) -> None:
-    from diocle_converter.client import ModelClient
+    from diocle_converter.client import BudgetExceeded, ModelClient
 
     with lock:
         if name in state["units"] or state["spentUsd"] >= STOP_USD:
@@ -155,6 +155,8 @@ def harvest_unit(kind: str, name: str, state: dict, held: dict[str, str], topic:
             teach(sample, client, unit, held)
         elif sample is None and "gate" not in unit:
             unit["gate"] = "generation-failed"
+    except BudgetExceeded:
+        unit["gate"] = "spend-cap"
     except Exception as e:  # one bad unit must not stop the harvest; it is counted, not hidden
         unit.update(gate=unit.get("gate") or "translation-failed", detail=f"{type(e).__name__}: {str(e)[:200]}")
     usage = client.usage_summary()
@@ -162,7 +164,7 @@ def harvest_unit(kind: str, name: str, state: dict, held: dict[str, str], topic:
                 outputTokens=usage["outputTokens"], models=sorted({c.model for c in client.calls}), seconds=round(time.time() - started, 1))
     with lock:
         state["units"][name] = unit
-        state["spentUsd"] = round(state.get("pilotUsd", 0) + sum(u.get("costUsd") or 0 for u in state["units"].values()), 6)
+        state["spentUsd"] = round(state.get("discardedUsd", 0) + sum(u.get("costUsd") or 0 for u in state["units"].values()), 6)
         atomic_write(HARVEST, json.dumps(state, indent=1, ensure_ascii=False) + "\n")
         print(f"{name}: {unit.get('gate') or 'PASSED'} ${unit['costUsd']} {unit['seconds']}s | spend ${state['spentUsd']:.3f}", flush=True)
 
@@ -177,7 +179,7 @@ def generate(name: str, domain: str, technique: str, client, unit: dict, held: d
         except (TypeError, ValueError):
             unit["gate"] = "generation-failed"
             return None
-        if not distill.contained(answer["cobol"]):
+        if not distill.contained(answer["cobol"], answer["inputCopybook"], answer["outputCopybook"]):
             unit["gate"] = "analyzer-refused"
             unit["detail"] = "touches other files or uses CALL, ACCEPT or EXEC"
             return None
@@ -218,17 +220,21 @@ def retry_unreached(state: dict) -> None:
         return
     units = state["units"]
     state["firstPassRejected"] = {g: sum(u.get("gate") == g for u in units.values()) for g in distill.GATES}
-    state["pilotUsd"] = state["spentUsd"]
+    state["discardedUsd"] = state["spentUsd"]  # the pilot and the discarded first-pass units stay in the spend
     for name in [n for n, u in units.items() if u["kind"] == "generated" and not u.get("line") and not u.get("total")]:
         del units[name]
-    state["pilotUsd"] = round(state["pilotUsd"] - sum(u.get("costUsd") or 0 for u in units.values()), 6)
+    state["discardedUsd"] = round(state["discardedUsd"] - sum(u.get("costUsd") or 0 for u in units.values()), 6)
 
 
 def harvest(generated: int, second_pass: bool = False) -> int:
     if generated > MAX_GENERATED:
         raise SystemExit(f"--generate is capped at {MAX_GENERATED}")
     state = load(HARVEST, {"teacher": teacher_settings().model, "reasoningEffort": "low", "spentUsd": 0.0, "units": {}})
+    if state["spentUsd"] >= HARD_CAP_USD:
+        raise SystemExit(f"${state['spentUsd']:.2f} spent: at the ${HARD_CAP_USD:.2f} cap")
     if second_pass:
+        if generated != MAX_GENERATED:  # the retried units are removed from the record, so all of them must be queued again
+            raise SystemExit(f"--second-pass needs --generate {MAX_GENERATED}")
         retry_unreached(state)
         atomic_write(HARVEST, json.dumps(state, indent=1, ensure_ascii=False) + "\n")
     held = held_out_sources()
@@ -273,10 +279,18 @@ def train(go: bool) -> int:
     fw = distill.Fireworks.from_env()
     record = load(DIR / "training.json", {})
     if not record.get("jobId"):
-        fw.upload_dataset(DATASET_ID, data, len(lines))
-        distill.wait_for(lambda: fw.dataset(DATASET_ID), lambda d: d.get("state") == "READY", every=10, limit=600)
-        fw.create_job(JOB_ID, BASE_MODEL, DATASET_ID, OUTPUT_MODEL, EPOCHS, LORA_RANK)
-        record = {"status": "running", "jobId": JOB_ID, "outputModel": OUTPUT_MODEL, "startedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        try:
+            fw.upload_dataset(DATASET_ID, data, len(lines))
+            distill.wait_for(lambda: fw.dataset(DATASET_ID), lambda d: d.get("state") == "READY", every=10, limit=600)
+            fw.create_job(JOB_ID, BASE_MODEL, DATASET_ID, OUTPUT_MODEL, EPOCHS, LORA_RANK)
+        except (RuntimeError, TimeoutError) as e:  # stated, not hidden: the host refused, so nothing has been tuned
+            record = {"status": "blocked", "reason": distill.scrub(e)[:400], "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+            atomic_write(DIR / "training.json", json.dumps(record, indent=1) + "\n")
+            print(f"blocked: {record['reason']}", flush=True)
+            report()
+            return 1
+        record = {"status": "running", "jobId": JOB_ID, "outputModel": OUTPUT_MODEL, "uploadedSha256": distill.sha256(data),
+                  "startedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
         atomic_write(DIR / "training.json", json.dumps(record, indent=1) + "\n")
     job = distill.wait_for(lambda: fw.job(JOB_ID), lambda j: j.get("state") in ("JOB_STATE_COMPLETED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED"),
                            every=60, limit=4 * 3600)
@@ -288,8 +302,11 @@ def train(go: bool) -> int:
     return 0 if record["status"] == "completed" else 1
 
 
-def first_try(directory: str, model: str, trial: int, settings, results: dict) -> dict:
-    """Same harness as eval/headline.py, plus the Java policy before any build. Model-written Java runs on this machine."""
+def first_try(directory: str, model: str, trial: int, settings) -> dict:
+    """Same harness as eval/headline.py, plus the Java policy before any build. Model-written Java runs on this machine.
+    A host error of any kind is raised: only an answer that came back and was bad counts against the model."""
+    from openai import APIError
+
     from diocle_converter.client import ModelClient
     from diocle_converter.guard import GuardBlocked, check_before_running
     from diocle_converter.sources import Program
@@ -307,25 +324,50 @@ def first_try(directory: str, model: str, trial: int, settings, results: dict) -
         try:
             translate(program, client, ws)
             rec["translated"] = True
+        except APIError:
+            raise
         except Exception as e:
-            if type(e).__name__ in ("APIConnectionError", "APITimeoutError", "InternalServerError", "RateLimitError"):
-                raise
-            rec["error"] = f"{type(e).__name__}: {str(e)[:200]}"
+            rec["error"] = distill.scrub(f"{type(e).__name__}: {str(e)[:200]}")
         if rec["translated"]:
             try:
                 check_before_running(ws.root, tuple(f["dd"] for f in program.files))
                 with verify_lock:
-                    report = verify_sample(sample, ws.root, seed=EVAL_SEED, random_count=EVAL_CASES)
-                s, runs = report["summary"], report["runs"]
-                rec.update(passed=passes(report), total=s["total"], failedCases=s["failed"], compiled=bool(runs["converted"]["compiled"]),
+                    report_ = verify_sample(sample, ws.root, seed=EVAL_SEED, random_count=EVAL_CASES)
+                s, runs = report_["summary"], report_["runs"]
+                rec.update(passed=passes(report_), total=s["total"], failedCases=s["failed"], compiled=bool(runs["converted"]["compiled"]),
                            exitCodeMatch=runs.get("exitCodeMatch"), stdoutMatch=runs["stdoutMatch"])
             except GuardBlocked as e:
-                rec.update(blockedByPolicy=True, error=str(e)[:300])
+                rec.update(blockedByPolicy=True, error=distill.scrub(e)[:300])
             except Exception as e:
-                rec["error"] = f"verifier {type(e).__name__}: {str(e)[:200]}"
+                rec["error"] = distill.scrub(f"verifier {type(e).__name__}: {str(e)[:200]}")
     u = client.usage_summary()
     rec.update(outputTokens=u["outputTokens"], seconds=round(time.time() - started, 1))
     return rec
+
+
+def answers(model: str, settings) -> bool:
+    """One tiny call. A deployment can say READY before a replica is up or the adapter is loaded, and attempts made then
+    would read as "the model failed"."""
+    from openai import APIError
+
+    from diocle_converter.client import ModelClient
+    try:
+        ModelClient(replace(settings, model=model, max_calls_per_run=1)).chat(
+            role="smoke", round=0, messages=[{"role": "user", "content": "Reply OK."}], max_tokens=5)
+        return True
+    except APIError:
+        return False
+
+
+def pending(state: dict) -> list[tuple[str, str, int]]:
+    jobs = []
+    for name in HELD_OUT_DIRS:
+        program = state["programs"].setdefault(name, {"base": [], "tuned": []})
+        for trial in range(1, K + 1):
+            for which in ("base", "tuned"):
+                if not any(r["trial"] == trial for r in program[which]):
+                    jobs.append((name, which, trial))
+    return jobs
 
 
 def evaluate(args) -> int:
@@ -334,86 +376,118 @@ def evaluate(args) -> int:
     training = load(DIR / "training.json", {})
     if training.get("status") != "completed":
         raise SystemExit("no completed training job")
+    state = load(DIR / "evaluation.json", {"status": "partial", "seed": EVAL_SEED, "cases": EVAL_CASES, "k": K, "programs": {},
+                                           "infrastructureLog": [], "deployment": {}})
+    for program in state["programs"].values():  # attempts lost to the host are not results: they go round again
+        for which in ("base", "tuned"):
+            program[which] = [r for r in program[which] if not r.get("infrastructureFailure")]
+    if state["deployment"].get("openSince"):
+        raise SystemExit("an earlier evaluation did not finish cleanly, so its cost is unknown. Check the deployment on Fireworks, "
+                         "then remove deployment.openSince from eval/distill/evaluation.json")
+    jobs = pending(state)
+    if not jobs:
+        print("nothing left to evaluate: no deployment created", flush=True)
+        return 0
+    spent = state["deployment"].get("estimatedUsd", 0)
+    budget = args.approve_usd - spent  # the owner's limit covers every run of this evaluation, not each one
+    if budget <= 0:
+        raise SystemExit(f"${spent:.2f} of the ${args.approve_usd:.2f} limit is already spent: no deployment created")
     usd_per_minute = args.usd_per_gpu_hour * args.accelerator_count / 60
-    limit_minutes = min(args.max_minutes, args.approve_usd / usd_per_minute)
-    print(f"limit: {limit_minutes:.0f} min, about ${limit_minutes * usd_per_minute:.2f}", flush=True)
+    limit_minutes = min(args.max_minutes, budget / usd_per_minute)
+    print(f"limit: {limit_minutes:.0f} min, about ${limit_minutes * usd_per_minute:.2f}, {len(jobs)} attempts", flush=True)
+
+    def save() -> None:
+        atomic_write(DIR / "evaluation.json", distill.scrub(json.dumps(state, indent=1)) + "\n")
+
     fw = distill.Fireworks.from_env()
-    deployment = fw.create_deployment(BASE_MODEL, args.accelerator, args.accelerator_count)
-    deployment_id = deployment["name"].rsplit("/", 1)[-1]
+    deployment_id = fw.create_deployment(BASE_MODEL, args.accelerator, args.accelerator_count)["name"].rsplit("/", 1)[-1]
     started = time.monotonic()
-    state = load(DIR / "evaluation.json", {"status": "partial", "seed": EVAL_SEED, "cases": EVAL_CASES, "k": K, "programs": {}, "infrastructureLog": [],
-                                           "deployment": {"accelerator": args.accelerator, "acceleratorCount": args.accelerator_count}})
-    deleted = threading.Event()
+    state["deployment"].update(accelerator=args.accelerator, acceleratorCount=args.accelerator_count,
+                               openSince=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+    stop = threading.Event()
 
     def finish() -> None:
         with lock:
-            if deleted.is_set():
+            if stop.is_set():
                 return
-            deleted.set()
-        try:
-            fw.delete_deployment(deployment_id)
-            state["deployment"]["deleted"] = True
-            print("deployment deleted", flush=True)
-        except Exception as e:  # say so plainly: this one bills until it scales to zero
-            state["deployment"]["deleted"] = False
-            print(f"DELETE FAILED, delete it by hand on Fireworks: {type(e).__name__}: {str(e)[:200]}", flush=True)
-        minutes = (time.monotonic() - started) / 60
-        previous = state["deployment"].get("minutes", 0)
-        state["deployment"].update(minutes=round(previous + minutes, 1), estimatedUsd=round((previous + minutes) * usd_per_minute, 2))
+            stop.set()
+        gone = False
+        for attempt in range(3):
+            try:
+                fw.delete_deployment(deployment_id)
+                gone = True
+                print("deployment deleted", flush=True)
+                break
+            except Exception as e:
+                print(distill.scrub(f"delete attempt {attempt + 1} failed: {type(e).__name__}: {str(e)[:200]}"), flush=True)
+                time.sleep(5)
+        if not gone:  # say so plainly: it bills until it scales to zero, and openSince stays so nothing resumes on top of it
+            print("DELETE FAILED: delete the deployment by hand on Fireworks", flush=True)
+        used = (time.monotonic() - started) / 60
+        state["deployment"].update(deleted=gone, minutes=round(state["deployment"].get("minutes", 0) + used, 1),
+                                   estimatedUsd=round(spent + used * usd_per_minute, 2))
+        if gone:
+            state["deployment"].pop("openSince", None)
+
+    def unit(name: str, which: str, trial: int) -> None:
+        rec = None
+        for attempt in (1, 2):
+            if stop.is_set():
+                return
+            try:
+                rec = first_try(HELD_OUT_DIRS[name], models[which], trial, settings)
+                break
+            except Exception as e:
+                with lock:
+                    state["infrastructureLog"].append({"unit": f"{name} {which} {trial}", "reason": type(e).__name__, "rerun": attempt == 1})
+                rec = {"trial": trial, "passed": False, "infrastructureFailure": True, "error": distill.scrub(str(e)[:200])}
+        if stop.is_set() and not rec.get("translated"):
+            return  # the cap ended it: not reached, not a failure
+        with lock:
+            state["programs"][name][which].append(rec)
+            save()
+            print(f"{name} {which} {trial}: passed={rec['passed']} compiled={rec.get('compiled')} {rec.get('seconds')}s", flush=True)
 
     watchdog = threading.Timer(limit_minutes * 60, finish)
     watchdog.daemon = True
-    watchdog.start()
+    previous = {s_: signal.signal(s_, lambda *_: sys.exit(143)) for s_ in (signal.SIGTERM, signal.SIGHUP)}  # a closed terminal must still delete
     try:
+        save()  # openSince is on disk before anything can go wrong
+        watchdog.start()
         distill.wait_for(lambda: fw.deployment(deployment_id), lambda d: d.get("state") == "READY", every=20, limit=1200)
         fw.load_adapter(deployment_id, OUTPUT_MODEL)
-        time.sleep(30)
         suffix = f"#accounts/{fw.account}/deployments/{deployment_id}"
         models = {"base": BASE_MODEL + suffix, "tuned": f"accounts/{fw.account}/models/{OUTPUT_MODEL}{suffix}"}
-        settings = replace(Settings.from_env(), mode="private", base_url="https://api.fireworks.ai/inference/v1")
-
-        def unit(name: str, which: str, trial: int) -> None:
-            for attempt in (1, 2):
-                if deleted.is_set():
-                    return
-                try:
-                    rec = first_try(HELD_OUT_DIRS[name], models[which], trial, settings, state)
-                    break
-                except Exception as e:
-                    with lock:
-                        state["infrastructureLog"].append({"unit": f"{name} {which} {trial}", "reason": type(e).__name__, "rerun": attempt == 1})
-                    rec = {"trial": trial, "passed": False, "infrastructureFailure": True}
-            if deleted.is_set() and rec.get("infrastructureFailure"):
-                return  # the cap ended it: not reached, not a failure
-            with lock:
-                state["programs"][name][which].append(rec)
-                atomic_write(DIR / "evaluation.json", json.dumps(state, indent=1) + "\n")
-                print(f"{name} {which} {trial}: passed={rec['passed']} compiled={rec.get('compiled')} {rec.get('seconds')}s", flush=True)
-
-        jobs = []
-        for name in HELD_OUT_DIRS:
-            state["programs"].setdefault(name, {"base": [], "tuned": []})
-            for trial in range(1, K + 1):
-                for which in ("base", "tuned"):
-                    if not any(r["trial"] == trial for r in state["programs"][name][which]):
-                        jobs.append((name, which, trial))
-        with ThreadPoolExecutor(WORKERS) as pool:
+        settings = replace(Settings.from_env(), mode="private")
+        for which in ("base", "tuned"):  # no attempt starts until both models really answer
+            distill.wait_for(lambda: stop.is_set() or answers(models[which], settings), bool, every=20, limit=900)
+        pool = ThreadPoolExecutor(WORKERS)
+        try:
             for f in [pool.submit(unit, *j) for j in jobs]:
                 f.result()
-        complete = all(len(p[w]) == K for p in state["programs"].values() for w in ("base", "tuned"))
-        state["status"] = "complete" if complete else "partial"
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+        counted = [r for p in state["programs"].values() for w in ("base", "tuned") for r in p[w] if not r.get("infrastructureFailure")]
+        state["status"] = "complete" if len(counted) == 2 * K * len(HELD_OUT_DIRS) else "partial"
     finally:
         watchdog.cancel()
+        if watchdog.is_alive():
+            watchdog.join()  # a delete already in flight must finish before this process can exit
         finish()
-        atomic_write(DIR / "evaluation.json", json.dumps(state, indent=1) + "\n")
+        for s_, handler in previous.items():
+            signal.signal(s_, handler)
+        with lock:
+            save()
         report()
     return 0
 
 
 def total(programs: dict, which: str) -> dict:
-    rows = [(n, r) for n, p in programs.items() for r in p[which]]
+    """Attempts the host lost are counted apart: they say nothing about the model."""
+    all_rows = [(n, r) for n, p in programs.items() for r in p[which]]
+    rows = [(n, r) for n, r in all_rows if not r.get("infrastructureFailure")]
     return {"attempts": len(rows), "passed": sum(r["passed"] for _, r in rows), "compiled": sum(bool(r.get("compiled")) for _, r in rows),
-            "programsWithAPass": len({n for n, r in rows if r["passed"]})}
+            "programsWithAPass": len({n for n, r in rows if r["passed"]}), "lostToHost": len(all_rows) - len(rows)}
 
 
 def report() -> None:
@@ -444,7 +518,9 @@ def report() -> None:
         "limits": LIMITS,
     }
     jsonschema.validate(result, json.loads(SCHEMA.read_text()))
-    atomic_write(OUT, json.dumps(result, indent=2) + "\n")
+    text = json.dumps(result, indent=2) + "\n"
+    distill.assert_scrubbed(text)
+    atomic_write(OUT, text)
 
 
 def main() -> int:

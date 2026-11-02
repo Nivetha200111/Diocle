@@ -28,7 +28,7 @@
         "examples": { "type": "integer", "minimum": 0 },
         "repositoryPrograms": { "type": "integer", "minimum": 0 },
         "generatedPrograms": { "type": "integer", "minimum": 0 },
-        "sha256": { "type": "string", "description": "SHA-256 of the JSONL exactly as uploaded" },
+        "sha256": { "type": "string", "description": "SHA-256 of the JSONL built from the harvest; training.uploadedSha256 is what the host received" },
         "heldOut": { "type": "array", "items": { "type": "string" } },
         "oracle": {
           "type": "object",
@@ -55,7 +55,9 @@
       "type": "object",
       "required": ["status"],
       "properties": {
-        "status": { "enum": ["not-run", "running", "completed", "failed"] },
+        "status": { "enum": ["not-run", "blocked", "running", "completed", "failed"], "description": "blocked: the host refused, so nothing was tuned; see reason" },
+        "reason": { "type": "string" },
+        "uploadedSha256": { "type": "string", "description": "SHA-256 of the bytes given to the host for this job" },
         "host": { "type": "string" },
         "jobId": { "type": ["string", "null"], "description": "The host's job name; the owner can look it up on the host's side" },
         "outputModel": { "type": ["string", "null"] },
@@ -143,7 +145,8 @@
         "attempts": { "type": "integer" },
         "passed": { "type": "integer" },
         "compiled": { "type": "integer" },
-        "programsWithAPass": { "type": "integer" }
+        "programsWithAPass": { "type": "integer" },
+        "lostToHost": { "type": "integer", "description": "Attempts the host lost twice. Not in attempts or passed: they say nothing about the model" }
       }
     }
   }

@@ -22,6 +22,7 @@ ORACLE_SEED, ORACLE_CASES, MIN_RECORDS = 7701, 1000, 100
 HELD_OUT_SIMILARITY, GENERATED_SIMILARITY = 0.30, 0.60
 MAX_TRAINING_TOKENS = 3_000_000
 FIREWORKS = "https://api.fireworks.ai/v1"
+_ACCOUNTS: set[str] = set()  # names to keep out of logs and result files: a host account can be derived from an email address
 
 GATES = ("generation-failed", "does-not-compile", "analyzer-refused", "weak-oracle", "too-similar", "not-open-weights", "translation-failed",
          "policy-blocked", "differential-failed", "too-few-records", "spend-cap")
@@ -51,6 +52,20 @@ Rules:
 - Pull each copybook in with an unquoted member name, as in `COPY GEN0001I.`, never `COPY "GEN0001I".`"""
 
 
+def scrub(text: object) -> str:
+    """Host text with the account name taken out. Everything bound for a log or a result file goes through this."""
+    out = str(text)
+    for account in _ACCOUNTS:
+        out = out.replace(account, "<account>")
+    return out
+
+
+def assert_scrubbed(text: str) -> None:
+    """The last check before a result file is written: refuse rather than publish the account name."""
+    if any(account in text for account in _ACCOUNTS):
+        raise ValueError("refused to write a result file: it contains the host account name")
+
+
 class NotOpenWeights(RuntimeError):
     """A call behind a training example was not Muse Spark Open: Meta Model API outputs may not train this model."""
 
@@ -66,7 +81,7 @@ def check_teacher_calls(calls) -> None:
 
 def _input_layouts(meta: dict) -> list[dict]:
     if "files" in meta:
-        return [f.get("layout") or {} for f in meta["files"] if f.get("direction") in ("input", "update", "i-o")]
+        return [f.get("layout") or {} for f in meta["files"] if f.get("direction") in ("input", "io")]
     layouts = meta.get("layouts") or {}
     return [layouts["input"]] if "input" in layouts else []
 
@@ -162,9 +177,10 @@ def generation_messages(name: str, domain: str, technique: str) -> list[dict]:
     return [{"role": "system", "content": GENERATOR_SYSTEM}, {"role": "user", "content": user}]
 
 
-def contained(cobol: str) -> bool:
-    """A generated program may touch only INFILE and OUTFILE and may call nothing. It is compiled and run on this machine."""
-    text = "\n".join(line for line in cobol.upper().splitlines() if line[6:7] != "*")
+def contained(cobol: str, *copybooks: str) -> bool:
+    """A generated program may touch only INFILE and OUTFILE and may call nothing, and that includes what its copybooks
+    bring in with COPY. It is compiled and run on this machine."""
+    text = "\n".join(line for part in (cobol, *copybooks) for line in part.upper().splitlines() if line[6:7] != "*")
     assigns = re.findall(r"\bASSIGN\s+(?:TO\s+)?(\S+?)\.?(?=\s|$)", text)
     return sorted(assigns) == ["INFILE", "OUTFILE"] and not re.search(r"(?<![A-Z0-9-])(CALL|ACCEPT|EXEC)(?![A-Z0-9-])", text)
 
@@ -177,7 +193,8 @@ def compile_errors(root: Path, name: str) -> str | None:
     done = subprocess.run([cobc, "-x", "-fsyntax-only", "-I", str(root), str(root / f"{name}.cbl")], capture_output=True, text=True, timeout=60)
     if done.returncode == 0:
         return None
-    return "\n".join(line for line in done.stderr.splitlines() if "error" in line)[:1500] or "cobc failed"
+    errors = "\n".join(line for line in done.stderr.splitlines() if "error" in line)
+    return errors.replace(f"{root}/", "")[:1500] or "cobc failed"  # no machine paths: this reaches a prompt and a result file
 
 
 def fix_messages(messages: list[dict], answer: str, errors: str) -> list[dict]:
@@ -214,6 +231,7 @@ class Fireworks:
     _http: object = None
 
     def __post_init__(self) -> None:
+        _ACCOUNTS.add(self.account)
         if self._http is None:
             import httpx
 
@@ -239,12 +257,17 @@ class Fireworks:
 
     def _json(self, response) -> dict:
         if response.status_code >= 400:
-            raise RuntimeError(f"{response.request.method} {response.request.url.path}: {response.status_code} {response.text[:400]}")
+            raise RuntimeError(scrub(f"{response.request.method} {response.request.url.path}: {response.status_code} {response.text[:400]}"))
         return response.json() if response.content else {}
 
     def upload_dataset(self, dataset_id: str, data: bytes, examples: int) -> dict:
-        self._json(self._http.post("/datasets", json={"datasetId": dataset_id,
-                                                      "dataset": {"userUploaded": {}, "exampleCount": str(examples)}}))
+        """Safe to run again: a dataset left in UPLOADING by a failed upload is reused, a READY one is left alone."""
+        existing = self._http.get(f"/datasets/{dataset_id}")
+        if existing.status_code == 404:
+            self._json(self._http.post("/datasets", json={"datasetId": dataset_id,
+                                                          "dataset": {"userUploaded": {}, "exampleCount": str(examples)}}))
+        elif self._json(existing).get("state") == "READY":
+            return existing.json()
         self._json(self._http.post(f"/datasets/{dataset_id}:upload", files={"file": ("train.jsonl", data)}))
         return self.dataset(dataset_id)
 
@@ -285,5 +308,5 @@ def wait_for(read, done, *, every: float = 30.0, limit: float = 3600.0, sleep=ti
         if done(value):
             return value
         if clock() >= end:
-            raise TimeoutError(f"still waiting after {limit:.0f} s: {str(value)[:200]}")
+            raise TimeoutError(f"still waiting after {limit:.0f} s")  # not the host's reply: it can carry the account name
         sleep(every)

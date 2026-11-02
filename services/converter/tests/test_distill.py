@@ -131,6 +131,42 @@ def test_a_generated_program_may_only_touch_its_two_files(change):
     assert not distill.contained(COBOL.replace(*change))
 
 
+def test_a_copybook_may_not_smuggle_a_call_past_the_check():
+    assert not distill.contained(COBOL, '           CALL "SYSTEM" USING X.\n', "")
+    assert distill.contained(COBOL, "       01  A PIC X.\n", "       01  B PIC X.\n")
+
+
+def test_a_flat_io_file_is_invisible_to_the_oracle_and_a_structured_one_is_visible(tmp_path):
+    flat = {"files": [{"dd": "A", "direction": "io", "layout": {"fields": [{"name": "R"}]}}]}
+    (tmp_path / "sample.json").write_text(json.dumps(flat))
+    assert distill.oracle_can_see(tmp_path) is False
+    assert distill.oracle_can_see(ROOT / "samples" / "ledger-rewrite") is True
+
+
+def test_compile_errors_carry_no_machine_path(tmp_path):
+    if shutil.which("cobc") is None:
+        pytest.skip("needs GnuCOBOL")
+    (tmp_path / "BAD.cbl").write_text("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. BAD.\n       PROCEDURE DIVISION.\n           MOVE 1 TO.\n")
+    assert str(tmp_path) not in distill.compile_errors(tmp_path, "BAD")
+
+
+def test_upload_reuses_a_dataset_left_uploading_and_skips_a_ready_one():
+    class Http(FakeHttp):
+        def __init__(self, state):
+            super().__init__()
+            self.state = state
+
+        def get(self, path, **kw):
+            return FakeResponse(200, {"state": self.state})
+
+    uploading = Http("UPLOADING")
+    distill.Fireworks("acct", "key", uploading).upload_dataset("d", b"x", 1)
+    assert [r[1] for r in uploading.requests] == ["/datasets/d:upload"]
+    ready = Http("READY")
+    distill.Fireworks("acct", "key", ready).upload_dataset("d", b"x", 1)
+    assert ready.requests == []
+
+
 def test_a_third_file_is_refused():
     extra = COBOL.replace("       PROCEDURE", "           SELECT C ASSIGN TO INFILE.\n       PROCEDURE")
     assert not distill.contained(extra)
@@ -231,6 +267,17 @@ def test_deployment_scales_to_zero_and_never_past_one_replica():
     body = http.requests[0][2]["json"]
     assert (body["minReplicaCount"], body["maxReplicaCount"], body["enableAddons"]) == (0, 1, True)
     assert body["scaleToZeroWindow"] == "300s"
+
+
+def test_a_timeout_does_not_repeat_the_hosts_reply():
+    now = [0.0]
+
+    def tick(seconds):
+        now[0] += seconds
+
+    with pytest.raises(TimeoutError) as e:
+        distill.wait_for(lambda: {"name": "accounts/acct/x"}, lambda v: False, every=10, limit=20, sleep=tick, clock=lambda: now[0])
+    assert "acct" not in str(e.value)
 
 
 def test_a_host_error_is_raised_with_its_status_and_not_the_key():
