@@ -16,6 +16,8 @@
 
 <sub>Built with <strong>Meta</strong>'s models. <strong>Fireworks</strong> and <strong>Baseten</strong> host the open-weights Muse Spark Open. Logos belong to their owners and identify what Diocle uses; no endorsement or partnership is implied.</sub>
 
+**Meta Global AI Developer Hackathon entry:** Indie Developer track, problem statement **Build for Your World**: a problem the author knows firsthand, large COBOL modernization projects.
+
 Diocle helps a modernization lead decide whether to accept AI-written Java for a COBOL batch program. Muse Spark translates the COBOL. The original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, display line and exit code must match. Java that passes is then attacked with inputs Muse Spark designs, and what differs goes back for repair. **A model never certifies; the comparison does.** The result is reproducible evidence on the inputs tried under GnuCOBOL: not a formal proof, and not a test on IBM Enterprise COBOL. Indie track, *Build for Your World*. Built Oct 27 to Nov 4, 2026, on synthetic programs.
 
 | Start here | |
