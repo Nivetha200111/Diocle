@@ -30,5 +30,4 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 | [HACKATHON_RULES.md](HACKATHON_RULES.md) | Summary of the hackathon rules we are working to. |
 | [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md) | Draft submission text. |
 | [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md) | What the owner must fill in or confirm before submitting. |
-| [DEMO_PLAN.md](DEMO_PLAN.md) | Working plan for the demo video; a plan, not a description of the final video. |
 | [DEPLOY.md](DEPLOY.md) | How the site and engine are deployed. |

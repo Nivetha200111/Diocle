@@ -2,7 +2,7 @@
 # Assemble the demo video from the recorded shots (record.mjs) with ffmpeg.
 #   demo/build.sh                         # out/rough-cut.mp4: all shots in order, 1920x1080, silent
 #   demo/build.sh voiceover.m4a [subs.srt] # out/final.mp4: rough cut + your narration (+ burned-in captions)
-# Shot order follows docs/DEMO_PLAN.md. A shot can be trimmed or slowed by editing SHOTS below:
+# A shot can be trimmed or slowed by editing SHOTS below:
 # name[:start-end seconds][:speed], e.g. "import:0-12:1" or "delivery::0.8" (0.8 = slower).
 set -eu
 cd "$(dirname "$0")/out"

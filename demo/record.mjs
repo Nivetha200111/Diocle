@@ -1,4 +1,4 @@
-// Scripted recordings of the live site for the demo video (docs/DEMO_PLAN.md): one 1920x1080 clip per shot.
+// Scripted recordings of the live site for the demo video: one 1920x1080 clip per shot.
 //   cd demo && npm run record                 # all shots
 //   cd demo && npm run record -- chqclr home  # some shots
 // Clips land in demo/out/<shot>.webm (gitignored). Nothing here changes the site; the import shot fills the form

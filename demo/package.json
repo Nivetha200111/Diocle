@@ -1,7 +1,7 @@
 {
   "name": "diocle-demo-recording",
   "private": true,
-  "description": "Scripted screen recordings of the live site for the demo video (docs/DEMO_PLAN.md).",
+  "description": "Scripted screen recordings of the live site for the demo video.",
   "type": "module",
   "scripts": {
     "record": "node record.mjs"

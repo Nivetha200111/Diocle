@@ -9,6 +9,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v15 (https://youtu.be/8Yz06cdC3yc), uses only the owner's own recorded voice; no synthetic voice is in it.
 
+## Nov 3: three out-of-date docs removed
+- **Removed (owner's request):** `docs/DEMO_PLAN.md`, `demo/candidate-v13/README.md`, `docs/architecture.drawio`. Older entries below still name them; they remain in git history. `demo/candidate-v13/build.py` and `overlays.mjs` stay.
+
 ## Nov 3: video v15
 - **Why:** the organizers asked for an opening line on what pre-existed and what was built, and working product rather than slides. v14 had no such line. Keep v15 under 3:00, because judges stop watching there.
 - **What:** https://youtu.be/8Yz06cdC3yc, 2:59, full-window footage in a fresh browser, with a live import of AWS CardDemo (`delivery-20261103-111122`: 3/3 certified, 6m 58s, $0.0355). It replaces v14 everywhere. `cics-genapp` was tried first and is all CICS: 31 of 31 refused. The pipeline is local only: `demo/v14/build_v15.py` and `voice_v15.py` in the `demo-v14` worktree.

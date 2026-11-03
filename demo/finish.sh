@@ -3,7 +3,7 @@
 #   demo/finish.sh path/to/voiceover.m4a [video]
 # Reads the video (default demo/promo/out/diocle-submission.mp4, the merged cut) and writes
 # demo/promo/out/final.mp4 and captions.srt.
-# The video keeps its length; record the narration to the timings in docs/DEMO_PLAN.md (merged cut).
+# The video keeps its length; record the narration to fit it.
 set -eu
 voice=$1
 out="$(dirname "$0")/promo/out"
