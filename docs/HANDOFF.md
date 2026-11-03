@@ -7,7 +7,11 @@ Newest state at the top of each section. Dates are 2026, times IST unless marked
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
-> v15 (https://youtu.be/8Yz06cdC3yc), uses only the owner's own recorded voice; no synthetic voice is in it.
+> v16 (https://youtu.be/glTLob7S-60), uses only the owner's own recorded voice; no synthetic voice is in it.
+
+## Nov 3: video v16
+- **Why:** a review of v15 found two shots too dense to read and a refusal line spoken over panels of certified programs.
+- **What:** https://youtu.be/glTLob7S-60, 2:59.6, replaces v15 as the linked video. It adds an "It also says no." card, the analyzer's report on CardDemo at the imported commit (44 programs, 4 it can check, 40 refused, seven shortened examples, labelled as an analyzer report rather than the live page), a push-in on the Muse Spark Open table, and a longer end card. 1.35 s of pauses came out; the owner's words and takes are unchanged. The pipeline is local only and not committed.
 
 ## Nov 3: service READMEs and compliance rows corrected
 - **What:** the four service READMEs now match the code (API routes, supported layouts, the guard's record, byte-for-byte comparison, report v0.13). The compliance team row says solo. **Left open:** the sandbox pre-check's "not exercised in a real container" warning stays, because no record shows it was run there. The owner confirmed on Nov 3 that v15 shows only what was built in the window.

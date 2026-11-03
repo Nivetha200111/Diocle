@@ -41,7 +41,7 @@ Already existed and is used, not built here:
 
 ## Voice and narration disclosure
 
-- **Video narration.** The submitted video (https://youtu.be/8Yz06cdC3yc) uses only the author's own recorded voice (recorded Nov 1 to 3, 2026). Its sound effects and music were generated locally for the video. Earlier drafts tried synthetic voices; none of them is in the submitted video, and the draft voice script was removed from the repository on Nov 1.
+- **Video narration.** The submitted video (https://youtu.be/glTLob7S-60) uses only the author's own recorded voice (recorded Nov 1 to 3, 2026). Its sound effects and music were generated locally for the video. Earlier drafts tried synthetic voices; none of them is in the submitted video, and the draft voice script was removed from the repository on Nov 1.
 - **Voice clips in the product.** The two spoken-question clips (`services/api/diocle_api/voice_clips/`) are the author's own recorded voice (Nov 1, 2026), replacing earlier macOS `say` clips.
 - **Speech model.** Meta's Muse Voice Transcribe transcribes speech and does not speak; it is not used for the narration.
 - **Video contents.** This repository does not contain the final video; nothing here makes claims about what it shows. It opens with one spoken line on what already existed and what was built during the hackathon, and carries a "Built during the Meta Global AI Developer Hackathon" badge. The owner confirmed on Nov 3 that it shows only what was built in the window.

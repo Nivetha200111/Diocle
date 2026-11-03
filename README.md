@@ -1,4 +1,4 @@
-**Demo video (under 3 min): https://youtu.be/8Yz06cdC3yc**
+**Demo video (under 3 min): https://youtu.be/glTLob7S-60**
 
 <p align="center"><img src="docs/assets/logo.svg" alt="Diocle logo" width="96" height="96"></p>
 
@@ -22,7 +22,7 @@ Diocle helps a modernization lead decide whether to accept AI-written Java for a
 
 | Start here | |
 |---|---|
-| **Watch** | [The demo video](https://youtu.be/8Yz06cdC3yc) |
+| **Watch** | [The demo video](https://youtu.be/glTLob7S-60) |
 | **Try** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model) |
 | **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
 | **Check** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [a public repository we did not write](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), [each claim and how to verify it](docs/CLAIMS_TO_EVIDENCE.md), [a delivered pull request](https://github.com/Nivetha200111/quillmark-modern/pull/4) and [its CI run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870), [the build log](docs/BUILD_LOG.md) |
