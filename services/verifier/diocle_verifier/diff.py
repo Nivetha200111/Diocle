@@ -11,17 +11,16 @@ from __future__ import annotations
 
 from .inputs import Case
 from .layout import Field, parse_record, record_length
-from .runners import NO_FINAL_NEWLINE
 
 
 def _normal(record: str, fmt: str, length: int) -> str:
     """The bytes that must be equal: "line" records ignore trailing spaces (the writer may trim them)."""
-    return record.rstrip("\r\n").rstrip(" ") if fmt == "line" else record
+    return record.rstrip(" ") if fmt == "line" else record
 
 
 def _field_diffs(o: str, c: str, fields: list[Field], fmt: str) -> list[dict]:
     length = record_length(fields)
-    pad = (lambda r: r.rstrip("\r\n").ljust(length)) if fmt == "line" else (lambda r: r)
+    pad = (lambda r: r.ljust(length)) if fmt == "line" else (lambda r: r)
     o, c = pad(o), pad(c)
     ov, cv = parse_record(o, fields), parse_record(c, fields)
     diffs, pos = [], 0
@@ -30,10 +29,10 @@ def _field_diffs(o: str, c: str, fields: list[Field], fmt: str) -> list[dict]:
         pos += f.length
         if ro == rc:
             continue
-        if ov[f.name] != cv[f.name]:
+        if ov[f.name] != cv[f.name] and str(ov[f.name]).strip() != str(cv[f.name]).strip():
             diffs.append({"field": f.name, "original": str(ov[f.name]).strip() or repr(ov[f.name]),
                           "converted": str(cv[f.name]).strip() or repr(cv[f.name])})
-        else:  # same value, different bytes: a sign, zone or padding difference the record would carry
+        else:  # same value, different bytes: a sign, zone, padding or control byte difference the record would carry
             diffs.append({"field": f.name, "original": repr(ro), "converted": repr(rc),
                           "note": "same value, different bytes"})
     return diffs
@@ -59,18 +58,15 @@ def compare(cases: list[Case], original: list[str], converted: list[str], out_fi
         if c is not None:
             result["convertedOutput"] = c
         if o is None or c is None:
-            extra = c if o is None else o
             result |= {"match": False, "fieldDiffs": [],
-                       "diff": f"the {'converted' if o is None else 'original'} file has no newline after its last record; "
-                               "the other's does" if extra == NO_FINAL_NEWLINE else
-                               f"output record {i + 1}: the {'original' if o is None else 'converted'} program wrote "
+                       "diff": f"output record {i + 1}: the {'original' if o is None else 'converted'} program wrote "
                                f"{len(original) if o is None else len(converted)} records, the other wrote more"}
             results.append(result)
             continue
         # Only bytes that differ can be wrong. Identical bytes of an unexpected length are what the original wrote too:
         # WRITE ... ADVANCING puts control bytes between fixed records, so the file is no whole number of records and
         # its last piece is short whichever program wrote it.
-        wrong_length = o != c and (len(c.rstrip("\r\n")) > expected_length if fmt == "line" else len(c) != expected_length)
+        wrong_length = o != c and (len(c) > expected_length if fmt == "line" else len(c) != expected_length)
         length_note = ("" if not wrong_length else
                        f"the file does not end on a whole record: its last piece is {len(o)} bytes in the original and "
                        f"{len(c)} in the converted, record length {expected_length}: original {o!r} converted {c!r}"
@@ -85,6 +81,20 @@ def compare(cases: list[Case], original: list[str], converted: list[str], out_fi
             parts = ([length_note] if length_note else []) + [
                 f"{d['field']}: original {d['original']} converted {d['converted']}"
                 + (f" ({d['note']})" if d.get("note") else "") for d in field_diffs]
-            result["diff"] = "; ".join(parts) or "records differ outside the described fields"
+            result["diff"] = "; ".join(parts) or f"records differ outside the described fields: original {o!r} converted {c!r}"
         results.append(result)
+    _final_newline(original, converted, results)
     return results
+
+
+def _final_newline(original: list[str], converted: list[str], results: list[dict]) -> None:
+    """A text file whose last line has no newline, or has one the other file's last line lacks, differs by that byte. It
+    fails the last record's result rather than adding one, so the results still count records. Unequal record counts have
+    already failed, and on those the last lines are not the same line."""
+    o_end, c_end = getattr(original, "final_newline", True), getattr(converted, "final_newline", True)
+    if o_end == c_end or len(original) != len(converted) or not results:
+        return
+    last = results[-1]
+    note = f"the {'converted' if o_end else 'original'} file has no newline after its last record; the other's does"
+    last["diff"] = f"{last['diff']}; {note}" if last.get("diff") else note
+    last["match"] = False

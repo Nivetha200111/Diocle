@@ -13,8 +13,9 @@ from diocle_converter.prompts import TRANSLATOR_ADVANCING
 from diocle_verifier.diff import compare
 from diocle_verifier.inputs import Case
 from diocle_verifier.layout import Field
-from diocle_verifier.runners import IBM_FLAGS, NO_FINAL_NEWLINE, read_output
-from diocle_verifier.verify import passes, verify_sample
+from diocle_verifier.runners import IBM_FLAGS, read_output
+from diocle_verifier.transcript import differential
+from diocle_verifier.verify import CONTRACT, passes, validate_report, verify_sample
 
 SEQ, LINE = "SEQUENTIAL", "LINE SEQUENTIAL"
 
@@ -181,9 +182,9 @@ COBOL = """       IDENTIFICATION DIVISION.
                END-READ
            END-PERFORM.
            MOVE 'TOTAL   ' TO OUT-REC.
-           WRITE OUT-REC BEFORE ADVANCING 1 LINE.
+           WRITE OUT-REC BEFORE ADVANCING {before}.
            MOVE 'END     ' TO OUT-REC.
-           WRITE OUT-REC AFTER ADVANCING 1 LINE.
+           WRITE OUT-REC {last} ADVANCING {last_advance}.
            CLOSE IN-F OUT-F.
            GOBACK.
 """
@@ -208,12 +209,12 @@ IGNORES_THE_NEWLINES = {SEQ: 'w(o, "TITLE   "); w(o, "HEADING "); ' + LOOP_FIXED
                         LINE: 'w(o, "TITLE\\n"); w(o, "HEADING\\n"); ' + LOOP_LINE + ' w(o, "TOTAL\\n"); w(o, "END\\n");'}
 
 
-def _sample(root: Path, org: str, advance: str = "1 LINE", name: str = "s") -> Path:
+def _sample(root: Path, org: str, advance: str = "1 LINE", name: str = "s", before: str = "1 LINE", last: str = "AFTER", last_advance: str = "1 LINE") -> Path:
     sample = root / name
     (sample / "src").mkdir(parents=True)
     (sample / "copybooks").mkdir()
     organization = "\n               ORGANIZATION IS LINE SEQUENTIAL" if org == LINE else ""
-    (sample / "src" / "ADVDEMO.cbl").write_text(COBOL.format(organization=organization, advance=advance))
+    (sample / "src" / "ADVDEMO.cbl").write_text(COBOL.format(organization=organization, advance=advance, before=before, last=last, last_advance=last_advance))
     out_format = "fixed" if org == SEQ else "line"
     (sample / "sample.json").write_text(json.dumps({
         "name": name, "program": "ADVDEMO", "source": "src/ADVDEMO.cbl", "modules": [], "copybookDir": "copybooks",
@@ -233,8 +234,8 @@ def _java(root: Path, body: str) -> Path:
     return java
 
 
-def _check(tmp_path: Path, org: str, body: str, advance: str = "1 LINE") -> dict:
-    return verify_sample(_sample(tmp_path, org, advance), _java(tmp_path / "j", body), seed=7, random_count=40)
+def _check(tmp_path: Path, org: str, body: str, advance: str = "1 LINE", **program) -> dict:
+    return verify_sample(_sample(tmp_path, org, advance, **program), _java(tmp_path / "j", body), seed=7, random_count=40)
 
 
 @pytest.mark.parametrize("org", [SEQ, LINE])
@@ -303,11 +304,114 @@ def test_output_lines_end_at_a_newline_byte_and_nothing_else(tmp_path):
     assert read_output(tmp_path / "missing") == []
 
 
-def test_a_last_line_with_no_newline_is_compared_and_named(tmp_path):
+def test_a_final_newline_is_beside_the_lines_and_adds_no_row(tmp_path):
     path = tmp_path / "out"
     path.write_bytes(b"AAAA\nBBBB")
-    assert read_output(path) == ["AAAA", "BBBB", NO_FINAL_NEWLINE]
-    original, converted = ["AAAA", "BBBB"], read_output(path)
-    results = compare([Case("c", "random", "x")], original, converted, FIELDS, "line")
-    assert [r["match"] for r in results] == [True, True, False]
-    assert "the converted file has no newline after its last record" in results[-1]["diff"]
+    unterminated = read_output(path)
+    path.write_bytes(b"AAAA\nBBBB\n")
+    terminated = read_output(path)
+    assert unterminated == terminated == ["AAAA", "BBBB"]  # the same text, and nothing a program prints can say otherwise
+    assert unterminated.final_newline is False and terminated.final_newline is True
+    results = compare([], terminated, unterminated, FIELDS, "line")
+    assert [r["match"] for r in results] == [True, False] and len(results) == 2
+    assert results[-1]["diff"] == "the converted file has no newline after its last record; the other's does"
+    assert [r["match"] for r in compare([], unterminated, terminated, FIELDS, "line")] == [True, False]
+    assert [r["match"] for r in compare([], unterminated, unterminated, FIELDS, "line")] == [True, True]
+
+
+OLD_MARKER = "<no newline at the end of the file>"
+ENDS_BARE = {"last": "BEFORE", "last_advance": "PAGE"}  # the original's last byte is a form feed: no newline at all
+ENDS_BARE_JAVA = 'w(o, "TITLE\\n"); w(o, "\\nHEADING"); ' + LOOP_LINE + ' w(o, "TOTAL\\n"); w(o, "END\\f%s");'
+
+
+def test_a_file_that_ends_with_no_newline_certifies_only_if_the_java_does_too(tmp_path):
+    report = _check(tmp_path / "good", LINE, ENDS_BARE_JAVA % "", **ENDS_BARE)
+    assert passes(report), [r.get("diff") for r in report["results"] if not r["match"]][:3]
+    assert not any(OLD_MARKER in (r.get("originalOutput") or "") for r in report["results"])
+    report = _check(tmp_path / "bad", LINE, ENDS_BARE_JAVA % "\\n", **ENDS_BARE)
+    assert not passes(report) and "no newline after its last record" in [r for r in report["results"] if not r["match"]][0]["diff"]
+
+
+@pytest.mark.parametrize("printed", [OLD_MARKER, "\\n" + OLD_MARKER, "", "anything at all"])
+def test_no_line_a_java_prints_can_stand_in_for_the_missing_newline(tmp_path, printed):
+    """A reviewer's spoof: the marker used to be ordinary text, so printing it certified where the original has no final newline."""
+    report = _check(tmp_path, LINE, ENDS_BARE_JAVA % f"\\n{printed}\\n", **ENDS_BARE)
+    assert not passes(report)
+
+
+def test_a_carriage_return_is_a_byte_like_any_other_on_text_output(tmp_path):
+    keeps_it = 'w(o, "TITLE\\n"); w(o, "\\nHEADING"); ' + LOOP_LINE + ' w(o, "TOTAL\\r"); w(o, "\\nEND\\n");'
+    good = _check(tmp_path / "good", LINE, keeps_it, before="0 LINES")
+    assert passes(good), [r.get("diff") for r in good["results"] if not r["match"]][:3]
+    drops_it = keeps_it.replace('"TOTAL\\r"', '"TOTAL"')
+    assert not passes(_check(tmp_path / "bad", LINE, drops_it, before="0 LINES"))
+
+
+def test_a_java_that_adds_carriage_returns_fails_on_any_text_output(tmp_path):
+    report = _check(tmp_path, LINE, (CORRECT[LINE] % "\\n").replace('w(o, "TITLE\\n")', 'w(o, "TITLE\\r\\n")'))
+    assert not passes(report)
+    bad = next(r for r in report["results"] if not r["match"])
+    assert repr("TITLE\r  ") in bad["diff"] and "different bytes" in bad["diff"]
+
+
+def test_a_saved_regression_case_replays_the_final_newline_too(tmp_path):
+    from diocle_verifier.minimize import first_difference
+
+    path = tmp_path / "out"
+    path.write_bytes(b"AAAA\nBBBB\n")
+    terminated = read_output(path)
+    path.write_bytes(b"AAAA\nBBBB")
+    unterminated = read_output(path)
+    assert first_difference(terminated, terminated, FIELDS, "line") is None
+    found = first_difference(terminated, unterminated, FIELDS, "line")
+    assert found["record"] == 2 and found["translated"] == "no newline after the last record"
+    assert first_difference(["AB"], ["AB\r"], FIELDS, "line")["record"] == 1
+
+
+def test_trailing_spaces_stay_the_one_stated_leniency():
+    assert _one("AB", "AB  ", "line")["match"] and _one("AB  ", "AB", "line")["match"]
+    assert not _one("AB", "AB\r", "line")["match"] and not _one("AB\r", "AB", "line")["match"]
+    assert not _one("AB  \r", "AB", "line")["match"] and not _one("AB\f", "AB", "line")["match"]
+
+
+def _transcription(root: Path, org: str, advance: str) -> Path:
+    source = root / "T.cbl"
+    source.write_text(COBOL.format(organization="\n               ORGANIZATION IS LINE SEQUENTIAL" if org == LINE else "",
+                                   advance=advance, before="1 LINE", last="AFTER", last_advance="1 LINE"))
+    return source
+
+
+@pytest.mark.parametrize("org", [SEQ, LINE])
+def test_a_printout_transcription_is_held_to_the_same_bytes(tmp_path, org):
+    """Both sides are GnuCOBOL here, so the strict reading can only tell apart programs that write different bytes."""
+    sample = _sample(tmp_path, org, "PAGE")
+    same = differential(sample, _transcription(tmp_path, org, "PAGE"), random_count=20, sandbox=False)
+    assert same["ran"] and same["mismatched"] == 0, same
+    other = differential(sample, _transcription(tmp_path, org, "1 LINE"), random_count=20, sandbox=False)
+    assert other["ran"] and other["mismatched"] > 0, other
+
+
+def test_the_bundled_printout_sample_still_matches_itself_through_the_transcription_check():
+    sample = Path(__file__).resolve().parents[3] / "samples" / "loyalty-waiver-printout"
+    meta = json.loads((sample / "sample.json").read_text())
+    result = differential(sample, sample / meta["source"], random_count=50, sandbox=False)
+    assert result["ran"] and result["mismatched"] == 0 and result["outputRecords"] > 0, result
+
+
+def test_the_contract_states_pieces_and_the_final_newline_and_a_report_counts_no_extra_row(tmp_path):
+    from diocle_verifier import REPORT_VERSION
+
+    schema = json.loads(CONTRACT.read_text())
+    assert REPORT_VERSION == "0.13" and schema["description"].startswith("v0.13")
+    assert "pieces of the record length" in schema["description"] and "no result is added" in schema["description"]
+    assert "pieces, not records" in schema["properties"]["summary"]["properties"]["total"]["description"]
+    report = _check(tmp_path / "good", LINE, ENDS_BARE_JAVA % "", **ENDS_BARE)
+    validate_report(report)
+    assert report["version"] == "0.13"
+    extra = _check(tmp_path / "bad", LINE, ENDS_BARE_JAVA % "\\n", **ENDS_BARE)
+    validate_report(extra)
+    assert extra["summary"]["total"] == report["summary"]["total"] and extra["summary"]["failed"] == 1  # the byte fails a row, adds none
+    pieces = _check(tmp_path / "fixed", SEQ, CORRECT[SEQ] % "\\n")
+    written = "".join(r["originalOutput"] for r in pieces["results"])
+    records = (len(written) - written.count("\n")) // 8
+    assert passes(pieces) and pieces["summary"]["total"] == records + 1  # four newlines make one more piece than records

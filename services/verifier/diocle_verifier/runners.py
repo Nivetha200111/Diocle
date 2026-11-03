@@ -150,19 +150,24 @@ def read_records(path: Path, fmt: str = "line", length: int = 0) -> list[str]:
     return data.splitlines()
 
 
-NO_FINAL_NEWLINE = "<no newline at the end of the file>"
+class OutputLines(list):
+    """A text file's lines, and whether its last line ended in a newline byte. That fact is beside the lines, not among
+    them: nothing a program prints can stand in for it."""
+
+    final_newline: bool = True
 
 
 def read_output(path: Path, fmt: str = "line", length: int = 0) -> list[str]:
     """An output file's records for comparison. Text lines end at a newline byte and nothing else: a form feed or carriage
-    return (WRITE ... ADVANCING PAGE, 0 LINES) stays in the record and is compared, and a file whose last line has no
-    newline reads as one more entry, so that byte is compared too. read_records stays lenient for files we read as input."""
+    return (WRITE ... ADVANCING PAGE, 0 LINES, or a Java's CRLF) stays in the record and is compared, and the final newline
+    is compared too (diff.compare). read_records stays lenient for files we read as input."""
     if fmt == "fixed" or not path.exists():
         return read_records(path, fmt, length)
-    lines = path.read_bytes().decode("latin-1").split("\n")
-    if lines[-1]:
-        return [*lines, NO_FINAL_NEWLINE]
-    return lines[:-1]
+    lines = OutputLines(path.read_bytes().decode("latin-1").split("\n"))
+    lines.final_newline = not lines[-1]
+    if lines.final_newline:
+        lines.pop()
+    return lines
 
 
 def write_records(path: Path, records: list[str], fmt: str = "line") -> None:

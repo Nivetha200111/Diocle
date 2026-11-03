@@ -380,7 +380,7 @@ def _field_entries(rec: str, views: list[View], tried: dict, idx: int) -> list[d
 
 def first_difference(original: list[str], converted: list[str], fields: list[Field], fmt: str) -> dict | None:
     def norm(r: str) -> str:
-        return r.rstrip("\r\n").rstrip(" ") if fmt == "line" else r
+        return r.rstrip(" ") if fmt == "line" else r
 
     for i in range(max(len(original), len(converted))):
         o = original[i] if i < len(original) else None
@@ -403,6 +403,10 @@ def first_difference(original: list[str], converted: list[str], fields: list[Fie
         if c is not None:
             out["translated"] = _printable(c)[:200]
         return out
+    o_end, c_end = getattr(original, "final_newline", True), getattr(converted, "final_newline", True)
+    if o_end != c_end:
+        return {"record": len(original), "offset": 0, "original": "newline after the last record" if o_end else "no newline after the last record",
+                "translated": "newline after the last record" if c_end else "no newline after the last record"}
     return None
 
 

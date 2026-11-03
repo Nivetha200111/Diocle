@@ -84,7 +84,7 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
     from .inputs import Case, generate_for_layout
     from .layout import load_fields, record_format, record_length
     from .multi import is_multi
-    from .runners import CLOCK_ENV, Run, _exec, build_cobol, read_records, write_records
+    from .runners import CLOCK_ENV, Run, _exec, build_cobol, read_output, write_records
     from .standin import ended_at_stand_in
 
     rec = {"against": str(against), "ran": False, "seed": seed, "inputs": 0, "matched": 0, "mismatched": 0}
@@ -130,7 +130,7 @@ def differential(against: Path, source: Path, *, random_count: int = DIFF_INPUTS
                 profile.write_text(sandbox_profile(work, Path(cmd[0]).resolve()))
                 cmd = ["sandbox-exec", "-f", str(profile), *cmd]
             proc = _exec(cmd, env=env, cwd=work, timeout=timeout)
-            return Run(True, proc.returncode, proc.stdout, proc.stderr, read_records(out, *out_fmt))
+            return Run(True, proc.returncode, proc.stdout, proc.stderr, read_output(out, *out_fmt))
 
         try:
             orig = run(against / meta["source"], work_o, "original", False)  # our own sample, not model output
