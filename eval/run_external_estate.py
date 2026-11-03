@@ -66,6 +66,7 @@ EXTRA_FLAGS: list[str] = []
 NOT_COMPILING_IN_FIRST_PASS = {"CBL0001", "CBL0002", "CBL0004", "CBL0005", "CBL0006", "CBL0007", "CBL0008", "CBL0009", "CBL0010", "CBL0011",
                                "CBL0012", "CBL0033", "CBL006A", "CBL0106", "CBL0106C", "PAYROL0X"}
 THIRD_PASS = False
+BLIND = False
 NOT_CERTIFIED_IN_EARLIER_PASSES = {"CBL0004", "CBL0005", "CBL0006", "CBL0008", "CBL0010", "CBL0011", "CBL0012", "CBL0015", "CBL0033",
                                    "CBL006A", "CBL0106", "CBL0106C", "COBOL"}
 THIRD_PASS_LABEL = ("third, after a product fix made in response to this same course's failures: "
@@ -80,7 +81,7 @@ def import_estate() -> dict:
     if REPORT.exists():
         return json.loads(REPORT.read_text())
     WORK.mkdir(parents=True, exist_ok=True)
-    env = {**os.environ, "DIOCLE_IMPORT_OWNERS": "openmainframeproject"}
+    env = {**os.environ, "DIOCLE_IMPORT_OWNERS": ESTATE_URL.rsplit("/", 2)[1]}
     proc = subprocess.run([str(ROOT / "services/analyzer/.venv/bin/python"), "-m", "diocle_analyzer", ESTATE_URL,
                            "--out", str(REPORT), "--samples-dir", str(SAMPLES)],
                           cwd=ROOT / "services" / "analyzer", env=env, capture_output=True, text=True)
@@ -93,7 +94,7 @@ def check_pin(commit: str | None) -> None:
     """The result is about one commit. A report without one (a local path import) cannot be shown to be that commit."""
     if not commit:
         sys.exit("the report pins no commit (a local import?); delete runs/external-estate and import from GitHub")
-    if commit != PINNED_COMMIT:
+    if not commit.startswith(PINNED_COMMIT):
         sys.exit(f"estate moved: report pins {commit}, protocol pins {PINNED_COMMIT}; "
                  "re-pin docs/EXTERNAL_ESTATE.md before running, do not silently follow the move")
 
@@ -314,6 +315,24 @@ def use_third_pass() -> None:
     OUT, THIRD_PASS, EXTRA_FLAGS = ROOT / "eval" / "results-external-estate-third-pass.json", True, ["--convert-anyway"]
 
 
+BLIND_REPOS = {  # pinned in docs/BLIND_TEST.md before any model call
+    "navikt/DSF": "faade4961e316c89e8c312456bae411c63f1c482",
+    "fzn0x/core-banking-system": "770860d4a11f1d203b0369456d867108097a550f",
+    "ibmdbbdev/Samples": "61a1a20f495203bdb16d4c74a5a076f4fbfc379b",
+}
+
+
+def use_blind_repo(repo: str) -> None:
+    """A repository the WRITE ... ADVANCING fix never saw, run once as found on the product as it stands. --convert-anyway only
+    patches an original that does not compile, and that result is never labelled plain certified."""
+    global WORK, REPORT, SAMPLES, OUT, PARTIAL, LOGS, BLIND, EXTRA_FLAGS, ESTATE_URL, PINNED_COMMIT
+    slug = repo.replace("/", "-").lower()
+    ESTATE_URL, PINNED_COMMIT = f"https://github.com/{repo}", BLIND_REPOS[repo]
+    WORK = ROOT / "runs" / f"blind-{slug}"
+    REPORT, SAMPLES, PARTIAL, LOGS = WORK / "report.json", WORK / "samples", WORK / "results.partial.json", WORK / "logs"
+    OUT, BLIND, EXTRA_FLAGS = ROOT / "eval" / f"results-blind-{slug}.json", True, ["--convert-anyway"]
+
+
 def _outside_this_pass(name: str) -> str | None:
     """Why a convertible program is not converted in this pass, or None if it is."""
     if SECOND_PASS and name not in NOT_COMPILING_IN_FIRST_PASS:
@@ -376,8 +395,8 @@ def run_estate(max_total: float, workers: int = 1) -> dict[str, int]:
     samples = {json.loads((s / "sample.json").read_text())["program"]: s
                for s in sorted(SAMPLES.iterdir()) if (s / "sample.json").exists() and not s.name.endswith(".repaired")}
     names = {s.name for s in samples.values()}
-    header = {"pass": THIRD_PASS_LABEL if THIRD_PASS else "second, --convert-anyway on what did not compile" if SECOND_PASS else "first, as found",
-              **({"blindTest": False} if THIRD_PASS else {}), "estate": ESTATE_URL, "pinnedCommit": PINNED_COMMIT, "analyzedCommit": commit, "memory": False,
+    header = {"pass": "blind: a repository the fix never saw, one run as found" if BLIND else THIRD_PASS_LABEL if THIRD_PASS else "second, --convert-anyway on what did not compile" if SECOND_PASS else "first, as found",
+              **({"blindTest": False} if THIRD_PASS else {"blindTest": True} if BLIND else {}), "estate": ESTATE_URL, "pinnedCommit": PINNED_COMMIT, "analyzedCommit": commit, "memory": False,
               "converterFlags": ["--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD), *EXTRA_FLAGS], "freshSeeds": FRESH_SEEDS,
               "maxTotalUsd": max_total, "programCapUsd": PROGRAM_CAP_USD, "workers": workers, "timeoutMinutes": TIMEOUT_MINUTES,
               "diocleCommit": _git("rev-parse", "HEAD"), "startedAt": time.strftime("%Y%m%d-%H%M%S"),
@@ -505,6 +524,7 @@ if __name__ == "__main__":
     which = parser.add_mutually_exclusive_group()
     which.add_argument("--second-pass", action="store_true", help="the dated re-run, with --convert-anyway, of the programs whose original did not compile")
     which.add_argument("--third-pass", action="store_true", help="the dated re-run, after the WRITE ... ADVANCING fix, of the 13 not certified; not a blind test")
+    which.add_argument("--blind", choices=sorted(BLIND_REPOS), help="one repository the fix never saw, as docs/BLIND_TEST.md pins")
     args = parser.parse_args()
     for sig in (signal.SIGTERM, signal.SIGHUP):  # a kill or a closed terminal stops the conversions too
         signal.signal(sig, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
@@ -512,6 +532,8 @@ if __name__ == "__main__":
         use_second_pass()
     if args.third_pass:
         use_third_pass()
+    if args.blind:
+        use_blind_repo(args.blind)
     if args.plan:
         print(json.dumps(plan(), indent=2))
     elif args.max_total_usd is None:

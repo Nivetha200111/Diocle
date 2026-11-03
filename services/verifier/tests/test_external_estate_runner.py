@@ -512,3 +512,14 @@ def test_the_set_is_the_13_the_published_results_name_and_the_flags_exclude_each
     proc = subprocess.run([sys.executable, str(SCRIPT), "--second-pass", "--third-pass", "--plan"], capture_output=True, text=True, cwd=REPO)
     assert proc.returncode == 2 and "not allowed with" in proc.stderr
 
+
+def test_a_blind_repo_has_its_own_files_says_it_is_blind_and_checks_its_own_pin(estate):
+    estate.use_blind_repo("navikt/DSF")
+    assert estate.OUT.name == "results-blind-navikt-dsf.json"
+    assert estate.WORK.name == "blind-navikt-dsf"
+    assert estate.BLIND and estate.EXTRA_FLAGS == ["--convert-anyway"]
+    assert estate.ESTATE_URL.endswith("navikt/DSF")
+    estate.check_pin("faade4961e316c89e8c312456bae411c63f1c482")
+    with pytest.raises(SystemExit):
+        estate.check_pin("0" * 40)
+
