@@ -127,14 +127,14 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         <div className="panel-heading">
           <div>
             <h2>Every program in a public repository we did not write</h2>
-            <p>All 32 programs of the Open Mainframe Project&apos;s COBOL course, at a pinned commit, under a protocol written before the run. Two passes, $1.42 of model spend.</p>
+            <p>All 32 programs of the Open Mainframe Project&apos;s COBOL course, at a pinned commit, under protocols written before each run. Three dated passes, $2.07 of model spend.</p>
           </div>
         </div>
         <ul className="home-list">
-          <li><strong>11 certified:</strong> 9 as distributed, each on fixed input, and 2 against a repaired copy whose patch is published. None was certified as distributed on inputs that vary.</li>
-          <li><strong>13 not certified, 3 could not be patched to compile, 4 refused, 1 not converted.</strong></li>
-          <li><strong>What the failures share:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>, and none of the 11 certified programs does. GnuCOBOL writes the advancing into the file as bytes, and our verifier then refused even identical Java while our prompts had no rule for it. Both are since fixed and checked on stored and hand-written Java. A third pass has not run, so no model result shows it, and the two published passes stand as recorded.</li>
-          <li>These are small teaching programs, so this does not show Diocle works on any repository.</li>
+          <li><strong>First two passes, 11 certified:</strong> 9 as distributed, each on fixed input, and 2 against a repaired copy whose patch is published. 13 were not certified, 3 could not be patched to compile, 4 were refused and 1 was not converted. These results stand as recorded.</li>
+          <li><strong>What the failures shared:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>. GnuCOBOL writes the advancing into the file as bytes, and our verifier refused even identical Java while our prompts had no rule for it. We fixed both in the repository, and the next pass ran on that commit.</li>
+          <li><strong>Third pass, not a blind test because the fix answered this same course&apos;s failures:</strong> 9 of those 13 certified, 8 against a repaired copy and 1 as distributed on fixed input. 3 were still not certified, and 1 has an original that never ends.</li>
+          <li>No program was certified as distributed on inputs that vary, and the repaired copies vary 2 of 10 input fields. These are small teaching programs, so this does not show Diocle works on any repository.</li>
         </ul>
         <p className="home-pr">
           <a href="https://github.com/Nivetha200111/Diocle/blob/main/docs/EXTERNAL_ESTATE.md" target="_blank" rel="noreferrer">Results, patches and protocol <ExternalLink size={11} /></a>

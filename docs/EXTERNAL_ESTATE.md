@@ -1,7 +1,9 @@
 # External estate: COBOL Programming Course, run as found
 
-> **Status Nov 3, 2026: both passes ran on Nov 2 to 3. [Results](#conversion-phase-nov-2-to-3-2026-mac) are below.** They stand
-> as recorded. A fix to what they found was made afterwards, and [a third pass](#third-pass-protocol-pinned-nov-3-2026-before-any-model-call-of-this-pass-not-run) is pinned and has not run.
+> **Status Nov 3, 2026: three dated passes have run.** [The first two](#conversion-phase-nov-2-to-3-2026-mac) stand as recorded.
+> [The third](#third-pass-results-nov-3-2026-mac) ran after a product fix made in response to this same course's failures, so it
+> is **not a blind test**, and it certified 9 of the 13 the earlier passes did not (8 against repaired COBOL, 1 as distributed on
+> fixed input).
 >
 > **Status when pinned: PROTOCOL PINNED Nov 2, 2026, before any model call against this estate, and corrected the same
 > day after a read-only review, still before any model call. Analysis phase run Nov 2 (see Results);
@@ -122,12 +124,13 @@ call showed that adding the period lets 11 of the 15 compile. The other 4 fail o
 - **Run:** `caffeinate -i services/verifier/.venv/bin/python eval/run_external_estate.py --second-pass --max-total-usd 2.00 --workers 4`.
   Results: `eval/results-external-estate-second-pass.json`. Both passes are published together.
 
-## Third pass (protocol pinned Nov 3, 2026, before any model call of this pass; NOT RUN)
+## Third pass (protocol pinned Nov 3, 2026, before any model call of this pass)
 
 > **Not a blind test.** This pass re-runs programs after a product fix made in response to this same course's failures.
 > Wherever a result of it is quoted, it must say so. It does not replace, and may not be added silently to, the two passes
-> above, whose results stand as recorded and are never overwritten. Until it runs there is no result here: the numbers in
-> this section are from stored Java and a compiler, with no model call.
+> above, whose results stand as recorded and are never overwritten. The numbers in this section were written before it ran,
+> from stored Java and a compiler, with no model call. Only this note and the heading changed afterwards.
+> [Its results are below](#third-pass-results-nov-3-2026-mac).
 
 ### What was checked first (Nov 3, no model calls)
 
@@ -313,3 +316,62 @@ This is a correlation plus one reproduced mechanism. A second check found the sa
 - **Shown:** on a public repository we did not write, Diocle accounted for all 32 programs, certified 11, and did not certify 13: 12 whose Java did not match, and `CBL0015`, whose original never ends. Its failures were reported rather than hidden.
 - **Not shown:** that Diocle works on any repository. This is one repository of small teaching programs, one model, one pass of each kind, and thin inputs (see the table above). A confirmed false certification or a missed defect was not measured here.
 - **Likely gap:** the translator and the repair agent have no rule for how GnuCOBOL writes `AFTER ADVANCING`. No fix is part of these results.
+
+### Third pass results (Nov 3, 2026, Mac)
+
+> **Not a blind test.** The fix was made in response to these programs' failures, and these are the same programs. It says that
+> after the fix, 9 of the 11 `ADVANCING` programs certified on the course that prompted it, on one new translation each, so it
+> cannot separate the fix from differences between translations. It says nothing about a repository the fix has not seen.
+
+**9 of the 13 certified: 8 against repaired COBOL, and `COBOL` as distributed on fixed input.** The pass cost **$0.64** of estimated model spend, under the $2 ceiling, at Diocle commit `b473fea`. Raw records, including each patch: [`eval/results-external-estate-third-pass.json`](../eval/results-external-estate-third-pass.json). They publish patches as diffs, the same kind of short excerpts as the second pass, under the licence above.
+
+The run stopped once on a model provider failure (HTTP 502) and resumed with the same settings and commit, as item 9 of the protocol allows. `CBL0010` and `CBL0106` were converted again, and $0.12 of the $0.64 went on their stopped conversions. The table shows the final conversion of each. Neither stopped conversion was certified, but they got further than the table shows: `CBL0010`'s reached 1,024 of 1,024 and then 11 of 11 breaker inputs differed, and `CBL0106`'s started at 222 of 224, where the final one started at 128 of 224.
+
+| Program | Result | Patch: method, lines | Breaker: attacks, differed | Each of 5 fresh seeds, pieces compared | Model calls | Cost |
+|---|---|---|---:|---:|---:|---:|
+| `CBL0004` | **certified against repaired COBOL** | deterministic, 1 | 17, 0 | 1,022 | 5 | $0.031 |
+| `CBL0005` | **certified against repaired COBOL** | deterministic, 1 | 32, 0 | 1,022 | 5 | $0.025 |
+| `CBL0006` | **certified against repaired COBOL** | deterministic, 1 | 32, 0 | 1,023 | 5 | $0.027 |
+| `CBL0008` | **certified against repaired COBOL** | deterministic, 1 | 32, 12, then one repair fixed it | 1,024 | 24 | $0.055 |
+| `CBL0011` | **certified against repaired COBOL** | deterministic, 1 | 35, 0 | 1,024 | 14 | $0.046 |
+| `CBL0012` | **certified against repaired COBOL** | model, 2 | 33, 0 | 1,024 | 20 | $0.053 |
+| `CBL006A` | **certified against repaired COBOL** | deterministic, 1 | 30, 0 | 1,023 | 5 | $0.031 |
+| `CBL0106C` | **certified against repaired COBOL**, guard review `flag` | deterministic, 1 | 18, 0 | 38 to 57 | 5 | $0.040 |
+| `COBOL` | **certified as distributed, inputs never vary** | none | skipped: `multi-file program`, with no input to attack | 14 | 12 | $0.035 |
+| `CBL0010` | not certified | deterministic, 1 | not reached | 1,022 of 1,024 in the final check | 60 | $0.084 |
+| `CBL0033` | not certified | deterministic, 1 | 22, 22 | 45 of 45, then the breaker's inputs differed | 23 | $0.044 |
+| `CBL0106` | not certified | deterministic, 1 (in the run's events; the results file has none, as the run stopped first) | not reached | 222 of 224 at best, then the Java did not finish within 120 seconds | 21 | $0.051 |
+| `CBL0015` | compiled, not verified | none | not reached | the original never ends, so nothing to compare | 1 | $0.001 |
+
+"At best" comes from the run log, which is not committed. All 9 passed all 5 seeds, 9001 to 9005.
+
+**Against what the protocol expected.** All 8 programs whose stored Java was explained entirely by this cause certified. `CBL0012` also certified, although the protocol did not expect it to: its new translation showed the same edited-total defect in round 1 (1,023 of 1,024), and the repair agent fixed it by round 2. `CBL0010`, `CBL0106`, `CBL0033` and `CBL0015` stayed uncertified, as expected. `CBL0010`'s 2 differing pieces are its totals line (`$83,446,477.92` from the COBOL, `657,293,582.36` from the Java) and its last piece, one newline short.
+
+#### All 32 programs, by label and pass
+
+| Result | Count | Programs | From |
+|---|---:|---|---|
+| Certified as distributed, on fixed input | 10 | `CBL0013`, `CBL0014`, `CBLC2`, `DEPTPAY`, `EMPPAY`, `HELLO`, `PAYROL00`, `SRCHBIN`, `SRCHSER`; `COBOL` | First pass; third pass |
+| Certified against repaired COBOL, inputs vary, attacked | 10 | `CBL0001`, `CBL0002`; `CBL0004`, `CBL0005`, `CBL0006`, `CBL0008`, `CBL0011`, `CBL0012`, `CBL006A`, `CBL0106C` | Second pass; third pass |
+| Not certified | 3 | `CBL0010`, `CBL0033`, `CBL0106` | Third pass |
+| Original never ends, nothing to compare | 1 | `CBL0015` | Third pass |
+| Original does not compile and could not be patched | 3 | `CBL0007`, `CBL0009`, `PAYROL0X` | Second pass |
+| Refused, with the reason | 4 | `ADDAMT`, `CBLDB21`, `CBLDB22`, `CBLDB23` | First pass |
+| Not converted (duplicate PROGRAM-ID) | 1 | `CBLC1` | First pass |
+
+All three passes cost **$2.07** of estimated model spend, rounded: $0.25, $1.18 and $0.64. This table may be quoted only with its split and with the third pass named as not a blind test.
+
+#### What the 9 rest on
+
+- **Still none on real variety as distributed.** No program in this repository is certified as distributed on inputs that vary. The 8 matched a patched copy under GnuCOBOL, and a person must still confirm each patch. 7 of them add the missing period. `CBL0012`'s two-line model patch also changes `CURRENT-DATA` to `CURRENT-DATE`.
+- **Thin inputs.** On the 8, 2 of 10 input fields vary with the seed. Generated records still cannot reach the free-text tests in `CBL0006`, `CBL006A` and `CBL0106C`; only the breaker's inputs can.
+- **The 8 are not 8 independent programs.** They are lessons built on one account report. Against `CBL0004`'s 163 lines, a plain `diff` of the other 7 shows 12 to 107 changed lines on the two sides together. In the spot check below, `CBL0008`, `CBL0011` and `CBL0012` wrote the same bytes.
+- **`CBL0106C` is compared on a short run.** Both sides stop with exit 232 on the program's own table check, so each fresh seed compares only 38 to 57 pieces, and its certification compared 35. Its guard review was `flag`, for creating a parent directory, the only certification in any pass without a guard review of `pass`.
+- **`COBOL` is one comparison.** 14 pieces on fixed input, and no breaker.
+- **GnuCOBOL's file, not IBM's.** As the protocol states, these Java programs reproduce what GnuCOBOL writes. A person must decide whether a downstream consumer needs that or a mainframe print file.
+
+**One spot check, outside the protocol.** For all 9, we ran the certified Java and the compiled COBOL by hand on seed 20261103, which no run used, with 1,016 generated records (`COBOL` has no input), then compared whole output files, exit codes and stdout directly. All 9 were identical. This used the verifier's generator and build commands but not its comparison. The script is not committed, and one seed adds little beyond the 5 above.
+
+**`CBL0008` is the only certified program where an attack landed.** 12 of the breaker's inputs differed on an edited balance: `$00,002,026.1` from the COBOL, `$2,026.1` from the Java. The repair agent fixed it in one cycle, and the program then passed the fresh seeds.
+
+How to read the raw file: `certified: false` and `status: not-certified` on the 8 are by design, because plain certified is reserved for the original file, so read `outcome`. `CBL0033`'s "45/45 cases matched" sits beside "still differs" for the reason given above. `CBLC1` appears as `program: "CBL0006"`, the PROGRAM-ID it shares, with the outcome `not converted`.

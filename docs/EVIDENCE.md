@@ -2,7 +2,7 @@
 
 Everything a judge needs to check Diocle's claims, with links to the raw records. The delivered repositories are the
 project's own synthetic estate (Quillmark Trust & Savings is fictional); no client or employer code anywhere.
-A separate test uses code we did not write: [32 programs from a public course repository](EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac): 11 certified (9 on fixed input, 2 against a repaired copy), 13 not certified, 3 could not be patched, 4 refused, 1 not converted.
+A separate test uses code we did not write: [32 programs from a public course repository](EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac): the first two passes certified 11 (9 on fixed input, 2 against a repaired copy), with 13 not certified, 3 that could not be patched, 4 refused and 1 not converted. [A third pass](EXTERNAL_ESTATE.md#third-pass-results-nov-3-2026-mac), after a fix made in response to this same course and so not a blind test, certified 9 of the 13 (8 against a repaired copy, 1 on fixed input).
 Model in every run below: **Meta Muse Spark** (`muse-spark-1.3-contributor`, Meta Model API) unless marked.
 Costs are estimates from list prices. Every trace link opens the run on the live site, with each agent step,
 both verifications and a button that re-runs both programs on a fresh seed.

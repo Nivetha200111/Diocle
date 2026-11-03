@@ -64,7 +64,8 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 
 ## Nov 2 to 3: a public repository we did not write
 - Ran every program in the Open Mainframe Project's COBOL course under a protocol pinned first, then a second pass on the 16 that did not compile. 11 of 32 certified (9 on fixed input, 2 against a repaired copy), for $1.42.
-- 11 of the 13 not certified use `WRITE ... AFTER ADVANCING`, where GnuCOBOL writes the advancing into the file as bytes. Checked program by program afterwards: our verifier refused even identical Java on those files, and our prompts had no rule for it. Fixed; a third pass has not run, and the two published passes stand as recorded: [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md).
+- 11 of the 13 not certified use `WRITE ... AFTER ADVANCING`, where GnuCOBOL writes the advancing into the file as bytes. Checked program by program afterwards: our verifier refused even identical Java on those files, and our prompts had no rule for it. Fixed.
+- A third pass on those 13, not a blind test because the fix answered this same course's failures, certified 9: 8 against a repaired copy, 1 on fixed input, for $0.64. The two earlier passes stand as recorded: [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md#third-pass-results-nov-3-2026-mac).
 
 ## Still open (as of Nov 2, 2026)
 - A review of the converted Java by an experienced COBOL maintainer (not done).
