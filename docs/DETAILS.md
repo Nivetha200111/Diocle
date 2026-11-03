@@ -167,7 +167,7 @@ In February 2026, after Anthropic said AI could modernize COBOL, IBM's shares fe
 ([Reuters via The Star](https://www.thestar.com.my/tech/tech-news/2026/02/24/ibm-posts-steepest-daily-drop-since-2000-after-anthropic-says-ai-can-modernize-cobol)). an IBM spokesperson answered that "translating COBOL is the easy part"
 ([VentureBeat](https://venturebeat.com/technology/ibms-usd40b-stock-wipeout-is-built-on-a-misconception-translating-cobol-isnt)). The hard part is showing the translation does what the original did. COBOL still handles
 about 95% of US ATM transactions (a widely repeated figure from 2017 Reuters reporting), and a wrong migration is expensive: TSB's 2018
-core-banking migration locked nearly two million customers out of their accounts, cost the bank £330 million, and brought a £48.65 million
+core-banking migration affected a significant portion of its 5.2 million customers, cost the bank £330 million, and brought a £48.65 million
 fine from the FCA and PRA in 2022 ([ITPro](https://www.itpro.com/business-strategy/it-infrastructure/369753/tsb-bank-fined-48-million-over-botched-it-upgrade)).
 MarketsandMarkets forecasts mainframe modernization spending to grow from about $8.4 billion in 2025 to $13.3 billion in 2030
 ([press release](https://www.marketsandmarkets.com/PressReleases/mainframe-modernization.asp)). AI makes the rewrite fast; it does not make it safe. The risk is silent: Java that compiles, runs and differs,
@@ -284,7 +284,7 @@ The live buttons, the voice question, embedded SQL, keyed files, mutation testin
 - Costs are estimates from list prices.
 
 ## Coverage today: what Diocle verifies, and what it does not
-By kind of mainframe artifact, as of Oct 30, 2026 (also on the [Evidence page](https://diocle.vercel.app/evidence)). "Experimental" means merged but not verified live; certified always means matched on the inputs tried.
+By kind of mainframe artifact, as of Nov 3, 2026 (also on the [Evidence page](https://diocle.vercel.app/evidence)). "Experimental" means merged but not verified live; certified always means matched on the inputs tried.
 
 | Artifact | Status | What is checked | Limit |
 |---|---|---|---|
@@ -294,8 +294,8 @@ By kind of mainframe artifact, as of Oct 30, 2026 (also on the [Evidence page](h
 | JCL jobs | Partial | One SORT step feeding one COBOL step, with DD overrides: every final dataset compared | Runs through the converter's `run-job` command, not the web delivery flow; longer jobs, several SORT steps, COND-gated steps and IDCAMS are refused with a reason |
 | Abnormal end through IBM LE (`CALL 'CEE3ABD'`) | Stand-in | The original is linked with Diocle's stated stand-in (ends the run at the CALL with exit code 16, keeps DISPLAY output and records already written); exit code, stdout and files compared; the verification report names the stand-in (`runs.standIns`) | Verified against GnuCOBOL with Diocle's CEE3ABD stand-in, never IBM LE (a real abend has no return code and may lose buffered records). Certified on the normal path only: a run that reaches the abend is not certified, because the inputs after it ran on neither side (`runs.endedAtStandIn`); generated inputs rarely reach one. Other LE services (CEEDAYS, CEELOCT, ...) and site utilities are still refused |
 | Embedded SQL (DB2) | Subset | A named subset (SELECT INTO, INSERT, UPDATE, DELETE, cursors, COMMIT, ROLLBACK, SQLCODE), final table contents compared | On a SQLite stand-in, never real DB2; dynamic SQL, joins and DB2-only clauses are refused |
-| Keyed files (VSAM KSDS-style) | Experimental | A keyed-file subset compared by key order on GnuCOBOL's indexed-file handler | Merged and the engine has the indexed handler (`cobc --info`: BDB), but no keyed conversion was run on the live site; Berkeley DB, not IBM VSAM |
-| Whole-repository build check | Partial | Compiles every converted program together, flags copybook drift and CALL signature mismatches, and puts a build report in the pull request | Experimental: merged, not checked on the live engine, CI step not yet run on GitHub; JCL step order not checked; customer domain classes are an experimental compile-time check only |
+| Keyed files (VSAM KSDS-style) | Experimental | A keyed-file subset compared by key order on GnuCOBOL's indexed-file handler | Merged and the engine has the indexed handler (`cobc --info`: BDB), and three read-only keyed programs ran on it in one visitor import on Nov 3 (`delivery-20261103-111122`: 250 seeded records each, files unchanged, 2 of 2 output records). A keyed update is certified only locally: one run on Nov 3 certified the synthetic `CUSTUPD`, 535 of 535 on its first translation, $0.0162, breaker skipped ([record](../eval/results-keyed-20261103.json)); Berkeley DB, not IBM VSAM |
+| Whole-repository build check | Partial | Compiles every converted program together, flags copybook drift and CALL signature mismatches, and puts a build report in the pull request | Experimental on the live engine, which has no GitHub token. Its CI compile step has run on GitHub: harbor-trust-mainframe-java#2 compiled 19 delivered programs together, but that PR's build report verdict is FAIL (5 CALL 'HTAUDT' argument-count mismatches in HTDORMSW, HTFXCONV and HTOVDFEE). The programs are certified one by one and were delivered anyway; JCL step order not checked; customer domain classes are an experimental compile-time check only |
 | Hierarchical database (IMS DL/I) | Not supported | There is no free IMS runtime to compare against | Roadmap |
 | CICS online transactions | Not supported | Programs with EXEC CICS are refused with a reason | |
 

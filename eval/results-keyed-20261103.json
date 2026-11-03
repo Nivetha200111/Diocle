@@ -1,0 +1,19 @@
+{
+ "what": "One local conversion of the synthetic keyed-file sample samples/vsam-customer-update, Nov 3, 2026, to check the keyed path end to end. Not a run on the live engine and not on the public run list.",
+ "runId": "vsam-customer-update-20261103-200929",
+ "sample": "samples/vsam-customer-update",
+ "program": "CUSTUPD",
+ "command": "python -m diocle_converter run samples/vsam-customer-update --breaker --no-memory --max-usd 0.15",
+ "model": "muse-spark-1.3-contributor",
+ "status": "certified",
+ "certified": true,
+ "heldOut": {
+  "casesMatched": 535,
+  "casesCompared": 535
+ },
+ "breaker": "skipped: it designs records for one input and one output file, and this program does not have exactly one of each",
+ "guardReview": "pass",
+ "modelCalls": 2,
+ "estimatedCostUsd": 0.016196,
+ "stored": "Berkeley DB through GnuCOBOL's indexed handler, not IBM VSAM"
+}

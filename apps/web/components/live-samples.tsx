@@ -9,6 +9,7 @@ import type { ButtonStatus, SamplesStatus, UploadStatus } from "@/lib/config";
 import { fetchJob, fetchSamplesStatus, printoutImageUrl, shrinkImage, startLive, startLiveUpload, viewKey, type LiveJob, type LiveSample, type PrintoutResult } from "@/lib/live";
 
 const usd = (n: number | null | undefined) => (n === null || n === undefined ? "n/a" : `$${n.toFixed(n < 1 ? 4 : 2)}`);
+const cap = (n: number) => `$${n.toFixed(2)}`;
 const num = (n: number) => n.toLocaleString("en-US");
 const KEY = "diocle-live-job";
 
@@ -123,11 +124,11 @@ export default function LiveSamples() {
         <div>
           <h2 id="live-h">Try it live</h2>
           <p>
-            Two buttons that run a REAL Meta model call on one fixed, bundled, synthetic sample and verify the result, and
-            a third that reads a picture you send. The buttons take no input from you. Your picture goes only to the vision
-            model, and what it writes is compiled and run only in the sandbox. Each is capped in dollars, in presses per visitor
-            and per day, and runs one at a time.
-            {s && <> Everything on this page together may spend at most {usd(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} so far in the last 24 hours (estimates at list prices).</>}
+            <strong>Try the sample on the home page is free and calls no model.</strong> The buttons here call a real Meta model, which
+            costs money, so each has a small daily limit. Two run on fixed, bundled, synthetic samples and take no input from
+            you. A third reads a picture you send: it goes only to the vision model, and what it writes is compiled and run only in
+            the sandbox. If a button has reached its limit, the evidence on the home and Evidence pages still works.
+            {s && <> Limit for this page: {cap(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} used in the last 24 hours (estimated at list prices).</>}
           </p>
         </div>
       </div>
@@ -198,7 +199,7 @@ function ImageUpload(p: { status: UploadStatus; busy: boolean; onStart: (file: F
           }}>Read my image</button>
       </div>
       {why && <p className="live-reason" role="status">Disabled: {why}</p>}
-      <p className="live-caps">At most {usd(p.status.maxUsd)} per image. Caps: {p.status.perVisitorPerDay} per visitor per day, {p.status.perDay} a day overall ({p.status.usedToday} used in the last 24 hours, {p.status.visitorLeft} left for you).</p>
+      <p className="live-caps">At most {cap(p.status.maxUsd)} per image. Caps: {p.status.perVisitorPerDay} per visitor per day, {p.status.perDay} a day overall ({p.status.usedToday} used in the last 24 hours, {p.status.visitorLeft} left for you).</p>
     </div>
   );
 }
@@ -220,12 +221,12 @@ function Card(p: {
       )}
       <button type="button" className="button primary" disabled={disabled} aria-describedby={`${id}-note ${id}-caps`}
         onClick={() => p.onStart(p.sample)}>▶ {p.label}</button>
-      {p.reason && <p id={`${id}-note`} className="live-reason" role="status">Disabled: {p.reason}</p>}
+      {p.reason && <p id={`${id}-note`} className="live-reason" role="status">{p.reason.startsWith("Checking") ? p.reason : `Disabled: ${p.reason}`}</p>}
       {!p.reason && <p id={`${id}-note`} className="sr-only">Ready.</p>}
       <p id={`${id}-caps`} className="live-caps">
-        Costs at most {usd(p.b?.maxUsd ?? (p.sample === "addfee" ? 0.05 : 0.1))} per press. Caps:{" "}
-        {p.b ? `${p.b.perVisitorPerDay} ${p.unit} per visitor per day, ${p.b.perDay} a day overall (${p.b.usedToday} used in the last 24 hours, ${p.b.visitorLeft} left for you)` : "loading"}
-        , one live job at a time, shared with visitor imports.
+        At most {cap(p.b?.maxUsd ?? (p.sample === "addfee" ? 0.05 : 0.1))} per press.{" "}
+        {p.b ? `${p.b.visitorLeft} left for you now. Limits per 24 hours: ${p.b.perVisitorPerDay} ${p.unit} per visitor and ${p.b.perDay} overall (${p.b.usedToday} used in the last 24 hours).` : "Loading limits."}
+        {" "}One live job runs at a time.
       </p>
     </div>
   );

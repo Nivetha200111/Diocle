@@ -105,3 +105,18 @@ Not repeated in this pass: a real microphone, an image upload, `scripts/quicksta
 ## Not verified, so not claimed
 
 The "Read a printout" button today, keyed-file conversion on the site, a from-scratch DB2-subset conversion, deliveries and the build check, the smallest-reproducer card with data, and the measurement's own numbers (copied from `docs/MEASUREMENT.md`, not re-run).
+
+## Addendum: re-walked Nov 3, 2026, about 20:10 IST (read this for the current state of the rows above)
+
+Against the live site and engine at the deployed commit in [HANDOFF.md](HANDOFF.md). Spend: **$0.0571** from the public samples budget for one printout press; everything else was free.
+
+| Check | Result | Notes |
+|---|---|---|
+| Live routes `/`, `/try`, `/evidence`, `/runs`, `/bugs`, `/now`, `/delivery`, `/mission` | 200 | Status codes only. No layout or browser check in this pass |
+| `POST /api/runs/chqclr-20261028-214355/reverify` | pass | 1,004 of 1,004, seed 115880017, stdout and exit code match, no model |
+| CHQCLR source, schema, mutation and reproducer routes | 200 | The reproducer route answers on the 64 non-visitor runs (the 19 visitor runs return 404), and none of those 64 stores a reproducer: row 12 stands |
+| Row 14, "Read a printout" button, now pressed | pass | `live-20261103-143948-printout`, `muse-wonder-1.0`, one attempt, LOYWAIVE: 1,013 of 1,013 in the sandbox, $0.0571. The same listing as the earlier reads |
+| Public run list | read | 83 runs: 71 translated by Muse Spark, 11 by Muse Spark Open, 1 with no model recorded. Counts by role are in [META_MODELS.md](META_MODELS.md) |
+| Row 19, deliveries | partly | `GET /api/deliveries` lists 19. `delivery-20261103-111122` (AWS CardDemo, a visitor-style import) finished with 3 certified, all read-only keyed programs: 250 seeded records each, files unchanged, and "certified" there means 2 of 2 output records. Its build card was not inspected, and the live engine still has no GitHub token, so a delivery opening a pull request was not checked live. The build step's CI compile did run on GitHub in harbor-trust-mainframe-java#2, whose build report verdict is FAIL (see DETAILS) |
+
+**Still not checked live:** row 17 as a keyed update (only read-only keyed programs ran live, above; [one local run](../eval/results-keyed-20261103.json) certified the synthetic update `CUSTUPD`, 535 of 535, $0.0162, breaker skipped, not on the engine), row 18 (a DB2 conversion from scratch), smallest-reproducer extraction (row 12), and row 30 (editor tools are local). These stay labelled experimental. A physical microphone has not been confirmed.

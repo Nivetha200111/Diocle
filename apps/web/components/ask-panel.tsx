@@ -14,6 +14,7 @@ import { HOSTED } from "@/lib/config";
 import { viewKey } from "@/lib/live";
 
 const usd = (n: number | null | undefined) => (n === null || n === undefined ? "n/a" : `$${n.toFixed(n < 0.01 ? 5 : 4)}`);
+const cap = (n: number) => `$${n.toFixed(2)}`;
 const KEY = "diocle-ask-job";
 const MAX_SECONDS = 10;
 const TONE = { confirmed: "green", refuted: "red", unchecked: "amber" } as const;
@@ -216,11 +217,11 @@ export default function AskPanel() {
           </button>
         )}
       </div>
-      {reason && <p className="live-reason" role="status">Disabled: {reason}</p>}
+      {reason && <p className="live-reason" role="status">{reason.startsWith("Checking") ? reason : `Disabled: ${reason}`}</p>}
       <p className="live-caps">
-        Costs at most {usd(s?.maxUsd ?? 0.01)} per question. Caps:{" "}
-        {s ? `${s.perVisitorPerDay} questions per visitor per day, ${s.perDay} a day overall (${s.usedToday} used in the last 24 hours, ${s.visitorLeft} left for you)` : "loading"}
-        , one live job at a time, drawn from the same daily model budget as the two buttons above.
+        At most {cap(s?.maxUsd ?? 0.01)} per question.{" "}
+        {s ? `${s.visitorLeft} left for you now. Limits per 24 hours: ${s.perVisitorPerDay} per visitor and ${s.perDay} overall (${s.usedToday} used in the last 24 hours).` : "Loading limits."}
+        {" "}One live job runs at a time.
       </p>
       {micAllowed && (
         <p className="live-caps">

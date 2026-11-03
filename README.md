@@ -30,6 +30,12 @@ Diocle helps a modernization lead decide whether to accept AI-written Java for a
 
 <p align="center"><img src="docs/assets/pipeline.svg" alt="Flowchart. A GitHub repository is analyzed with no model. Muse Spark translates it to Java. GnuCOBOL and the Java are compared; a mismatch goes to the Muse Spark repair agent and back. Java that matches goes through a held-out check of 1,000 generated records, then the Muse Spark breaker attacks it; a break goes back to repair. With no break, Diocle opens a pull request with an equivalence report, and the target repository's CI re-runs the comparison on a new seed." width="100%"></p>
 
+## Why it matters
+
+A failed migration is expensive: TSB's 2018 core-banking migration affected a significant portion of its 5.2 million customers, cost the bank £330 million and brought a £48.65 million fine ([ITPro](https://www.itpro.com/business-strategy/it-infrastructure/369753/tsb-bank-fined-48-million-over-botched-it-upgrade)). AI makes the rewrite fast, not safe: Java can compile, run and still differ on some records. In February 2026, after Anthropic said AI could modernize COBOL, IBM's shares fell 13.2% in a day ([Reuters via The Star](https://www.thestar.com.my/tech/tech-news/2026/02/24/ibm-posts-steepest-daily-drop-since-2000-after-anthropic-says-ai-can-modernize-cobol)), and an IBM spokesperson answered that "translating COBOL is the easy part" ([VentureBeat](https://venturebeat.com/technology/ibms-usd40b-stock-wipeout-is-built-on-a-misconception-translating-cobol-isnt)). Showing that the translation does what the original did is the hard part, and it's the part Diocle does, on the inputs it tries.
+
+**Who benefits:** the modernization lead or integrator deciding whether to accept AI-written Java; credit unions and small banks with no budget for mainframe experts to re-check every cent; and benefit, pension and insurance payment operators, whose batch programs pay real people. [More on who it's for](docs/DETAILS.md#who-benefits).
+
 ## Why I built this
 
 I worked on a COBOL modernization at a global finance company, where every translated program was checked by hand, and it drained the project's timeline. AI now writes the Java in minutes, but someone still has to decide whether to accept it. I built the check I wished that project had. No code or data from that work is here.
