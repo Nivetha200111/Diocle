@@ -133,7 +133,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         <ul className="home-list">
           <li><strong>11 certified:</strong> 9 as distributed, each on fixed input, and 2 against a repaired copy whose patch is published. None was certified as distributed on inputs that vary.</li>
           <li><strong>13 not certified, 3 could not be patched to compile, 4 refused, 1 not converted.</strong></li>
-          <li><strong>What the failures share:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>, and none of the 11 certified programs does. GnuCOBOL writes extra newlines there, and our translator and repair agent have no rule for it: the likely cause, not tested program by program. Not fixed.</li>
+          <li><strong>What the failures share:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>, and none of the 11 certified programs does. GnuCOBOL writes the advancing into the file as bytes, and our verifier then refused even identical Java while our prompts had no rule for it. Both are since fixed and checked on stored and hand-written Java. A third pass has not run, so no model result shows it, and the two published passes stand as recorded.</li>
           <li>These are small teaching programs, so this does not show Diocle works on any repository.</li>
         </ul>
         <p className="home-pr">

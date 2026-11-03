@@ -1,6 +1,7 @@
 # External estate: COBOL Programming Course, run as found
 
-> **Status Nov 3, 2026: both passes ran on Nov 2 to 3. [Results](#conversion-phase-nov-2-to-3-2026-mac) are below.**
+> **Status Nov 3, 2026: both passes ran on Nov 2 to 3. [Results](#conversion-phase-nov-2-to-3-2026-mac) are below.** They stand
+> as recorded. A fix to what they found was made afterwards, and [a third pass](#third-pass-protocol-pinned-nov-3-2026-before-any-model-call-of-this-pass-not-run) is pinned and has not run.
 >
 > **Status when pinned: PROTOCOL PINNED Nov 2, 2026, before any model call against this estate, and corrected the same
 > day after a read-only review, still before any model call. Analysis phase run Nov 2 (see Results);
@@ -168,9 +169,10 @@ the 13 have nothing to do with it. The fix is not expected to certify those 5. T
 ### What changed
 
 - **Verifier.** Identical bytes are not refused for their length. The only pairs this newly accepts are byte-identical ones.
-  Output text lines now end at a newline byte and nothing else, and a last line with no newline is reported: before, a Java
-  writing `0x0A` where GnuCOBOL wrote a form feed certified on LINE SEQUENTIAL. That makes the check stricter on every
-  LINE SEQUENTIAL program. Its stored Java still passes, per the test suite. Nothing was normalized.
+  Output text lines now end at a newline byte and nothing else, carriage returns are compared, and a missing final newline
+  fails the last record: before, a Java writing `0x0A` where GnuCOBOL wrote a form feed, or dropping a `0x0D`, certified on
+  LINE SEQUENTIAL. That makes the check stricter on every LINE SEQUENTIAL program. Re-verifying the stored runs at a fixed
+  seed changed no outcome. Nothing was normalized. Trailing spaces on text output stay the one stated leniency.
 - **Translator and repair prompts.** They state the rule above, tested against the compiler's real bytes, only if the program
   has a `WRITE` with `AFTER` or `BEFORE`. For every other program both prompts are unchanged byte for byte, and a test pins
   that (`services/converter/tests/test_advancing_prompt.py`), so earlier measurements still describe the same prompts.
@@ -196,6 +198,8 @@ person must decide which of them a downstream consumer needs.
   same 13 cost about $1.19 in the earlier passes. A program the ceiling leaves no room for is reported as `not run`.
 - **Fresh seeds.** 9001 to 9005, as above. What a certification rests on stays as narrow as the measured table says: 2 of 10
   input fields vary, and `COBOL` has fixed input. The split is reported as before.
+- **Counts.** On these files a comparison count is of pieces of the record length, not records (`CBL0004`: 1,022 pieces for
+  1,021 records; `COBOL`'s `PRTLINE`: 13 pieces for 10 records), and is quoted as pieces.
 - **Reporting.** Results go to a new file, `eval/results-external-estate-third-pass.json`, whose `pass` says this is not a
   blind test and whose `blindTest` is `false`. The runner refuses to overwrite any results file. Published results list the
   three passes separately, with no merged headline that hides which pass or which label a program's result came from.
