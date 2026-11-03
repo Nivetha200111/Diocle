@@ -7,7 +7,7 @@ Newest state at the top of each section. Dates are 2026, times IST unless marked
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
-> v13 (https://youtu.be/ZkujXuDwNSM), uses only the owner's own recorded voice; no synthetic voice is in it.
+> v14 (https://youtu.be/zJAc1WPMk1s), uses only the owner's own recorded voice; no synthetic voice is in it.
 
 ## Nov 3: external estate finished and published
 - **Result:** 32 programs of the public COBOL course, two passes, $1.42. 11 certified (9 on fixed input, 2 against a repaired copy), 13 not certified, 3 could not be patched, 4 refused, 1 not converted. [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md) has the tables; the older "NOT RUN" entries below are history.
@@ -31,6 +31,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **`ls` hangs when piped on the Mac** (`eza` alias): use `/bin/ls` in scripts.
 - **Tuning result (Nov 3, 02:10 IST):** trained on Modal, job `ap-EKPrf2X8tkUSZKc4lGE80j`, about 60 minutes, est. $4.90 of its free credit. Base 0 of 12, tuned 0 of 12: **no improvement, no second job (the plan)**. Tuned Java reached the comparison 8 times against 2, mostly because the policy refused 7 base answers (compiling alone: 8 vs 5). The adapter is unpublished; the owner chose not to use Hugging Face. Results in DISTILLATION.md and a README footnote. The owner decided it stays off the live site and out of the pitch. Never call this an improvement.
 - **Public import checked live Nov 3:** `delivery-20261102-230343` on `quarrystone-valley-cu-cobol`, 3 of 3 certified, about $0.04, no pull request (public path). The owner's two failed imports were the signed-in path, which needs a GitHub token the engine does not have. `public.spent_today` counts any `run.json` changed in the last 24 h, so copying private runs to the engine must preserve mtimes, or it burns the public budget (it did on Nov 3; fixed with `touch`).
+- **Video v14 (Nov 3):** https://youtu.be/zJAc1WPMk1s, the owner's own new narration, results-first opening, full-screen product footage; replaces v13 everywhere. Pipeline: local branch `demo-v14`, `demo/v14/`.
 - **Unofficial scorecard (a third-party card, not the judges' rubric; the owner has its formula):** 8.5 of 10. The rows it missed were true but hard to find, so: a root `Dockerfile` (link to `deploy/Dockerfile.api`) and `compose.yaml` (no-key check, run end to end: 1,027/1,027, exit 0, image already built), a root `tests/` (22 checks, part of `scripts/test.sh`), and a README line naming the Meta Model API and the inference partners. Whether the scanner credits them is unknown until it rescans. Its fine-tuning row is already credited with no tuned model, so finishing the tune is for the real judges.
 
 ## Nov 2 night: verified distillation in progress (owner lifted the feature lock for this)
@@ -76,7 +77,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 **Your own voice and image (Nov 2, owner approved, an exception to the lock):** capped uploads on `/try`; caps and privacy in FEATURES.md; kill switch `DIOCLE_PUBLIC_UPLOADS=0`. New public surface: read `services/api/diocle_api/livesamples.py` (`image_problem`, `upload_refusal`, `may_read`) before changing it.
 
-**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. Uploaded by the owner: https://youtu.be/ZkujXuDwNSM, linked on README line 1.
+**Video.** The owner chose v13: `~/Downloads/diocle-candidate-v13.mp4` (169.1 s), edit list and optional pickups in `demo/candidate-v13/README.md`. v12 is unchanged. Uploaded by the owner: https://youtu.be/zJAc1WPMk1s, linked on README line 1.
 
 **Owner steps:** try the microphone once with a real one; submit before Nov 4, 9 PM ET (Nov 5, 7:30 AM IST). The X post (no vertical cut exists), Meta credit claim and an external uptime monitor in SUBMISSION_CHECKLIST are also the owner's.
 

@@ -2,12 +2,12 @@
 
 Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Nov 3, 2026: open boxes below. Draft text to paste: [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md).
 
-- [x] **v13 uploaded:** https://youtu.be/ZkujXuDwNSM ([what changed](../demo/candidate-v13/README.md)).
+- [x] **v14 uploaded:** https://youtu.be/zJAc1WPMk1s (a faster, full-screen re-edit with new narration, replacing v13).
 - [x] **YouTube title.** Now "Diocle: Meta AI translates COBOL to Java, then checks it against the original" (read Nov 2 through YouTube's public oEmbed endpoint).
 - [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
 - [x] **Engine deploy after PR #1.** On `7f87dc2`, Nov 2, with PR #1 ("Nothing to convert") and the clearer no-GitHub-login message; re-check afterwards: 1,004 of 1,004.
 
-- [x] **Demo video link.** https://youtu.be/ZkujXuDwNSM is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 1 through YouTube's public oEmbed endpoint).
+- [x] **Demo video link.** https://youtu.be/zJAc1WPMk1s is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 3 through YouTube's public oEmbed endpoint).
 - [x] **X post (owner reports done, Nov 2); still add its link to the form.** Post the demo on X within the hour after submitting and add the post link to the submission form (Most Viral and Community Vote need it). No vertical cut exists; every cut is landscape, so post v13 or make one first.
 - [ ] **Repository is public** and the default branch shows the latest commit (visibility was `PUBLIC` on Oct 31; recheck at submission).
 - [x] **Meta Model API credits claimed (owner, Nov 2)** before Nov 4, 9 PM ET (the claim form is in the official participant guide).
