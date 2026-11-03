@@ -11,7 +11,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## Nov 3: third pass on the external estate
 - **Result, not a blind test:** at commit `b473fea`, after the `WRITE ... AFTER ADVANCING` fix, 9 of the 13 certified: 8 against a repaired copy, `COBOL` as distributed on fixed input. `CBL0010`, `CBL0033`, `CBL0106` not certified, `CBL0015`'s original never ends. $0.64, one resume after an HTTP 502. [Tables and limits](EXTERNAL_ESTATE.md#third-pass-results-nov-3-2026-mac). Every quote must say not a blind test and keep the split. The two earlier passes stand as recorded.
-- **Engine:** the live engine was still on `e35ace2` when this was written, so it does not have the verifier fix until the owner runs `deploy/update-engine.sh`. Check no delivery is running first, then re-check the live demo.
+- **Engine:** deployed at `b91139c` on Nov 3, with the verifier fix. Re-checked live afterwards: CHQCLR `chqclr-20261028-214355` re-verified 1,004 of 1,004, source and schema serve, and the kept failing run `intaccr-20261028-191523` still fails at 986 of 1,019, within its note. Freeze deploys after submission.
 - **Do not delete** the worktree's run files until they are no longer needed: third-pass run directories are in that Mac's git-ignored `runs/`, and the results file names them.
 
 ## Nov 3: external estate finished and published
