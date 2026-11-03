@@ -299,6 +299,12 @@ How to read the raw file:
 
 ### What the failures have in common
 
+> **Correction, Nov 3, 2026.** This section and the next were written before the program-by-program check, and are kept as
+> written. Two statements in them do not hold. "The comparison was correct to refuse these" is wrong: the verifier refused
+> even Java whose bytes were identical to GnuCOBOL's, so no Java could have certified these 11. "The translator and the repair
+> agent have no rule" was only part of the cause. The results of the two passes are unchanged.
+> [What the check found](#what-was-checked-first-nov-3-no-model-calls).
+
 **11 of the 13 not-certified programs use `WRITE ... AFTER ADVANCING`. None of the 11 certified programs does.** The other two are `CBL0015` and `CBL0033`. `CBL0007` and `CBL0009` also use it but never reached a comparison.
 
 GnuCOBOL 3.2 (`-std=ibm`) writes extra newlines when a fixed-length sequential file uses it. A small test program, four `WRITE`s of a 4-byte record with the second `AFTER ADVANCING 1 LINES`, produces:
