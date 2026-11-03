@@ -24,9 +24,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **What:** https://youtu.be/8Yz06cdC3yc, 2:59, full-window footage in a fresh browser, with a live import of AWS CardDemo (`delivery-20261103-111122`: 3/3 certified, 6m 58s, $0.0355). It replaces v14 everywhere. `cics-genapp` was tried first and is all CICS: 31 of 31 refused. The pipeline is local only: `demo/v14/build_v15.py` and `voice_v15.py` in the `demo-v14` worktree.
 - **Limits stated on screen:** "2 of 2" counts output records; each program read 250 generated records; breaker not run. The breaker story stays on CHQCLR, labelled as a stored run.
 
-## Nov 3 evening: scorecard fixes, IBM compiler check started
+## Nov 3 evening: scorecard fixes, IBM compiler check dropped
 - **Done:** README front page has "Why it matters" and who benefits again (sourced, copied from DETAILS). Try page wording is plainer. META_MODELS counts re-read (83 public runs). LIVE_CHECK has a Nov 3 addendum. One printout press ($0.0571) and one local keyed run ($0.0162, `eval/results-keyed-20261103.json`). Web and docs only, no engine deploy.
-- **In progress, owner's request:** compare GnuCOBOL with IBM COBOL for Linux on x86 (60-day trial) on the programs behind the headline claims. It is a separate experiment that changes nothing in the product. It is an IBM compiler on Linux, never z/OS. Stop by Nov 4, 10 AM IST if results are not clean. The owner reads the licence, including whether results may be published. Hackathon rules still to be checked against it.
+- **IBM compiler check: dropped, not installed.** The owner considered comparing GnuCOBOL with IBM COBOL for Linux on x86 (60-day trial). Its licence allows internal evaluation, testing or demonstration and says nothing on publishing results, and the participant guide disqualifies projects that violate legal policies or use assets without rights. The small gain was not worth that risk. The stated limit stands: GnuCOBOL, not IBM Enterprise COBOL. Later work: test with IBM's permission or a partner on z/OS.
 - **Owner plans to submit Nov 4, 5 PM.** Freeze deploys after that.
 
 ## Nov 3: third pass on the external estate
