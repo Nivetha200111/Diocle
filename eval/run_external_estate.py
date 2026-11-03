@@ -400,7 +400,8 @@ def run_estate(max_total: float, workers: int = 1) -> dict[str, int]:
               "converterFlags": ["--breaker", "--no-memory", "--max-usd", str(PROGRAM_CAP_USD), *EXTRA_FLAGS], "freshSeeds": FRESH_SEEDS,
               "maxTotalUsd": max_total, "programCapUsd": PROGRAM_CAP_USD, "workers": workers, "timeoutMinutes": TIMEOUT_MINUTES,
               "diocleCommit": _git("rev-parse", "HEAD"), "startedAt": time.strftime("%Y%m%d-%H%M%S"),
-              "cobc": _version(["cobc", "--version"]), "java": _version(["java", "-version"]), "resumes": 0}
+              "cobc": _version(["cobc", "--version"]), "java": _version(["java", "-version"]), "resumes": 0,
+              **({"ranIn": os.environ["DIOCLE_RAN_IN"]} if os.environ.get("DIOCLE_RAN_IN") else {})}
     results: list[dict] = []
     if PARTIAL.exists():  # same settings, the rest of the same pass; the file says how often this happened
         earlier = json.loads(PARTIAL.read_text())

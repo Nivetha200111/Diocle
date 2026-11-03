@@ -40,6 +40,7 @@ repositories, before or during the run.
 - **Settings.** Diocle at the commit recorded in each results file, Muse Spark, `--breaker --no-memory --convert-anyway`, normal caps
   (60 calls a run, 20 a round, 3 rounds), $0.40 per program, one run per program. `--convert-anyway` patches only an original that
   does not compile, and that result is labelled certified against repaired COBOL, never plain certified.
+- **Where it runs.** Every build and run of these programs happens in Diocle's sandbox container (image built from the commit that pinned these repositories: GnuCOBOL 3.2.0, OpenJDK 21), the same design as the live engine: no secrets, no shared files, a read-only filesystem and no route to the internet. The Mac holds the model key and only runs `javac -proc:none` on model-written Java, which compiles it and runs nothing. The `cobc` and `java` versions in the results header are the Mac's; `ranIn` states the sandbox's.
 - **Fresh seeds.** 9001 to 9005 on every certified program.
 - **What a certification rests on, measured before the run.** On DSF, these programs read two input files, so the breaker cannot
   attack them. A new seed changes 25 of 33 input fields on `FO04D101`, 6 of 10 on `LIST1X`, 3 of 9 on `TELL-TRANS` and 1 of 7 on
@@ -48,7 +49,7 @@ repositories, before or during the run.
   ceiling leaves no room for is reported as `not run`.
 - **No tuning.** No product change, re-run or changed setting in response to a result. A resume is allowed only after a provider
   failure, and is reported. A later fix would need a separately labelled pass.
-- **Run:** `eval/run_external_estate.py --blind <repository> --max-total-usd <ceiling>`. Results go to `eval/results-blind-*.json`,
+- **Run:** with `DIOCLE_SANDBOX_URL` pointing at that container, `eval/run_external_estate.py --blind <repository> --max-total-usd <ceiling>`. Results go to `eval/results-blind-*.json`,
   and the runner refuses to overwrite one.
 
 ## What it cannot show
