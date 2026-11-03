@@ -44,15 +44,15 @@ Already existed and is used, not built here:
 - **Video narration.** The submitted video (https://youtu.be/8Yz06cdC3yc) uses only the author's own recorded voice (recorded Nov 1 to 3, 2026). Its sound effects and music were generated locally for the video. Earlier drafts tried synthetic voices; none of them is in the submitted video, and the draft voice script was removed from the repository on Nov 1.
 - **Voice clips in the product.** The two spoken-question clips (`services/api/diocle_api/voice_clips/`) are the author's own recorded voice (Nov 1, 2026), replacing earlier macOS `say` clips.
 - **Speech model.** Meta's Muse Voice Transcribe transcribes speech and does not speak; it is not used for the narration.
-- **Video contents.** This repository does not contain the final video; nothing here makes claims about what it shows. It opens with one spoken line on what already existed and what was built during the hackathon, and carries a "Built during the Meta Global AI Developer Hackathon" badge. **TO CONFIRM (owner):** it shows only what was built in the window.
+- **Video contents.** This repository does not contain the final video; nothing here makes claims about what it shows. It opens with one spoken line on what already existed and what was built during the hackathon, and carries a "Built during the Meta Global AI Developer Hackathon" badge. The owner confirmed on Nov 3 that it shows only what was built in the window.
 
 ## Other rules
 
 | Rule | Status |
 |---|---|
-| Public repository | Yes (checked Oct 31) |
+| Public repository | Yes (checked Nov 3) |
 | Must incorporate Meta models | Yes: [META_MODELS.md](META_MODELS.md) |
 | No code or data we lack rights to | See the table above; two public repositories used as test input, not vendored (CC BY 4.0 and Apache-2.0, credited); the course's published patches reproduce short excerpts; no client or employer code |
 | Demo shows only what was built in the window | The final video opens by saying GnuCOBOL, Meta's models and open-source libraries already existed and Diocle itself was built during the hackathon, and carries a "Built during the Meta Global AI Developer Hackathon" badge. The product shown is Diocle (site, Muse Code plugin), run on synthetic programs and on AWS's public CardDemo, labelled on screen; the IBM and TSB cards and the end card are the only non-product screens, and the pull request and CI shots are on GitHub |
 | Anti-project categories (basic RAG, chatbots, simple analyzers, medical advice) | Self-assessment: Diocle is a differential-testing verifier plus agent loops, not a RAG app or chatbot; judges decide |
-| Everyone who worked on it listed in the submission | **TO CONFIRM** ([SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md)) |
+| Everyone who worked on it listed in the submission | Solo project, so the author is the only name to list (owner, Nov 2; [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md)) |

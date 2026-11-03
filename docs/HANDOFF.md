@@ -9,6 +9,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v15 (https://youtu.be/8Yz06cdC3yc), uses only the owner's own recorded voice; no synthetic voice is in it.
 
+## Nov 3: service READMEs and compliance rows corrected
+- **What:** the four service READMEs now match the code (API routes, supported layouts, the guard's record, byte-for-byte comparison, report v0.13). The compliance team row says solo. **Left open:** the sandbox pre-check's "not exercised in a real container" warning stays, because no record shows it was run there. The owner confirmed on Nov 3 that v15 shows only what was built in the window.
+
 ## Nov 3: three out-of-date docs removed
 - **Removed (owner's request):** `docs/DEMO_PLAN.md`, `demo/candidate-v13/README.md`, `docs/architecture.drawio`. Older entries below still name them; they remain in git history. `demo/candidate-v13/build.py` and `overlays.mjs` stay.
 

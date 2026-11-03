@@ -1,6 +1,6 @@
 # services/api
 
-Status: **read-only slice working.** It serves saved converter runs to the portal. Not yet implemented: upload, starting runs, SSE event streaming.
+Status: **working.** It serves runs and deliveries to the dashboard, starts deliveries, re-checks stored runs and runs the public live buttons. Repositories come in by GitHub URL; there is no COBOL file upload. The only uploads are a visitor's own image and voice clip, both capped. There is no event stream: the dashboard polls.
 
 | Endpoint | Returns |
 |---|---|
@@ -9,6 +9,20 @@ Status: **read-only slice working.** It serves saved converter runs to the porta
 | `GET /runs/{id}` | One run per [`contracts/run.schema.json`](../../contracts/run.schema.json): agent trace, verification before/after, model usage, Java diff |
 | `GET /runs/{id}/source` | The original COBOL (program + copybooks) and the run's Java, per `$defs.source`; not served for visitor runs |
 | `GET /runs/{id}/schema` | The run's copybooks as SQL tables with the SQLite round-trip proof (`contracts/sql-schema.schema.json` plus `runId`); computed by the verifier once per sample, no model; not served for visitor runs |
+| `POST /runs/{id}/reverify` | Runs both programs again on a fresh seed; free, no model |
+| `GET /runs/{id}/mutation` | The stored mutation report ([`contracts/mutation-report.schema.json`](../../contracts/mutation-report.schema.json)) |
+| `POST /runs/{id}/mutation` | Runs mutation testing on the run's Java; can take minutes, no model |
+| `GET /runs/{id}/reproducers` | Smallest-reproducer records for the run |
+| `GET /runs/{id}/reproducers/{case}/regression` | The regression case saved with one reproducer |
+| `GET /deliveries`, `GET /deliveries/{id}` | Stored deliveries ([`contracts/delivery.schema.json`](../../contracts/delivery.schema.json)) |
+| `POST /deliveries` | With the admin passcode: a pull request on an allowed target. Without it: a visitor import of a public repository, sandboxed and capped, with no pull request |
+| `GET /config` | Public settings, caps and live status |
+| `POST /samples/live`, `GET /samples/live/{id}` | The two live buttons and their job status ([`contracts/live-sample.schema.json`](../../contracts/live-sample.schema.json)) |
+| `POST /samples/live/upload` | A visitor's own image for the printout path, at most 2 MB, capped |
+| `GET /samples/printout-image` | The bundled printout image |
+| `POST /asks`, `GET /asks/{id}` | A spoken question from a bundled clip, and its job status ([`contracts/voice-question.schema.json`](../../contracts/voice-question.schema.json)) |
+| `POST /asks/upload` | A question in the visitor's own voice, at most 500 KB, capped |
+| `GET /asks/clips/{name}` | A bundled clip |
 
 ## Visitor imports: uncompilable originals are skipped first
 Before any model call, `deliver.py --public` asks the verifier's compile-only job (in the sandbox, see
@@ -28,4 +42,4 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn diocle_api.app:app --port 8000
 .venv/bin/python -m pytest -q
 ```
-`DIOCLE_RUNS_DIR` overrides where runs are read from. `DIOCLE_WEB_ORIGINS` sets the allowed CORS origins (default: localhost ports 3000 and 3001). The API makes no model calls.
+`DIOCLE_RUNS_DIR` overrides where runs are read from. `DIOCLE_WEB_ORIGINS` sets the allowed CORS origins (default: localhost ports 3000 and 3001). The API process calls no model itself: deliveries, live buttons and asks run as separate jobs, under their own caps.

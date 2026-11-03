@@ -2,7 +2,7 @@
 
 Deterministic analysis of a COBOL estate. No model calls.
 
-- **Layouts from copybooks:** display fields (`PIC X(n)`, `9(n)V9(m)`, `S9... SIGN LEADING SEPARATE`), with 88-level values for alphanumeric fields. Packed or binary usage in a record, REDEFINES, OCCURS and trailing (overpunch) signs are reported as unsupported, never guessed.
+- **Layouts from copybooks:** display fields (`PIC X(n)`, `9(n)V9(m)`), packed (COMP-3), binary (COMP, COMP-4, BINARY, COMP-5) and floating point (COMP-1, COMP-2), leading, trailing (overpunch) and separate signs, P scaling, fixed OCCURS, REDEFINES, and 88-level values for alphanumeric fields. Refused with a reason, never guessed: packed or binary data in a LINE SEQUENTIAL file, COMP-6, COMP-X, COMP-N, OCCURS DEPENDING ON, SYNCHRONIZED, and several 01 record types in one file.
 - **File wiring:** `SELECT ... ASSIGN TO <DD>`, the copybook under each `FD`, and `OPEN INPUT/OUTPUT` give each program's input and output files.
 - **JCL:** which job runs each program and the dataset behind each DD name.
 - **EXEC SQL (report v0.6, `sqlsubset.py`):** statements are parsed (they may span lines) and classified into the verified subset `db2-subset-1` or refused with the exact line and reason; a program using only the subset is convertible and carries `sql` facts (tables with their schema source, statements, cursors). Tables come from `EXEC SQL DECLARE ... TABLE` (program or an INCLUDEd DCLGEN copybook) or `CREATE TABLE` in a `*.sql` file of the repository; with none the program is refused, a schema is never guessed. Dynamic SQL, stored procedures, joins, DB2 functions and special registers, FETCH FIRST, WITH UR, FOR UPDATE, multi-row operations, unsupported column types, and reads of SQLSTATE/SQLERRM are refused. CICS and IMS stay refused (out of scope). The subset is verified on a SQLite stand-in, not DB2: see `services/verifier/README.md`.
@@ -16,7 +16,7 @@ Deterministic analysis of a COBOL estate. No model calls.
 - **A JCL job does not inherit these shapes:** a job whose COBOL step is DISPLAY-only or updates a file in place is not convertible as a job (the job check compares output files only); the program still converts on its own.
 - **Findings:** `COMPUTE ROUNDED` (half away from zero), `COMPUTE` without `ROUNDED` (truncation), no `ON SIZE ERROR` (silent high-order overflow), and `DISPLAY` of binary counters.
 
-Output: [`contracts/analysis-report.schema.json`](../../contracts/analysis-report.schema.json). With `--samples-dir`, each convertible program (one input file, one output file, supported layouts) is written as a Diocle sample directory for the converter.
+Output: [`contracts/analysis-report.schema.json`](../../contracts/analysis-report.schema.json). With `--samples-dir`, each convertible program is written as a Diocle sample directory for the converter.
 
 ## Run
 
@@ -27,4 +27,4 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 .venv/bin/python -m pytest
 ```
 
-GitHub imports are cloned shallow into `runs/imports/` and pinned to the commit analyzed. The verifier compiles and runs imported code, so imports are limited to the owners in `DIOCLE_IMPORT_OWNERS` (default `Nivetha200111`) until they run in a sandbox.
+GitHub imports are cloned shallow into `runs/imports/` and pinned to the commit analyzed. The verifier compiles and runs imported code, so imports are limited to the owners in `DIOCLE_IMPORT_OWNERS` (default `Nivetha200111`). `DIOCLE_IMPORT_ANY=1` lifts that only for visitor imports, which the API runs with every build and program execution in the sandbox.

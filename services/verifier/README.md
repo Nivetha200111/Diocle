@@ -1,14 +1,14 @@
 # services/verifier
 
-Status: **working for the `interest-accrual` sample** (Layer 3 of [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)). Not yet implemented: SonarQube quality gate, agent tool endpoints, Spring Boot runner (Java runs as a plain `main` class for now), layouts from the analyzer (layouts are read from the sample's `sample.json` for now).
+Status: **working**, for the program shapes in the sections below (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)). Not built: a SonarQube quality gate (optional in the project plan) and a Spring Boot runner (Java runs as a plain `main` class). The repair agent reaches the verifier through its tools in `services/converter`, and other agents through `services/mcp`. Layouts are read from the sample's `sample.json`, which the analyzer writes for imported repositories.
 
-Differential testing: compile the original COBOL with GnuCOBOL, compile the converted Java, run both on the same generated inputs, and compare every output record field by field. Emits `contracts/verification-report.schema.json` (v0.2).
+Differential testing: compile the original COBOL with GnuCOBOL, compile the converted Java, run both on the same generated inputs, and compare the whole output sequence byte for byte, plus stdout and the exit code. Emits `contracts/verification-report.schema.json` (v0.13).
 
 ## How it works
 1. **Inputs:** fixture cases from `sample.json` (`fixtureCases`: hand-written trap cases, or for an imported flat record `01 IN-RECORD PIC X(n)` up to 400 records from the repository's own data files, ids `repo-NNNN`, each with a `why` naming the file and line, kept in the delivered `sample.json`; the report shows the case id only; multi-file samples carry them as `fixtureFiles` with `fixtureFileOrigins`), then PIC boundary values (zero, smallest unit, max, negatives) per field, then seeded random records (log-uniform magnitudes). Deterministic for a given `--seed`.
 2. **Original:** `cobc -x -std=ibm -I <copybooks>` (plus `-free` for a source that opens with `>>SOURCE FORMAT FREE`, which applies to the copybooks it pulls in too; when the entry program, its CALLed modules and stand-ins mix free and fixed format, each is compiled to an object with its own format and then linked; EXEC SQL programs are built the same way, after the precompiler), run with `DD_<name>` environment variables pointing at the input and output files (JCL-style DD names).
 3. **Converted:** `javac`, then `java <mainClass>` with the same `DD_<name>` variables.
-4. **Diff:** parse both outputs with the output record layout and compare values per field; flag records whose length is wrong (a field overflowed and shifted the rest); compare stdout.
+4. **Diff:** compare the output records by position, byte for byte, so `+00` and `-00` differ ("line" records ignore trailing spaces a writer may trim); compare stdout and the exit code. Fields are parsed only to explain a difference; records whose length is wrong (a field overflowed and shifted the rest) are flagged.
 
 The converted Java runs **first**, in its own subdirectory, before the original's executable or output files exist, so
 it cannot read or run the answer it is compared with. The files the original reads or is built from (inputs, seeds,
@@ -101,7 +101,7 @@ python3 -m venv .venv && .venv/bin/pip install jsonschema pytest
 
 Exit codes: `0` all cases match, `1` mismatches, `2` a build failed.
 
-Both Java conversions used today are **hand-written test fixtures, not model output**: `samples/interest-accrual/java-conversion/` is a deliberately naive port, and `tests/fixtures/reference/` is a faithful one used to prove the pass path.
+The two Java conversions in these commands are **hand-written test fixtures, not model output**: `samples/interest-accrual/java-conversion/` is a deliberately naive port, and `tests/fixtures/reference/` is a faithful one used to prove the pass path.
 
 ## Whole-JCL-job verification (v1: one SORT step feeding one COBOL step)
 

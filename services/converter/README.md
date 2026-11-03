@@ -1,6 +1,6 @@
 # services/converter
 
-Status: **working slice** for the `interest-accrual` sample (Layer 2 of [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)). Implemented: Meta model client with call caps and cost logging, whole-program translator (structured output), and the tool-using repair agent. Not yet implemented: Class Designer (2A), per-paragraph translation, SQL schema mapping, rule extractor, edge-case designer, judge, SonarQube issues, `conversion-output` contract emission.
+Status: **working** (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)). Implemented: Meta model client with call and dollar caps and cost logging, whole-program translator (structured output), tool-using repair agent, breaker, independent cross-check, guard, fix memory, verified documentation, printout intake, voice questions, convert-anyway and the whole-job pipeline (`run-job`). Not built: Class Designer, per-paragraph translation, rule extractor, a judge model (the verifier's comparison decides) and SonarQube issues. The SQL schema comes from `services/verifier` (`sqlschema`). The `conversion-output` contract is emitted only as the `run-job` manifest (`jobPipelines[]`); a normal run writes `run.json`.
 
 Meta models only (CLAUDE.md rule 9), through the OpenAI-compatible Chat Completions API of the [Meta Model API](https://dev.meta.ai) at `https://api.meta.ai/v1`. Muse Spark Open runs on the inference partners Fireworks and Baseten.
 
@@ -113,7 +113,7 @@ differential only samples: random inputs rarely hit exact boundaries (the same w
 5000.00` read as `>` would change only the inputs at exactly 5000.00), so `verified-identical` means "no difference on 1,013
 generated inputs", not equality for all inputs.
 
-## Guard agent (in progress, not yet run against a live model)
+## Guard agent
 `guard.py` watches the other agents (translator, repair, breaker) for leaks and test gaming.
 - **Policy** (deterministic, every run): checked on the workspace before Java is executed (every differential test,
   certification and breaker attack). Unicode escapes are decoded, comments set aside and string literals (text blocks,
@@ -130,6 +130,7 @@ generated inputs", not equality for all inputs.
   to break the answer could as easily talk the model into "pass". `smoke` sends the guard's real request.
 - Results go to `run.json` (`guard`, run contract v0.11) and the trace (`guard` events); its calls are logged and
   priced with the run's.
+- **Evidence:** the review returned a verdict in 22 of the 60 public runs as of Nov 2 and was skipped by the cap in 4 ([docs/META_MODELS.md](../../docs/META_MODELS.md)).
 - **Limits:** the policy is a speed bump, not a boundary. Java that builds a path or a class name at run time gets past
   it; only the sandbox (no secrets, no network, nothing kept) stops that. A model can be talked round.
 
