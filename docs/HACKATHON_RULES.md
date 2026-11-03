@@ -8,7 +8,8 @@ Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to 
 - **Bonus prizes we target:**
   - Best Build on Meta Open Weight Models: Muse Spark Open in private mode.
   - Best Agentic Use-Case: the tool-using repair agent.
-  - Community Vote and Most Viral: post the demo on X after submitting.
+  - Most Viral: post the demo on X after submitting and submit the post link.
+  - Community Vote: votes in the public gallery, one per verified account.
 
 ## Rules
 - **Public repo** required.

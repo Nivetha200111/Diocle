@@ -8,7 +8,7 @@ Things only the owner can fill in or confirm. Nothing here is done by the build 
 - [x] **Engine deploy after PR #1.** On `7f87dc2`, Nov 2, with PR #1 ("Nothing to convert") and the clearer no-GitHub-login message; re-check afterwards: 1,004 of 1,004.
 
 - [x] **Demo video link.** https://youtu.be/8Yz06cdC3yc is in the first line of [README.md](../README.md); it opens without signing in (checked Nov 3 through YouTube's public oEmbed endpoint).
-- [x] **X post (owner reports done, Nov 2); still add its link to the form.** Post the demo on X within the hour after submitting and add the post link to the submission form (Most Viral and Community Vote need it). No vertical cut exists; every cut is landscape, so post v15 or make one first.
+- [x] **X post (owner reports done, Nov 2); still add its link to the form.** Post the demo on X within the hour after submitting and add the post link to the submission form (Most Viral needs it; Community Vote runs in the public gallery). No vertical cut exists; every cut is landscape, so post v15 or make one first.
 - [ ] **Repository is public** and the default branch shows the latest commit (visibility was `PUBLIC` on Oct 31; recheck at submission).
 - [x] **Meta Model API credits claimed (owner, Nov 2)** before Nov 4, 9 PM ET (the claim form is in the official participant guide).
 - [ ] **Spend limit set.** Not reported yet.
