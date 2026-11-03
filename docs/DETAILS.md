@@ -118,7 +118,7 @@ Diocle is built around a control a bank already understands: the party that writ
 | Model | Role | Evidence strength |
 |---|---|---|
 | Muse Spark (`muse-spark-1.3-contributor`) | Translator, repair agent, breaker | 34 of 36 public runs; the measurement above |
-| Muse Spark Open (open weights, partner inference on Fireworks and Baseten) | Private mode, cross-check, guard review | one October public run (INTACCR certified) plus 6 runs from Nov 1, public since Nov 3: on CHQCLR and TXNPOST its own Java passed 1,000 held-out inputs and its own breaker broke it; DAYCTRL and FXCONV certified ([results](../eval/results-open-weights-20261101.json)); not in the headline measurement |
+| Muse Spark Open (open weights, partner inference on Fireworks and Baseten) | Private mode, cross-check, guard review | one October public run (INTACCR certified) plus 4 private-mode and 2 cross-check runs from Nov 1 and 6 private-mode runs on Baseten on Nov 3, public since Nov 3 (11 private-mode runs, 6 certified): on CHQCLR and TXNPOST its own Java passed 1,000 held-out inputs and its own breaker broke it; DAYCTRL and FXCONV certified ([results](../eval/results-open-weights-20261101.json)); not in the headline measurement |
 | Muse Wonder | Read a printout; opt-in breaker tier | n=1 per use |
 | Muse Voice Transcribe | Spoken question about a program | One live public ask |
 | Muse Code | Local plugin for the agent | Five recorded runs, prompts named the tools |
@@ -127,7 +127,7 @@ Not used: Muse Image, SAM 3.1, Muse Glimmer. File paths, run ids and the full ta
 
 ## Built here vs pre-existing
 
-First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and two public COBOL repositories used as test input (the Open Mainframe Project course, CC BY 4.0; AWS CardDemo, Apache-2.0). Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md) (licences, voice disclosure).
+First commit Oct 27, 2026 (14:46 IST); nothing predates the building period (Oct 27 to Nov 4, 2026). Built here: the analyzer, converter agents, verifier, delivery, API, dashboard, sandbox, extensions and the measurement harness. Pre-existing and used: GnuCOBOL 3.2, Berkeley DB, SQLite, the JDK, web frameworks, fonts, the Meta models and public COBOL repositories used as test input and the blind test's three (`navikt/DSF`, `fzn0x/core-banking-system`, `ibmdbbdev/Samples`) used as test input (the Open Mainframe Project course, CC BY 4.0; AWS CardDemo, Apache-2.0). Detail: [Built during the hackathon](#built-during-the-hackathon-oct-27nov-4-2026) below and [docs/HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md) (licences, voice disclosure).
 
 ## The name
 
@@ -201,7 +201,7 @@ Diocle is for the teams that inherit COBOL batch programs that move money and ca
 - **Extensions and tooling:** MCP server, VS Code extension, Notepad++ script, quickstart script, evaluation and measurement harnesses.
 - **Samples and docs:** all synthetic COBOL samples and the evaluation programs.
 
-**Already existed and is used, not built here:** GnuCOBOL 3.2 (the compiler we compare against), the JDK, Berkeley DB and SQLite, the Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Spark Open, Muse Voice Transcribe), Fireworks and Baseten hosting for Muse Spark Open, Next.js, React, FastAPI, Docker and Caddy, Vercel and Vultr hosting, GitHub and GitHub Actions, Remotion, Playwright, ffmpeg and whisper.cpp (video tooling only), and two public COBOL repositories imported through the live import button as test input, not vendored: the Open Mainframe Project course (CC BY 4.0, credited on the Evidence page) and AWS CardDemo (Apache-2.0). The demo video's narration is the author's own recorded voice.
+**Already existed and is used, not built here:** GnuCOBOL 3.2 (the compiler we compare against), the JDK, Berkeley DB and SQLite, the Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Spark Open, Muse Voice Transcribe), Fireworks and Baseten hosting for Muse Spark Open, Next.js, React, FastAPI, Docker and Caddy, Vercel and Vultr hosting, GitHub and GitHub Actions, Remotion, Playwright, ffmpeg and whisper.cpp (video tooling only), and public COBOL repositories used as test input and the blind test's three (`navikt/DSF`, `fzn0x/core-banking-system`, `ibmdbbdev/Samples`) imported through the live import button as test input, not vendored: the Open Mainframe Project course (CC BY 4.0, credited on the Evidence page) and AWS CardDemo (Apache-2.0). The demo video's narration is the author's own recorded voice.
 
 ## Which model does what
 
@@ -229,7 +229,7 @@ flowchart LR
 | Independent cross-check (`--crosscheck`, opt-in) | Muse Spark Open | Partner host (Baseten or Fireworks) | Propose inputs where it thinks the Java differs. Every input runs through GnuCOBOL and the Java; its opinion certifies nothing. |
 | Guard review (optional) | Muse Spark Open | Partner host (Fireworks on the live engine; Baseten example in `.env.example`) | One review of the final Java; can only revoke certification, never grant it. |
 | Escalation tiers (`--tiers`, opt-in) | Muse Spark contributor, then `muse-spark-1.3`, then `muse-wonder-1.0` | Meta Model API | The repair agent moves up one tier after each failed certification round and the breaker attacks at tier 2 by default (Muse Wonder is opt-in with `MODEL_TIER_BREAKER=3`); hard caps on calls and dollars above tier 1. Not yet shown to repair better than tier 1 alone. |
-| Private mode | Muse Spark Open replaces Muse Spark in all three agent roles | Partner host | Same loop on open weights. The one live run (n=1) used partner inference on Fireworks, so it did not keep code on hardware you own; running the open weights on your own hardware is possible but was not tested here. |
+| Private mode | Muse Spark Open replaces Muse Spark in all three agent roles | Partner host | Same loop on open weights. All 11 public runs used partner inference (Fireworks, Baseten), so they did not keep code on hardware you own; running the open weights on your own hardware is possible but was not tested here. |
 | **Verifier** | none, it is GnuCOBOL and a byte-for-byte comparison | Sandbox (no network, no credentials) | **The only thing that certifies.** |
 
 The guard's deterministic policy runs on every run. Its model review is configured on the live engine. Over the 60 public runs on Nov 2: a verdict in 22 (21 pass, 1 flag because the sources were too long to review whole), skipped by a dollar cap in 4 (the run record says so), none recorded in 34. No public run shows it catching a real defect; the policy and the verifier decide. The narration of the demo video is the author's own recorded voice; Meta's speech model on the API (`muse-voice-transcribe-1.0`) transcribes speech and does not speak.

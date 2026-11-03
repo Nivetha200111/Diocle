@@ -18,6 +18,12 @@
 
 **Meta Global AI Developer Hackathon entry:** Indie Developer track, problem statement **Build for Your World**: a problem the author knows firsthand, large COBOL modernization projects.
 
+**Built during the hackathon, Oct 27 to Nov 4, 2026:** all of Diocle's own code, docs and synthetic samples; the first commit is dated Oct 27. Pre-existing and used: GnuCOBOL, the JDK, Berkeley DB, SQLite, web frameworks, Meta's models, and public COBOL repositories used as test input, not vendored, with short excerpts in published patches ([detail and licences](docs/HACKATHON_COMPLIANCE.md)).
+
+**Meta models at runtime:** Muse Spark (Meta Model API) as translator, tool-using repair agent and breaker, by default and in the measurement. Muse Spark Open (Fireworks, Baseten) for optional private mode, which moves the agents to open weights, and is thinly tested: 11 public runs with no Muse Spark call, 6 reaching all three roles, 6 certified, none from a site visitor. It also writes the optional guard review after a run certifies on the live engine, unless a dollar cap stops it first. Muse Wonder reads a printed listing (one listing so far), and Muse Voice Transcribe transcribes spoken questions.
+
+**For the bonus categories:** Best Agentic Use-Case (the repair agent and the breaker) and Best Build on Meta Open Weight Models (private mode on partner inference; optional and thinly tested, with Muse Spark as the default).
+
 - **Why it's hard:** COBOL batch programs calculate interest, fees and postings, so one small difference repeats on every record that hits it. Java can compile, run and still differ.
 - **One catch:** on a synthetic returned cheque with a space in its fee field, the COBOL charged `20.00` and the AI's Java charged `0.00`. The repair agent fixed that difference in that run, but that Java still differs on another malformed record, and this program certified in only 4 of 7 runs. The record is malformed, and this is GnuCOBOL, not IBM's compiler.
 - **Measured:** on 15 synthetic programs, 4 of the 10 attackable translations that passed 1,000 generated records then differed from the original under attack: 1 on malformed numbers, 3 on the sign of a zero at an overflow boundary (same value, different bytes). No stored break shows a wrong amount on a well-formed record, and this is not a defect-detection rate.
