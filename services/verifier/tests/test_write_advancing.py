@@ -13,7 +13,7 @@ from diocle_converter.prompts import TRANSLATOR_ADVANCING
 from diocle_verifier.diff import compare
 from diocle_verifier.inputs import Case
 from diocle_verifier.layout import Field
-from diocle_verifier.runners import IBM_FLAGS, read_output
+from diocle_verifier.runners import IBM_FLAGS, read_output, safe_env
 from diocle_verifier.transcript import differential
 from diocle_verifier.verify import CONTRACT, passes, validate_report, verify_sample
 
@@ -94,7 +94,7 @@ def _run_cobol(tmp_path: Path, source: str) -> bytes:
     (tmp_path / "ADVFORM.cbl").write_text(source)
     exe, out = tmp_path / "advform", tmp_path / "out.dat"
     subprocess.run(["cobc", "-x", "-std=ibm", *IBM_FLAGS, "-o", str(exe), str(tmp_path / "ADVFORM.cbl")], check=True, capture_output=True)
-    subprocess.run([str(exe)], check=True, capture_output=True, env={"PATH": os.environ["PATH"], "DD_PRTLINE": str(out)}, cwd=tmp_path)
+    subprocess.run([str(exe)], check=True, capture_output=True, env=safe_env({"DD_PRTLINE": str(out)}), cwd=tmp_path)
     return out.read_bytes()
 
 
