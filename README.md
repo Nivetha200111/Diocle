@@ -1,4 +1,4 @@
-**Demo video (under 3 min): https://youtu.be/zJAc1WPMk1s**
+**Demo video (under 3 min): https://youtu.be/8Yz06cdC3yc**
 
 <p align="center"><img src="docs/assets/logo.svg" alt="Diocle logo" width="96" height="96"></p>
 
@@ -22,7 +22,7 @@ Diocle helps a modernization lead decide whether to accept AI-written Java for a
 
 | Start here | |
 |---|---|
-| **Watch** | [The demo video](https://youtu.be/zJAc1WPMk1s) |
+| **Watch** | [The demo video](https://youtu.be/8Yz06cdC3yc) |
 | **Try** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model) |
 | **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
 | **Check** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [a public repository we did not write](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), [each claim and how to verify it](docs/CLAIMS_TO_EVIDENCE.md), [a delivered pull request](https://github.com/Nivetha200111/quillmark-modern/pull/4) and [its CI run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870), [the build log](docs/BUILD_LOG.md) |
@@ -42,7 +42,7 @@ We then found two flaws in our own instrument, fixed them, and [re-measured on N
 
 On one [synthetic cheque-clearing run](docs/SHOWCASE_CHQCLR.md), Muse Spark designed a returned cheque with a space in its numeric fee. The COBOL on GnuCOBOL charged `20.00`, the Java `0.00`. The repair agent fixed it, and it matched again on fresh records. That record is malformed, and IBM's compiler was not tested. Auditing our own evidence also found that the check gave that program near-identical records, and that this certified Java still differs on another malformed record. Both are published.
 
-**On code we did not write:** [AWS CardDemo's `CBCUS01C`](docs/DETAILS.md#one-public-program-not-ours-carddemos-cbcus01c) certified for $0.0112, but it is a small reader: only 5 of 40 seeded faults were detected, and the breaker could not run on it.
+**On code we did not write:** [AWS CardDemo's `CBCUS01C`](docs/DETAILS.md#one-public-program-not-ours-carddemos-cbcus01c) certified for $0.0112, but it is a small reader: only 5 of 40 seeded faults were detected, and the breaker could not run on it. The video imports CardDemo live: 3 small readers certified in 6m 58s for an estimated $0.0355, with the same limits, while Diocle refuses 40 of its 44 programs, mostly CICS.
 
 **Every program in a public course repository:** [32 programs from the Open Mainframe Project's COBOL course](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), three dated passes, $2.07 of model spend. The first two certified 11: 9 as distributed but on fixed input, and 2 against a repaired copy whose patch is published. Of the 13 not certified, 11 use `WRITE ... AFTER ADVANCING`. GnuCOBOL writes the advancing into the file as bytes, and our verifier refused even identical Java while our prompts had no rule for it. After fixing both, [a third pass](docs/EXTERNAL_ESTATE.md#third-pass-results-nov-3-2026-mac), **not a blind test** because the fix answered this same course's failures, certified 9 of those 13: 8 against a repaired copy, and 1 as distributed on fixed input. That leaves 3 not certified and 1 whose original never ends, plus 3 that could not be patched to compile, 4 refused and 1 not converted. The two earlier passes stand as recorded. No program was certified as distributed on inputs that vary, the repaired copies vary 2 of 10 input fields, and these are small teaching programs, so this does not show Diocle works on any repository. Source: the course's authors, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the published patches reproduce short excerpts.
 

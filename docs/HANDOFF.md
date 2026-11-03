@@ -7,7 +7,12 @@ Newest state at the top of each section. Dates are 2026, times IST unless marked
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
-> v14 (https://youtu.be/zJAc1WPMk1s), uses only the owner's own recorded voice; no synthetic voice is in it.
+> v15 (https://youtu.be/8Yz06cdC3yc), uses only the owner's own recorded voice; no synthetic voice is in it.
+
+## Nov 3: video v15
+- **Why:** the organizers asked for an opening line on what pre-existed and what was built, and working product rather than slides. v14 had no such line. Keep v15 under 3:00, because judges stop watching there.
+- **What:** https://youtu.be/8Yz06cdC3yc, 2:59, full-window footage in a fresh browser, with a live import of AWS CardDemo (`delivery-20261103-111122`: 3/3 certified, 6m 58s, $0.0355). It replaces v14 everywhere. `cics-genapp` was tried first and is all CICS: 31 of 31 refused. The pipeline is local only: `demo/v14/build_v15.py` and `voice_v15.py` in the `demo-v14` worktree.
+- **Limits stated on screen:** "2 of 2" counts output records; each program read 250 generated records; breaker not run. The breaker story stays on CHQCLR, labelled as a stored run.
 
 ## Nov 3: third pass on the external estate
 - **Result, not a blind test:** at commit `b473fea`, after the `WRITE ... AFTER ADVANCING` fix, 9 of the 13 certified: 8 against a repaired copy, `COBOL` as distributed on fixed input. `CBL0010`, `CBL0033`, `CBL0106` not certified, `CBL0015`'s original never ends. $0.64, one resume after an HTTP 502. [Tables and limits](EXTERNAL_ESTATE.md#third-pass-results-nov-3-2026-mac). Every quote must say not a blind test and keep the split. The two earlier passes stand as recorded.
