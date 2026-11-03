@@ -2,7 +2,7 @@
 
 **Name:** Diocle. **Track:** Indie, Build for Your World. **Video:** the link in the README's first line. **Repo:** https://github.com/Nivetha200111/Diocle. **Live:** https://diocle.vercel.app
 
-**One line.** AI writes the Java; Diocle compares it with the original COBOL, attacks what passes, repairs what differs, and leaves evidence anyone can re-run.
+**One line.** AI can rewrite COBOL in minutes; Diocle tests whether the Java still gives the same answer on the inputs it tries under GnuCOBOL, by comparing it with the original, attacking what passes, repairing what differs, and leaving evidence anyone can re-run.
 
 **The problem.** I worked on a COBOL modernization at a global finance company where every translated program was checked by hand. AI can now write the Java in minutes. The bottleneck is deciding whether to accept it: a modernization lead or systems integrator needs to know whether the Java does what the batch program did, on more than the inputs someone thought of. A failed migration is expensive: TSB's 2018 migration cost the bank £330 million and brought a £48.65 million fine (https://www.itpro.com/business-strategy/it-infrastructure/369753/tsb-bank-fined-48-million-over-botched-it-upgrade). The people who benefit are the teams at banks, credit unions and payment operators who inherit these programs, and the people those programs pay.
 

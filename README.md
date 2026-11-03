@@ -18,7 +18,12 @@
 
 **Meta Global AI Developer Hackathon entry:** Indie Developer track, problem statement **Build for Your World**: a problem the author knows firsthand, large COBOL modernization projects.
 
-Diocle helps a modernization lead decide whether to accept AI-written Java for a COBOL batch program. Muse Spark translates the COBOL. The original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, display line and exit code must match. Java that passes is then attacked with inputs Muse Spark designs, and what differs goes back for repair. **A model never certifies; the comparison does.** The result is reproducible evidence on the inputs tried under GnuCOBOL: not a formal proof, and not a test on IBM Enterprise COBOL. Indie track, *Build for Your World*. Built Oct 27 to Nov 4, 2026, on synthetic programs.
+- **Why it's hard:** COBOL batch programs calculate interest, fees and postings, so one small difference repeats on every record that hits it. Java can compile, run and still differ.
+- **One catch:** on a synthetic returned cheque with a space in its fee field, the COBOL charged `20.00` and the AI's Java charged `0.00`. The repair agent fixed that difference in that run, but that Java still differs on another malformed record, and this program certified in only 4 of 7 runs. The record is malformed, and this is GnuCOBOL, not IBM's compiler.
+- **Measured:** on 15 synthetic programs, 4 of the 10 attackable translations that passed 1,000 generated records then differed from the original under attack: 1 on malformed numbers, 3 on the sign of a zero at an overflow boundary (same value, different bytes). No stored break shows a wrong amount on a well-formed record, and this is not a defect-detection rate.
+- **On code we didn't write:** every program in a public COBOL course. 11 of 32 certified at first (9 on fixed input, 2 against a repaired copy). 13 ran and did not certify; the other 8 were refused, did not compile or were duplicates. After a fix that those failures prompted, a third pass, not a blind test, certified 9 of the 13 (8 against a repaired copy, 1 on fixed input).
+
+Diocle helps a modernization lead decide whether to accept AI-written Java for a COBOL batch program. Muse Spark translates the COBOL. The original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, display line and exit code must match. Java that passes is then attacked with inputs Muse Spark designs, and what differs goes back for repair. **A model never certifies; the comparison does.** The result is reproducible evidence on the inputs tried under GnuCOBOL: not a formal proof, and not a test on IBM Enterprise COBOL. Indie track, *Build for Your World*. Built Oct 27 to Nov 4, 2026; the measurement's programs are synthetic.
 
 | Start here | |
 |---|---|
@@ -90,6 +95,7 @@ The party that writes the change does not approve it.
 ## Limits
 
 - **Testing, not proof.** Certified means matched on the inputs tried. Certified Java can still differ on an input nobody tried.
+- **Byte comparison.** Trailing spaces on text lines are not compared; everything else in the output is.
 - **Stand-ins.** GnuCOBOL is not IBM Enterprise COBOL. SQLite and Berkeley DB stand in for the DB2 and VSAM subsets.
 - **Coverage varies.** Generated records carry no deliberately bad data, and a flat text record gets placeholders, which limits what [the Harbor delivery's CI](docs/DETAILS.md#not-supported-yet) re-checks. The breaker runs on single-file record programs only.
 - **Optional steps can be skipped.** Guard review and cross-check are thinly tested, and a run says when they did not run.

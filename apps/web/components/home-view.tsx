@@ -238,8 +238,8 @@ function Pitch({ go }: { go: Go }) {
       </div>
       <div className="pitch-top">
         <div className="pitch-claim">
-          <h1>Ten attackable AI translations of COBOL passed a 1,000-record test. A model made four of them differ from the original.</h1>
-          <p className="pitch-sub">Diocle compares the Java with the original under GnuCOBOL, attacks translations that pass, repairs what differs and saves evidence anyone can re-run. It is testing on stated inputs, not a formal proof.</p>
+          <h1>AI can rewrite COBOL in minutes. How do you know the Java still gives the same answer?</h1>
+          <p className="pitch-sub">Diocle runs both programs on the same inputs and compares their output byte for byte (trailing spaces on text lines aside). Then a model attacks the Java: on synthetic programs, of 10 translations that passed 1,000 generated records and could be attacked, 4 went on to differ from the original, on malformed numbers or the sign of a zero. What differs goes to repair, and the evidence can be re-run. It is testing on stated inputs under GnuCOBOL, not a formal proof.</p>
           <div className="pitch-actions">
             <button type="button" className="button primary" onClick={() => go("Try it live")}>▶ Try it live</button>
             <button type="button" className="button secondary" onClick={() => go("Delivery")}>Import a COBOL repository</button>
@@ -279,7 +279,7 @@ function Pitch({ go }: { go: Go }) {
       </div>
       <p className="pitch-models">
         Models write and attack; the byte comparison decides. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
-        {" "}<strong>Limits:</strong> &ldquo;certified&rdquo; means matched on the inputs tried, not proven equivalent. GnuCOBOL is not IBM Enterprise COBOL; SQLite and Berkeley DB stand in for the DB2 and VSAM subsets; the breaker attacks single-file record programs only; optional guard and cross-check steps can be skipped, and a run says so. Synthetic programs only (<a href={LINKS.certified} target="_blank" rel="noreferrer">full limits</a>).
+        {" "}<strong>Limits:</strong> &ldquo;certified&rdquo; means matched on the inputs tried, not proven equivalent. Trailing spaces on text lines are not compared. GnuCOBOL is not IBM Enterprise COBOL; SQLite and Berkeley DB stand in for the DB2 and VSAM subsets; the breaker attacks single-file record programs only; optional guard and cross-check steps can be skipped, and a run says so. Synthetic programs only (<a href={LINKS.certified} target="_blank" rel="noreferrer">full limits</a>).
         {" "}<strong>For risk and audit teams:</strong> the party that writes the change does not approve it (<a href={`${LINKS.diocle}#for-engineering-risk-and-audit-teams`} target="_blank" rel="noreferrer">what a reviewer can check</a>).
       </p>
     </section>
