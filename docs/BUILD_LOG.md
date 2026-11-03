@@ -67,6 +67,9 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 - 11 of the 13 not certified use `WRITE ... AFTER ADVANCING`, where GnuCOBOL writes the advancing into the file as bytes. Checked program by program afterwards: our verifier refused even identical Java on those files, and our prompts had no rule for it. Fixed.
 - A third pass on those 13, not a blind test because the fix answered this same course's failures, certified 9: 8 against a repaired copy, 1 on fixed input, for $0.64. The two earlier passes stand as recorded: [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md#third-pass-results-nov-3-2026-mac).
 
+## Nov 3 to 4: a blind test
+- Pinned three repositories no fix had seen, then ran them in the sandbox for $0.29. On COBOL from the repository of Norway's retired national pension system, 2 of 4 testable programs certified with no patch to the COBOL, after the repair agent fixed the first Java, on narrow generated inputs, and 2 did not. Results: [BLIND_TEST.md](BLIND_TEST.md).
+
 ## Still open (as of Nov 2, 2026)
 - A review of the converted Java by an experienced COBOL maintainer (not done).
 - Breaker test on a narrow defect that ordinary testing misses (`samples/loyalty-waiver`): the breaker found nothing on LOYWAIVE in the headline measurement (0 broke of 24 tried); no narrow defect was planted, so this stays open.

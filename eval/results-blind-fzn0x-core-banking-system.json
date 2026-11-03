@@ -1,0 +1,155 @@
+{
+  "pass": "blind: a repository the fix never saw, one run as found",
+  "blindTest": true,
+  "estate": "https://github.com/fzn0x/core-banking-system",
+  "pinnedCommit": "770860d4a11f1d203b0369456d867108097a550f",
+  "analyzedCommit": "770860d4a11f1d203b0369456d867108097a550f",
+  "memory": false,
+  "converterFlags": [
+    "--breaker",
+    "--no-memory",
+    "--max-usd",
+    "0.4",
+    "--convert-anyway"
+  ],
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "maxTotalUsd": 0.5,
+  "programCapUsd": 0.4,
+  "workers": 1,
+  "timeoutMinutes": 150,
+  "diocleCommit": "e10d003b3065f3b3d998148c64cb9f112dcdab5c",
+  "startedAt": "20261103-224122",
+  "cobc": "cobc (GnuCOBOL) 3.2.0",
+  "java": "java version \"27\" 2026-09-15",
+  "resumes": 0,
+  "ranIn": "Diocle sandbox container, GnuCOBOL 3.2.0, OpenJDK 21",
+  "complete": true,
+  "programsAccounted": 4,
+  "tally": {
+    "refused": 2,
+    "not certified": 2
+  },
+  "recordedCostUsd": 0.090302,
+  "costComplete": true,
+  "restartedPrograms": [],
+  "certifiedWithoutGuardPass": [],
+  "results": [
+    {
+      "program": "BANK-MAIN",
+      "path": "BANK-MAIN.CBL",
+      "outcome": "refused",
+      "reason": "ACCEPT reads the console: a DISPLAY-only program is compared on stdout, and its console input cannot be varied"
+    },
+    {
+      "path": "INIT-DB.CBL",
+      "program": "INIT-DB",
+      "outcome": "not certified",
+      "runId": "init-db-20261103-224123",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 44,
+        "inputTokens": 526808,
+        "cachedInputTokens": 462632,
+        "outputTokens": 164394,
+        "estimatedCostUsd": 0.040222
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (0/0 cases matched) after the repair caps",
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 2,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 27.0,
+      "freshSeeds": [],
+      "lastEvents": [
+        "guard: refused to run this Java: InitDb.java:17 reads environment variable 'ACCOUNTS.DAT': only the program's own DD names, DIOCLE_CLOCK and DIOCLE_COLLATION are allowed. The Java may only read and write its DD files, read DIOCLE_CLOCK and DIOCLE_COLLATION, and print.",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "0/0 cases match; stdout matches."
+      ],
+      "exercised": {
+        "shape": "multi-file",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "REPORT-GEN.CBL",
+      "program": "REPORT-GEN",
+      "outcome": "not certified",
+      "runId": "report-gen-20261103-230822",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 46,
+        "inputTokens": 707339,
+        "cachedInputTokens": 604200,
+        "outputTokens": 192790,
+        "estimatedCostUsd": 0.05008
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (0/1 cases matched) after the repair caps",
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 1,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 55.0,
+      "freshSeeds": [],
+      "lastEvents": [
+        "0/1 cases match; stdout matches.\nMismatched fields: \n- stdout input='': the original printed nothing to stdout: no output file and no DISPLAY text to compare",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "0/1 cases match; stdout matches.\nMismatched fields: \n- stdout input='': the original printed nothing to stdout: no output file and no DISPLAY text to compare"
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [
+          "ACCOUNTS"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 4,
+        "fieldsVaried": [
+          "REC-ACC-NUMBER",
+          "REC-ACC-BALANCE"
+        ],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "program": "TRANS-PROC",
+      "path": "TRANS-PROC.CBL",
+      "outcome": "refused",
+      "reason": "CALLs program(s) not in the repository: SYSTEM"
+    }
+  ]
+}

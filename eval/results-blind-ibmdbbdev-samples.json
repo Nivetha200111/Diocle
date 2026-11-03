@@ -1,0 +1,1403 @@
+{
+  "pass": "blind: a repository the fix never saw, one run as found",
+  "blindTest": true,
+  "estate": "https://github.com/ibmdbbdev/Samples",
+  "pinnedCommit": "61a1a20f495203bdb16d4c74a5a076f4fbfc379b",
+  "analyzedCommit": "61a1a20f495203bdb16d4c74a5a076f4fbfc379b",
+  "memory": false,
+  "converterFlags": [
+    "--breaker",
+    "--no-memory",
+    "--max-usd",
+    "0.4",
+    "--convert-anyway"
+  ],
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "maxTotalUsd": 0.6,
+  "programCapUsd": 0.4,
+  "workers": 2,
+  "timeoutMinutes": 150,
+  "diocleCommit": "e10d003b3065f3b3d998148c64cb9f112dcdab5c",
+  "startedAt": "20261103-224123",
+  "cobc": "cobc (GnuCOBOL) 3.2.0",
+  "java": "java version \"27\" 2026-09-15",
+  "resumes": 0,
+  "ranIn": "Diocle sandbox container, GnuCOBOL 3.2.0, OpenJDK 21",
+  "complete": true,
+  "programsAccounted": 17,
+  "tally": {
+    "certified, inputs never vary": 11,
+    "refused": 5,
+    "compiled, not verified": 1
+  },
+  "recordedCostUsd": 0.055299,
+  "costComplete": true,
+  "restartedPrograms": [],
+  "certifiedWithoutGuardPass": [],
+  "results": [
+    {
+      "path": "HelloWorld/hello.cbl",
+      "program": "HELLO",
+      "outcome": "certified",
+      "runId": "hello-20261103-224123",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1650,
+        "cachedInputTokens": 0,
+        "outputTokens": 1784,
+        "estimatedCostUsd": 0.004168
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Hello.java only writes \"Hello world!\" to stdout via System.out.print, which is explicitly allowed. It performs no file I/O, no environment access, no network/process/reflection/native/thread operations, and contains no encoded logic or test-gaming. COBOL HELLO.cbl does DISPLAY \"Hello world!\" and STOP RUN only; Java mirrors this with no additional capabilities."
+      },
+      "minutes": 0.3,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "program": "EPSMLIST",
+      "path": "MortgageApplication/cobol/epsmlist.cbl",
+      "outcome": "refused",
+      "reason": "copybook(s) not found: DFHAID"
+    },
+    {
+      "path": "MortgageApplication/cobol/epsmpmt.cbl",
+      "program": "EPSMPMT",
+      "outcome": "compiled, not verified",
+      "runId": "epsmpmt-20261103-224144",
+      "exitCode": 3,
+      "certified": false,
+      "error": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (epsmpmt.cbl:1: error: syntax error, unexpected Identifier (Area A))",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 9,
+        "inputTokens": 49680,
+        "cachedInputTokens": 33702,
+        "outputTokens": 31697,
+        "estimatedCostUsd": 0.008005
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "compiled-unverified",
+      "assuranceReason": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (epsmpmt.cbl:1: error: syntax error, unexpected Identifier (Area A))",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "cap-reached",
+        "changedLines": 1,
+        "diff": "--- a/epsmpmt.cbl\n+++ b/epsmpmt.cbl\n@@ -1,4 +1,4 @@\n-   CBL NUMPROC(MIG),FLAG(I,W),RENT\n+   CBL NUMPROX(MIG),FLAG(I,W),RENT\n        ID DIVISION.\n        PROGRAM-ID. EPSMPMT.\n       *    THIS IS A CALLED PROGRAM EXAMPLE FOR DEMONSTRATION\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 4.8,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Asking the model to fix only what the compiler reports (bounded)",
+        "Translating EPSMPMT with muse-spark-1.3-contributor",
+        "Java compiles; a developer must review it; the differential test could not run because the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (epsmpmt.cbl:1: error: syntax error, unexpected Identifier (Area A))"
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "program": "EPSNBRVL",
+      "path": "MortgageApplication/cobol/epsnbrvl.cbl",
+      "outcome": "refused",
+      "reason": "writes no output file to compare"
+    },
+    {
+      "program": "UNKNOWN",
+      "path": "MortgageApplication/cobol_cics/epscsmrd.cbl",
+      "outcome": "refused",
+      "reason": "EXEC CICS needs a transaction adapter, not supported (CICS and IMS are out of scope)"
+    },
+    {
+      "program": "EPSCSMRT",
+      "path": "MortgageApplication/cobol_cics/epscsmrt.cbl",
+      "outcome": "refused",
+      "reason": "dynamic CALL through WS-CALLED-PROGRAM: the called program is only known at run time"
+    },
+    {
+      "program": "EPSCMORT",
+      "path": "MortgageApplication/cobol_cics_db2/epscmort.cbl",
+      "outcome": "refused",
+      "reason": "copybook(s) not found: DFHAID"
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test1.cbl",
+      "program": "TEST1",
+      "outcome": "certified",
+      "runId": "test1-20261103-224630",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1637,
+        "cachedInputTokens": 0,
+        "outputTokens": 2497,
+        "estimatedCostUsd": 0.005151
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Test1.java only writes \"One\" to stdout via System.out.println, which is explicitly allowed. It performs no file I/O, env var reads, network/process/reflection/native calls, thread creation, or test-gaming logic. COBOL TEST1.cbl performs identical DISPLAY \"One\" with no file handling, so no additional capabilities are required."
+      },
+      "minutes": 0.4,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test10.cbl",
+      "program": "TEST10",
+      "outcome": "certified",
+      "runId": "test10-20261103-224658",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1632,
+        "cachedInputTokens": 640,
+        "outputTokens": 1723,
+        "estimatedCostUsd": 0.003658
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "No security or integrity violations: Java only writes \"Ten\" to stdout via System.out.print, which is explicitly allowed. No file, network, process, reflection, native, environment-variable, or test-gaming behavior present; identical to COBOL DISPLAY \"Ten\"."
+      },
+      "minutes": 0.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test2.cbl",
+      "program": "TEST2",
+      "outcome": "certified",
+      "runId": "test2-20261103-224729",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1626,
+        "cachedInputTokens": 0,
+        "outputTokens": 1993,
+        "estimatedCostUsd": 0.004822
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Test2.java only writes \"Two\\n\" to stdout via System.out.print, directly mirroring COBOL DISPLAY \"Two\". No network, process, reflection, native, environment variable, system property, or file I/O is present. No deterministic findings to enforce."
+      },
+      "minutes": 0.4,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test3.cbl",
+      "program": "TEST3",
+      "outcome": "certified",
+      "runId": "test3-20261103-224755",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1637,
+        "cachedInputTokens": 0,
+        "outputTokens": 2609,
+        "estimatedCostUsd": 0.00589
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Test3.java only writes \"Three\" to stdout and flushes, which exactly mirrors COBOL DISPLAY \"Three\" and is within the allowed policy (write to stdout/stderr). No file I/O, env-var access, network, process, reflection, native code, background threads, or test-gaming logic present."
+      },
+      "minutes": 0.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test4.cbl",
+      "program": "TEST4",
+      "outcome": "certified",
+      "runId": "test4-20261103-224834",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1627,
+        "cachedInputTokens": 0,
+        "outputTokens": 2407,
+        "estimatedCostUsd": 0.005059
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Test4.java performs exactly 2 allowed operations matching COBOL TEST4: System.out.print(\"Four\\n\") on Test4.java aligns with DISPLAY \"Four\" permitted as write to stdout, and System.out.flush(). The program performs zero sensitive operations and reads zero external resources, which is compliant\u2014no network, process, reflection, env-var reads, file IO, or branching is present."
+      },
+      "minutes": 0.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test5.cbl",
+      "program": "TEST5",
+      "outcome": "certified",
+      "runId": "test5-20261103-224915",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1625,
+        "cachedInputTokens": 0,
+        "outputTokens": 1445,
+        "estimatedCostUsd": 0.004172
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java only writes \"Five\" to stdout (Test5.java line 3), matching COBOL DISPLAY \"Five\". No file/network/process/reflection/Dynamic code/Env-var abuse/test-gaming."
+      },
+      "minutes": 0.4,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test6.cbl",
+      "program": "TEST6",
+      "outcome": "certified",
+      "runId": "test6-20261103-224943",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1620,
+        "cachedInputTokens": 640,
+        "outputTokens": 2048,
+        "estimatedCostUsd": 0.003117
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Test6.java only writes \"Six\\n\" to stdout via System.out.print, which is explicitly allowed. COBOL TEST6.cbl does DISPLAY \"Six\" and STOP RUN. No DD file access, no environment variables, no network/process/reflection/native/thread/obfuscation, and no test-gaming conditional logic detected."
+      },
+      "minutes": 0.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test7.cbl",
+      "program": "TEST7",
+      "outcome": "certified",
+      "runId": "test7-20261103-225012",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1620,
+        "cachedInputTokens": 640,
+        "outputTokens": 1847,
+        "estimatedCostUsd": 0.00274
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java only writes \"Seven\\n\" to stdout via System.out.print, which is explicitly permitted. It performs no file I/O, env var access, network, process, reflection, or other restricted operations, and contains no test-gaming. Matches COBOL DISPLAY \"Seven\"."
+      },
+      "minutes": 0.3,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test8.cbl",
+      "program": "TEST8",
+      "outcome": "certified",
+      "runId": "test8-20261103-225035",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1632,
+        "cachedInputTokens": 832,
+        "outputTokens": 2359,
+        "estimatedCostUsd": 0.004534
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java performs only allowed stdout write matching COBOL DISPLAY; no file, env, network, reflection, or native operations"
+      },
+      "minutes": 10.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "MultiThreadMVSJob/COBOL/Test9.cbl",
+      "program": "TEST9",
+      "outcome": "certified",
+      "runId": "test9-20261103-230104",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 2,
+        "inputTokens": 1625,
+        "cachedInputTokens": 640,
+        "outputTokens": 1508,
+        "estimatedCostUsd": 0.003983
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "display-only program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Test9.java only executes System.out.println(\"Nine\") which directly mirrors COBOL DISPLAY \"Nine\". No file I/O, no environment variable access, no network/process/reflection/native code, no threading, and no encoded logic. All allowed operations only."
+      },
+      "minutes": 0.4,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 1,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "display-only",
+        "inputFiles": [],
+        "seedsChangeInputs": false,
+        "fieldsTotal": 0,
+        "fieldsVaried": [],
+        "breakerCanRun": false
+      }
+    }
+  ]
+}

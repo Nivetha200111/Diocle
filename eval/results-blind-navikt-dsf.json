@@ -1,0 +1,452 @@
+{
+  "pass": "blind: a repository the fix never saw, one run as found",
+  "blindTest": true,
+  "estate": "https://github.com/navikt/DSF",
+  "pinnedCommit": "faade4961e316c89e8c312456bae411c63f1c482",
+  "analyzedCommit": "faade4961e316c89e8c312456bae411c63f1c482",
+  "memory": false,
+  "converterFlags": [
+    "--breaker",
+    "--no-memory",
+    "--max-usd",
+    "0.4",
+    "--convert-anyway"
+  ],
+  "freshSeeds": [
+    9001,
+    9002,
+    9003,
+    9004,
+    9005
+  ],
+  "maxTotalUsd": 0.9,
+  "programCapUsd": 0.4,
+  "workers": 2,
+  "timeoutMinutes": 150,
+  "diocleCommit": "e10d003b3065f3b3d998148c64cb9f112dcdab5c",
+  "startedAt": "20261103-224129",
+  "cobc": "cobc (GnuCOBOL) 3.2.0",
+  "java": "java version \"27\" 2026-09-15",
+  "resumes": 0,
+  "ranIn": "Diocle sandbox container, GnuCOBOL 3.2.0, OpenJDK 21",
+  "complete": true,
+  "programsAccounted": 7,
+  "tally": {
+    "not certified": 1,
+    "refused": 2,
+    "certified, inputs vary, not attacked": 2,
+    "compiled, not verified": 1,
+    "not converted": 1
+  },
+  "recordedCostUsd": 0.14342,
+  "costComplete": true,
+  "restartedPrograms": [],
+  "certifiedWithoutGuardPass": [],
+  "results": [
+    {
+      "path": "src/GML/FO04D1X1.cobol",
+      "program": "FO04D101",
+      "outcome": "not certified",
+      "runId": "fo04d101-20261103-224129",
+      "exitCode": 1,
+      "certified": false,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 3,
+      "usage": {
+        "calls": 60,
+        "inputTokens": 1771688,
+        "cachedInputTokens": 1626070,
+        "outputTokens": 157595,
+        "estimatedCostUsd": 0.049333
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "failed",
+      "assuranceReason": "the differential test ran and the Java still differs from the COBOL (0/0 cases matched) after the repair caps",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "compiles",
+        "changedLines": 2,
+        "diff": "--- a/FO04D1X1.cobol\n+++ b/FO04D1X1.cobol\n@@ -133,10 +133,10 @@\n 006550 B.  DISPLAY PARAM, ' PARAM ER GALT'.                             00001190\n 006600     STOP RUN.                                                    00001200\n 006650 NULLST.                                                          00001210\n-006700     PERFORM NULL VARYING I FROM 1 BY 1                           00001220\n+006700    PERFORM NULLL VARYING I FROM 1 BY 1                           00001220\n 006750     UNTIL I = 461.                                               00001230\n 006800     GO TO OPEN-KORT.                                             00001240\n-006850 NULL.                                                            00001250\n+006850 NULLL.                                                           00001250\n 006900     MOVE SPACES TO KART (I).                                     00001260\n 006950     MOVE ZEROES TO TRKK (I).                                     00001270\n 007000     MOVE SPACES TO SORTB (I).                                    00001280\n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 23.9,
+      "freshSeeds": [],
+      "lastEvents": [
+        "model call cap reached (60 per run)",
+        "Round 3: certifying on 1000 held-out inputs the agent has not seen",
+        "0/0 cases match; stdout differs.\nstdout original : PARAM ER GALT\nstdout converted: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\u00d7\u00c1\u00d9\u00c1\u00d4@\u00c5\u00d9@\u00c7\u00c1\u00d3\u00e3\u0015"
+      ],
+      "exercised": {
+        "shape": "multi-file",
+        "inputFiles": [
+          "UT-S-SYS004",
+          "UT-S-SYS006"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 33,
+        "fieldsVaried": [
+          "UT-S-SYS004.KTRK",
+          "UT-S-SYS006.I-FNR",
+          "UT-S-SYS006.I-GP",
+          "UT-S-SYS006.I-TPAVD",
+          "UT-S-SYS006.I-TPEGEN",
+          "UT-S-SYS006.I-ET",
+          "UT-S-SYS006.I-BT",
+          "UT-S-SYS006.I-FORVI",
+          "UT-S-SYS006.I-SUM-Y",
+          "UT-S-SYS006.I-TKNR",
+          "UT-S-SYS006.I-GRAD",
+          "UT-S-SYS006.I-T851",
+          "UT-S-SYS006.I-ST",
+          "UT-S-SYS006.I-KT",
+          "UT-S-SYS006.I-VT-GP",
+          "UT-S-SYS006.I-VT-TP",
+          "UT-S-SYS006.I-GP-N",
+          "UT-S-SYS006.I-TP-N",
+          "UT-S-SYS006.I-EK-GR",
+          "UT-S-SYS006.I-BA-GR",
+          "UT-S-SYS006.I-SB-TILL",
+          "UT-S-SYS006.I-SB-GR",
+          "UT-S-SYS006.I-GT-TIL-L92",
+          "UT-S-SYS006.I-GT-TP",
+          "UT-S-SYS006.I-AFP"
+        ],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "program": "FO04F1X1",
+      "path": "src/GML/FO04F1X1.cobol",
+      "outcome": "refused",
+      "reason": "CALLs program(s) not in the repository: R001NRC, R001NAC"
+    },
+    {
+      "path": "src/GML/FRMERK.cobol",
+      "program": "LISTMRK",
+      "outcome": "certified",
+      "runId": "listmrk-20261103-224129",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 12,
+        "inputTokens": 89906,
+        "cachedInputTokens": 64648,
+        "outputTokens": 61961,
+        "estimatedCostUsd": 0.027419
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "multi-file program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Java restricted to DD_* paths (DD_UT-S-INPUT/PARAM/OUTPUT), standard file I/O, no network/process/reflection/native/load, no extra env/system-property access, no encoded payloads, no test-gaming branches. Parent directory creation via Files.createDirectories(Paths.get(DD_UT-S-OUTPUT).getParent()) is permitted auxiliary and per instruction at most flag, not a block; fallback to ByteArrayOutputStream when DD unset does not exfiltrate. TRK-OVERSK NUL filler and LOVERSK mojibake are correctness/style issues, out of scope for security review."
+      },
+      "minutes": 9.5,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12020,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12008,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12020,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 11996,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12032,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "multi-file",
+        "inputFiles": [
+          "UT-S-INPUT",
+          "UT-S-PARAM"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 7,
+        "fieldsVaried": [
+          "UT-S-INPUT.TRKNR"
+        ],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "src/GML/FRREDIG.cobol",
+      "program": "LIST1X",
+      "outcome": "certified",
+      "runId": "list1x-20261103-225104",
+      "exitCode": 0,
+      "certified": true,
+      "error": null,
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 1,
+      "usage": {
+        "calls": 22,
+        "inputTokens": 338033,
+        "cachedInputTokens": 231056,
+        "outputTokens": 188077,
+        "estimatedCostUsd": 0.059217
+      },
+      "breaker": {
+        "rounds": 0,
+        "tried": 0,
+        "broke": 0,
+        "repairCycles": 0,
+        "fixed": false,
+        "counterexamples": [],
+        "skipped": "multi-file program"
+      },
+      "status": "certified",
+      "assurance": "certified",
+      "assuranceReason": null,
+      "cobolRepair": null,
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": "pass",
+        "reviewSummary": "Reviewed Java against allowed IO policy. It only reads System.getenv(\"DD_UT-S-INPUT\"), \"DD_UT-S-PARAM\", \"DD_UT-S-OUTPUT\" matching COBOL SELECT ASSIGN names and reads/writes those paths via FileInputStream/FileOutputStream. No network, process, reflection, native code, system properties, additional env vars, absolute path fallbacks, directory creation, background threads, or encoded payloads present. No test-gaming special cases. Deterministic scan reports no policy violations."
+      },
+      "minutes": 27.6,
+      "freshSeeds": [
+        {
+          "seed": 9001,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12008,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9002,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12018,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9003,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12038,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9004,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 12048,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        },
+        {
+          "seed": 9005,
+          "passed": true,
+          "compiled": {
+            "original": true,
+            "converted": true
+          },
+          "cases": 11988,
+          "failed": 0,
+          "exitCodeMatch": true,
+          "stdoutMatch": true,
+          "firstMismatch": null
+        }
+      ],
+      "exercised": {
+        "shape": "multi-file",
+        "inputFiles": [
+          "UT-S-INPUT",
+          "UT-S-PARAM"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 10,
+        "fieldsVaried": [
+          "UT-S-INPUT.TRKNR",
+          "UT-S-INPUT.AAR",
+          "UT-S-INPUT.MND",
+          "UT-S-INPUT.DAG",
+          "UT-S-INPUT.FNR1",
+          "UT-S-INPUT.FNR2"
+        ],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "path": "src/GML/PLUKKFR.cobol",
+      "program": "TELL-TRANS",
+      "outcome": "compiled, not verified",
+      "runId": "tell-trans-20261103-230521",
+      "exitCode": 3,
+      "certified": false,
+      "error": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (PLUKKFR.cobol:11: error: syntax error, unexpected Identifier (Area A))",
+      "model": "muse-spark-1.3-contributor",
+      "modelMode": "hosted",
+      "reasoningEffort": "medium",
+      "caps": "60 calls/run, 20/round, 3 rounds",
+      "rounds": 0,
+      "usage": {
+        "calls": 9,
+        "inputTokens": 44233,
+        "cachedInputTokens": 27430,
+        "outputTokens": 28581,
+        "estimatedCostUsd": 0.007451
+      },
+      "breaker": null,
+      "status": "not-certified",
+      "assurance": "compiled-unverified",
+      "assuranceReason": "the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (PLUKKFR.cobol:11: error: syntax error, unexpected Identifier (Area A))",
+      "cobolRepair": {
+        "method": "model",
+        "outcome": "cap-reached",
+        "changedLines": 1,
+        "diff": "--- a/PLUKKFR.cobol\n+++ b/PLUKKFR.cobol\n@@ -8,7 +8,7 @@\n                  *    RFOLKE   REGISTER.                          *     COF00040\n                  *    LRECL=187                                   *     COF00040\n                  **************************************************     COF00080\n-       AUTHER. [name].                                                  COF00090\n+       AUTHOR. [name].                                                  COF00090\n                                                                         COF00100\n        ENVIRONMENT      DIVISION.                                       COF00110\n                                                                                 \n"
+      },
+      "guard": {
+        "blocked": false,
+        "stopped": 0,
+        "reviewVerdict": null,
+        "reviewSummary": null
+      },
+      "minutes": 3.8,
+      "freshSeeds": [],
+      "lastEvents": [
+        "Asking the model to fix only what the compiler reports (bounded)",
+        "Translating TELL-TRANS with muse-spark-1.3-contributor",
+        "Java compiles; a developer must review it; the differential test could not run because the original does not compile under GnuCOBOL -std=ibm and Muse could not make it compile within the rules (PLUKKFR.cobol:11: error: syntax error, unexpected Identifier (Area A))"
+      ],
+      "exercised": {
+        "shape": "multi-file",
+        "inputFiles": [
+          "UT-S-INPUT",
+          "UT-S-SYSIN"
+        ],
+        "seedsChangeInputs": true,
+        "fieldsTotal": 9,
+        "fieldsVaried": [
+          "UT-S-SYSIN.TRK-NR",
+          "UT-S-INPUT.INN-FNR",
+          "UT-S-INPUT.INN-TRKNR"
+        ],
+        "breakerCanRun": false
+      }
+    },
+    {
+      "program": "TELL-TRANS",
+      "path": "src/GML/PLUKKFRN.cobol",
+      "outcome": "not converted",
+      "reason": "PROGRAM-ID TELL-TRANS is already held by src/GML/PLUKKFR.cobol; the analyzer writes one sample per PROGRAM-ID, so this source was never converted"
+    },
+    {
+      "program": "R001BYDL",
+      "path": "src/GML/R001BYDL.cobol",
+      "outcome": "refused",
+      "reason": "CALLs program(s) not in the repository: CBLTDLI"
+    }
+  ]
+}

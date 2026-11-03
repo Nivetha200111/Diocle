@@ -141,6 +141,23 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </p>
       </section>
 
+      <section className="panel" id="blind-test">
+        <div className="panel-heading">
+          <div>
+            <h2>A blind test, including COBOL from a retired pension system&apos;s repository</h2>
+            <p>Code no fix had seen, with the protocol pinned before the run, and every program run in the sandbox. $0.29 of model spend.</p>
+          </div>
+        </div>
+        <ul className="home-list">
+          <li><strong>Norway&apos;s retired national pension system (navikt/DSF, public, MIT):</strong> 2 of the 4 COBOL programs Diocle could test certified with no patch to the COBOL, after the repair agent fixed the first Java, and 2 did not.</li>
+          <li>They are small programs, and whether they ran in production is not established. Most of that system is PL/I. Inputs are generated, varying 1 of 7 and 6 of 10 fields, and the breaker could not run. Nobody at NAV was involved.</li>
+          <li>Two other repositories in the test: a core banking demo, 0 of 2, and IBM samples, 11 programs of about 6 lines that show little, plus a mortgage example that could not be patched to compile. These were chosen because the analyzer could test them; of the 12 checked, 7 had nothing Diocle could test.</li>
+        </ul>
+        <p className="home-pr">
+          <a href="https://github.com/Nivetha200111/Diocle/blob/main/docs/BLIND_TEST.md" target="_blank" rel="noreferrer">Results and protocol <ExternalLink size={11} /></a>
+        </p>
+      </section>
+
       <section className="panel" id="course-import">
         <div className="panel-heading">
           <div>
