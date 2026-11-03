@@ -27,7 +27,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 ## Nov 3 evening: scorecard fixes, IBM compiler check dropped
 - **Done:** README front page has "Why it matters" and who benefits again (sourced, copied from DETAILS). Try page wording is plainer. META_MODELS counts re-read (83 public runs). LIVE_CHECK has a Nov 3 addendum. One printout press ($0.0571) and one local keyed run ($0.0162, `eval/results-keyed-20261103.json`). Web and docs only, no engine deploy.
 - **IBM compiler check: dropped, not installed.** The owner considered comparing GnuCOBOL with IBM COBOL for Linux on x86 (60-day trial). Its licence allows internal evaluation, testing or demonstration and says nothing on publishing results, and the participant guide disqualifies projects that violate legal policies or use assets without rights. The small gain was not worth that risk. The stated limit stands: GnuCOBOL, not IBM Enterprise COBOL. Later work: test with IBM's permission or a partner on z/OS.
-- **Pitch:** home headline, README opening and the submission's one line now lead with the question a stranger can follow, with the limits kept. Walkthrough screenshot `01-home.jpg` re-captured if the note below says so.
+- **Pitch:** home headline, README opening and the submission's one line now lead with the question a stranger can follow, with the limits kept. Walkthrough screenshot `01-home.jpg` re-captured from the live page.
 - **Owner plans to submit Nov 4, 5 PM.** Freeze deploys after that.
 
 ## Nov 3: third pass on the external estate
