@@ -13,6 +13,7 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 | [EVALUATION_PACKET.md](EVALUATION_PACKET.md) | A short packet for a prospective user. No outside evaluation has happened yet. |
 | [EVIDENCE.md](EVIDENCE.md) | Runs, deliveries and CI results with links to the live traces. |
 | [EVALUATION.md](EVALUATION.md) | The frozen evaluation on four unseen programs, failures included. |
+| [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md) | Every program in a public COBOL course we did not write, in three dated passes under protocols pinned first: tables, failures and limits. The third pass is not a blind test. |
 | [LIVE_CHECK.md](LIVE_CHECK.md) | Which README claims were exercised on the live site on Oct 30, 2026, and which were not. |
 | [CLAIMS_TO_EVIDENCE.md](CLAIMS_TO_EVIDENCE.md) | One row per headline claim: where it is evidenced and how to check it in under a minute. |
 | [DISTILLATION.md](DISTILLATION.md) | Tuning Muse Glimmer on Muse Spark Open's verified translations: the plan, committed before any model call, its deviations and the result: base 0 of 12, tuned 0 of 12. |
