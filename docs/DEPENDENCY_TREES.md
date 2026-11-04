@@ -23,7 +23,7 @@ So small trees passed, and whole-repository drawings did not, in this one run of
 
 - **It can reject a good drawing.** The first `navikt/DSF` drawing looks correct on inspection, but Muse Wonder read `FO04F1X1` as `F004F1X1`, so it was rejected. A rejection does not by itself show which model was wrong.
 - **It can catch a bad one.** The first whole-Quillmark drawing chains copybooks together, such as `CHGREC` to `FEEREC`, which the analyzer does not report.
-- **It is not a proof.** A wrong drawing passes only if both models make the same mistake, and that is not impossible. Trust the analyzer's tree over a drawing.
+- **It is not a proof.** A wrong drawing passes only if Muse Wonder misreads it into exactly the analyzer's graph, and that is not impossible. Trust the analyzer's tree over a drawing.
 - **The analyzer has limits too.** It reads the source it is given. A dynamic CALL or a refused program may leave links out, so the impact view says which programs depend on something in the analyzer's report, not everything that could break at run time.
 - **Samples:** four repositories, two of them synthetic estates, and every verified tree has 5 links or fewer. The DSF graph has only 3 links, and whether those programs ran in production is not established.
 

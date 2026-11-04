@@ -30,7 +30,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 
 ## Nov 4: Meta vs Meta, trees, redesign
 - **Meta vs Meta:** $5.48, published in META_TOURNAMENT.md. **Trees:** 16 Muse Image images, about $1.12 to read back, image price not published; DEPENDENCY_TREES.md. The check can reject a good drawing (`navikt-dsf-1`).
-- **Site:** branch work replaced the retro theme and added /dependencies and /banks. Walkthrough screenshots and LIVE_CHECK row 20 describe older layouts until refreshed. Web and docs only, no engine deploy needed.
+- **Site:** branch work kept the retro theme (a replacement was tried and reverted), made it more readable, and added /dependencies and /banks. Walkthrough screenshots and LIVE_CHECK row 20 describe older layouts until refreshed. Web and docs only, no engine deploy needed.
 - **Owner plans:** record from 3 PM, submit by 7 PM IST on Nov 4. Repo frozen after the deadline, per the owner's report of organizers on Discord.
 
 ## Nov 4: off-topic questions get a plain refusal

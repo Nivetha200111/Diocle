@@ -35,7 +35,7 @@ Already existed and is used, not built here:
 | AWS `aws-mainframe-modernization-carddemo` | Public repository imported through the live import button as test input (Nov 1, and Nov 3 for the demo video, which shows it); not vendored; the CEE3ABD stand-in and the COPY fix were written here | Apache-2.0; credited in the README |
 | navikt/DSF, fzn0x/core-banking-system, ibmdbbdev/Samples | Public repositories run as test input in the blind test (Nov 3 to 4); not vendored; published patches can reproduce short excerpts ([BLIND_TEST.md](BLIND_TEST.md)) | MIT, MIT, Apache-2.0 |
 | whisper.cpp | Captions and take alignment in the video pipeline only (`demo/`), not in the product | MIT |
-| Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Voice Transcribe), Muse Spark Open on Fireworks (and Baseten examples), Muse Code | The models the product calls and the agent the plugin targets | Meta's and the hosts' terms; keys are in `.env`, never committed |
+| Meta models and Meta Model API (Muse Spark, Muse Wonder, Muse Image, Muse Voice Transcribe), Muse Spark Open on Fireworks (and Baseten examples), Muse Code | The models the product calls and the agent the plugin targets | Meta's and the hosts' terms; keys are in `.env`, never committed |
 | Vercel and Vultr | Hosting | Their own terms |
 | Meta, Fireworks and Baseten logos (README) | Identify services Diocle uses; loaded from Simple Icons and the companies' GitHub profiles, not committed; no endorsement implied | Trademarks of their owners |
 | Portrait of Diocletian (`docs/assets/diocletian.jpg`) | README, the name section | J. Paul Getty Museum, CC0, via Wikimedia Commons |

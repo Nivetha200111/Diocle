@@ -16,6 +16,7 @@ const NOTES = {
 
 // A parts file names what it drew in the title, not in "kinds".
 function kindsOf(tree) {
+  if (tree.slug === "navikt-dsf") return ["call"]; // all 3 edges are CALLs at the pinned commit
   if (tree.kinds?.length) return tree.kinds;
   if (/JCL job/.test(tree.title)) return ["job", "copy"];
   if (/CALLs/.test(tree.title)) return ["call"];

@@ -45,7 +45,7 @@ All 30 attacks ran on Nov 4, with no provider failure, for **$5.48** of estimate
 
 ### What this shows
 
-- **The models did not find only the same things.** Muse Wonder alone broke `PKDPOST`, which Muse Spark did not break here or in either earlier measurement. Muse Spark Open alone reached `CL-DEBIT` on `CHQCLR`, by putting a letter in an amount (`original 101.00`, `converted 1.00`).
+- **The models did not find only the same things.** Muse Wonder alone broke `PKDPOST`. Muse Spark did not break it here or in the Nov 2 re-measurement (8 inputs, none broke). In the first measurement its breaker never attacked `PKDPOST`, because that translation had already failed the held-out inputs. Muse Spark Open alone reached `CL-DEBIT` on `CHQCLR`, by putting a letter in an amount (`original 101.00`, `converted 1.00`).
 - **Muse Spark found 4 of Muse Wonder's 5 programs at about 1/40 of the cost.** On these programs, the dearest attacker added one program, and Muse Spark was the cheapest way to find most breaks.
 - **Muse Spark Open broke the fewest here,** yet it is the one that reached a different field. This is one attack per program.
 

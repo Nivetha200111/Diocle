@@ -8,8 +8,7 @@
    "repository": "https://github.com/navikt/DSF",
    "commit": "faade4961e316c89e8c312456bae411c63f1c482",
    "kinds": [
-    "call",
-    "copy"
+    "call"
    ],
    "note": "Whether these programs ran in production is not established.",
    "edges": [

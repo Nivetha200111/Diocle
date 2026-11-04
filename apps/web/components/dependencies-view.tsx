@@ -163,7 +163,7 @@ export default function DependenciesView() {
   return (
     <>
       <section className="panel tree-intro">
-        <p>Each tree comes from the analyzer&apos;s report, with no model involved. A drawing shows here only if Muse Wonder reads it back, without seeing the graph, and it matches the analyzer exactly. This can reject a good drawing. The analyzer&apos;s tree is the source of truth.</p>
+        <p>Each tree comes from the analyzer&apos;s report, with no model involved. A drawing is marked as checked only if Muse Wonder reads it back, without seeing the graph, and it matches the analyzer exactly. Drawings that did not pass stay one click away, labelled. This can reject a good drawing. The analyzer&apos;s tree is the source of truth.</p>
         <p>Select a name to see what depends on it in the analyzer&apos;s report. That covers only the links the analyzer found (CALLs, COPY and JCL as drawn). It does not predict what would break at run time: dynamic CALLs and refused programs may be missing.</p>
       </section>
       {[...parts, ...small].map((t) => <TreeCard key={t.slug} tree={t} />)}

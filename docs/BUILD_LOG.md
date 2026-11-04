@@ -73,7 +73,7 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 ## Nov 4: Meta vs Meta, dependency trees, a shorter site
 - Three models attacked the same Java under a pinned protocol, for $5.48: [META_TOURNAMENT.md](META_TOURNAMENT.md).
 - Muse Image draws dependency trees from the analyzer's links, and Muse Wonder reads them back: [DEPENDENCY_TREES.md](DEPENDENCY_TREES.md).
-- The site's text was cut heavily, its retro theme replaced, and a page added for banks' teams, with its limits as visible as the rest.
+- The site's text was cut heavily, its retro theme kept and made more readable, and a page added for banks' teams, with its limits as visible as the rest.
 
 ## Still open (as of Nov 2, 2026)
 - A review of the converted Java by an experienced COBOL maintainer (not done).
