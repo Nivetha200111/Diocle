@@ -13,7 +13,9 @@ This repository is public: never write secrets, passcodes, personal details or e
 - **What:** https://youtu.be/6pk5W6bsaQ4, 2:58, replaces v16 as the linked video. 1980s to 90s terminal slides in 3270 colours, real site footage in a laptop frame, and a new opening: twenty became zero, COBOL developers retiring, and their work falling to junior engineers.
 - **Narration:** a synthetic voice (ElevenLabs), the owner's decision. Disclosed in the README and the video description, not in the video.
 - **Compliance:** the docs now describe this cut. CardDemo is no longer shown in the video, though its recorded run stays linked as evidence.
-- **Open:** the owner confirms the ElevenLabs plan covers this use; the X post of this cut and its link in the form.
+- **Submitted:** the owner reports the entry is submitted and the X post is up (Nov 4, about 16:00 IST). Make no repo changes after the deadline (Nov 4, 9 PM ET) until judging ends.
+- **Open:** the owner confirms the ElevenLabs plan covers this use.
+- **Walkthrough:** screenshots recaptured from the live site on Nov 4, with new sections on the dependency tree, the impact view, For banks, Meta vs Meta and the blind test. Three pictures stay from Nov 1 and are labelled, and the recordings stay.
 
 ## Nov 4: dependency trees on imports (on `main`; the owner approved the push and deploy directly)
 - **Live on Nov 4:** engine deployed at `82c25b7` with `TREE_IMAGE_MODEL_ID` set. `delivery-20261104-072240` (fzn0x/core-banking-system): tree of 4 links, drawing passed on attempt 1, programs not certified. `delivery-20261104-084325` (AWS CardDemo): 3 certified, tree of 340 links, no drawing because of the visitor cap, as designed.

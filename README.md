@@ -52,7 +52,7 @@ A failed migration is expensive: TSB's 2018 core-banking migration affected a si
 
 ## Why I built this
 
-I worked on a COBOL modernization at a global finance company, where every translated program was checked by hand, and it drained the project's timeline. AI now writes the Java in minutes, but someone still has to decide whether to accept it. I built the check I wished that project had. No code or data from that work is here.
+I worked on a COBOL modernization at a global finance company, where every translated program was checked by hand, and it drained the project's timeline. Many of my colleagues were COBOL developers. They retired, and their work landed on junior engineers, who had to learn COBOL and verify it against the Java. AI now writes the Java in minutes, but someone still has to decide whether to accept it. I built the check I wished that project had. No code or data from that work is here.
 
 ## What we found
 
