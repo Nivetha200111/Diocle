@@ -1,0 +1,892 @@
+{
+ "plan": "docs/META_TOURNAMENT.md",
+ "javaFrom": "eval/attack-rerun-java (Muse Spark, Nov 2)",
+ "attackRounds": 3,
+ "attackers": [
+  "muse-spark-1.3-contributor",
+  "accounts/fireworks/models/muse-spark-open",
+  "muse-wonder-1.0"
+ ],
+ "maxTotalUsd": 10.0,
+ "decidedBy": "GnuCOBOL",
+ "programs": {
+  "CHQCLR": {
+   "directory": "eval/samples/chqclr",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1004
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 8,
+     "broke": 6,
+     "survived": false,
+     "proposed": 8,
+     "rejected": {},
+     "costUsd": 0.004314,
+     "calls": 1,
+     "seconds": 138.9,
+     "fieldsDiffered": [
+      "CL-FEE"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-01",
+       "input": "RACCT00000100000001SP12 34XXXXXXXXXXXXXX",
+       "why": "RT-FEE has internal space that Java skips to 12.34 but COBOL reads as zero to 120.34.",
+       "broke": true,
+       "diff": "CL-FEE: original 12 34 converted 12.34"
+      },
+      {
+       "id": "breaker-tournament-r1-02",
+       "input": "RACCT00000200000002SP1 234XXXXXXXXXXXXXX",
+       "why": "RT-FEE has internal space that Java skips to 12.34 but COBOL reads as zero to 102.34.",
+       "broke": true,
+       "diff": "CL-FEE: original 1 234 converted 12.34"
+      },
+      {
+       "id": "breaker-tournament-r1-03",
+       "input": "RACCT00000300000003SP123 4XXXXXXXXXXXXXX",
+       "why": "RT-FEE has internal space that Java skips to 12.34 but COBOL reads as zero to 123.04.",
+       "broke": true,
+       "diff": "CL-FEE: original 123 4 converted 12.34"
+      },
+      {
+       "id": "breaker-tournament-r1-04",
+       "input": "RACCT00000400000004NS12 34XXXXXXXXXXXXXX",
+       "why": "NSF doubled fee with internal space gives Java 24.68 but COBOL 240.68.",
+       "broke": true,
+       "diff": "CL-FEE: original 240.68 converted 24.68"
+      },
+      {
+       "id": "breaker-tournament-r1-05",
+       "input": "RACCT00000500000005NS1 234XXXXXXXXXXXXXX",
+       "why": "NSF doubled fee with internal space gives Java 24.68 but COBOL 204.68.",
+       "broke": true,
+       "diff": "CL-FEE: original 204.68 converted 24.68"
+      },
+      {
+       "id": "breaker-tournament-r1-06",
+       "input": "RACCT00000600000006SP12+34XXXXXXXXXXXXXX",
+       "why": "RT-FEE has internal plus that Java skips to 12.34 but COBOL reads as zero to 120.34.",
+       "broke": true,
+       "diff": "CL-FEE: original 12+34 converted 12.34"
+      }
+     ],
+     "outputTokens": 19555
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 12,
+     "broke": 4,
+     "survived": false,
+     "proposed": 12,
+     "rejected": {},
+     "costUsd": 0.064785,
+     "calls": 2,
+     "seconds": 300.6,
+     "fieldsDiffered": [
+      "CL-DEBIT",
+      "CL-FEE"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r2-03",
+       "input": "CACCT00000312345678-0000A010020200101   ",
+       "why": "Embedded letter in amount tests numeric validation: Java maps non-digit to '0', GnuCOBOL numeric item with A yields different value/truncation.",
+       "broke": true,
+       "diff": "CL-DEBIT: original 101.00 converted 1.00"
+      },
+      {
+       "id": "breaker-tournament-r2-04",
+       "input": "RACCT00000487654321NS+0100              ",
+       "why": "Plus sign in unsigned RT-FEE tests PIC 9(3)V99 parsing: Java parseUnsigned skips '+', GnuCOBOL expects digits only and differs on COMPUTE double.",
+       "broke": true,
+       "diff": "CL-FEE: original 202.00 converted 2.00"
+      },
+      {
+       "id": "breaker-tournament-r2-05",
+       "input": "RACCT00000587654321NS-0100              ",
+       "why": "Minus sign in unsigned fee tests sign stripping: Java ignores '-', GnuCOBOL does not and produces different CL-FEE/WS-TOTAL.",
+       "broke": true,
+       "diff": "CL-FEE: original 602.00 converted 2.00"
+      },
+      {
+       "id": "breaker-tournament-r2-06",
+       "input": "RACCT00000687654321NS00A00              ",
+       "why": "Letter in RT-FEE tests unsigned parse: Java converts to '0', GnuCOBOL yields different fee and thus different WS-TOTAL and CL-FEE.",
+       "broke": true,
+       "diff": "CL-FEE: original 2.00 converted 0.00"
+      }
+     ],
+     "outputTokens": 13771
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 11,
+     "broke": 6,
+     "survived": false,
+     "proposed": 11,
+     "rejected": {},
+     "costUsd": 0.244096,
+     "calls": 1,
+     "seconds": 122.0,
+     "fieldsDiffered": [
+      "CL-FEE"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-01",
+       "input": "RACCT00000112345678SP1 234              ",
+       "why": "Java skips the interior space in RT-FEE and parses 12.34, while COBOL treats that position as a zero digit and uses 102.34.",
+       "broke": true,
+       "diff": "CL-FEE: original 1 234 converted 12.34"
+      },
+      {
+       "id": "breaker-tournament-r1-02",
+       "input": "RACCT00000112345678NS2 500              ",
+       "why": "Java skips the interior space before doubling the NSF fee to 50.00, while COBOL treats it as zero and doubles 205.00 to 410.00.",
+       "broke": true,
+       "diff": "CL-FEE: original 410.00 converted 50.00"
+      },
+      {
+       "id": "breaker-tournament-r1-03",
+       "input": "RACCT00000112345678NS9 999              ",
+       "why": "Java compresses the spaced NSF fee to 99.99 and doubles it to 199.98, while COBOL uses 909.99 and truncates its double to 819.98.",
+       "broke": true,
+       "diff": "CL-FEE: original 819.98 converted 199.98"
+      },
+      {
+       "id": "breaker-tournament-r1-04",
+       "input": "RACCT00000112345678SP123 5              ",
+       "why": "Java removes the space in RT-FEE and parses 12.35, while COBOL treats the space as a zero digit and moves 123.05.",
+       "broke": true,
+       "diff": "CL-FEE: original 123 5 converted 12.35"
+      },
+      {
+       "id": "breaker-tournament-r1-05",
+       "input": "RACCT00000112345678SP12-34              ",
+       "why": "Java skips the minus inside the unsigned fee and parses 12.34, while COBOL treats that digit position as zero and uses 120.34.",
+       "broke": true,
+       "diff": "CL-FEE: original 12-34 converted 12.34"
+      },
+      {
+       "id": "breaker-tournament-r1-06",
+       "input": "RACCT00000112345678SP12+34              ",
+       "why": "Java skips the plus inside the unsigned fee and parses 12.34, while COBOL treats that digit position as zero and uses 120.34.",
+       "broke": true,
+       "diff": "CL-FEE: original 12+34 converted 12.34"
+      }
+     ],
+     "outputTokens": 11419
+    }
+   }
+  },
+  "FXCONV": {
+   "directory": "eval/samples/fxconv",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1016
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.018492,
+     "calls": 3,
+     "seconds": 642.5,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 89429
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 32,
+     "broke": 0,
+     "survived": true,
+     "proposed": 32,
+     "rejected": {},
+     "costUsd": 0.119187,
+     "calls": 3,
+     "seconds": 548.2,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 26027
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.694398,
+     "calls": 3,
+     "seconds": 329.5,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 32519
+    }
+   }
+  },
+  "LOANAMRT": {
+   "directory": "eval/samples/loanamrt",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1657
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.015704,
+     "calls": 3,
+     "seconds": 496.2,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 71525
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 24,
+     "broke": 0,
+     "survived": true,
+     "proposed": 34,
+     "rejected": {
+      "text longer than 8": 6,
+      "not a number": 2,
+      "value does not fit its field (too many digits, or a sign on an unsigned field)": 2
+     },
+     "costUsd": 0.131921,
+     "calls": 3,
+     "seconds": 588.9,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 28341
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.627736,
+     "calls": 3,
+     "seconds": 300.1,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 28797
+    }
+   }
+  },
+  "INTACCR": {
+   "directory": "samples/interest-accrual",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1027
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 10,
+     "broke": 2,
+     "survived": false,
+     "proposed": 10,
+     "rejected": {},
+     "costUsd": 0.003581,
+     "calls": 1,
+     "seconds": 110.9,
+     "fieldsDiffered": [
+      "OUT-INTEREST"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-08",
+       "input": "OVF0000001-0010000000099500365P",
+       "why": "Interest exactly -10000000.00 overflows to signed zero, Java makes +0.",
+       "broke": true,
+       "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      },
+      {
+       "id": "breaker-tournament-r1-09",
+       "input": "OVF0000002-0020000000049500365P",
+       "why": "Second exact -10M overflow variant with different rate and balance.",
+       "broke": true,
+       "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 15336
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 27,
+     "broke": 0,
+     "survived": true,
+     "proposed": 30,
+     "rejected": {
+      "text longer than 10": 3
+     },
+     "costUsd": 0.161446,
+     "calls": 3,
+     "seconds": 681.2,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 35322
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 24,
+     "broke": 1,
+     "survived": false,
+     "proposed": 24,
+     "rejected": {},
+     "costUsd": 0.38256,
+     "calls": 2,
+     "seconds": 165.1,
+     "fieldsDiffered": [
+      "OUT-INTEREST"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r2-01",
+       "input": "NEGWRAP001-1000000000000500365P",
+       "why": "Negative interest is exactly -10000000.00, overflowing S9(7)V99 to zero and testing whether the truncated zero retains a negative sign.",
+       "broke": true,
+       "diff": "OUT-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 16813
+    }
+   }
+  },
+  "TXNPOST": {
+   "directory": "samples/txn-posting",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1032
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 6,
+     "broke": 1,
+     "survived": false,
+     "proposed": 6,
+     "rejected": {},
+     "costUsd": 0.003278,
+     "calls": 1,
+     "seconds": 94.9,
+     "fieldsDiffered": [
+      "POST-NEW-BAL"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-06",
+       "input": "OVERFLOW1F+800000000-9920000000000000",
+       "why": "Fee new-bal is exactly -1000000000.00 which wraps to negative zero in COBOL but positive zero in Java.",
+       "broke": true,
+       "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 13940
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.128379,
+     "calls": 3,
+     "seconds": 542.3,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 27581
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 12,
+     "broke": 1,
+     "survived": false,
+     "proposed": 12,
+     "rejected": {},
+     "costUsd": 0.214032,
+     "calls": 1,
+     "seconds": 99.1,
+     "fieldsDiffered": [
+      "POST-NEW-BAL"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-08",
+       "input": "TXN000008F+000000001-9999999999900000",
+       "why": "Fee result is exactly -1000000000.00, testing whether overflow-to-zero preserves a negative sign in the edited output.",
+       "broke": true,
+       "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 9742
+    }
+   }
+  },
+  "FEESCHD": {
+   "directory": "samples/fee-schedule",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1027
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 24,
+     "broke": 0,
+     "survived": true,
+     "proposed": 24,
+     "rejected": {},
+     "costUsd": 0.017241,
+     "calls": 3,
+     "seconds": 563.2,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 79212
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.128813,
+     "calls": 3,
+     "seconds": 538.8,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 27417
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 36,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {},
+     "costUsd": 0.584041,
+     "calls": 3,
+     "seconds": 248.9,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 25958
+    }
+   }
+  },
+  "FEEPOST": {
+   "directory": "samples/call-identifier",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1009
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 12,
+     "broke": 0,
+     "survived": true,
+     "proposed": 17,
+     "rejected": {
+      "non-printable or non-ASCII character": 5
+     },
+     "costUsd": 0.008905,
+     "calls": 3,
+     "seconds": 314.4,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 40970
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 20,
+     "broke": 0,
+     "survived": true,
+     "proposed": 20,
+     "rejected": {},
+     "costUsd": 0.12528,
+     "calls": 3,
+     "seconds": 470.5,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 28223
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 22,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {
+      "non-printable or non-ASCII character": 13,
+      "more than 2 decimals": 1
+     },
+     "costUsd": 0.408242,
+     "calls": 3,
+     "seconds": 203.1,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 18877
+    }
+   }
+  },
+  "DAYCTRL": {
+   "directory": "samples/daily-control",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1022
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 6,
+     "broke": 2,
+     "survived": false,
+     "proposed": 6,
+     "rejected": {},
+     "costUsd": 0.00375,
+     "calls": 1,
+     "seconds": 122.2,
+     "fieldsDiffered": [
+      "CTL-INTEREST"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-03",
+       "input": "OVERFLOW01-0100000000010000365",
+       "why": "Negative 10M interest overflows to zero, Java loses negative sign.",
+       "broke": true,
+       "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      },
+      {
+       "id": "breaker-tournament-r1-04",
+       "input": "OVERFLOW02-0200000000010000365",
+       "why": "Negative 20M interest overflows to zero, same sign-loss on truncation.",
+       "broke": true,
+       "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 16679
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 9,
+     "broke": 1,
+     "survived": false,
+     "proposed": 12,
+     "rejected": {
+      "value does not fit its field (too many digits, or a sign on an unsigned field)": 3
+     },
+     "costUsd": 0.087101,
+     "calls": 3,
+     "seconds": 266.5,
+     "fieldsDiffered": [
+      "CTL-INTEREST"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r3-02",
+       "input": "OVRZ000002-0100000000010000365",
+       "why": "Negative wrap to zero: Java truncatePic r=remainder(0) => +0.00, COBOL preserves negative zero sign in CTL-INTEREST leading separate '-' and WS-CTL-TOTAL sign for edited CONTROL.",
+       "broke": true,
+       "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 18613
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 12,
+     "broke": 1,
+     "survived": false,
+     "proposed": 12,
+     "rejected": {},
+     "costUsd": 0.233683,
+     "calls": 1,
+     "seconds": 115.6,
+     "fieldsDiffered": [
+      "CTL-INTEREST"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-09",
+       "input": "ACCT000009-0100000000010000365",
+       "why": "Negative overflow to zero tests signed truncation, zero sign, and erroneous or correct Z-flag handling.",
+       "broke": true,
+       "diff": "CTL-INTEREST: original '-000000000' converted '+000000000' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 10898
+    }
+   }
+  },
+  "PKDPOST": {
+   "directory": "samples/packed-posting",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1042
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 5,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {
+      "more than -2 decimals": 31
+     },
+     "costUsd": 0.018655,
+     "calls": 3,
+     "seconds": 618.6,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 89207
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 3,
+     "broke": 0,
+     "survived": true,
+     "proposed": 20,
+     "rejected": {
+      "more than -2 decimals": 17
+     },
+     "costUsd": 0.105008,
+     "calls": 3,
+     "seconds": 413.1,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 22580
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 3,
+     "broke": 2,
+     "survived": false,
+     "proposed": 9,
+     "rejected": {
+      "more than -2 decimals": 6
+     },
+     "costUsd": 0.307892,
+     "calls": 1,
+     "seconds": 149.0,
+     "fieldsDiffered": [
+      "PO-INT"
+     ],
+     "stoppedBy": null,
+     "breaks": [
+      {
+       "id": "breaker-tournament-r1-01",
+       "input": "ACCT000001\u0001\u0000\u0000\u0000\u0000\f\u0010\u0000\u000f\u00fe\u00930000000999\u0000\u0000",
+       "why": "Interest is exactly -10000000.00, overflowing S9(7)V99 to a negative-signed zero in COBOL while Java produces positive zero.",
+       "broke": true,
+       "diff": "PO-INT: original '\\x00\\x00\\x00\\x00\\r' converted '\\x00\\x00\\x00\\x00\\x0c' (same value, different bytes)"
+      },
+      {
+       "id": "breaker-tournament-r1-02",
+       "input": "ACCT000002\u0001\u0000\u0000\u0000\u0000\r\u0010\u0000\u000f\u0001m0000000999\u0000\u0000",
+       "why": "A negative balance also makes interest exactly -10000000.00, testing negative-zero overflow through the balance sign rather than negative days.",
+       "broke": true,
+       "diff": "PO-INT: original '\\x00\\x00\\x00\\x00\\r' converted '\\x00\\x00\\x00\\x00\\x0c' (same value, different bytes)"
+      }
+     ],
+     "outputTokens": 14512
+    }
+   }
+  },
+  "LOYWAIVE": {
+   "directory": "samples/loyalty-waiver",
+   "baseline": {
+    "seed": 8803,
+    "passed": true,
+    "total": 1013
+   },
+   "attacks": {
+    "muse-spark-1.3-contributor": {
+     "ran": true,
+     "capUsd": 0.1,
+     "tried": 21,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {
+      "not a number": 13,
+      "more than 0 decimals": 1,
+      "value does not fit its field (too many digits, or a sign on an unsigned field)": 1
+     },
+     "costUsd": 0.011807,
+     "calls": 3,
+     "seconds": 436.2,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 55709
+    },
+    "accounts/fireworks/models/muse-spark-open": {
+     "ran": true,
+     "capUsd": 0.6,
+     "tried": 35,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {
+      "not a number": 1
+     },
+     "costUsd": 0.12383,
+     "calls": 3,
+     "seconds": 330.8,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 27700
+    },
+    "muse-wonder-1.0": {
+     "ran": true,
+     "capUsd": 1.4,
+     "tried": 16,
+     "broke": 0,
+     "survived": true,
+     "proposed": 36,
+     "rejected": {
+      "not a number": 8,
+      "more than 2 decimals": 5,
+      "more than 0 decimals": 7
+     },
+     "costUsd": 0.506713,
+     "calls": 3,
+     "seconds": 258.6,
+     "fieldsDiffered": [],
+     "stoppedBy": null,
+     "breaks": [],
+     "outputTokens": 23783
+    }
+   }
+  }
+ },
+ "spentUsd": 5.48487,
+ "score": {
+  "muse-spark-1.3-contributor": {
+   "attacked": 10,
+   "broke": 4,
+   "programsBroken": [
+    "CHQCLR",
+    "DAYCTRL",
+    "INTACCR",
+    "TXNPOST"
+   ],
+   "onlyThisModelBroke": [],
+   "inputsTried": 164,
+   "inputsThatBroke": 11,
+   "costUsd": 0.105727
+  },
+  "accounts/fireworks/models/muse-spark-open": {
+   "attacked": 10,
+   "broke": 2,
+   "programsBroken": [
+    "CHQCLR",
+    "DAYCTRL"
+   ],
+   "onlyThisModelBroke": [],
+   "inputsTried": 234,
+   "inputsThatBroke": 5,
+   "costUsd": 1.17575
+  },
+  "muse-wonder-1.0": {
+   "attacked": 10,
+   "broke": 5,
+   "programsBroken": [
+    "CHQCLR",
+    "DAYCTRL",
+    "INTACCR",
+    "PKDPOST",
+    "TXNPOST"
+   ],
+   "onlyThisModelBroke": [
+    "PKDPOST"
+   ],
+   "inputsTried": 208,
+   "inputsThatBroke": 11,
+   "costUsd": 4.203393
+  }
+ }
+}

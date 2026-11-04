@@ -130,6 +130,23 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </p>
       </Fold>
 
+      <Fold id="meta-vs-meta" title="Meta vs Meta: three models attack the same Java" hint="One attack each on 10 synthetic programs. GnuCOBOL decides. Not a ranking.">
+        <table className="tournament-table">
+          <thead><tr><th>Attacker</th><th>Programs broken, of 10</th><th>Inputs tried</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td>Muse Spark</td><td>4</td><td>164</td><td>$0.11</td></tr>
+            <tr><td>Muse Spark Open</td><td>2</td><td>234</td><td>$1.18</td></tr>
+            <tr><td>Muse Wonder</td><td>5</td><td>208</td><td>$4.20</td></tr>
+          </tbody>
+        </table>
+        <ul className="home-list">
+          <li><strong>They did not find only the same things.</strong> Only Muse Wonder broke <span className="mono">PKDPOST</span>. Only Muse Spark Open reached <span className="mono">CL-DEBIT</span> on <span className="mono">CHQCLR</span>.</li>
+          <li>Muse Spark found 4 of Muse Wonder&apos;s 5 programs at about 1/40 of the cost.</li>
+          <li>The breaks are on malformed numbers or the sign of a zero, none a wrong amount on a well-formed record. Five programs stayed unbroken by all three, which does not show they are correct.</li>
+        </ul>
+        <p className="home-pr"><a href="https://github.com/Nivetha200111/Diocle/blob/main/docs/META_TOURNAMENT.md" target="_blank" rel="noreferrer">Results and protocol <ExternalLink size={11} /></a></p>
+      </Fold>
+
       <Fold id="blind-test" title="A blind test, including COBOL from a retired pension system's repository" hint="Code no fix had seen; protocol pinned before the run.">
         <p className="home-pr">Code no fix had seen, with the protocol pinned before the run, and every program run in the sandbox. $0.29 of model spend.</p>
         <ul className="home-list">

@@ -1,6 +1,8 @@
 # Meta vs Meta: three models attack the same Java
 
-> **Status: PROTOCOL PINNED Nov 4, 2026, before any model call of this test.** Results will be added below and published whatever they show.
+> **Status Nov 4, 2026: run once. [Results](#results) are below.**
+>
+> **When pinned: PROTOCOL PINNED Nov 4, 2026, before any model call of this test.** Results will be added below and published whatever they show.
 
 ## The question
 
@@ -24,4 +26,33 @@ Do Meta's models find different breaks in the same AI-written Java? Each attacke
 
 ## Results
 
-_Not run yet._
+All 30 attacks ran on Nov 4, with no provider failure, for **$5.48** of estimated model spend under the $10 ceiling, at Diocle commit `a3b4e1c`. Raw record, including up to 12 breaking inputs per attack: [`results-meta-tournament.json`](../eval/results-meta-tournament.json). One attack per model per program, so this is not a ranking.
+
+| Attacker | Programs broken, of 10 | Inputs tried | Inputs that broke the Java | Cost |
+|---|---:|---:|---:|---:|
+| Muse Spark | 4 | 164 | 11 | $0.11 |
+| Muse Spark Open | 2 | 234 | 5 | $1.18 |
+| Muse Wonder | 5 | 208 | 11 | $4.20 |
+
+| Program | Muse Spark | Muse Spark Open | Muse Wonder | Output fields that differed |
+|---|---|---|---|---|
+| `CHQCLR` | broke | broke | broke | `CL-FEE` (all three); `CL-DEBIT` (Muse Spark Open only) |
+| `DAYCTRL` | broke | broke | broke | `CTL-INTEREST` |
+| `INTACCR` | broke | | broke | `OUT-INTEREST` |
+| `TXNPOST` | broke | | broke | `POST-NEW-BAL` |
+| `PKDPOST` | | | **broke** | `PO-INT` (Muse Wonder only) |
+| `FXCONV`, `LOANAMRT`, `FEESCHD`, `FEEPOST`, `LOYWAIVE` | | | | none |
+
+### What this shows
+
+- **The models did not find only the same things.** Muse Wonder alone broke `PKDPOST`, which Muse Spark did not break here or in either earlier measurement. Muse Spark Open alone reached `CL-DEBIT` on `CHQCLR`, by putting a letter in an amount (`original 101.00`, `converted 1.00`).
+- **Muse Spark found 4 of Muse Wonder's 5 programs at about 1/40 of the cost.** On these programs, the dearest attacker added one program, and Muse Spark was the cheapest way to find most breaks.
+- **Muse Spark Open broke the fewest here,** yet it is the one that reached a different field. This is one attack per program.
+
+### Read these with care
+
+- **The breaks are on malformed numbers or the sign of a zero,** as in the earlier measurements. `PKDPOST`'s is the sign of a zero (`-10000000.00` overflowing, same value, different bytes). `CL-DEBIT` and the other `CHQCLR` breaks are malformed records. None is a wrong amount on a well-formed record. `CHQCLR`'s `original 410.00`, `converted 50.00` is also on a malformed fee.
+- **Five programs stayed unbroken by all three.** That does not show they are correct, only that these inputs did not differ.
+- **An attack stops at its first breaking round,** so inputs tried are not like for like. Attacks that designed few valid inputs, such as `PKDPOST` (3 to 5), had little to work with.
+- **Costs use list prices, and Muse Wonder's price is third-party and unconfirmed.**
+- **No winner is claimed,** and nothing here measures translation.
