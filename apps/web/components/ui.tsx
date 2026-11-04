@@ -11,7 +11,7 @@ export function Brand({ small = false }: { small?: boolean }) {
           d="M7 7h12c12 0 19 6 19 14S31 35 19 35H7V7Zm9 8v12h4c6 0 10-2 10-6s-4-6-10-6h-4Z"
           fill="currentColor"
         />
-        <circle cx="7" cy="34" r="4" fill="#1450a3" />
+        <circle cx="7" cy="34" r="4" fill="#9caf70" />
       </svg>
       {!small && (
         <span>

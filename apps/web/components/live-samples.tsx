@@ -227,7 +227,7 @@ function Card(p: {
       <h3>{p.title}</h3>
       <p className="live-what">{p.what}</p>
       <button type="button" className="button primary" disabled={disabled} aria-describedby={`${id}-note ${id}-caps`}
-        onClick={() => p.onStart(p.sample)}>{p.label}</button>
+        onClick={() => p.onStart(p.sample)}>▶ {p.label}</button>
       {p.reason && <p id={`${id}-note`} className="live-reason" role="status">{p.reason.startsWith("Checking") ? p.reason : `Disabled: ${p.reason}`}</p>}
       {!p.reason && <p id={`${id}-note`} className="sr-only">Ready.</p>}
       {p.image && (
