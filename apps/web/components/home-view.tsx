@@ -336,7 +336,8 @@ export default function HomeView({ go }: { go: Go }) {
           <p className="home-pr">Muse Spark designed this input: a cheque returned for insufficient funds whose fee is <span className="mono">␣1000</span>, a space where <span className="mono">PIC 9</span> expects a digit. Malformed data, not an ordinary transaction. Original COBOL on GnuCOBOL charged <span className="mono">{was}</span>; AI-written Java charged <span className="mono">{now}</span>.</p>
           <p className="home-pr">Fixed by the repair agent · matched again on {final.toLocaleString()} output records · a stored run · IBM Enterprise COBOL was not tested and may treat this record differently.</p>
         </Fold>
-        <Fold id="how-it-works" title="How it works, step by step" hint="For a modernization lead deciding whether to accept AI-written Java for a COBOL batch program">
+        <Fold id="how-it-works" title="How it works, step by step">
+          <p className="home-pr">For a modernization lead deciding whether to accept AI-written Java for a COBOL batch program.</p>
           <ol className="home-list">
             {PIPELINE.map(([step, who, what]) => <li key={step}><strong>{step}</strong> ({who}): {what}.</li>)}
           </ol>
@@ -344,7 +345,8 @@ export default function HomeView({ go }: { go: Go }) {
         </Fold>
         <Evidence go={go} />
         <WhatIsCobol />
-        <Fold title="Use it from your editor" hint="Two local installs from this repository. Neither is on a marketplace, and neither is an official Meta product.">
+        <Fold title="Use it from your editor" hint="Two local installs; not an official Meta product.">
+          <p className="home-pr">Two local installs from this repository. Neither is on a marketplace, and neither is an official Meta product.</p>
           <div className="home-columns">
             <div className="editor-col">
               <h3>VS Code (forks such as Cursor should work)</h3>
@@ -366,7 +368,8 @@ muse plugins approve diocle:mcp_server:diocle`}</pre>
             </div>
           </div>
         </Fold>
-        <Fold title="Sample estate" hint="Quillmark Trust & Savings is a fictional bank shipped with Diocle so you can see it work end to end. Its programs and data are synthetic.">
+        <Fold title="Sample estate" hint="A fictional bank; its programs and data are synthetic.">
+          <p className="home-pr">Quillmark Trust &amp; Savings is a fictional bank shipped with Diocle so you can see it work end to end. Its programs and data are synthetic.</p>
           <ul className="home-list home-links">
             <li><a href={LINKS.legacy} target="_blank" rel="noreferrer">quillmark-mainframe</a>: an export of z/OS libraries (COBOL, copybooks, JCL, procedures, DB2, CICS, IMS, EBCDIC extracts).</li>
             <li><a href={LINKS.target} target="_blank" rel="noreferrer">quillmark-java</a>: starts empty; Diocle delivers certified programs as pull requests and its CI re-checks them.</li>

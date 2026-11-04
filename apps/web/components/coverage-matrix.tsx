@@ -25,7 +25,8 @@ const WRAP = { whiteSpace: "normal", verticalAlign: "top", minWidth: 220 } as co
 
 export default function CoverageMatrix() {
   return (
-    <Fold id="coverage" title="What Diocle verifies today, and what it does not" hint="By kind of mainframe artifact, as of Oct 30, 2026. In progress means not merged or deployed yet. Certified always means on the inputs tried.">
+    <Fold id="coverage" title="What Diocle verifies today, and what it does not" hint="As of Oct 30, 2026. Certified always means on the inputs tried.">
+      <p className="home-pr">By kind of mainframe artifact, as of Oct 30, 2026. In progress means not merged or deployed yet. Certified always means on the inputs tried.</p>
       <div className="table-scroll">
         <table className="data-table">
           <caption className="sr-only">Coverage by kind of mainframe artifact</caption>

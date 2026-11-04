@@ -31,7 +31,8 @@ export default function ScoreboardPanel({ runs, failed }: { runs: RunListItem[] 
     <div><dt>{label} <small className="sb-n">({n} {what})</small></dt><dd className="mono">{value}</dd></div>
   );
   return (
-    <Fold id="scoreboard" title="Cost and speed scoreboard" hint="Computed from the engine's runs just now. Only plain certified runs count; costs are estimates from list prices.">
+    <Fold id="scoreboard" title="Cost and speed scoreboard" hint="Plain certified runs only; costs are estimates from list prices.">
+      <p className="home-pr">Computed from the engine&apos;s runs just now. Only plain certified runs count; costs are estimates from list prices.</p>
       {sb.liveSampleRuns > 0 && <p className="home-pr">{sb.liveSampleRuns} live sample run{sb.liveSampleRuns === 1 ? "" : "s"} from the public &quot;Convert a sample now&quot; button {sb.liveSampleRuns === 1 ? "is" : "are"} left out so a button anyone can press cannot move these numbers.</p>}
       <dl className="eff-grid home-evidence sb-grid">
         {cell("Certified runs", String(sb.certifiedRuns), sb.runsTotal, "runs kept")}

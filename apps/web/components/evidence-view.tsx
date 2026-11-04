@@ -53,7 +53,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
       </section>
 
       <div className="fold-list">
-      <Fold id="canonical" className="evidence-summary" title={`Canonical delivery: ${CANONICAL.pr}`} hint="Six COBOL programs from quillmark-legacy, certified under one pinned verifier and delivered as one pull request.">
+      <Fold id="canonical" className="evidence-summary" title={`Canonical delivery: ${CANONICAL.pr}`}>
+        <p className="home-pr">Six COBOL programs from quillmark-legacy, certified under one pinned verifier and delivered as one pull request.</p>
         <dl className="eff-grid home-evidence">
           <div><dt>Programs</dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
           <div><dt>Fresh output records in CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
@@ -84,7 +85,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
 
       <ScoreboardPanel runs={failed ? null : runs} failed={failed} />
 
-      <Fold id="breaker" title="The breaker agent found what 1,000 inputs missed" hint={`${SAMPLE_RUN.program}, an unseen program from the frozen evaluation. Both inputs are malformed, not ordinary transactions.`}>
+      <Fold id="breaker" title="The breaker agent found what 1,000 inputs missed" hint={`${SAMPLE_RUN.program}. Both inputs are malformed, not ordinary transactions.`}>
+        <p className="home-pr">{SAMPLE_RUN.program}, an unseen program from the frozen evaluation.</p>
         <ol className="home-list">
           <li>Muse Spark translated it; the Java matched on 1,004 of 1,004 <Term tip={GLOSSARY["held-out"]}>held-out</Term> output records, from one run of each program.</li>
           <li>The breaker agent (also Muse Spark) designed 10 inputs in its first attack round. Two made the Java differ. First, the return fee for a cheque bounced for insufficient funds (NSF; the base fee is doubled, and the unit is not stated in the COBOL), with a space in the numeric fee field. The COBOL charged <span className="mono">20.00</span>; the AI-written Java charged <span className="mono">0.00</span>. Second, a debit of <span className="mono">-121.23</span> in COBOL vs <span className="mono">0.00</span> in Java, with letters in the numeric amount field.</li>
@@ -95,7 +97,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         <p className="home-more"><a href={runLink(SAMPLE_RUN.id)} onClick={open(SAMPLE_RUN.id)}>Open the run, with its trace and a re-verify button</a></p>
       </Fold>
 
-      <Fold id="frozen" title="Unseen programs (frozen evaluation)" hint="Four programs written after the converter was frozen.">
+      <Fold id="frozen" title="Unseen programs (frozen evaluation)">
+        <p className="home-pr">Four programs written after the converter was frozen.</p>
           <ul className="home-list">
             <li><strong>eval-freeze-1: 2 of 4 certified.</strong> Both failures turned out to be a verifier bug: it rejected aggregation and fan-out programs.</li>
             <li><strong>eval-freeze-2: 4 of 4 certified, about $0.11</strong>, with the corrected verifier and fix memory off; each program also passed five fresh seeds.</li>
@@ -103,7 +106,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           </ul>
           <p className="home-more"><a href={LINKS.evaluation} target="_blank" rel="noreferrer">docs/EVALUATION.md</a></p>
       </Fold>
-      <Fold id="private-mode" title="Private mode on open weights" hint="The same agents on Muse Spark Open, served by Fireworks.">
+      <Fold id="private-mode" title="Private mode on open weights">
+        <p className="home-pr">The same agents on Muse Spark Open, served by Fireworks.</p>
           <ul className="home-list">
             <li>Model: <span className="mono">{MODELS.open}</span>. Open weights can run on infrastructure you control.</li>
             <li>INTACCR translated from scratch and certified first time on 1,027 held-out inputs; the breaker designed 21 inputs and none broke it.</li>
@@ -113,7 +117,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
 
       <CoverageMatrix />
 
-      <Fold id="course-estate" title="Every program in a public repository we did not write" hint="All 32 programs of the Open Mainframe Project's COBOL course, at a pinned commit, under protocols written before each run. Three dated passes, $2.07 of model spend.">
+      <Fold id="course-estate" title="Every program in a public repository we did not write" hint="32 small teaching programs. Three dated passes.">
+        <p className="home-pr">All 32 programs of the Open Mainframe Project&apos;s COBOL course, at a pinned commit, under protocols written before each run. Three dated passes, $2.07 of model spend.</p>
         <ul className="home-list">
           <li><strong>First two passes, 11 certified:</strong> 9 as distributed, each on fixed input, and 2 against a repaired copy whose patch is published. 13 were not certified, 3 could not be patched to compile, 4 were refused and 1 was not converted. These results stand as recorded.</li>
           <li><strong>What the failures shared:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>. GnuCOBOL writes the advancing into the file as bytes, and our verifier refused even identical Java while our prompts had no rule for it. We fixed both in the repository, and the next pass ran on that commit.</li>
@@ -125,7 +130,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </p>
       </Fold>
 
-      <Fold id="blind-test" title="A blind test, including COBOL from a retired pension system's repository" hint="Code no fix had seen, with the protocol pinned before the run, and every program run in the sandbox. $0.29 of model spend.">
+      <Fold id="blind-test" title="A blind test, including COBOL from a retired pension system's repository" hint="Code no fix had seen; protocol pinned before the run.">
+        <p className="home-pr">Code no fix had seen, with the protocol pinned before the run, and every program run in the sandbox. $0.29 of model spend.</p>
         <ul className="home-list">
           <li><strong>Norway&apos;s retired national pension system (navikt/DSF, public, MIT):</strong> 2 of the 4 COBOL programs Diocle could test certified with no patch to the COBOL, after the repair agent fixed the first Java, and 2 did not.</li>
           <li>They are small programs, and whether they ran in production is not established. Most of that system is PL/I. Inputs are generated, varying 1 of 7 and 6 of 10 fields, and the breaker could not run. Nobody at NAV was involved.</li>
@@ -136,7 +142,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </p>
       </Fold>
 
-      <Fold id="course-import" title="A public course repository, imported by a visitor" hint="Not our code: the Open Mainframe Project's COBOL course, imported with the public import (delivery-20261030-022234).">
+      <Fold id="course-import" title="A public course repository, imported by a visitor" hint="Not our code.">
+        <p className="home-pr">Not our code: the Open Mainframe Project&apos;s COBOL course, imported with the public import (delivery-20261030-022234).</p>
         <ul className="home-list">
           <li><strong>2 certified, 1 not, 21 skipped, under a cent of model spend ($0.0074).</strong> The programs are tiny teaching programs (13 to 23 lines) that print to the screen, so each is checked on one run of its output, not on a thousand inputs.</li>
           <li><strong>CBL0013 and CBL0014 certified</strong>: the Java printed exactly what the COBOL printed, and the exit code matched.</li>
@@ -151,7 +158,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
       </Fold>
 
       {runs === null ? <Skeleton rows={3} label="Loading this engine's runs" /> : (
-        <Fold id="kept" title="Everything this engine has kept, live" hint="Counted from the API just now, not typed in.">
+        <Fold id="kept" title="Everything this engine has kept, live">
+        <p className="home-pr">Counted from the API just now, not typed in.</p>
           <dl className="eff-grid home-evidence">
             <div><dt>Runs certified</dt><dd className="mono">{certified}/{kept.length}</dd></div>
             <div><dt>Model spend, all runs (est.)</dt><dd className="mono">{usd(spend)}</dd></div>
@@ -165,7 +173,8 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         </Fold>
       )}
 
-      <Fold id="for-cobol-people" className="cobol-traps" title="For COBOL people" hint={"Traps that make a plausible Java port wrong, and what Diocle does about each. \"Caught\" always means on the inputs tried."}>
+      <Fold id="for-cobol-people" className="cobol-traps" title="For COBOL people">
+        <p className="home-pr">Traps that make a plausible Java port wrong, and what Diocle does about each. &quot;Caught&quot; always means on the inputs tried.</p>
         <ul className="trap-list">
           {TRAPS.map((t) => (
             <li key={t.key} className="trap">
