@@ -1,0 +1,337 @@
+{
+ "drawnBy": "muse-image-1.0",
+ "readBackBy": "muse-wonder-1.0",
+ "decidedBy": "exact comparison with the analyzer's report",
+ "maxAttempts": 3,
+ "maxImages": 16,
+ "trees": [
+  {
+   "slug": "quillmark-acctmtch",
+   "title": "Quillmark ACCTMTCH (fictional, synthetic): JCL job to program to copybooks",
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "JOB ACCTMTCH",
+     "ACCTMTCH"
+    ],
+    [
+     "ACCTMTCH",
+     "EXCREC"
+    ],
+    [
+     "ACCTMTCH",
+     "MSTREC"
+    ],
+    [
+     "ACCTMTCH",
+     "NEWMST"
+    ],
+    [
+     "ACCTMTCH",
+     "TXREC"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-acctmtch-1.webp",
+     "imageTokens": {
+      "input_tokens": 10058,
+      "output_tokens": 778,
+      "total_tokens": 10836
+     },
+     "readUsd": 0.025456,
+     "seconds": 14.5,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "quillmark-acctmtch-1.webp"
+  },
+  {
+   "slug": "quillmark-dayctrl",
+   "title": "Quillmark DAYCTRL (fictional, synthetic): JCL job to program to copybooks",
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "JOB DAYCTRL",
+     "DAYCTRL"
+    ],
+    [
+     "DAYCTRL",
+     "CTLREC"
+    ],
+    [
+     "DAYCTRL",
+     "DAYREC"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-dayctrl-1.webp",
+     "imageTokens": {
+      "input_tokens": 10035,
+      "output_tokens": 810,
+      "total_tokens": 10845
+     },
+     "readUsd": 0.019976,
+     "seconds": 12.9,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "quillmark-dayctrl-1.webp"
+  },
+  {
+   "slug": "quillmark-feeschd",
+   "title": "Quillmark FEESCHD (fictional, synthetic): JCL job to program to copybooks",
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "JOB FEESCHD",
+     "FEESCHD"
+    ],
+    [
+     "FEESCHD",
+     "CHGREC"
+    ],
+    [
+     "FEESCHD",
+     "FEEREC"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-feeschd-1.webp",
+     "imageTokens": {
+      "input_tokens": 17532,
+      "output_tokens": 1274,
+      "total_tokens": 18806
+     },
+     "readUsd": 0.021556,
+     "seconds": 19.6,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "quillmark-feeschd-1.webp"
+  },
+  {
+   "slug": "quillmark-intaccr",
+   "title": "Quillmark INTACCR (fictional, synthetic): JCL job to program to copybooks",
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "JOB INTACCR",
+     "INTACCR"
+    ],
+    [
+     "INTACCR",
+     "ACCTREC"
+    ],
+    [
+     "INTACCR",
+     "INTREC"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-intaccr-1.webp",
+     "imageTokens": {
+      "input_tokens": 10084,
+      "output_tokens": 852,
+      "total_tokens": 10936
+     },
+     "readUsd": 0.019756,
+     "seconds": 14.8,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "quillmark-intaccr-1.webp"
+  },
+  {
+   "slug": "quillmark-pkdpost",
+   "title": "Quillmark PKDPOST (fictional, synthetic): JCL job to program to copybooks",
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "JOB PKDPOST",
+     "PKDPOST"
+    ],
+    [
+     "PKDPOST",
+     "PKACCT"
+    ],
+    [
+     "PKDPOST",
+     "PKOUT"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-pkdpost-1.webp",
+     "imageTokens": {
+      "input_tokens": 10064,
+      "output_tokens": 834,
+      "total_tokens": 10898
+     },
+     "readUsd": 0.019836,
+     "seconds": 11.0,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "quillmark-pkdpost-1.webp"
+  },
+  {
+   "slug": "quillmark-txnpost",
+   "title": "Quillmark TXNPOST (fictional, synthetic): JCL job to program to copybooks",
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "JOB TXNPOST",
+     "TXNPOST"
+    ],
+    [
+     "TXNPOST",
+     "POSTREC"
+    ],
+    [
+     "TXNPOST",
+     "TXNREC"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-txnpost-1.webp",
+     "imageTokens": {
+      "input_tokens": 10003,
+      "output_tokens": 807,
+      "total_tokens": 10810
+     },
+     "readUsd": 0.019896,
+     "seconds": 11.7,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "quillmark-txnpost-1.webp"
+  },
+  {
+   "slug": "harbor-htdormsw",
+   "title": "Harbor Trust HTDORMSW (fictional, synthetic): its CALLs",
+   "repository": "https://github.com/Nivetha200111/harbor-trust-mainframe",
+   "commit": "cee9da8c58771d66f16fa716d55f02cae2bf81c3",
+   "edges": [
+    [
+     "HTDORMSW",
+     "HTAUDT"
+    ],
+    [
+     "HTDORMSW",
+     "HTDATE"
+    ],
+    [
+     "HTDORMSW",
+     "HTPOST"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "harbor-htdormsw-1.webp",
+     "imageTokens": {
+      "input_tokens": 17609,
+      "output_tokens": 1355,
+      "total_tokens": 18964
+     },
+     "readUsd": 0.021776,
+     "seconds": 18.1,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "harbor-htdormsw-1.webp"
+  },
+  {
+   "slug": "harbor-htloanam",
+   "title": "Harbor Trust HTLOANAM (fictional, synthetic): its CALLs",
+   "repository": "https://github.com/Nivetha200111/harbor-trust-mainframe",
+   "commit": "cee9da8c58771d66f16fa716d55f02cae2bf81c3",
+   "edges": [
+    [
+     "HTLOANAM",
+     "HTAUDT"
+    ],
+    [
+     "HTLOANAM",
+     "HTDATE"
+    ],
+    [
+     "HTLOANAM",
+     "HTPOST"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "harbor-htloanam-1.webp",
+     "imageTokens": {
+      "input_tokens": 9980,
+      "output_tokens": 748,
+      "total_tokens": 10728
+     },
+     "readUsd": 0.019836,
+     "seconds": 23.8,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "harbor-htloanam-1.webp"
+  }
+ ]
+}
