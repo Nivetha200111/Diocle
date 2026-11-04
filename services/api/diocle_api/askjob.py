@@ -108,7 +108,8 @@ def run(job: Job, audio: Path) -> None:
         return
     _partial(job, out)
     job.state["result"] = result
-    job.event("Finished: the answer is assembled from claims GnuCOBOL confirmed", "done")
+    job.event("Finished: the answer is assembled from claims GnuCOBOL confirmed" if (result.get("answer") or {}).get("basis") == "confirmed-claims"
+              else "Finished: no claim was confirmed, so there is no answer to give", "done")
     job.finish("done")
 
 

@@ -89,6 +89,9 @@ SCHEMA = {
 }
 
 
+NO_CLAIMS_DECLINED = "the model wrote no claim because the question is not about what this program does"
+
+
 def _empty(program: str, model: str, reason: str) -> dict:
     return {"version": VERSION, "program": program, "model": model, "checkedWith": verifier.CHECKED_WITH,
             "summary": {"claims": 0, "confirmed": 0, "refuted": 0, "unchecked": 0, "examplesRun": 0}, "claims": [],
@@ -100,6 +103,20 @@ def _pairs(value) -> dict[str, str] | None:
     if not isinstance(value, list) or not all(isinstance(p, dict) for p in value):
         return None
     return {str(p.get("name")): p.get("value") for p in value}
+
+
+def _short_usage(client: ModelClient) -> dict:
+    usage = usage_of(client.calls)
+    return {k: usage[k] for k in ("calls", "inputTokens", "outputTokens", "estimatedCostUsd")}
+
+
+def _declined(content: str) -> bool:
+    """The model answered with valid JSON and an empty claims list on purpose, which is not the same as a malformed answer."""
+    try:
+        answer = json.loads(content or "")
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return isinstance(answer, dict) and answer.get("claims") == []
 
 
 def _parse(content: str, limit: int = MAX_CLAIMS) -> list[dict] | None:
@@ -161,7 +178,7 @@ def _clip(values: dict | None) -> dict:
 
 def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Callable[[dict], None] = lambda e: None,
              run_original=verifier.run_original, *, build_messages=None, max_claims: int = MAX_CLAIMS,
-             on_proposed: Callable[[list[str]], None] = lambda statements: None) -> dict:
+             on_proposed: Callable[[list[str]], None] = lambda statements: None, no_claims_ok: bool = False) -> dict:
     """The behavior-claims document for `program`. Never raises for a model or sandbox problem: `skipped` or
     `unchecked` says what happened. `client` carries the documenter's own settings (model, hard call cap). `build_messages(program, in_fields, out_fields)`
     replaces the general prompt (ask.py uses it for question-focused claims); everything after the model answer, the example
@@ -200,11 +217,13 @@ def document(program: Program, client: ModelClient, caps: DocCaps, on_event: Cal
         proposed = _parse(content, max_claims)
         if proposed:
             break
+        if no_claims_ok and _declined(content):
+            return {**_empty(program.name, model, NO_CLAIMS_DECLINED), "usage": _short_usage(client)}
         on_event({"type": "behavior", "message": f"Documenter round {round_no}: the answer had no usable claims"})
         messages += [{"role": "assistant", "content": content or "{}"},
-                     {"role": "user", "content": "That was not valid. Answer again with the JSON object, at least one claim."}]
-    usage = usage_of(client.calls)
-    short = {k: usage[k] for k in ("calls", "inputTokens", "outputTokens", "estimatedCostUsd")}
+                     {"role": "user", "content": "That was not valid. Answer again with the JSON object, "
+                      + ("or an empty claims list if the question is not about this program." if no_claims_ok else "at least one claim.")}]
+    short = _short_usage(client)
     if not proposed:
         return {**_empty(program.name, model, "the model produced no usable claims"), "usage": short}
 

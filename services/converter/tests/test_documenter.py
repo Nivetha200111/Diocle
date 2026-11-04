@@ -351,3 +351,9 @@ def test_the_markdown_file_is_written_as_utf8_even_with_lone_surrogates(tmp_path
     monkeypatch.setattr(cli, "ModelClient", lambda s: SimpleNamespace(calls=[], settings=_settings()))
     result = cli._document(Program.load(SAMPLE), SimpleNamespace(calls=[]), _settings(), tmp_path, lambda e: None)
     assert result is doc and (tmp_path / "behavior.md").read_text(encoding="utf-8").startswith("# Behaviour spec")
+
+
+def test_the_general_documenter_still_retries_an_empty_claims_list():
+    c = client([json.dumps({"claims": []}), json.dumps({"claims": []})], calls=2)
+    doc = document(Program.load(SAMPLE), c, CAPS)
+    assert len(c._sdk.requests) == 2 and doc["skipped"] == "the model produced no usable claims"

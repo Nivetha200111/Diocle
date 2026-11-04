@@ -241,13 +241,13 @@ export default function AskPanel() {
   );
 }
 
-function Step({ n, title, state, children }: { n: number; title: string; state: "wait" | "active" | "done" | "failed"; children?: React.ReactNode }) {
+function Step({ n, title, state, children }: { n: number; title: string; state: "wait" | "active" | "done" | "failed" | "not-run"; children?: React.ReactNode }) {
   return (
     <li className={`ask-step is-${state}`}>
       <h4>
         <span className="ask-n">{n}</span> {title}{" "}
         <Badge tone={state === "done" ? "green" : state === "active" ? "amber" : state === "failed" ? "red" : "neutral"}>
-          {state === "done" ? "DONE" : state === "active" ? "RUNNING" : state === "failed" ? "STOPPED" : "WAITING"}
+          {state === "done" ? "DONE" : state === "active" ? "RUNNING" : state === "failed" ? "STOPPED" : state === "not-run" ? "NOT RUN" : "WAITING"}
         </Badge>
       </h4>
       {children}
@@ -266,6 +266,7 @@ function Stages({ job }: { job: AskJob }) {
     done ? "done" : failed && at <= i ? (at === i || at < 0 ? "failed" : "wait") : job.status === "running" && at === i ? "active" : "wait";
   const claimsDone = !!proposed;
   const checkDone = !!r;
+  const nothingRan = !!r && r.behavior.claims.length === 0;
   return (
     <div className="live-run ask-run" aria-labelledby="ask-run-h">
       <h3 id="ask-run-h">
@@ -289,22 +290,24 @@ function Stages({ job }: { job: AskJob }) {
         <Step n={2} title={`Claims: ${r?.behavior.model ?? "Muse Spark"} proposes`} state={st(2, claimsDone)}>
           {proposed ? (
             <>
-              <p className="live-caps">Proposed by a model. Not yet checked: these are guesses until GnuCOBOL has run them.</p>
+              {proposed.length > 0 && <p className="live-caps">Proposed by a model. Not yet checked: these are guesses until GnuCOBOL has run them.</p>}
               <ul>{proposed.map((p, i) => <li key={i}>{p}</li>)}</ul>
               {proposed.length === 0 && <p className="live-caps">The model wrote no usable claim.</p>}
             </>
           ) : <p className="live-caps">The model is writing claims with examples…</p>}
         </Step>
-        <Step n={3} title="GnuCOBOL runs the original program on the examples" state={st(3, checkDone)}>
+        <Step n={3} title="GnuCOBOL runs the original program on the examples" state={nothingRan ? "not-run" : st(3, checkDone)}>
           {r ? <Verdicts claims={r.behavior.claims} /> : <p className="live-caps">{claimsDone ? "Compiling the original COBOL and running every example in the sandbox…" : "Waiting for the claims."}</p>}
         </Step>
         <Step n={4} title="Answer, assembled only from confirmed claims" state={st(4, checkDone)}>
           {r ? (
             <>
               <pre className="ask-answer" tabIndex={0} aria-label="The assembled answer">{r.answer.text}</pre>
-              <p className="ask-decided">
-                <strong>GnuCOBOL decided, not the model; confirmed on the examples tried.</strong> That is not a proof for every input.
-              </p>
+              {r.answer.basis === "confirmed-claims" && (
+                <p className="ask-decided">
+                  <strong>GnuCOBOL decided, not the model; confirmed on the examples tried.</strong> That is not a proof for every input.
+                </p>
+              )}
             </>
           ) : <p className="live-caps">Nothing is shown here until GnuCOBOL has decided.</p>}
         </Step>
