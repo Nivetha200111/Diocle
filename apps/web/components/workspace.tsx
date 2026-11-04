@@ -1126,9 +1126,9 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
         <main>
           {view !== "Home" && <div className="page-heading">
             <div>
-              <div className="page-eyebrow">
-                <span className="green-dot" /> {realViews.includes(view) ? "DIOCLE · OPERATIONS CONSOLE" : "DESIGN PREVIEW · MOCK DATA"}
-              </div>
+              {!realViews.includes(view) && <div className="page-eyebrow">
+                <span className="amber-dot" /> DESIGN PREVIEW · MOCK DATA
+              </div>}
               <h1>
                 {view === "Overview" ? "Make room for what’s next." : label(view)}
               </h1>

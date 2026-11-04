@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/dm-sans";
-import { IBM_Plex_Mono, VT323 } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import "./retro.css";
+import "./enterprise.css";
 import "./mission/mission.css";
 import "./bugs/bugs.css";
 
-const pixel = VT323({ weight: "400", subsets: ["latin"], variable: "--font-pixel" });
 const plexMono = IBM_Plex_Mono({ weight: ["400", "600"], subsets: ["latin"], variable: "--font-plex-mono" });
 
 export const metadata: Metadata = {
@@ -20,7 +18,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${pixel.variable} ${plexMono.variable}`}>{children}</body>
+      <body className={plexMono.variable}>{children}</body>
     </html>
   );
 }

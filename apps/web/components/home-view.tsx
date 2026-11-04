@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Mic } from "lucide-react";
 import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, SAMPLE_RUN } from "@/lib/config";
 import { fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, reverifyRun, schemaFile, type Reverify, type Run, type RunListItem, type SourceFile } from "@/lib/runs";
 import { SAMPLE_COBOL, SAMPLE_RECORDED } from "@/lib/sample";
@@ -68,7 +68,7 @@ function catchAmounts(run: Run | null): [string, string] {
   return m ? [m[2], m[3]] : ["20.00", "0.00"];
 }
 
-const tryLabel = (busy: boolean) => (busy ? "Running COBOL and Java on fresh records…" : `▶ Try the sample (${SAMPLE_RUN.program})`);
+const tryLabel = (busy: boolean) => (busy ? "Running COBOL and Java on fresh records…" : `Try the sample (${SAMPLE_RUN.program})`);
 
 // The verdict strip tells the sample's real story: certified, broken by the breaker agent, repaired, re-certified.
 function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boolean; check: Reverify | null }) {
@@ -230,9 +230,6 @@ function Pitch({ go, sample, run }: { go: Go; sample: SampleCheck; run: Run | nu
   }
   return (
     <section className="panel pitch" aria-label="What Diocle does">
-      <div className="panel-heading">
-        <div><h2>DIOCLE.EXE</h2></div>
-      </div>
       <div className="pitch-top">
         <div className="pitch-claim">
           <h1>AI can rewrite COBOL in minutes. How do you know the Java still gives the same answer?</h1>
@@ -248,7 +245,7 @@ function Pitch({ go, sample, run }: { go: Go; sample: SampleCheck; run: Run | nu
           <p className="pitch-line">Built Oct 27 to Nov 4, 2026, for the Meta Global AI Developer Hackathon. <a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a></p>
         </div>
         <figure className="pitch-catch">
-          <figcaption>THE CATCH · {SAMPLE_RUN.program}, cheque clearing</figcaption>
+          <figcaption>The catch · {SAMPLE_RUN.program}, cheque clearing</figcaption>
           <div className="pitch-row"><span>Original COBOL, on GnuCOBOL</span><strong className="pitch-ok mono">{was}</strong></div>
           <div className="pitch-row"><span>AI-written Java</span><strong className="pitch-bad mono">{now}</strong></div>
           <p className="pitch-fixed">Return fee on a malformed record, under GnuCOBOL. IBM&apos;s compiler not tested.</p>
@@ -281,7 +278,7 @@ function Numbers({ go }: { go: Go }) {
           <span><b>Muse Wonder reads a printed listing</b> and writes the COBOL; GnuCOBOL checks it against the original.</span>
         </button>
         <button type="button" className="pitch-card" onClick={() => go("Try it live")}>
-          <span className="pitch-mic" aria-hidden="true">🎙</span>
+          <span className="pitch-mic" aria-hidden="true"><Mic size={28} /></span>
           <span><b>Ask a program a question out loud</b>; the answer is checked by running the original COBOL.</span>
         </button>
       </div>

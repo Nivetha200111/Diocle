@@ -200,10 +200,10 @@ export default function AskPanel() {
       </div>
       <div className="ask-actions">
         <button type="button" className="button primary" disabled={reason !== null || !info}
-          onClick={() => info && begin(() => startAsk(info.sample, info.clip))}>▶ Ask the original program</button>
+          onClick={() => info && begin(() => startAsk(info.sample, info.clip))}>Ask the original program</button>
         {micAllowed && recording === null && (
           <button type="button" className="button secondary" disabled={micReason !== null}
-            onClick={record}>🎤 Ask in my own voice (up to {MAX_SECONDS} s) about {info?.sample}</button>
+            onClick={record}>Ask in my own voice (up to {MAX_SECONDS} s) about {info?.sample}</button>
         )}
         {recording !== null && (
           <button type="button" className="button secondary ask-rec" onClick={() => stopRec.current?.()}>
