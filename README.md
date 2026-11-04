@@ -8,6 +8,14 @@
 
 **AI writes the code. Diocle checks it against the original, and then attacks it, before anyone has to trust it.**
 
+| Start here | |
+|---|---|
+| **Watch** | [The demo video](https://youtu.be/glTLob7S-60) |
+| **Try** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model) |
+| **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
+| **Check** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [a public repository we did not write](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), [a blind test on code no fix had seen](docs/BLIND_TEST.md), [each claim and how to verify it](docs/CLAIMS_TO_EVIDENCE.md), [a delivered pull request](https://github.com/Nivetha200111/quillmark-modern/pull/4) and [its CI run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870), [the build log](docs/BUILD_LOG.md) |
+| **Everything else** | [The full reference](docs/DETAILS.md) |
+
 <p>
   <a href="https://www.meta.ai"><img src="https://cdn.simpleicons.org/meta/0866FF" alt="Meta" height="40"></a>&nbsp;&nbsp;
   <a href="https://fireworks.ai"><img src="https://github.com/fw-ai.png?size=80" alt="Fireworks AI" height="40"></a>&nbsp;&nbsp;
@@ -31,14 +39,6 @@
 - **On outside COBOL, blind:** the COBOL sources in the public repository of [Norway's retired national pension system](docs/BLIND_TEST.md) (`navikt/DSF`, MIT), most of which is PL/I. Whether these programs ran in production is not established. 2 of the 4 Diocle could test certified with no patch to the COBOL, after the repair agent fixed the first Java, and 2 did not. They are small programs on generated inputs, varying 1 of 7 and 6 of 10 input fields, with no breaker. Separately, `fzn0x/core-banking-system` certified 0 of 2 and `ibmdbbdev/Samples` only 11 very small programs. These repositories were chosen because the analyzer could test them; blind means only that no fix or tuning was made for them.
 
 Diocle helps a modernization lead decide whether to accept AI-written Java for a COBOL batch program. Muse Spark translates the COBOL. The original, compiled with GnuCOBOL, runs next to the Java on the same inputs, and every output byte, display line and exit code must match. Java that passes is then attacked with inputs Muse Spark designs, and what differs goes back for repair. **A model never certifies; the comparison does.** The result is reproducible evidence on the inputs tried under GnuCOBOL: not a formal proof, and not a test on IBM Enterprise COBOL. Indie track, *Build for Your World*. Built Oct 27 to Nov 4, 2026; the measurement's programs are synthetic.
-
-| Start here | |
-|---|---|
-| **Watch** | [The demo video](https://youtu.be/glTLob7S-60) |
-| **Try** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model) |
-| **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
-| **Check** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [a public repository we did not write](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), [a blind test on code no fix had seen](docs/BLIND_TEST.md), [each claim and how to verify it](docs/CLAIMS_TO_EVIDENCE.md), [a delivered pull request](https://github.com/Nivetha200111/quillmark-modern/pull/4) and [its CI run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870), [the build log](docs/BUILD_LOG.md) |
-| **Everything else** | [The full reference](docs/DETAILS.md) |
 
 <p align="center"><img src="docs/assets/pipeline.svg" alt="Flowchart. A GitHub repository is analyzed with no model. Muse Spark translates it to Java. GnuCOBOL and the Java are compared; a mismatch goes to the Muse Spark repair agent and back. Java that matches goes through a held-out check of 1,000 generated records, then the Muse Spark breaker attacks it; a break goes back to repair. With no break, Diocle opens a pull request with an equivalence report, and the target repository's CI re-runs the comparison on a new seed." width="100%"></p>
 
