@@ -1,8 +1,8 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { ExternalLink } from "lucide-react";
-import type { DependencyTree } from "@/lib/deliveries";
+import { dependencyDrawingUrl, type DependencyDrawing, type DependencyTree } from "@/lib/deliveries";
 import type { Edge } from "@/lib/dependency-impact";
 import { GroupedTree, selfLoopWords } from "./dependency-tree";
 
@@ -14,7 +14,33 @@ function counts(tree: DependencyTree) {
   return kinds.map(([k, n]) => `${n.toLocaleString()} ${KIND_WORDS[k][n === 1 ? 0 : 1]}`).join(", ");
 }
 
-function Section({ repository, commit, tree, running, analyzing }: {
+// One line in every case but a pass: a drawing that did not pass was not kept, and an off or capped feature is not news.
+function Drawing({ id, drawing }: { id: string; drawing?: DependencyDrawing | null }) {
+  const [broken, setBroken] = useState(false);
+  if (drawing?.status === "passed" && drawing.verified) {
+    const url = dependencyDrawingUrl(id);
+    return (
+      <div className="tree-drawing dep-drawing">
+        {broken ? <p className="dlv-error">The drawing could not be loaded.</p> : (
+          <a href={url} target="_blank" rel="noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt={`Muse Image's drawing of the links of ${drawing.part?.program ?? "one program"}. It passed the check.`} width={1024} height={1024} loading="lazy" onError={() => setBroken(true)} />
+          </a>
+        )}
+        <p className="tree-check">Drawn by Muse Image. Muse Wonder read it back without seeing the graph, and code compared that with the analyzer: exact match on attempt {drawing.passedOnAttempt}.</p>
+        {drawing.part && <p>It shows one small part: the {drawing.part.edges.length} links of <span className="mono">{drawing.part.program}</span>. The analyzer&apos;s tree below is the source of truth.</p>}
+      </div>
+    );
+  }
+  const line = drawing?.status === "failed" ? "Muse Image's drawing did not pass the check, so only the analyzer's tree is shown. This can reject a good drawing."
+    : drawing?.status === "drawing" ? "Muse Image is drawing one small part of this tree. It appears here only if it passes the check."
+    : "No Muse Image drawing for this delivery, so only the analyzer's tree is shown.";
+  return <p className="dep-drawing-line">{line}</p>;
+}
+
+function Section({ id, repository, commit, tree, drawing, running, analyzing }: {
+  id: string;
+  drawing?: DependencyDrawing | null;
   repository: string;
   commit: string | null;
   tree?: DependencyTree | null;
@@ -57,6 +83,7 @@ function Section({ repository, commit, tree, running, analyzing }: {
       {tree.truncated && (
         <p className="dep-note">Showing the first {tree.edges.length.toLocaleString()} of {tree.total.toLocaleString()} links. The rest are not recorded here, so impact can miss names in this repository.</p>
       )}
+      <Drawing id={id} drawing={drawing} />
       {tree.edges.length === 0
         ? <p className="dep-empty">The analyzer found no CALL, COPY or JCL links in this repository.</p>
         : <GroupedTree edges={pairs} loopWords={(name) => selfLoopWords(loops.get(name) ?? [])} />}
@@ -65,5 +92,5 @@ function Section({ repository, commit, tree, running, analyzing }: {
 }
 
 // The page re-renders every second for its clock and polls the record every two: the same recorded tree must not rebuild.
-export const DeliveryDependencyTree = memo(Section, (a, b) => a.repository === b.repository && a.commit === b.commit
+export const DeliveryDependencyTree = memo(Section, (a, b) => a.id === b.id && JSON.stringify(a.drawing) === JSON.stringify(b.drawing) && a.repository === b.repository && a.commit === b.commit
   && a.tree?.total === b.tree?.total && a.tree?.edges.length === b.tree?.edges.length && a.running === b.running && a.analyzing === b.analyzing);

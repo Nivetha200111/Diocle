@@ -21,7 +21,7 @@ import hmac
 from fastapi import Header
 
 from . import asks, livesamples, public
-from .deliveries import get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
+from .deliveries import drawing_file, get_delivery, list_deliveries, running_delivery, start_delivery, start_lock
 from .deliver import GITHUB_URL, validate_create_target
 from .reproducers import regression_case, run_reproducers
 from .mutation import get_mutation, run_mutation
@@ -164,6 +164,20 @@ def delivery(delivery_id: str) -> dict:
 
 
 
+@app.get("/deliveries/{delivery_id}/dependency-drawing")
+def delivery_drawing(delivery_id: str):
+    """The delivery's Muse Image drawing, only if it passed the check (contracts/delivery.schema.json dependencyDrawing). The id is
+    the only input; a drawing that did not pass was never kept."""
+    from fastapi.responses import FileResponse
+
+    found = drawing_file(delivery_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no checked drawing for this delivery")
+    path, media_type = found
+    return FileResponse(path, media_type=media_type, headers={
+        "Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'"})
+
+
 class CreateTarget(BaseModel):
     """contracts/delivery.schema.json $defs.createTarget (validated again by deliver.validate_create_target)"""
     model_config = {"extra": "forbid"}
@@ -257,14 +271,15 @@ def start(request: DeliveryRequest, http: Request, x_diocle_admin: str | None = 
                     raise ValueError("a target repository is required")
                 return {"id": start_delivery(request.legacy, request.target, request.parallel, request.breaker,
                                                convert_anyway=request.convertAnyway,
-                                               create_target=validate_create_target(**request.createTarget.model_dump()) if request.createTarget else None)}
+                                               create_target=validate_create_target(**request.createTarget.model_dump()) if request.createTarget else None,
+                                               tree_drawing=public.tree_drawing_mode(None))}
             if not GITHUB_URL.match(request.legacy.strip()):
                 raise ValueError(f"not a GitHub repository URL: {request.legacy!r}")
             busy = running_delivery() or livesamples.running_job()
             if busy:
                 raise RuntimeError(f"{busy} is still running; try again when it finishes")
             public.admit(_visitor(http))
-            return {"id": start_delivery(request.legacy, None, False, False, public=True)}
+            return {"id": start_delivery(request.legacy, None, False, False, public=True, tree_drawing=public.tree_drawing_mode(_visitor(http)))}
     except PermissionError as e:
         raise HTTPException(status_code=429, detail=str(e))
     except RuntimeError as e:

@@ -9,6 +9,11 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v16 (https://youtu.be/glTLob7S-60), uses only the owner's own recorded voice; no synthetic voice is in it.
 
+## Nov 4: dependency trees on imports (branch `import-trees`, local, not pushed or deployed)
+- **Tree:** every new delivery records the analyzer's call, copy and job links as `dependencyTree` (delivery contract v0.9) when analysis finishes, and the delivery page shows them grouped and collapsed. No model.
+- **Drawing:** optional and off unless the server sets `TREE_IMAGE_MODEL_ID` (contract v0.10, `services/converter/diocle_converter/treedraw.py`). One small part per delivery, hard caps in the code, separate from the import budget. One real run: the 3 links of `BANK-MAIN`, 1 image, passed on attempt 1, read-back about $0.03. It has not run on the engine, and no real image failure or rejection has gone through this job. [DEPENDENCY_TREES.md](DEPENDENCY_TREES.md) has the limits.
+- **Open:** this is new product code under the Oct 31 feature lock, built on a request relayed as the owner's decision; the owner decides whether and when it merges. Going live needs the merge, `sh deploy/update-engine.sh` and the two lines in `deploy/diocle.env`.
+
 ## Nov 4: pre-submission wording (branch `pre-submit-wording`, local, not pushed)
 - **README:** the "Start here" table moved directly under the opening line. No line was changed or removed, only reordered.
 - **Sidebar source:** `workspace.tsx` no longer says "a proof that both behave the same". The block is hidden by `retro.css`, so nothing visible changes; the old sentence was only in the page's HTML.

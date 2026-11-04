@@ -97,7 +97,56 @@ def get_delivery(delivery_id: str) -> dict | None:
         p["run"] = _run_summary(p.get("runId"))
     if d.get("pullRequest"):
         d["pullRequest"]["checks"] = pr_checks(d["pullRequest"]["url"])
+    drawing = _drawing_record(delivery_id)
+    if drawing:
+        d["dependencyDrawing"] = drawing
     return d
+
+
+DRAWING_STALE_SECONDS = 660  # past deliver.TREE_DRAW_SECONDS: the job is gone, whatever its record says
+_DRAWING_FILES = {"image/png": "tree-drawing.png", "image/webp": "tree-drawing.webp", "image/jpeg": "tree-drawing.jpg"}  # treedraw.IMAGE_FILES
+_DRAWING_MAGIC = {"image/png": b"\x89PNG\r\n\x1a\n", "image/webp": b"RIFF", "image/jpeg": b"\xff\xd8\xff"}
+MAX_DRAWING_BYTES = 4_000_000  # treedraw.MAX_IMAGE_BYTES
+
+
+def _drawing_record(delivery_id: str) -> dict | None:
+    """contracts/delivery.schema.json dependencyDrawing: the drawing job's own file, beside the delivery's."""
+    path = _deliveries_dir() / delivery_id / "tree-drawing.json"
+    try:
+        record = json.loads(path.read_text())
+        age = time.time() - path.stat().st_mtime
+    except (OSError, ValueError):
+        return None
+    if not isinstance(record, dict):
+        return None
+    if record.get("status") == "drawing" and age > DRAWING_STALE_SECONDS:
+        was_read = any(a.get("outcome") != "image-error" for a in record.get("attempts") or [])
+        record.update(status="failed" if was_read else "not-drawn", reason="job-stopped")
+    return record
+
+
+def drawing_file(delivery_id: str) -> tuple[Path, str] | None:
+    """(file, media type) of a drawing that passed, else None. The delivery id is the only input and must be a plain id; the file
+    name comes from a fixed table, and the file must be a regular file of the type the record states."""
+    if not RUN_ID.match(delivery_id):
+        return None
+    record = _drawing_record(delivery_id)
+    if not record or record.get("status") != "passed" or record.get("verified") is not True:
+        return None
+    media_type = record.get("mediaType")
+    name = _DRAWING_FILES.get(media_type) if isinstance(media_type, str) else None
+    if not name:
+        return None
+    path = _deliveries_dir() / delivery_id / name
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_DRAWING_BYTES:
+            return None
+        with path.open("rb") as f:
+            if not f.read(16).startswith(_DRAWING_MAGIC[media_type]):
+                return None
+    except OSError:
+        return None
+    return path, media_type
 
 
 # One start at a time across request threads: the busy check, the visitor budget and the new delivery record
@@ -162,9 +211,10 @@ def _mark_failed(delivery_id: str, error: str) -> None:
 
 
 def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: bool, public: bool = False,
-                   convert_anyway: bool = False, create_target: dict | None = None) -> str:
+                   convert_anyway: bool = False, create_target: dict | None = None, tree_drawing: str | None = None) -> str:
     """Start diocle_api.deliver in the background and return its id. One delivery at a time (rule 10).
-    public: a visitor import (no target, any public repository, sandboxed, capped, no GitHub token)."""
+    public: a visitor import (no target, any public repository, sandboxed, capped, no GitHub token).
+    tree_drawing: deliver.py --tree-drawing, or None for no drawing."""
     import sys
 
     from .deliver import GITHUB_URL, target_repo, validate_create_target
@@ -192,7 +242,8 @@ def start_delivery(legacy: str, target: str | None, parallel: bool, breaker: boo
     cmd = [sys.executable, "-m", "diocle_api.deliver", legacy.strip(), *([target.strip()] if target else []),
            "--id", delivery_id, *(["--public"] if public else []),
            *(["--parallel"] if parallel else []), *(["--breaker"] if breaker else []),
-           *(["--convert-anyway"] if convert_anyway else [])]
+           *(["--convert-anyway"] if convert_anyway else []),
+           *(["--tree-drawing", tree_drawing] if tree_drawing else [])]
     if create_target:  # argv from validated fields only: list form, no shell
         cmd += ["--create-target", create_target["name"], *(["--target-owner", create_target["owner"]] if create_target["owner"] else []),
                 *(["--target-public"] if create_target["visibility"] == "public" else [])]

@@ -453,8 +453,8 @@ export default function DeliveryView() {
         ))}
       </div>
 
-      <DeliveryDependencyTree key={delivery.id} repository={delivery.legacy.repository} commit={delivery.legacy.commit}
-        tree={delivery.dependencyTree} running={running} analyzing={delivery.stage === "analyzing"} />
+      <DeliveryDependencyTree key={delivery.id} id={delivery.id} repository={delivery.legacy.repository} commit={delivery.legacy.commit}
+        tree={delivery.dependencyTree} drawing={delivery.dependencyDrawing} running={running} analyzing={delivery.stage === "analyzing"} />
 
       <div className="dlv-grid">
         {delivery.programs.map((p) => <ProgramCard key={p.path ?? p.name} p={p} />)}

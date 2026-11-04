@@ -31,6 +31,18 @@ export type CreateTarget = { name: string; owner?: string | null; visibility?: "
 export type DependencyEdge = { from: string; to: string; kind: "call" | "copy" | "job" };
 export type DependencyTree = { edges: DependencyEdge[]; total: number; truncated: boolean };
 
+// contracts/delivery.schema.json dependencyDrawing (v0.10). Only status "passed" has a picture.
+export type DependencyDrawing = {
+  status: "drawing" | "passed" | "failed" | "not-drawn";
+  reason?: string | null;
+  verified: boolean;
+  passedOnAttempt?: number | null;
+  part?: { program: string; edges: string[][] } | null;
+  attempts: { attempt: number; outcome: string }[];
+};
+
+export const dependencyDrawingUrl = (id: string) => `${API_URL}/deliveries/${encodeURIComponent(id)}/dependency-drawing`;
+
 export type Delivery = {
   id: string;
   legacy: { repository: string; commit: string | null };
@@ -51,6 +63,8 @@ export type Delivery = {
   ciNotAdded?: string | null;
   /** The analyzer's links, recorded when analysis finishes: absent on older deliveries. */
   dependencyTree?: DependencyTree | null;
+  /** One capped Muse Image drawing of a small part of the tree: absent when the engine has it off, and on older deliveries. */
+  dependencyDrawing?: DependencyDrawing | null;
   /** Whole-repository build check (contracts/build-report.schema.json, summarised): absent on older deliveries. */
   buildCheck?: {
     verdict: "pass" | "fail" | "warn";

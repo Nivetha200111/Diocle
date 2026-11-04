@@ -79,6 +79,24 @@ def admit(visitor: str) -> None:
         _seen[key] = recent + [now]
 
 
+def tree_drawing_mode(visitor: str | None) -> str | None:
+    """deliver.py --tree-drawing for a delivery that is about to start: None while TREE_IMAGE_MODEL_ID is empty (off, and no visitor
+    is counted). A visitor gets one drawing job a day, in its own bucket; past that the import goes ahead with a note and no drawing,
+    so this never refuses an import and has nothing to do with the import budget. None as visitor: the admin path.
+    Best effort like the other per-visitor limits (in memory, never on disk); the image ledger on disk is the hard limit."""
+    if not os.environ.get("TREE_IMAGE_MODEL_ID"):
+        return None
+    if visitor is None:
+        return "draw"
+    with _lock:
+        key, now = f"tree-drawing:{visitor_key(visitor)}", time.time()
+        recent = [t for t in _seen.get(key, []) if now - t < 86400]
+        if recent:
+            return "visitor-cap"
+        _seen[key] = [now]
+    return "draw"
+
+
 def visitor_key(visitor: str) -> str:
     return hashlib.sha256(visitor.encode()).hexdigest()[:16]
 

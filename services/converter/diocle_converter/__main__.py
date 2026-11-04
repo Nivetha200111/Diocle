@@ -139,6 +139,10 @@ def main(argv: list[str] | None = None) -> int:
     tr.add_argument("--sandbox", action="store_true", help="compile and run the transcription ONLY inside the sandbox container "
                     "(DIOCLE_SANDBOX_URL, needs --against); nothing model-written is built or run on this machine. This is the "
                     "public \"Read a printout\" path. Implies the differential.")
+    tree = sub.add_parser("tree-draw", help="one capped Muse Image drawing of a delivery's dependency tree, checked by a read-back "
+                          "(started by services/api; off unless TREE_IMAGE_MODEL_ID is set; see treedraw.py)")
+    tree.add_argument("delivery_dir", type=Path)
+    tree.add_argument("--ledger", type=Path, required=True, help="the file that counts images across all deliveries")
     repo = sub.add_parser("repo", help="the whole pipeline on a local directory or GitHub repository (see README, 'Running on "
                           "your own repo'); a thin wrapper over services/api diocle_api.deliver")
     repo.add_argument("source", help="local directory or https://github.com/<owner>/<repo>")
@@ -156,6 +160,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "ask":
         from . import ask as ask_module
         return ask_module.run_cli(args)
+    if args.command == "tree-draw":
+        from .treedraw import run_cli
+        return run_cli(args)
     if args.command == "transcribe":
         return _transcribe(args)
     if args.command == "repo":

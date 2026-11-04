@@ -66,3 +66,5 @@
 .dep-group > summary:focus-visible { outline: 2px solid #000; outline-offset: -2px; }
 .dep-group > .tree-list { padding: 0 8px 8px 16px; }
 .app-shell .dep-count { font-size: 13px; }
+.dep-section .dep-drawing-line { padding: 8px 14px 0; }
+.dep-section .dep-drawing { padding: 8px 14px 0; max-width: 420px; display: grid; gap: 6px; }

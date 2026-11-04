@@ -13,6 +13,28 @@ Each new delivery, visitor imports included, records the analyzer's links in `de
 - **On the page:** the delivery page shows the repository and commit and one collapsed group per program or JCL job. A group's tree is built only when it is opened, so a repository with hundreds of links stays quick (the check script times 1,000 links). Labels come from the imported repository and are rendered as text only.
 - **Impact covers only the links in the report.** It does not cover everything that could break at run time. A delivery from before this field shows one line saying no tree is recorded.
 
+## An optional drawing of one small part of an import
+
+A delivery can also get one Muse Image drawing, by the same check as the results below. It is off unless the engine sets `TREE_IMAGE_MODEL_ID`; with that empty, nothing is called or written and the page shows one neutral line. It runs as its own job after the analyzer's tree is recorded (`services/converter/diocle_converter/treedraw.py`, record `dependencyDrawing` in the contract, v0.10). A failed or capped drawing never fails or delays a delivery.
+
+- **What is drawn:** the first program or job in analyzer order with 2 to 8 links of its own, those links only, never a whole repository. A link from a name to itself is not drawn. A part with a label outside `^[A-Z0-9#@$-]{1,30}( [A-Z0-9#@$-]{1,30})?$` after upper-casing is skipped and the next one is considered, so a repository's text cannot reach the image prompt as instructions.
+- **The read-back** gets the picture and a fixed prompt, never the graph. Its reply is parsed as data only and goes through the exact comparison.
+- **Caps, each checked before the call it limits, failing closed:**
+
+| Cap | Limit | Enforced by |
+|---|---|---|
+| Attempts per delivery | 2 | The job, and the image ledger on disk |
+| Images a day, all visitors together | 6, over a rolling 24 hours | The image ledger on disk, written before each call, so a failed call still counts. An unreadable ledger means no call |
+| Drawing jobs per visitor a day | 1 | The API, in memory, by address, like the other per-visitor limits: best effort, and an engine restart resets it. The ledger is the hard limit |
+| At one time | 1 | A file lock; a second job records `busy` and draws nothing |
+| Read-back spend per delivery | $0.15 | The job, at the Muse Wonder list price; the worst case of a read (4,000 input and 3,500 output tokens, the output capped in the request) must fit before an image is drawn. A read with no usage, or one lost to a dropped connection, is charged that worst case |
+
+The caps are constants in the code, not settings. Muse Image's price is not published, so it is not given one: images are counted, and the token usage it returns is recorded. This spend is separate from the public budget for imports (`DIOCLE_PUBLIC_DAILY_USD`): it does not draw from it and is not stopped by it, so **Muse Image's cost is limited only by the image count.**
+
+- **What is kept:** only a drawing that passed, at most 4 MB, in the delivery's own directory under a fixed name, served by `GET /deliveries/{id}/dependency-drawing`. A drawing that did not pass is not kept, so it cannot be looked at afterwards. Its counts stay in the record.
+- **On the page:** a pass says so and names the attempt. A drawing that did not pass shows one line, and so does a delivery with no drawing. A rejection can be wrong, as below, and a pass is not a proof.
+- **One real run through this job** (Nov 4, not on the live engine): the 3 links of `BANK-MAIN` from `fzn0x/core-banking-system`, 1 image, passed on attempt 1, read-back about $0.03. One run shows it works; it says nothing about how often it passes.
+
 ## Results
 
 Raw records: [`results-dependency-trees.json`](../eval/results-dependency-trees.json), whole graphs, up to 2 attempts each; [`results-dependency-trees-parts.json`](../eval/results-dependency-trees-parts.json), one program at a time, up to 3 attempts each. The generator is `eval/draw_dependency_trees.py`. Every attempt is recorded.

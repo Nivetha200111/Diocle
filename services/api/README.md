@@ -14,7 +14,8 @@ Status: **working.** It serves runs and deliveries to the dashboard, starts deli
 | `POST /runs/{id}/mutation` | Runs mutation testing on the run's Java; can take minutes, no model |
 | `GET /runs/{id}/reproducers` | Smallest-reproducer records for the run |
 | `GET /runs/{id}/reproducers/{case}/regression` | The regression case saved with one reproducer |
-| `GET /deliveries`, `GET /deliveries/{id}` | Stored deliveries ([`contracts/delivery.schema.json`](../../contracts/delivery.schema.json)). One delivery carries `dependencyTree`: the analyzer's distinct call, copy and job links, first 1,000 in analyzer order (`total`, `truncated`), recorded when analysis finishes, with no model ([details](../../docs/DEPENDENCY_TREES.md)); absent on older deliveries |
+| `GET /deliveries`, `GET /deliveries/{id}` | Stored deliveries ([`contracts/delivery.schema.json`](../../contracts/delivery.schema.json)). One delivery carries `dependencyTree`: the analyzer's distinct call, copy and job links, first 1,000 in analyzer order (`total`, `truncated`), recorded when analysis finishes, with no model ([details](../../docs/DEPENDENCY_TREES.md)); absent on older deliveries. With `TREE_IMAGE_MODEL_ID` set it can also carry `dependencyDrawing`, one capped Muse Image drawing of a small part, read from the job's own `tree-drawing.json` |
+| `GET /deliveries/{id}/dependency-drawing` | That drawing, only if it passed the check, else 404. The delivery id is the only input; the file name comes from a fixed table |
 | `POST /deliveries` | With the admin passcode: a pull request on an allowed target. Without it: a visitor import of a public repository, sandboxed and capped, with no pull request |
 | `GET /config` | Public settings, caps and live status |
 | `POST /samples/live`, `GET /samples/live/{id}` | The two live buttons and their job status ([`contracts/live-sample.schema.json`](../../contracts/live-sample.schema.json)) |
@@ -42,4 +43,4 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn diocle_api.app:app --port 8000
 .venv/bin/python -m pytest -q
 ```
-`DIOCLE_RUNS_DIR` overrides where runs are read from. `DIOCLE_WEB_ORIGINS` sets the allowed CORS origins (default: localhost ports 3000 and 3001). The API process calls no model itself: deliveries, live buttons and asks run as separate jobs, under their own caps.
+`DIOCLE_RUNS_DIR` overrides where runs are read from. `DIOCLE_WEB_ORIGINS` sets the allowed CORS origins (default: localhost ports 3000 and 3001). The API process calls no model itself: deliveries, live buttons, asks and the optional tree drawing run as separate jobs, under their own caps. Starting a delivery with `TREE_IMAGE_MODEL_ID` set adds one drawing job, in `services/converter`, which holds the model calls and the hard caps ([details and limits](../../docs/DEPENDENCY_TREES.md)); the API counts one drawing job per visitor a day and never refuses an import over it.

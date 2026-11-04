@@ -335,6 +335,38 @@ def dependency_tree(report: dict) -> dict | None:
     return {"edges": edges, "total": len(seen), "truncated": len(seen) > len(edges)}
 
 
+TREE_DRAW_SECONDS = 600  # treedraw.JOB_SECONDS, plus a margin for the last call to end
+_TREE_DRAW_ENV = ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "PYTHONPATH", "TREE_IMAGE_MODEL_ID", "META_MODEL_API_KEY", "META_MODEL_BASE_URL",
+                  "VISION_MODEL_ID", "VISION_MODEL_API_KEY", "VISION_MODEL_BASE_URL", "VISION_REASONING_EFFORT")
+
+
+def _run_tree_drawing(delivery_dir: Path) -> None:
+    """The drawing job, in a thread of the delivery process. It writes only its own files in the delivery directory, so it can
+    never touch delivery.json, and nothing here may ever fail the delivery."""
+    try:
+        with (delivery_dir / "tree-drawing.log").open("w") as log:
+            subprocess.run([str(SERVICES / "converter/.venv/bin/python"), "-m", "diocle_converter", "tree-draw", str(delivery_dir),
+                            "--ledger", str(REPO_ROOT / "runs" / "tree-drawings" / "images.jsonl")],
+                           cwd=SERVICES / "converter", stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, timeout=TREE_DRAW_SECONDS,
+                           env={k: v for k, v in os.environ.items() if k in _TREE_DRAW_ENV})
+    except Exception as e:  # the type only: the record stays "drawing" until deliveries.py calls it stopped
+        print(f"tree drawing: could not run ({type(e).__name__}); the delivery continues", flush=True)
+
+
+def start_tree_drawing(delivery_dir: Path, mode: str) -> None:
+    """After the analyzer's tree is recorded, without delaying conversion. mode: "draw", or "visitor-cap" when the API counted this
+    visitor's drawing for the day already. Off, with nothing written, while TREE_IMAGE_MODEL_ID is empty."""
+    if not os.environ.get("TREE_IMAGE_MODEL_ID"):
+        return
+    try:
+        if mode == "visitor-cap":
+            (delivery_dir / "tree-drawing.json").write_text(json.dumps({"status": "not-drawn", "reason": "visitor-cap", "verified": False, "attempts": []}) + "\n")
+        else:
+            threading.Thread(target=_run_tree_drawing, args=(delivery_dir,), name="tree-drawing").start()
+    except Exception as e:
+        print(f"tree drawing: could not start ({type(e).__name__}); the delivery continues", flush=True)
+
+
 class Progress:
     """runs/deliveries/<id>/delivery.json (contracts/delivery.schema.json), rewritten at every step."""
 
@@ -883,6 +915,8 @@ def main(argv: list[str] | None = None) -> int:
                              "does not compile is patched first. REPO_MAX_USD (default 1.00) caps the whole delivery.")
     parser.add_argument("--public", action="store_true",
                         help="a visitor's import: needs the sandbox, visitor caps, no pull request, no swarm or breaker")
+    parser.add_argument("--tree-drawing", choices=["draw", "visitor-cap"], help="set by the API: one capped Muse Image drawing of a small "
+                        "part of the dependency tree (needs TREE_IMAGE_MODEL_ID), or a note that this visitor's drawing for the day is used up")
     args = parser.parse_args(argv)
     if args.public and args.domain_classes:
         parser.error("--domain-classes is not available to visitor imports (--public)")
@@ -936,6 +970,8 @@ def main(argv: list[str] | None = None) -> int:
         if tree is not None:
             progress.state["dependencyTree"] = tree
         progress.save()
+        if tree is not None and args.tree_drawing:
+            start_tree_drawing(progress.path.parent, args.tree_drawing)
         wanted = set(args.programs.split(",")) if args.programs else None
         refused = _refusals([p for p in report["programs"] if not p["convertible"] and not convert_anyway and (wanted is None or p["name"] in wanted)])
         report["programs"] = [p for p in report["programs"] if (p["convertible"] or convert_anyway) and (wanted is None or p["name"] in wanted)]
