@@ -2,12 +2,12 @@
 
 Things only the owner can fill in or confirm. Nothing here is done by the build sessions. Deadline: Nov 4, 2026, 9 PM ET (Nov 5, 7:30 AM IST). Status as of Nov 3, 2026: open boxes below. Draft text to paste: [SUBMISSION_TEXT.md](SUBMISSION_TEXT.md).
 
-- [x] **Final cut uploaded:** https://youtu.be/mF12P8oeOBk (2:53, replaces v16; new three-part opening, a sentence on what pre-existed from the first frame, the delivered pull request and its CI as the climax, real pages replacing most slides, captions, ElevenLabs narration, synthesised music and sound effects).
+- [x] **Final cut uploaded:** https://youtu.be/GgrC0R34QJ4 (2:57, replaces v16; new three-part opening, a sentence on what pre-existed from the first frame, the delivered pull request and its CI as the climax, real pages replacing most slides, captions, ElevenLabs narration, synthesised music and sound effects).
 - [x] **YouTube title.** Names Diocle and the Meta Global AI Developer Hackathon.
 - [ ] **CI green on the submitted commit**, on GitHub, not only locally (`gh run list --workflow test`).
 - [x] **Engine deploy after PR #1.** On `7f87dc2`, Nov 2, with PR #1 ("Nothing to convert") and the clearer no-GitHub-login message; re-check afterwards: 1,004 of 1,004.
 
-- [x] **Demo video link.** https://youtu.be/mF12P8oeOBk is in the first line of [README.md](../README.md); it opens without signing in, and it is public (checked Nov 4 through YouTube's public oEmbed endpoint).
+- [x] **Demo video link.** https://youtu.be/GgrC0R34QJ4 is in the first line of [README.md](../README.md); it opens without signing in, and it is public (checked Nov 4 through YouTube's public oEmbed endpoint).
 - [x] **X post of the final cut (owner reports posted, Nov 4); add its link to the form.** Post the demo on X within the hour after submitting and add the post link to the submission form (Most Viral needs it; Community Vote runs in the public gallery). No vertical cut exists. Post the final cut; X may limit free accounts to 2:20, so link the YouTube video if the upload is refused.
 - [ ] **Repository is public** and the default branch shows the latest commit (visibility was `PUBLIC` on Oct 31; recheck at submission).
 - [x] **Meta Model API credits claimed (owner, Nov 2)** before Nov 4, 9 PM ET (the claim form is in the official participant guide).

@@ -1,6 +1,6 @@
 # Walkthrough: every feature, with screenshots
 
-**Video:** https://youtu.be/mF12P8oeOBk · **Live site:** https://diocle.vercel.app · All programs and data are synthetic.
+**Video:** https://youtu.be/GgrC0R34QJ4 · **Live site:** https://diocle.vercel.app · All programs and data are synthetic.
 
 Each picture says where it came from: **live** was captured from the public site on Nov 4, 2026, read-only unless stated; **live, Nov 1** is an earlier capture of a page or GitHub view that has not changed in substance; **recording** is a frame from a recording made during the hackathon, of a real run, on the interface as it was then. Numbers are from those runs; what "certified" means and does not mean is in the [README](../README.md#limits).
 
