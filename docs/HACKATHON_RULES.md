@@ -38,7 +38,7 @@ Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to 
   Hackathon"; one of the primary judging artifacts with the code and the live product. Judges "must be able to
   clearly identify what was created during the Hackathon" or it is disqualification at their discretion.
 - **No rule against an AI voiceover.** It counts as an asset: we need the rights to it (own voice, an Apache-2.0
-  model such as Kokoro, or a Meta model). If synthetic, say so on the end card and in the description.
+  model such as Kokoro, or a Meta model). If synthetic, say so; we disclose it in the README and the video description.
 - **Meta models named in the guide:** Muse Spark series, Muse Wonder, Muse Image, Muse Voice, Transcribe, SAM 3.1 (Meta
   Model API); open weights Muse Glimmer and Muse Spark Open; Muse Code coding agent.
 - **Schedule (ET):** submissions due Wed Nov 4, 9:00 PM on the CV platform; judging Nov 5-8; closing ceremony Mon

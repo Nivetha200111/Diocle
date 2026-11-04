@@ -7,7 +7,13 @@ Newest state at the top of each section. Dates are 2026, times IST unless marked
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
-> v16 (https://youtu.be/glTLob7S-60), uses only the owner's own recorded voice; no synthetic voice is in it.
+> the Nov 4 final cut (https://youtu.be/6pk5W6bsaQ4), has a synthetic narration voice (ElevenLabs), disclosed in the README and the video description.
+
+## Nov 4: final video cut
+- **What:** https://youtu.be/6pk5W6bsaQ4, 2:58, replaces v16 as the linked video. 1980s to 90s terminal slides in 3270 colours, real site footage in a laptop frame, and a new opening: twenty became zero, COBOL developers retiring, and their work falling to junior engineers.
+- **Narration:** a synthetic voice (ElevenLabs), the owner's decision. Disclosed in the README and the video description, not in the video.
+- **Compliance:** the docs now describe this cut. CardDemo is no longer shown in the video, though its recorded run stays linked as evidence.
+- **Open:** the owner confirms the ElevenLabs plan covers this use; the X post of this cut and its link in the form.
 
 ## Nov 4: dependency trees on imports (on `main`; the owner approved the push and deploy directly)
 - **Live on Nov 4:** engine deployed at `82c25b7` with `TREE_IMAGE_MODEL_ID` set. `delivery-20261104-072240` (fzn0x/core-banking-system): tree of 4 links, drawing passed on attempt 1, programs not certified. `delivery-20261104-084325` (AWS CardDemo): 3 certified, tree of 340 links, no drawing because of the visitor cap, as designed.

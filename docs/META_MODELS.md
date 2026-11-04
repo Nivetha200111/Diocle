@@ -31,6 +31,6 @@ Translator writes Java. Repair agent uses tools to address mismatches the compar
 
 ## Not Meta models, and why they are disclosed
 
-- The demo video narration is the author's own recorded voice; no speech synthesis is used in the video. See [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
+- The demo video narration is a synthetic voice (ElevenLabs), not a Meta model and not part of the product. See [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
 - The two spoken-question clips in the product are the author's own recorded voice (`services/api/diocle_api/voice_clips/`).
 - GnuCOBOL is the verifier's oracle and is not a model.
