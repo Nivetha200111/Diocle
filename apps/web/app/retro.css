@@ -1480,6 +1480,7 @@ a.nav-item {
 /* ---------- folds: a page reads as a list of headings; the detail is one click away and stays in the DOM ---------- */
 .fold-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   min-width: 0;
 }
@@ -1688,4 +1689,73 @@ a.nav-item {
     font-size: 24px !important;
     padding-inline: 4px;
   }
+}
+
+/* folds that carry bad news keep their warning colour */
+.fold.breaker-broke > .fold-head h2,
+.fold.behavior-refuted > .fold-head h2,
+.fold.db-failing > .fold-head h2 {
+  color: #a00000;
+}
+.fold[open].breaker-broke > .fold-head h2,
+.fold[open].behavior-refuted > .fold-head h2,
+.fold[open].db-failing > .fold-head h2 {
+  color: #fff !important;
+}
+.fold-body > .table-scroll {
+  margin-inline: 3px;
+}
+.fold-head h2 svg {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+/* run page */
+.run-note {
+  margin: 6px 0 0;
+}
+.run-note > summary {
+  color: #7a4b00;
+}
+/* bug wall: the two values and one line; the rest behind one click */
+.bug-grid {
+  align-items: start;
+}
+.bug-short {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+}
+.bug-more {
+  margin: 0;
+}
+.bug-folds {
+  margin-top: 12px;
+}
+.bug-folds .bug-grid {
+  padding: 4px 8px 8px;
+}
+.fold.bug-mutants {
+  display: block;
+  padding: 0;
+}
+.bug-mutants .fold-body {
+  display: grid;
+  gap: 8px;
+  padding: 8px 12px 12px;
+}
+/* mission */
+.mc-tiers-more,
+.mc-held-more {
+  margin: 8px 0 0;
+}
+/* a long cell wraps instead of running off the panel: a cut-off value reads as a different value */
+.plain-body,
+.plain-body > div {
+  min-width: 0;
+}
+.plain-checks td,
+.breaker-panel .data-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

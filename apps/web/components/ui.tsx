@@ -190,9 +190,10 @@ export function Skeleton({ rows = 3, label = "Loading" }: { rows?: number; label
 
 // A panel that reads as one heading until opened. The content stays in the DOM, so find-in-page, screen readers and old
 // links can still reach it. `hint` is plain text: a summary must not hold links, and it keeps any qualifier a number needs.
-export function Fold({ id, title, hint, className = "", children }: { id?: string; title: ReactNode; hint?: ReactNode; className?: string; children: ReactNode }) {
+// `open` starts it open: a panel carrying bad news (blocked, refuted, differing) is never folded away.
+export function Fold({ id, title, hint, className = "", open, children }: { id?: string; title: ReactNode; hint?: ReactNode; className?: string; open?: boolean; children: ReactNode }) {
   return (
-    <details className={`panel fold ${className}`} id={id}>
+    <details className={`panel fold ${className}`} id={id} open={open}>
       <summary className="fold-head">
         <h2>{title}</h2>
         {hint && <span className="fold-hint">{hint}</span>}

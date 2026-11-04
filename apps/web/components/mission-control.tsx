@@ -59,7 +59,7 @@ export default function MissionControl({ embedded = false }: { embedded?: boolea
         <LiveSamples />
         <AskPanel />
         </>}
-        {embedded && <p className="mc-note">Looking for the live buttons (convert a sample, read a printout, ask by voice)? They are on <a href="/try">Try it live</a>. Only the verifier (GnuCOBOL against the Java, on the same inputs) can certify anything; the models propose.</p>}
+        {embedded && <p className="mc-note">Live buttons: <a href="/try">Try it live</a>. Only the verifier (GnuCOBOL against the Java, on the same inputs) can certify anything; the models propose.</p>}
         {!embedded && <h2 className="mc-replay-h">Replay of a recorded run</h2>}
         {!embedded && <p className="mc-note">Everything below this line is a replay of a run that was recorded earlier. It is not live and calls no model.</p>}
         {failed && (
@@ -145,9 +145,8 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
       <section className="mc-banner" aria-label="About this replay">
         <strong>Replay of a recorded run</strong>
         <span>
-          Run <code>{run.id}</code>, recorded {when(run.createdAt)} · {run.program} · {statusWord(run)}.
-          Nothing here is live: it steps through the events and model calls stored with the run, in their recorded order
-          (run events carry no timestamps, so pauses are not real durations).
+          Run <code>{run.id}</code>, recorded {when(run.createdAt)} · {run.program} · {statusWord(run)}. Not live.
+          Run events carry no timestamps, so pauses are not real durations.
         </span>
         <label className="mc-pick">
           <span>Run</span>
@@ -189,9 +188,57 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
         })}
       </section>
 
+      <section className="panel mc-timeline" aria-label="Replay timeline">
+        <div className="panel-heading">
+          <div><h2>Timeline</h2><p>{N ? `Step ${at} of ${N}. ${cur ? cur.title : "Press play to start."}` : "This run stored no events to replay."}</p></div>
+        </div>
+        <div className="mc-body">
+          {N > 0 && (
+            <div className="mc-controls">
+              <button type="button" className="button primary" onClick={toggle}>{playing ? "Pause" : done ? "Replay" : "Play"}</button>
+              <label className="mc-scrub">
+                <span className="sr-only">Scrub through the recorded steps</span>
+                <input type="range" min={0} max={N} value={at} onChange={(e) => { setPlaying(false); setAt(Number(e.target.value)); }} aria-valuetext={`Step ${at} of ${N}`} />
+              </label>
+              <div role="group" aria-label="Playback speed" className="mc-speed">
+                {SPEEDS.map((s) => <button key={s} type="button" aria-pressed={speed === s} className={speed === s ? "on" : ""} onClick={() => setSpeed(s)}>{s}x</button>)}
+              </div>
+            </div>
+          )}
+          <ol className="mc-log" ref={log} tabIndex={0} aria-label="Recorded steps up to the playhead">
+            {shown.map((s) => (
+              <li key={s.id} className={`mc-ev mc-ev-${s.kind}${s === cur && !done ? " is-now" : ""}${s.kind === "breaker" ? (s.counterexample !== undefined ? " fail" : " pass") : ""}${s.cert ? (s.cert.passed ? " pass" : " fail") : ""}`}>
+                <span className="mc-tag">{AGENTS.find((a) => a.key === s.agent)?.name ?? "Engine"}</span>
+                <span className="mc-ev-main"><strong>{s.title}</strong>{s.detail ? <> <span>{s.detail}</span></> : null}</span>
+                {s.delta && <span className="mc-ev-cost">{usd(s.delta.usd)}</span>}
+              </li>
+            ))}
+            {!shown.length && N > 0 && <li className="mc-note">Waiting for the first step…</li>}
+          </ol>
+        </div>
+      </section>
+
+      <section className={`panel mc-cert${lastCert?.cert?.passed && done ? " is-green" : ""}`} aria-label="Held-out certification">
+        <div className="panel-heading"><div><h2>Held-out certification</h2><p>Run by the verifier.</p></div></div>
+        <div className="mc-body">
+          {lastCert ? (
+            <p className="mc-cert-line" role="status">
+              <span className={`mc-light ${lastCert.cert!.passed ? "ok" : "bad"}`} aria-hidden="true" />
+              {lastCert.cert!.result}
+              {done && final ? <strong> Final: {final.total > 0 ? `${num(final.passed)} of ${num(final.total)} inputs match, stdout ${final.stdoutMatch ? "matches" : "differs"}` : "no inputs were compared"}; {statusWord(run)}. {!run.certified ? "" : run.assurance === "certified-against-repaired-cobol" ? "Compared against the PATCHED COBOL, not the original; a person must confirm the patch." : "Certified on the inputs tried; not a proof of equivalence."}</strong> : null}
+            </p>
+          ) : <p className="mc-note">Not yet reached in the replay.</p>}
+          {certs.length > 1 && <p className="mc-note">{certs.length} certification rounds so far; the last one counts.</p>}
+          <details className="inline-more mc-held-more">
+            <summary>What held-out means here</summary>
+            <p>The certification inputs are fresh for each round and the repair agent is not shown them in that round, but failures from an earlier round can feed a later repair.</p>
+          </details>
+        </div>
+      </section>
+
       <div className="mc-grid">
         <section className="panel mc-meter" aria-label="Cost and tiers">
-          <div className="panel-heading"><div><h2>Cost meter</h2><p>Priced from the logged model calls. Each step&apos;s cost is assigned in call order within its role, so where it lands on the timeline is approximate.</p></div></div>
+          <div className="panel-heading"><div><h2>Cost meter</h2><p>Priced from the logged model calls.</p></div></div>
           <div className="mc-body">
             <div className="mc-cost">
               <span className="mc-cost-n">{usd(spent)}</span>
@@ -199,9 +246,10 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
               {finalUsd !== null && <span className="mc-cost-of">unattributed: {usd(Math.max(0, finalUsd - spent))}{finalUsd - spent > 0.00005 ? (done ? " (cost the replay could not place on a step)" : " (cost not yet reached by the replay)") : ""}</span>}
               <div className="mc-bar" aria-hidden="true"><i style={{ width: `${finalUsd ? Math.min(100, (spent / finalUsd) * 100) : 0}%` }} /></div>
             </div>
+            <p className="mc-note">Each step&apos;s cost is assigned in call order within its role, so where it lands on the timeline is approximate.</p>
             {tiers?.enabled ? (
-              <>
-                <h3 className="mc-sub">Model tiers for the repair agent</h3>
+              <details className="inline-more mc-tiers-more">
+                <summary>Model tiers for the repair agent</summary>
                 <ol className="mc-tiers">
                   {tiers.configured.map((m, i) => {
                     const p = priceOf(m);
@@ -219,7 +267,7 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
                   {tiers.breakerModel ? ` The breaker used ${tiers.breakerModel}.` : ""}
                   {tiers.capCalls !== undefined ? ` Tier spend cap: ${tiers.capCalls} calls or ${usd(tiers.capUsd ?? 0)}; used ${tiers.escalatedCalls ?? 0} calls, ${usd(tiers.escalatedUsd ?? 0)}.` : ""}
                 </p>
-              </>
+              </details>
             ) : <p className="mc-note">Tiers were not enabled in this run.</p>}
           </div>
         </section>
@@ -251,50 +299,6 @@ function Replay({ run, options, pick }: { run: Run; options: RunListItem[]; pick
           </div>
         </section>
       </div>
-
-      <section className={`panel mc-cert${lastCert?.cert?.passed && done ? " is-green" : ""}`} aria-label="Held-out certification">
-        <div className="panel-heading"><div><h2>Held-out certification</h2><p>Run by the verifier. The certification inputs are fresh for each round and the repair agent is not shown them in that round, but failures from an earlier round can feed a later repair.</p></div></div>
-        <div className="mc-body">
-          {lastCert ? (
-            <p className="mc-cert-line" role="status">
-              <span className={`mc-light ${lastCert.cert!.passed ? "ok" : "bad"}`} aria-hidden="true" />
-              {lastCert.cert!.result}
-              {done && final ? <strong> Final: {final.total > 0 ? `${num(final.passed)} of ${num(final.total)} inputs match, stdout ${final.stdoutMatch ? "matches" : "differs"}` : "no inputs were compared"}; {statusWord(run)}. {!run.certified ? "" : run.assurance === "certified-against-repaired-cobol" ? "Compared against the PATCHED COBOL, not the original; a person must confirm the patch." : "Certified on the inputs tried; not a proof of equivalence."}</strong> : null}
-            </p>
-          ) : <p className="mc-note">Not yet reached in the replay.</p>}
-          {certs.length > 1 && <p className="mc-note">{certs.length} certification rounds so far; the last one counts.</p>}
-        </div>
-      </section>
-
-      <section className="panel mc-timeline" aria-label="Replay timeline">
-        <div className="panel-heading">
-          <div><h2>Timeline</h2><p>{N ? `Step ${at} of ${N}. ${cur ? cur.title : "Press play to start."}` : "This run stored no events to replay."}</p></div>
-        </div>
-        <div className="mc-body">
-          {N > 0 && (
-            <div className="mc-controls">
-              <button type="button" className="button primary" onClick={toggle}>{playing ? "Pause" : done ? "Replay" : "Play"}</button>
-              <label className="mc-scrub">
-                <span className="sr-only">Scrub through the recorded steps</span>
-                <input type="range" min={0} max={N} value={at} onChange={(e) => { setPlaying(false); setAt(Number(e.target.value)); }} aria-valuetext={`Step ${at} of ${N}`} />
-              </label>
-              <div role="group" aria-label="Playback speed" className="mc-speed">
-                {SPEEDS.map((s) => <button key={s} type="button" aria-pressed={speed === s} className={speed === s ? "on" : ""} onClick={() => setSpeed(s)}>{s}x</button>)}
-              </div>
-            </div>
-          )}
-          <ol className="mc-log" ref={log} tabIndex={0} aria-label="Recorded steps up to the playhead">
-            {shown.map((s) => (
-              <li key={s.id} className={`mc-ev mc-ev-${s.kind}${s === cur && !done ? " is-now" : ""}${s.kind === "breaker" ? (s.counterexample !== undefined ? " fail" : " pass") : ""}${s.cert ? (s.cert.passed ? " pass" : " fail") : ""}`}>
-                <span className="mc-tag">{AGENTS.find((a) => a.key === s.agent)?.name ?? "Engine"}</span>
-                <span className="mc-ev-main"><strong>{s.title}</strong>{s.detail ? <> <span>{s.detail}</span></> : null}</span>
-                {s.delta && <span className="mc-ev-cost">{usd(s.delta.usd)}</span>}
-              </li>
-            ))}
-            {!shown.length && N > 0 && <li className="mc-note">Waiting for the first step…</li>}
-          </ol>
-        </div>
-      </section>
     </>
   );
 }

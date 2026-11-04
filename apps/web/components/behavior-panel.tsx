@@ -3,7 +3,7 @@
 import { FileText } from "lucide-react";
 import { downloadFile } from "@/lib/demo";
 import type { Behavior, BehaviorClaim, ClaimExample, ClaimStatus } from "@/lib/runs";
-import { Badge } from "./ui";
+import { Badge, Fold } from "./ui";
 import { actualLines, behaviorMarkdown, expectedLines, fields, flat } from "@/lib/behavior-markdown";
 
 export { behaviorMarkdown };
@@ -61,23 +61,18 @@ export function BehaviorPanel({ b }: { b: Partial<Behavior> }) {
   if (b.skipped) return null; // the trace and the model card already say why it did not run
   const s = { claims: 0, confirmed: 0, refuted: 0, unchecked: 0, examplesRun: 0, ...(b.summary ?? {}) };
   return (
-    <section className={`panel ${s.refuted ? "behavior-refuted" : ""}`}>
-      <div className="panel-heading">
-        <div>
-          <h2><FileText size={14} /> Behaviour spec · verified documentation</h2>
-          <p>
+    <Fold className={`${s.refuted ? "behavior-refuted" : ""}`} title={<><FileText size={14} /> Behaviour spec · verified documentation</>} hint={`${s.confirmed} of ${s.claims} claims confirmed on the examples tried; ${s.refuted} refuted, ${s.unchecked} unchecked.`} open={s.refuted > 0}>
+          <p className="home-pr">
             <strong>{s.confirmed} of {s.claims} claims confirmed on the examples tried</strong>
             {" "}({s.refuted} refuted, {s.unchecked} unchecked; {s.examplesRun} examples run).{" "}
             {b.model ?? "A model"} wrote the claims; the original COBOL, compiled with {b.checkedWith ?? "GnuCOBOL"}, decided each one. The model did not.
             Confirmed means the examples&apos; stated expectations held on GnuCOBOL; the sentence itself is not machine-checked.
             A refuted claim is kept and shown with what the COBOL actually produced.
           </p>
-        </div>
         <button type="button" className="button" onClick={() => downloadFile(`${flat(b.program ?? "program", 60)}-behaviour-spec.md`, behaviorMarkdown(b), "text/markdown")}>
           Download as Markdown
         </button>
-      </div>
       {(b.claims ?? []).map((c, i) => <Claim key={c.id ?? i} c={c} />)}
-    </section>
+    </Fold>
   );
 }

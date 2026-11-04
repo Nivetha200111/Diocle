@@ -2,7 +2,7 @@
 
 // Bug of the day: real catches from the engine's stored runs (see lib/bugs.ts). Read-only; no model call.
 import { useEffect, useState } from "react";
-import { Brand } from "./ui";
+import { Brand, Fold } from "./ui";
 import { fetchRun, fetchRuns, type Run } from "@/lib/runs";
 import { CARDS, MUTANTS, REPO_ONLY, fallbackCards, resolveCards, roleLabel, type Resolved } from "@/lib/bugs";
 
@@ -22,6 +22,9 @@ function Card({ r }: { r: Resolved }) {
         <div><span>The COBOL produced</span><code>{c.original}</code></div>
         <div><span>The AI-written Java produced</span><code>{c.java}</code></div>
       </div>
+      <p className="bug-short">{spec.short}</p>
+      <details className="inline-more bug-more">
+        <summary>Why it matters, and the run</summary>
       <dl className="bug-meta">
         <div><dt>Caught by</dt><dd>{roleLabel(c.role)}</dd></div>
         <div><dt>Model</dt><dd>{c.model}</dd></div>
@@ -32,6 +35,7 @@ function Card({ r }: { r: Resolved }) {
       <p className="bug-why"><strong>Why this matters.</strong> {spec.why}</p>
       {spec.caveat && <p className="bug-note">{spec.caveat}</p>}
       <p className="bug-src">Source: {external ? <a href={spec.source.href} target="_blank" rel="noreferrer">{spec.source.label}</a> : <a href={spec.source.href}>{spec.source.label}</a>}</p>
+      </details>
     </article>
   );
 }
@@ -61,8 +65,8 @@ export default function BugsView({ embedded = false }: { embedded?: boolean }) {
     <>
         {!embedded && <h1>Bug of the day</h1>}
         <p className="mc-lede">
-          Real mistakes in AI-written Java that the original COBOL, run side by side, exposed. Each card is read from a stored run on the
-          Diocle engine; a card that the run record no longer confirms is not shown. These were caught on the inputs tried, which is not
+          {!embedded && "Real mistakes in AI-written Java that the original COBOL, run side by side, exposed. "}
+          Each card is read from a stored run; one the record no longer confirms is not shown. Caught on the inputs tried, which is not
           a proof that no other difference exists.
         </p>
         {state.phase === "loading" && <section className="panel mc-empty" role="status"><p>Reading the stored runs from the engine.</p></section>}
@@ -86,21 +90,21 @@ export default function BugsView({ embedded = false }: { embedded?: boolean }) {
           {state.phase === "failed" && fallbackCards().map((r) => <Card key={r.spec.key} r={r} />)}
         </section>
 
-        <h2 className="bug-h2">Earlier catches recorded in the repository</h2>
-        <p className="mc-lede">Not read from a live run record: these come from the repository&apos;s documents and are labelled so.</p>
-        <section className="bug-grid" aria-label="Catches recorded in the repository">
-          {REPO_ONLY.map((spec) => <Card key={spec.key} r={{ spec, catch: spec.repo, live: false }} />)}
-        </section>
-
-        <h2 className="bug-h2">How we test the verifier</h2>
-        <section className="panel bug-mutants">
-          <p>These are not catches of a model. They are deliberately wrong programs written inside our unit tests, to prove that the verifier fails when it should. The tests run GnuCOBOL and Java for real.</p>
-          <ul>
-            {MUTANTS.map((m) => (
-              <li key={m.test}><strong>{m.title}.</strong> {m.how} <code>{m.test}</code></li>
-            ))}
-          </ul>
-        </section>
+        <div className="fold-list bug-folds">
+          <Fold id="earlier-catches" title="Earlier catches recorded in the repository" hint="Not read from a live run record: these come from the repository's documents and are labelled so.">
+            <section className="bug-grid" aria-label="Catches recorded in the repository">
+              {REPO_ONLY.map((spec) => <Card key={spec.key} r={{ spec, catch: spec.repo, live: false }} />)}
+            </section>
+          </Fold>
+          <Fold id="test-the-verifier" className="bug-mutants" title="How we test the verifier" hint="Deliberately wrong programs in our unit tests, not catches of a model.">
+            <p>These are not catches of a model. They are deliberately wrong programs written inside our unit tests, to prove that the verifier fails when it should. The tests run GnuCOBOL and Java for real.</p>
+            <ul>
+              {MUTANTS.map((m) => (
+                <li key={m.test}><strong>{m.title}.</strong> {m.how} <code>{m.test}</code></li>
+              ))}
+            </ul>
+          </Fold>
+        </div>
           </>
   );
   if (embedded) return <div className="mc-embedded">{body}</div>;

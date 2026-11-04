@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchMutation, runMutation, type MutationReport, type Run } from "@/lib/runs";
+import { Fold } from "./ui";
 
 // "How strong is this verification?": seeded faults vs the inputs that certified the Java. Every string below is
 // rendered as React text (escaped); nothing is injected as HTML. It is not a confidence score.
@@ -22,13 +23,8 @@ export function MutationPanel({ run }: { run: Run }) {
   const scored = c ? c.killed + c.timeout + c.survived : 0;
   const survivors = report?.mutants.filter((m) => m.outcome === "survived") ?? [];
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>How strong is this verification?</h2>
-          <p>Small realistic mistakes are seeded into a copy of the Java (a flipped comparison, a changed rounding mode, a dropped truncation). Would the inputs that certified it have noticed? No model is involved.</p>
-        </div>
-      </div>
+    <Fold title={<>How strong is this verification?</>} hint="Would the inputs that certified it notice small seeded mistakes? No model is involved.">
+          <p className="home-pr">Small realistic mistakes are seeded into a copy of the Java (a flipped comparison, a changed rounding mode, a dropped truncation). Would the inputs that certified it have noticed? No model is involved.</p>
       <div className="reverify">
         <button className="button primary" disabled={busy} title={disabledReason || undefined} onClick={async () => {
           setBusy(true);
@@ -100,6 +96,6 @@ export function MutationPanel({ run }: { run: Run }) {
           )}
         </div>
       )}
-    </section>
+    </Fold>
   );
 }

@@ -3,6 +3,7 @@
 import { KNOWN_DIFFERENCE } from "@/lib/config";
 import { MessageSquareText } from "lucide-react";
 import { hostOf, originalDidNotCompile, originalWroteNothing, type ModelCall, type Run } from "@/lib/runs";
+import { Fold } from "./ui";
 
 // "In plain English": a card at the top of a run, built only from fields of the run record. Nothing is written about what
 // the program does unless the run has a verified behaviour spec (claims a model wrote, then confirmed by running the
@@ -161,13 +162,7 @@ export function PlainEnglishCard({ run }: { run: Run }) {
   const models = modelLines(run);
   const cost = money(run.usage?.estimatedCostUsd);
   return (
-    <section className="panel plain-card" aria-labelledby="plain-title">
-      <div className="panel-heading">
-        <div>
-          <h2 id="plain-title"><MessageSquareText size={14} /> In plain English</h2>
-          <p>Every line below comes from this run&apos;s record. Nothing is written about the program unless it was checked.</p>
-        </div>
-      </div>
+    <Fold className="plain-card" title={<><MessageSquareText size={14} /> In plain English</>} hint="What this run did and did not establish. Every line comes from this run's record.">
       <div className="plain-body">
         {shown.length > 0 ? (
           <div>
@@ -196,6 +191,6 @@ export function PlainEnglishCard({ run }: { run: Run }) {
         </div>
         <WhatThisEstablished run={run} />
       </div>
-    </section>
+    </Fold>
   );
 }

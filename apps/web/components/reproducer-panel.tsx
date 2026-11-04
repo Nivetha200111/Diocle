@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Microscope } from "lucide-react";
 import { fetchRegressionCase, fetchRunReproducers } from "@/lib/runs";
 import { reproducerView, type ReproducerView } from "@/lib/reproducer-view";
-import { Badge } from "./ui";
+import { Badge, Fold } from "./ui";
 
 // "Smallest reproducer": the failing input after deterministic reduction (no model), with the fields that matter named, what
 // each side wrote, and the saved regression case. The suspected cause, when shown, is an opinion and says so.
@@ -112,17 +112,12 @@ export function ReproducerPanel({ runId, expected }: { runId: string; expected: 
   }, [runId, expected]);
   if (!expected || !views || views.length === 0) return null;
   return (
-    <section className="panel repro-panel" aria-labelledby="repro-heading">
-      <div className="panel-heading">
-        <div>
-          <h2 id="repro-heading"><Microscope size={14} /> Smallest reproducer</h2>
-          <p>
+    <Fold className="repro-panel" title={<><Microscope size={14} /> Smallest reproducer</>} hint="The failing input cut down, with no model, to the smallest one that still differs.">
+          <p className="home-pr">
             Where the Java differed from the COBOL, the failing input was cut down automatically (no model, no guessing: each
             smaller input is run through both programs and compared byte for byte) to the smallest one that still differs.
           </p>
-        </div>
-      </div>
       {views.map((v) => <Card key={v.id} runId={runId} v={v} />)}
-    </section>
+    </Fold>
   );
 }

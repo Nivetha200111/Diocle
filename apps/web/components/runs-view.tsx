@@ -5,7 +5,7 @@ import { Bot, CircleCheck, Coins, ShieldAlert, TriangleAlert } from "lucide-reac
 import { API_URL, ASSURANCE_BADGE, callCostUsd, countTile, originalDidNotCompile, originalWroteNothing, fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, hostOf, isInterrupted, isPrivateModel, reverifyRun, schemaFile, type Breaker, type Crosscheck, type Efficiency, type Tiers, type Guard, type GuardFinding, type ModelCall, type Reverify, type Run, type RunListItem, type RunMemory, type RunSource, type SourceFile, type Verification } from "@/lib/runs";
 import { AssuranceBadge, AssuranceNote } from "./assurance";
 import { EXPECTED_REVERIFY_FAILURE, KNOWN_DIFFERENCE, runNote, SAMPLE_RUN, SUPERSEDED } from "@/lib/config";
-import { Badge, PrivateModeBadge, Skeleton } from "./ui";
+import { Badge, PrivateModeBadge, Skeleton, Fold } from "./ui";
 import { PlainEnglishCard } from "./plain-english";
 import { BehaviorPanel } from "./behavior-panel";
 import { DatabasePanel } from "./database-panel";
@@ -36,13 +36,7 @@ const memoryLabel = (m: RunMemory) => (!m ? "n/a" : !m.enabled ? "off" : `${m.us
 
 function LessonsPanel({ memory }: { memory: NonNullable<RunMemory> }) {
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Lessons learned</h2>
-          <p>Saved to fix memory only because this run passed held-out certification. Later runs get them as hints.</p>
-        </div>
-      </div>
+    <Fold title={<>Lessons learned</>} hint="Saved to fix memory only because this run passed held-out certification. Later runs get them as hints.">
       <div className="table-scroll">
         <table className="data-table lessons-table">
           <thead><tr><th>Pattern</th><th>What COBOL does</th><th>Java that reproduces it</th></tr></thead>
@@ -53,7 +47,7 @@ function LessonsPanel({ memory }: { memory: NonNullable<RunMemory> }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Fold>
   );
 }
 
@@ -96,11 +90,8 @@ function BreakerPanel({ b }: { b: Breaker }) {
 function TiersPanel({ t }: { t: Tiers }) {
   const ups = t.escalations ?? [];
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Model tiers</h2>
-          <p>
+    <Fold title={<>Model tiers</>} hint="Which model the repair agent used, and the caps on the dearer ones.">
+          <p className="home-pr">
             Tier 1 {t.configured?.[0]} writes and repairs first.{" "}
             {ups.length
               ? `After a failed certification round the repair agent moved up: ${ups.map((u) => `round ${u.round} on ${u.model}`).join(", ")}.`
@@ -109,9 +100,7 @@ function TiersPanel({ t }: { t: Tiers }) {
             Calls above tier 1 are capped at {t.capCalls} calls and ${t.capUsd?.toFixed(2)} per run; this run used {t.escalatedCalls ?? 0} calls
             (about ${(t.escalatedUsd ?? 0).toFixed(4)}; a model with no known price counts as the whole cap).
           </p>
-        </div>
-      </div>
-    </section>
+    </Fold>
   );
 }
 
@@ -119,11 +108,8 @@ function CrosscheckPanel({ c }: { c: Crosscheck }) {
   if (c.skipped) return null;  // the model card already shows the role as not needed; the trace says why it was skipped
   const found = c.mismatches ?? 0;
   return (
-    <section className={`panel breaker-panel ${found ? "breaker-broke" : ""}`}>
-      <div className="panel-heading">
-        <div>
-          <h2><ShieldAlert size={14} /> Independent check · Muse Spark Open (open weights)</h2>
-          <p>
+    <Fold className={`breaker-panel ${found ? "breaker-broke" : ""}`} title={<><ShieldAlert size={14} /> Independent check · Muse Spark Open (open weights)</>} hint={`${c.casesValid ?? 0} inputs run, ${found} differed. The model's opinion certifies nothing; only the comparison does.`} open={found > 0 && !c.fixed}>
+          <p className="home-pr">
             After certification, a different model ({c.model}) read the COBOL and the Java and proposed {c.casesProposed ?? 0} inputs;
             {" "}{c.casesValid ?? 0} fit the layout and were run through GnuCOBOL and the Java.{" "}
             {found
@@ -131,8 +117,6 @@ function CrosscheckPanel({ c }: { c: Crosscheck }) {
               : "None differed."}{" "}
             The model&apos;s opinion certifies nothing; only the comparison does.
           </p>
-        </div>
-      </div>
       {(c.suspected?.length ?? 0) > 0 && (
         <div className="table-scroll">
           <table className="data-table">
@@ -141,7 +125,7 @@ function CrosscheckPanel({ c }: { c: Crosscheck }) {
           </table>
         </div>
       )}
-    </section>
+    </Fold>
   );
 }
 
@@ -162,11 +146,8 @@ function GuardPanel({ g }: { g: Guard }) {
   const findings = [...g.policy.map((f) => ({ ...f, by: "policy" })), ...(g.sourceFlags ?? []).map((f) => ({ ...f, by: "policy (COBOL)" })),
     ...(review?.findings ?? []).map((f) => ({ ...f, by: "review" }))];
   return (
-    <section className={`panel breaker-panel ${g.blocked ? "breaker-broke" : ""}`}>
-      <div className="panel-heading">
-        <div>
-          <h2><ShieldAlert size={14} /> Guard agent</h2>
-          <p>
+    <Fold className={`breaker-panel ${g.blocked ? "breaker-broke" : ""}`} title={<><ShieldAlert size={14} /> Guard agent</>} hint={g.blocked ? "Blocked: this run is not certified because of the guard." : review ? `Model review: ${review.verdict === "error" ? "did not complete" : review.verdict.toUpperCase()}. The policy is a speed bump; the sandbox is the boundary.` : "Policy only, no model review. The policy is a speed bump; the sandbox is the boundary."} open={g.blocked}>
+          <p className="home-pr">
             {g.blocked ? "Blocked: this run is not certified because of the guard. " : ""}
             The policy checked the Java before every test{g.stopped ? ` and refused to run it ${g.stopped} time(s); the repair agent was told why` : " and found nothing it had to stop"}.{" "}
             {review
@@ -176,8 +157,6 @@ function GuardPanel({ g }: { g: Guard }) {
               : "No model review in this run (policy only, or the run was not certified)."}
             {" "}The policy is a speed bump; the sandbox is the boundary.
           </p>
-        </div>
-      </div>
       {findings.length > 0 && (
         <div className="table-scroll">
           <table className="data-table">
@@ -193,7 +172,7 @@ function GuardPanel({ g }: { g: Guard }) {
           </table>
         </div>
       )}
-    </section>
+    </Fold>
   );
 }
 
@@ -214,14 +193,8 @@ function ModelCard({ run }: { run: Run }) {
     };
   });
   return (
-    <section className="panel model-card">
-      <div className="panel-heading">
-        <div>
-          <h2>Meta models in this run</h2>
-          <p>Every model call is logged with its role. No other model is used anywhere in Diocle. Run total: {run.usage.estimatedCostUsd === null ? "n/a" : `$${run.usage.estimatedCostUsd.toFixed(4)}`}.</p>
-        </div>
+    <Fold className="model-card" title={<>Meta models in this run</>} hint={`Every model call is logged with its role. No other model is used anywhere in Diocle. Run total: ${run.usage.estimatedCostUsd === null ? "n/a" : `$${run.usage.estimatedCostUsd.toFixed(4)}`}.`}>
         {isPrivateModel(run.model) && <PrivateModeBadge host={hostOf(run.model ?? "")} />}
-      </div>
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Role</th><th>Model ID</th><th>Served by</th><th>Calls</th><th>Tokens in / out</th><th>Est. cost</th></tr></thead>
@@ -239,7 +212,7 @@ function ModelCard({ run }: { run: Run }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Fold>
   );
 }
 
@@ -317,13 +290,7 @@ function EfficiencyPanel({ e }: { e: Efficiency }) {
     ["Cost per 1,000 lines", usd(e.costPer1kLinesUsd)],
   ];
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Agent efficiency</h2>
-          <p>What this run cost. Raw model spend, estimated from list prices; no compute, hosting or review.</p>
-        </div>
-      </div>
+    <Fold title={<>Agent efficiency</>} hint="What this run cost. Raw model spend, estimated from list prices; no compute, hosting or review.">
       <dl className="eff-grid">
         {rows.map(([k, v]) => (
           <div key={k}><dt>{k}</dt><dd className="mono">{v}</dd></div>
@@ -335,7 +302,7 @@ function EfficiencyPanel({ e }: { e: Efficiency }) {
           (straight-line estimate from this one program).
         </p>
       )}
-    </section>
+    </Fold>
   );
 }
 
@@ -488,11 +455,14 @@ function RunDetail({ run }: { run: Run }) {
           </p>
           {SUPERSEDED[run.id] && <p className="dlv-reason">{SUPERSEDED[run.id]}</p>}
           {EXPECTED_REVERIFY_FAILURE[run.id] && <p className="dlv-reason">{EXPECTED_REVERIFY_FAILURE[run.id]}</p>}
-          {runNote(run.id) && <p className="dlv-reason">{runNote(run.id)}</p>}
+          {runNote(run.id) && (
+            <details className="inline-more run-note">
+              <summary>Read this count with care</summary>
+              <p className="dlv-reason">{runNote(run.id)?.replace(/^Read this count with care: /, "")}</p>
+            </details>
+          )}
         </div>
       </div>
-
-      <PlainEnglishCard run={run} />
 
       <div className="stats-grid">
         <StatCard label="Before" tone="orange" icon={<ShieldAlert size={15} />} {...countTile(run.before, { error: run.error })} />
@@ -506,6 +476,14 @@ function RunDetail({ run }: { run: Run }) {
       </div>
 
       {run.breaker && <BreakerPanel b={run.breaker} />}
+
+      <ReverifyPanel run={run} />
+
+      <SourcePanel run={run} />
+
+      <div className="fold-list">
+      <PlainEnglishCard run={run} />
+
       <ReproducerPanel runId={run.id} expected={!run.visitor && ((run.reproducers?.length ?? 0) > 0 || (run.breaker?.broke ?? 0) > 0)} />
       {run.crosscheck && <CrosscheckPanel c={run.crosscheck} />}
       {run.behavior && <BehaviorPanel b={run.behavior} />}
@@ -514,25 +492,14 @@ function RunDetail({ run }: { run: Run }) {
 
       {run.guard && <GuardPanel g={run.guard} />}
 
-      <ReverifyPanel run={run} />
-
       <MutationPanel run={run} />
-
-      <SourcePanel run={run} />
 
       <ModelCard run={run} />
 
       <EfficiencyPanel e={run.efficiency} />
 
-      <div className="runs-grid">
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Agent trace</h2>
-              <p>Every tool call the repair agent made, with its stated reason.</p>
-            </div>
+        <Fold title={<>Agent trace</>} hint="Every tool call the repair agent made, with its stated reason.">
             <Badge tone="neutral">{run.model ?? ""}</Badge>
-          </div>
           <ol className="trace-list">
             {run.events.map((e, i) =>
               e.type === "agent-step" ? (
@@ -553,13 +520,10 @@ function RunDetail({ run }: { run: Run }) {
               ),
             )}
           </ol>
-        </section>
+        </Fold>
 
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>What was wrong before</h2>
-              <p>
+        <Fold title={<>What was wrong before</>} hint={run.before && run.before.total > 0 ? (run.before.failed === 0 ? "The starting Java already matched on the inputs tried." : `${run.before.failed} failing on the starting Java.`) : "No comparison of the starting Java to show."}>
+              <p className="home-pr">
                 {run.before?.tampering?.length
                   ? `The starting Java interfered with the check, so the original was not run: ${run.before.tampering.join("; ")}.`
                   : run.before?.endedAtStandIn
@@ -573,9 +537,7 @@ function RunDetail({ run }: { run: Run }) {
                       ? "The original COBOL wrote no records on these inputs, while the starting Java did."
                       : "Mismatches between GnuCOBOL and the starting Java."}
               </p>
-            </div>
             {run.before && run.before.total > 0 && <Badge tone={run.before.failed === 0 ? "green" : "amber"}>{run.before.failed === 0 ? "all matched" : `${run.before.failed} failing`}</Badge>}
-          </div>
           {(run.before?.failed ?? 0) > 0 && (
             <div className="table-scroll">
               <table className="data-table">
@@ -592,22 +554,16 @@ function RunDetail({ run }: { run: Run }) {
               </table>
             </div>
           )}
-        </section>
-      </div>
+        </Fold>
 
       {run.memory && run.memory.lessons.length > 0 && <LessonsPanel memory={run.memory} />}
 
       {run.javaDiff && (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Java changes made by the agent</h2>
-              <p>Unified diff from the starting file to the certified result.</p>
-            </div>
-          </div>
+        <Fold title={<>Java changes made by the agent</>} hint="Unified diff from the starting file to the certified result.">
           <JavaDiff diff={run.javaDiff} />
-        </section>
+        </Fold>
       )}
+      </div>
     </>
   );
 }
