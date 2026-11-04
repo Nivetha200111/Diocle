@@ -24,7 +24,7 @@ What a reviewer gets, what a first pilot would look like, and what is not there 
 
 ## 4. Try it live: capped buttons
 
-**Convert a sample now** (Muse Spark translates one bundled program, cap $0.02) and **Read a printout** (Muse Wonder reads one bundled listing, cap $0.10). Below them, a visitor can send their own image of a COBOL listing, and ask a question in their own voice, under [their own caps](FEATURES.md#your-own-voice-and-your-own-image-on-the-live-page-capped-added-nov-2). No free text. *Live; no button pressed. The printout button shows the per-visitor daily limit, already used from this browser.*
+**Convert a sample now** (Muse Spark translates one bundled program, cap $0.05) and **Read a printout** (Muse Wonder reads one bundled listing, cap $0.10). Below them, a visitor can send their own image of a COBOL listing, and ask a question in their own voice, under [their own caps](FEATURES.md#your-own-voice-and-your-own-image-on-the-live-page-capped-added-nov-2). No free text. *Live; no button pressed. The printout button shows the per-visitor daily limit, already used from this browser.*
 
 ![Try it live](walkthrough/03-try-it-live.jpg)
 
@@ -213,7 +213,7 @@ PASS  1027/1027 cases match  (stdout matches)
 RE-VERIFIED  1027/1027 inputs matched, in 1 s. No model was called.
 ```
 
-**Audit the evidence, no model:** `services/verifier/.venv/bin/python eval/audit_chqclr.py` ([what it found](SHOWCASE_CHQCLR.md)).
+**Audit the evidence, no model** (run `make test` first, which creates that environment): `services/verifier/.venv/bin/python eval/audit_chqclr.py` ([what it found](SHOWCASE_CHQCLR.md)).
 
 ## Not pictured, and why
 

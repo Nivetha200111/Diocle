@@ -41,6 +41,10 @@ Already existed and is used, not built here:
 | Meta, Fireworks and Baseten logos (README) | Identify services Diocle uses; loaded from Simple Icons and the companies' GitHub profiles, not committed; no endorsement implied | Trademarks of their owners |
 | Portrait of Diocletian (`docs/assets/diocletian.jpg`) | README, the name section | J. Paul Getty Museum, CC0, via Wikimedia Commons |
 
+## History and removed files
+
+Commit messages were rewritten twice, on Oct 31 and Nov 2, to drop co-author lines, at the owner's request. Code, dates and authors did not change, but commit ids did. The history before the Nov 2 rewrite stays at tag `pre-rewrite-20261102`, and branches `verifier-pin-e286cdb` and `verifier-pin-697ad34` keep the older commits that the target repositories' certificates pin. `CLAUDE.md` and `.claude/agents/`, the instructions for the coding agents used to build Diocle, were removed from the tree on Nov 4 and remain in git history.
+
 ## Voice and narration disclosure
 
 - **Video narration.** The submitted video (https://youtu.be/3tEmLs0jrT4) is narrated by a synthetic voice (ElevenLabs), not a Meta model and not part of the product. The script is written in the first person and its account of the author's own experience is the author's. This is disclosed in the README and the video description, not in the video itself. Earlier cuts used the author's own recorded voice; this cut has no music or sound effects.

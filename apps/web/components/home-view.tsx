@@ -273,7 +273,7 @@ function Numbers({ go }: { go: Go }) {
     <section className="panel pitch" aria-label="The numbers">
       <dl className="pitch-numbers">
         <div><dt>translations that passed 1,000 generated records and could be attacked went on to differ, on malformed numbers or the sign of a zero. Synthetic programs. <FoldLink to="measured">How it was measured</FoldLink></dt><dd className="mono">4 of 10</dd></div>
-        <div><dt>synthetic programs certified and delivered in one pull request, <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
+        <div><dt>synthetic programs certified, then re-checked together by the CI on one pull request, <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
         <div><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in <a href={LINKS.evidenceCi} target="_blank" rel="noreferrer">its CI run</a></dt><dd className="mono">0</dd></div>
       </dl>
       <div className="pitch-multi">

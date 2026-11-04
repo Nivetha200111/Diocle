@@ -123,7 +123,9 @@ if [ "$MODE" = nokey ]; then
   say "No-key mode: no model is called. GnuCOBOL compiles the original, then the original and the stored Java run on the same inputs."
   start=$(date +%s)
   rc=0
-  (cd "$ROOT/services/verifier" && "$VPY" -I -m diocle_verifier "$SAMPLE_DIR" --java-dir "$JAVA" --random 1000 --seed 4243 --out "$TMP/report.json" >"$TMP/out.txt" 2>&1) || rc=$?
+  seed=${DIOCLE_SEED:-$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')}
+  say "Seed $seed (a new one each run, unless DIOCLE_SEED is set)."
+  (cd "$ROOT/services/verifier" && "$VPY" -I -m diocle_verifier "$SAMPLE_DIR" --java-dir "$JAVA" --random 1000 --seed "$seed" --out "$TMP/report.json" >"$TMP/out.txt" 2>&1) || rc=$?
   tail -n 3 "$TMP/out.txt"
   "$VPY" -I "$ROOT/scripts/quickstart_report.py" verify "$TMP/report.json" "$SAMPLE" "$JAVA" "$(( $(date +%s) - start ))"
   exit "$rc"

@@ -44,7 +44,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
     <>
       <section className="panel" aria-label="Summary">
         <dl className="pitch-numbers evidence-numbers">
-          <div><dt>synthetic programs certified and delivered in one pull request, {CANONICAL.pr}. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
+          <div><dt>synthetic programs certified, then re-checked together by the CI on one pull request, {CANONICAL.pr}. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
           <div><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in its CI. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.differences}</dd></div>
           <div><dt>translations that passed 1,000 generated records and could be attacked went on to differ, on malformed numbers or the sign of a zero. Synthetic programs. <FoldLink to="measured">Detail</FoldLink></dt><dd className="mono">4 of 10</dd></div>
           <div><dt>programs of a public course certified at first: 9 on fixed input, 2 against a repaired copy. A third pass, not a blind test, certified 9 more: 8 against a repaired copy, 1 on fixed input. <FoldLink to="course-estate">Detail</FoldLink></dt><dd className="mono">11 of 32</dd></div>
@@ -55,7 +55,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
 
       <div className="fold-list">
       <Fold id="canonical" className="evidence-summary" title={`Canonical delivery: ${CANONICAL.pr}`}>
-        <p className="home-pr">Six COBOL programs from quillmark-legacy, certified under one pinned verifier and delivered as one pull request.</p>
+        <p className="home-pr">Six COBOL programs from quillmark-legacy, certified under one pinned verifier and re-checked together by the CI on one pull request, which re-delivers INTACCR's Java.</p>
         <dl className="eff-grid home-evidence">
           <div><dt>Programs</dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
           <div><dt>Fresh output records in CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
