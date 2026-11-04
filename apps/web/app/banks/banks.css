@@ -1,0 +1,19 @@
+/* For banks (components/banks-view.tsx), in the retro theme: plain rows inside plain windows. */
+.banks-value { padding: 14px 16px; }
+.app-shell .banks-value p { font-size: 18px !important; font-weight: 700; line-height: 1.4; }
+.banks-rows { list-style: none; margin: 0; padding: 4px 14px 12px; }
+.banks-rows li { display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr); gap: 2px 16px; padding: 9px 0; border-bottom: 1px solid #d8d8d8; }
+.banks-rows li:last-child { border-bottom: 0; }
+.banks-rows strong { font-weight: 700; }
+.banks-rows a { margin-left: 4px; white-space: nowrap; }
+.banks-rows a,
+.banks-list a { text-decoration: underline; text-underline-offset: 2px; }
+.banks-list { margin: 0; padding: 8px 16px 12px 36px; display: grid; gap: 6px; }
+.banks-note { padding: 10px 16px 0; font-weight: 700; }
+.banks-more { padding: 6px 16px 12px; }
+@media (max-width: 760px) {
+  .banks-rows li { grid-template-columns: minmax(0, 1fr); }
+  .banks-rows a { white-space: normal; margin-left: 0; }
+}
+/* who the home page is for, above its headline */
+.app-shell .pitch-claim .pitch-for { margin: 0 0 8px; color: var(--w-navy) !important; font-size: 14px !important; font-weight: 700; }

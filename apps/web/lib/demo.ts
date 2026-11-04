@@ -1,5 +1,6 @@
 export type View =
   | "Home"
+  | "For banks"
   | "Overview"
   | "Migrations"
   | "Dependency graph"

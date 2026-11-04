@@ -235,6 +235,7 @@ function Pitch({ go, sample, run }: { go: Go; sample: SampleCheck; run: Run | nu
       </div>
       <div className="pitch-top">
         <div className="pitch-claim">
+          <p className="pitch-for">For bank modernization and risk teams</p>
           <h1>AI can rewrite COBOL in minutes. How do you know the Java still gives the same answer?</h1>
           <p className="pitch-sub">Diocle runs both on the same inputs and compares the output.</p>
           <div className="pitch-actions">
@@ -245,6 +246,7 @@ function Pitch({ go, sample, run }: { go: Go; sample: SampleCheck; run: Run | nu
           {sample.check && <div className="pitch-result"><CheckResult check={sample.check} /></div>}
           {sample.error && <p className="dlv-error pitch-result" role="alert">{sample.error}</p>}
           <p className="pitch-line">Testing on stated inputs under GnuCOBOL, not a formal proof. <FoldLink to="certified" also="not-certified">What certified means</FoldLink></p>
+          <p className="pitch-line">What your reviewers get, and what is not there yet: <a href="/banks">For banks</a></p>
           <p className="pitch-line">Built Oct 27 to Nov 4, 2026, for the Meta Global AI Developer Hackathon. <a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a></p>
         </div>
         <figure className="pitch-catch">

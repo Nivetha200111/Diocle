@@ -28,6 +28,7 @@ import {
   FileText,
   FolderGit2,
   GitBranch,
+  Landmark,
   Layers3,
   LayoutDashboard,
   ListFilter,
@@ -63,6 +64,7 @@ import RunsView from "./runs-view";
 import DeliveryView, { NewDeliveryButton } from "./delivery-view";
 import EvidenceView from "./evidence-view";
 import HomeView from "./home-view";
+import BanksView from "./banks-view";
 import NowView from "./now-view";
 import LiveSamples from "./live-samples";
 import AskPanel from "./ask-panel";
@@ -78,6 +80,7 @@ const DependencyGraph = process.env.NEXT_PUBLIC_DIOCLE_HOSTED === "1" ? () => nu
 // Views backed by real runs and deliveries come first; the rest is the original mock, labelled as such.
 const realViews = [
   "Home",
+  "For banks",
   "Try it live",
   "Delivery",
   "Current run",
@@ -95,6 +98,7 @@ const label = (v: View) => LABELS[v] ?? v;
 // Each real view has its own address, so a link opens the page it names.
 const PATHS: Partial<Record<View, string>> = {
   Home: "/",
+  "For banks": "/banks",
   "Try it live": "/try",
   Delivery: "/delivery",
   "Current run": "/now",
@@ -109,6 +113,7 @@ const viewForPath = (path: string) =>
 
 const allNav = [
   { name: "Home", icon: Monitor, group: "START HERE" },
+  { name: "For banks", icon: Landmark, group: "START HERE" },
   { name: "Try it live", icon: Zap, group: "START HERE" },
   { name: "Delivery", icon: GitPullRequest, group: "START HERE" },
   { name: "Current run", icon: Radio, group: "WATCH" },
@@ -143,6 +148,7 @@ const descriptions: Record<View, string> = {
   "Agent replay": "One recorded run replayed step by step: the six roles working as a team. Nothing here is live and no model is called.",
   "Bug of the day": "Real mistakes in AI-written Java that running the original COBOL side by side exposed, each read from a stored run.",
   Home: "",
+  "For banks": "For modernization and risk leads: what Diocle gives your reviewers, and what is not there yet.",
   Delivery: "Paste a public GitHub repository with COBOL: Diocle analyzes it, converts each program it can, and certifies it against the original.",
   Evidence: "What Diocle has shown so far, with a link to check each claim. Failures and corrections included.",
   "Dependency tree": "What calls, copies and runs what in each repository, from the analyzer's report.",
@@ -1175,6 +1181,12 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
           </div>}
 
           {view === "Home" && <HomeView go={(v) => navigate(v)} />}
+
+          {view === "For banks" && (
+            <div className="view-content">
+              <BanksView />
+            </div>
+          )}
 
           {!HOSTED && view === "Overview" && (
             <div className="view-content">
