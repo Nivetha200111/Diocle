@@ -1,0 +1,709 @@
+{
+ "source": "Built by scripts/build-trees.mjs from eval/results-dependency-trees*.json",
+ "trees": [
+  {
+   "slug": "navikt-dsf",
+   "title": "Norway's retired pension system: the COBOL sources in its public repository",
+   "part": false,
+   "repository": "https://github.com/navikt/DSF",
+   "commit": "faade4961e316c89e8c312456bae411c63f1c482",
+   "kinds": [
+    "call",
+    "copy"
+   ],
+   "note": "Whether these programs ran in production is not established.",
+   "edges": [
+    [
+     "FO04F1X1",
+     "R001NAC"
+    ],
+    [
+     "FO04F1X1",
+     "R001NRC"
+    ],
+    [
+     "R001BYDL",
+     "CBLTDLI"
+    ]
+   ],
+   "verified": true,
+   "image": "navikt-dsf-2.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "navikt-dsf-1.webp",
+     "match": false,
+     "missingEdges": 2,
+     "inventedEdges": 2,
+     "missingNodes": 1,
+     "inventedNodes": 1
+    },
+    {
+     "attempt": 2,
+     "image": "navikt-dsf-2.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "core-banking",
+   "title": "fzn0x/core-banking-system",
+   "part": false,
+   "repository": "https://github.com/fzn0x/core-banking-system",
+   "commit": "770860d4a11f1d203b0369456d867108097a550f",
+   "kinds": [
+    "call"
+   ],
+   "note": "A public demo repository.",
+   "edges": [
+    [
+     "BANK-MAIN",
+     "INIT-DB"
+    ],
+    [
+     "BANK-MAIN",
+     "REPORT-GEN"
+    ],
+    [
+     "BANK-MAIN",
+     "TRANS-PROC"
+    ],
+    [
+     "TRANS-PROC",
+     "SYSTEM"
+    ]
+   ],
+   "verified": true,
+   "image": "core-banking-2.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "core-banking-1.webp",
+     "match": false,
+     "missingEdges": 1,
+     "inventedEdges": 1,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    },
+    {
+     "attempt": 2,
+     "image": "core-banking-2.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-legacy",
+   "title": "Quillmark Trust & Savings (fictional, synthetic)",
+   "part": false,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "ACCTMTCH",
+     "ACCTMTCH"
+    ],
+    [
+     "ACCTMTCH",
+     "EXCREC"
+    ],
+    [
+     "ACCTMTCH",
+     "MSTREC"
+    ],
+    [
+     "ACCTMTCH",
+     "NEWMST"
+    ],
+    [
+     "ACCTMTCH",
+     "TXREC"
+    ],
+    [
+     "DAYCTRL",
+     "CTLREC"
+    ],
+    [
+     "DAYCTRL",
+     "DAYCTRL"
+    ],
+    [
+     "DAYCTRL",
+     "DAYREC"
+    ],
+    [
+     "FEESCHD",
+     "CHGREC"
+    ],
+    [
+     "FEESCHD",
+     "FEEREC"
+    ],
+    [
+     "FEESCHD",
+     "FEESCHD"
+    ],
+    [
+     "INTACCR",
+     "ACCTREC"
+    ],
+    [
+     "INTACCR",
+     "INTACCR"
+    ],
+    [
+     "INTACCR",
+     "INTREC"
+    ],
+    [
+     "PKDPOST",
+     "PKACCT"
+    ],
+    [
+     "PKDPOST",
+     "PKDPOST"
+    ],
+    [
+     "PKDPOST",
+     "PKOUT"
+    ],
+    [
+     "TXNPOST",
+     "POSTREC"
+    ],
+    [
+     "TXNPOST",
+     "TXNPOST"
+    ],
+    [
+     "TXNPOST",
+     "TXNREC"
+    ]
+   ],
+   "verified": false,
+   "image": null,
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-legacy-1.webp",
+     "match": false,
+     "missingEdges": 9,
+     "inventedEdges": 8,
+     "missingNodes": 1,
+     "inventedNodes": 0
+    },
+    {
+     "attempt": 2,
+     "image": "quillmark-legacy-2.webp",
+     "match": false,
+     "missingEdges": 9,
+     "inventedEdges": 10,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "harbor-trust",
+   "title": "Harbor Trust (fictional, synthetic): CALLs across 47 programs",
+   "part": false,
+   "repository": "https://github.com/Nivetha200111/harbor-trust-mainframe",
+   "commit": "cee9da8c58771d66f16fa716d55f02cae2bf81c3",
+   "kinds": [
+    "call"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "HTAUDT",
+     "CEE3ABD"
+    ],
+    [
+     "HTAUDT",
+     "HTAUDT"
+    ],
+    [
+     "HTCHQCLR",
+     "HTDATEUT"
+    ],
+    [
+     "HTCTRLBR",
+     "HTDATEUT"
+    ],
+    [
+     "HTDATE",
+     "CEE3ABD"
+    ],
+    [
+     "HTDATE",
+     "HTAUDT"
+    ],
+    [
+     "HTDORMSW",
+     "HTAUDT"
+    ],
+    [
+     "HTDORMSW",
+     "HTDATE"
+    ],
+    [
+     "HTDORMSW",
+     "HTPOST"
+    ],
+    [
+     "HTDYNAC",
+     "CEE3ABD"
+    ],
+    [
+     "HTDYNAC",
+     "HTDATEUT"
+    ],
+    [
+     "HTFEEP",
+     "CEE3ABD"
+    ],
+    [
+     "HTFEEP",
+     "HTAUDT"
+    ],
+    [
+     "HTFXCONV",
+     "HTAUDT"
+    ],
+    [
+     "HTFXCONV",
+     "HTFXRT"
+    ],
+    [
+     "HTFXRT",
+     "CEE3ABD"
+    ],
+    [
+     "HTFXRT",
+     "HTAUDT"
+    ],
+    [
+     "HTGLRECO",
+     "HTDATEUT"
+    ],
+    [
+     "HTIACR",
+     "HTDATE"
+    ],
+    [
+     "HTINTACC",
+     "HTAUDT"
+    ],
+    [
+     "HTINTACC",
+     "HTDATE"
+    ],
+    [
+     "HTINTACC",
+     "HTPOST"
+    ],
+    [
+     "HTLOANAM",
+     "HTAUDT"
+    ],
+    [
+     "HTLOANAM",
+     "HTDATE"
+    ],
+    [
+     "HTLOANAM",
+     "HTPOST"
+    ],
+    [
+     "HTOVDFEE",
+     "HTAUDT"
+    ],
+    [
+     "HTOVDFEE",
+     "HTFEEP"
+    ],
+    [
+     "HTOVDFEE",
+     "HTPOST"
+    ],
+    [
+     "HTPOST",
+     "CEE3ABD"
+    ],
+    [
+     "HTPOST",
+     "HTAUDT"
+    ],
+    [
+     "HTROUT",
+     "CEE3ABD"
+    ],
+    [
+     "HTROUT",
+     "HTAUDT"
+    ],
+    [
+     "HTSORTMG",
+     "HTDATEUT"
+    ],
+    [
+     "HTSTMTM",
+     "HTDATEUT"
+    ]
+   ],
+   "verified": false,
+   "image": null,
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "harbor-trust-1.webp",
+     "match": false,
+     "missingEdges": 22,
+     "inventedEdges": 13,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    },
+    {
+     "attempt": 2,
+     "image": "harbor-trust-2.webp",
+     "match": false,
+     "missingEdges": 27,
+     "inventedEdges": 9,
+     "missingNodes": 1,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-acctmtch",
+   "title": "Quillmark ACCTMTCH (fictional, synthetic): JCL job to program to copybooks",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "JOB ACCTMTCH",
+     "ACCTMTCH"
+    ],
+    [
+     "ACCTMTCH",
+     "EXCREC"
+    ],
+    [
+     "ACCTMTCH",
+     "MSTREC"
+    ],
+    [
+     "ACCTMTCH",
+     "NEWMST"
+    ],
+    [
+     "ACCTMTCH",
+     "TXREC"
+    ]
+   ],
+   "verified": true,
+   "image": "quillmark-acctmtch-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-acctmtch-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-dayctrl",
+   "title": "Quillmark DAYCTRL (fictional, synthetic): JCL job to program to copybooks",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "JOB DAYCTRL",
+     "DAYCTRL"
+    ],
+    [
+     "DAYCTRL",
+     "CTLREC"
+    ],
+    [
+     "DAYCTRL",
+     "DAYREC"
+    ]
+   ],
+   "verified": true,
+   "image": "quillmark-dayctrl-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-dayctrl-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-feeschd",
+   "title": "Quillmark FEESCHD (fictional, synthetic): JCL job to program to copybooks",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "JOB FEESCHD",
+     "FEESCHD"
+    ],
+    [
+     "FEESCHD",
+     "CHGREC"
+    ],
+    [
+     "FEESCHD",
+     "FEEREC"
+    ]
+   ],
+   "verified": true,
+   "image": "quillmark-feeschd-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-feeschd-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-intaccr",
+   "title": "Quillmark INTACCR (fictional, synthetic): JCL job to program to copybooks",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "JOB INTACCR",
+     "INTACCR"
+    ],
+    [
+     "INTACCR",
+     "ACCTREC"
+    ],
+    [
+     "INTACCR",
+     "INTREC"
+    ]
+   ],
+   "verified": true,
+   "image": "quillmark-intaccr-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-intaccr-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-pkdpost",
+   "title": "Quillmark PKDPOST (fictional, synthetic): JCL job to program to copybooks",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "JOB PKDPOST",
+     "PKDPOST"
+    ],
+    [
+     "PKDPOST",
+     "PKACCT"
+    ],
+    [
+     "PKDPOST",
+     "PKOUT"
+    ]
+   ],
+   "verified": true,
+   "image": "quillmark-pkdpost-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-pkdpost-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "quillmark-txnpost",
+   "title": "Quillmark TXNPOST (fictional, synthetic): JCL job to program to copybooks",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "JOB TXNPOST",
+     "TXNPOST"
+    ],
+    [
+     "TXNPOST",
+     "POSTREC"
+    ],
+    [
+     "TXNPOST",
+     "TXNREC"
+    ]
+   ],
+   "verified": true,
+   "image": "quillmark-txnpost-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-txnpost-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "harbor-htdormsw",
+   "title": "Harbor Trust HTDORMSW (fictional, synthetic): its CALLs",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/harbor-trust-mainframe",
+   "commit": "cee9da8c58771d66f16fa716d55f02cae2bf81c3",
+   "kinds": [
+    "call"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "HTDORMSW",
+     "HTAUDT"
+    ],
+    [
+     "HTDORMSW",
+     "HTDATE"
+    ],
+    [
+     "HTDORMSW",
+     "HTPOST"
+    ]
+   ],
+   "verified": true,
+   "image": "harbor-htdormsw-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "harbor-htdormsw-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  },
+  {
+   "slug": "harbor-htloanam",
+   "title": "Harbor Trust HTLOANAM (fictional, synthetic): its CALLs",
+   "part": true,
+   "repository": "https://github.com/Nivetha200111/harbor-trust-mainframe",
+   "commit": "cee9da8c58771d66f16fa716d55f02cae2bf81c3",
+   "kinds": [
+    "call"
+   ],
+   "note": null,
+   "edges": [
+    [
+     "HTLOANAM",
+     "HTAUDT"
+    ],
+    [
+     "HTLOANAM",
+     "HTDATE"
+    ],
+    [
+     "HTLOANAM",
+     "HTPOST"
+    ]
+   ],
+   "verified": true,
+   "image": "harbor-htloanam-1.webp",
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "harbor-htloanam-1.webp",
+     "match": true,
+     "missingEdges": 0,
+     "inventedEdges": 0,
+     "missingNodes": 0,
+     "inventedNodes": 0
+    }
+   ]
+  }
+ ]
+}

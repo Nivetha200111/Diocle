@@ -58,7 +58,7 @@ import {
   type View,
 } from "@/lib/demo";
 import { Badge, Brand, DemoNote, MetaBadge, Modal, Pipeline, Progress } from "./ui";
-import DependencyGraph from "./dependency-graph";
+import dynamic from "next/dynamic";
 import RunsView from "./runs-view";
 import DeliveryView, { NewDeliveryButton } from "./delivery-view";
 import EvidenceView from "./evidence-view";
@@ -68,18 +68,42 @@ import LiveSamples from "./live-samples";
 import AskPanel from "./ask-panel";
 import MissionControl from "./mission-control";
 import BugsView from "./bugs-view";
+import DependenciesView from "./dependencies-view";
 import { fetchSamplesStatus } from "@/lib/live";
 import { HOSTED, LINKS } from "@/lib/config";
 
+// The made-up example graph is left out of hosted builds altogether, not just hidden.
+const DependencyGraph = process.env.NEXT_PUBLIC_DIOCLE_HOSTED === "1" ? () => null : dynamic(() => import("./dependency-graph"));
+
 // Views backed by real runs and deliveries come first; the rest is the original mock, labelled as such.
-const realViews = ["Home", "Try it live", "Delivery", "Current run", "Agent replay", "Live runs", "Evidence", "Bug of the day"];
+const realViews = [
+  "Home",
+  "Try it live",
+  "Delivery",
+  "Current run",
+  "Agent replay",
+  "Live runs",
+  "Evidence",
+  "Dependency tree",
+  "Bug of the day",
+];
 
 // What each view is called on screen (internal names stay stable for links and code).
 export const LABELS: Partial<Record<View, string>> = { Delivery: "Import a repository", "Live runs": "Run history" };
 const label = (v: View) => LABELS[v] ?? v;
 
 // Each real view has its own address, so a link opens the page it names.
-const PATHS: Partial<Record<View, string>> = { Home: "/", "Try it live": "/try", Delivery: "/delivery", "Current run": "/now", "Agent replay": "/mission", "Live runs": "/runs", Evidence: "/evidence", "Bug of the day": "/bugs" };
+const PATHS: Partial<Record<View, string>> = {
+  Home: "/",
+  "Try it live": "/try",
+  Delivery: "/delivery",
+  "Current run": "/now",
+  "Agent replay": "/mission",
+  "Live runs": "/runs",
+  Evidence: "/evidence",
+  "Dependency tree": "/dependencies",
+  "Bug of the day": "/bugs",
+};
 const viewForPath = (path: string) =>
   (Object.entries(PATHS).find(([, p]) => p === (path.replace(/\/+$/, "") || "/"))?.[0] as View | undefined);
 
@@ -91,6 +115,7 @@ const allNav = [
   { name: "Agent replay", icon: Workflow, group: "WATCH" },
   { name: "Live runs", icon: Activity, group: "PROOF" },
   { name: "Evidence", icon: CircleCheck, group: "PROOF" },
+  { name: "Dependency tree", icon: Network, group: "PROOF" },
   { name: "Bug of the day", icon: Bug, group: "PROOF" },
   { name: "Overview", icon: LayoutDashboard },
   { name: "Migrations", icon: FolderGit2 },
@@ -120,6 +145,7 @@ const descriptions: Record<View, string> = {
   Home: "",
   Delivery: "Paste a public GitHub repository with COBOL: Diocle analyzes it, converts each program it can, and certifies it against the original.",
   Evidence: "What Diocle has shown so far, with a link to check each claim. Failures and corrections included.",
+  "Dependency tree": "What calls, copies and runs what in each repository, from the analyzer's report.",
   Settings: "Workspace name and model configuration.",
 };
 
@@ -794,6 +820,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
     };
   }, []);
   function navigate(next: View) {
+    if (HOSTED && !realViews.includes(next)) return;  // hosted builds show only views backed by real data
     const path = PATHS[next];
     if (path && window.location.pathname !== path) {
       const keep = next === "Live runs" && window.location.hash.startsWith("#run=") ? window.location.hash : "";
@@ -833,7 +860,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+      if (!HOSTED && (event.metaKey || event.ctrlKey) && event.key === "k") {
         event.preventDefault();
         setModal((previous) => (previous === "search" ? null : "search"));
       }
@@ -971,7 +998,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-promo">
+          {!HOSTED && <div className="sidebar-promo">
             <span className="promo-icon">
               <Sparkles size={17} />
             </span>
@@ -984,7 +1011,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
               How Diocle works
               <ArrowUpRight size={13} />
             </button>
-          </div>
+          </div>}
           {HOSTED ? (
             <>
               <a className="nav-item" href={LINKS.diocle} target="_blank" rel="noreferrer">
@@ -1149,7 +1176,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
 
           {view === "Home" && <HomeView go={(v) => navigate(v)} />}
 
-          {view === "Overview" && (
+          {!HOSTED && view === "Overview" && (
             <div className="view-content">
               <section className="hero">
                 <div className="hero-content">
@@ -1314,7 +1341,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
             </div>
           )}
 
-          {view === "Dependency graph" && (
+          {!HOSTED && view === "Dependency graph" && (
             <div className="view-content">
               <div className="context-bar">
                 <span>
@@ -1572,6 +1599,12 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
           {view === "Bug of the day" && (
             <div className="view-content">
               <BugsView embedded />
+            </div>
+          )}
+
+          {view === "Dependency tree" && (
+            <div className="view-content">
+              <DependenciesView />
             </div>
           )}
 

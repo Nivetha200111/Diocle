@@ -50,6 +50,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           <div><dt>programs of a public course certified at first: 9 on fixed input, 2 against a repaired copy. A third pass, not a blind test, certified 9 more: 8 against a repaired copy, 1 on fixed input. <FoldLink to="course-estate">Detail</FoldLink></dt><dd className="mono">11 of 32</dd></div>
           <div><dt>testable programs from a retired pension system&apos;s repository certified; 2 did not. Whether they ran in production is not established. <FoldLink to="blind-test">Detail</FoldLink></dt><dd className="mono">2 of 4</dd></div>
         </dl>
+        <p className="home-more">How each repository&apos;s programs connect, from the analyzer&apos;s report: <a href="/dependencies">Dependency tree</a></p>
       </section>
 
       <div className="fold-list">

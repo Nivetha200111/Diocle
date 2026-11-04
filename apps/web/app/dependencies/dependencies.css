@@ -1,0 +1,55 @@
+/* Dependency tree (components/dependencies-view.tsx). State is never colour alone: a selected name and a name that depends
+   on it each carry a word as well. */
+.tree-intro { display: grid; gap: 6px; padding: 16px 20px; font-size: 14px; line-height: 1.55; color: var(--ink); }
+.tree-card { min-width: 0; }
+.tree-head { padding: 16px 20px 12px; display: grid; gap: 4px; border-bottom: 1px solid var(--border); }
+.tree-head h2 { font-size: 16px; font-weight: 600; line-height: 1.35; }
+.tree-head p { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.tree-head a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.tree-body { display: grid; gap: 24px; padding: 16px 20px 18px; }
+.has-drawing .tree-body { grid-template-columns: minmax(0, 1fr) minmax(0, 340px); }
+.tree-body h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.tree-analyzer, .tree-drawing, .tree-drawing-failed { min-width: 0; }
+
+/* what the selection means; stays in view while a long tree scrolls, on a phone too */
+.tree-impact { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 10px; margin-bottom: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; line-height: 1.45; }
+.tree-impact p { min-width: 0; overflow-wrap: anywhere; }
+.tree-impact .link-button { flex: none; font-size: 13px; min-height: 24px; }
+
+.tree-list, .tree-list ul { list-style: none; margin: 0; padding: 0; }
+.tree-list ul { margin-left: 10px; padding-left: 14px; border-left: 1px solid var(--border-strong); }
+.tree-list li { padding-top: 4px; position: relative; }
+.tree-list ul > li::before { content: ""; position: absolute; left: -14px; top: 19px; width: 12px; border-top: 1px solid var(--border-strong); }
+.tree-node { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 30px; padding: 3px 9px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 5px; color: var(--ink); text-align: left; cursor: pointer; }
+.tree-node:hover { background: var(--accent-soft); border-color: var(--navy); }
+.tree-name { overflow-wrap: anywhere; }
+.tree-tag { font-size: 12px; font-weight: 600; }
+.tree-node.is-selected, .tree-node.is-selected:hover { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 600; }
+.tree-node.is-dependent, .tree-node.is-dependent:hover { background: var(--warn-soft); border: 2px solid var(--warn); padding: 2px 8px; color: var(--ink); font-weight: 600; }
+.tree-aside { display: inline-block; margin-left: 8px; color: var(--muted); font-size: 12px; }
+
+.tree-drawing img { display: block; width: 100%; height: auto; background: #fff; border: 1px solid var(--border); border-radius: 6px; }
+.tree-check { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.tree-check-failed { padding: 10px 12px; background: var(--warn-soft); border: 1px solid #eedcae; border-radius: 6px; font-size: 14px; line-height: 1.5; }
+.tree-check-failed strong { font-weight: 600; }
+.tree-card .tree-failed { margin: 8px 0 0; }
+.tree-failed p { color: var(--muted); font-size: 13px; }
+.tree-failed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 300px)); gap: 12px; }
+.tree-failed figure { margin: 0; min-width: 0; }
+.tree-failed-frame { position: relative; border: 2px solid var(--warn); border-radius: 6px; overflow: hidden; background: #fff; }
+.tree-failed-frame img { display: block; width: 100%; height: auto; }
+.tree-failed-tag { position: absolute; top: 0; left: 0; right: 0; z-index: 1; padding: 3px 8px; position: static; display: block; background: var(--warn); color: #fff; font-size: 12px; font-weight: 600; text-align: center; }
+.tree-failed figcaption { margin-top: 4px; color: var(--ink); font-size: 13px; line-height: 1.4; }
+.tree-section { margin-top: 8px; font-size: 18px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .has-drawing .tree-body { grid-template-columns: minmax(0, 1fr); }
+  .tree-drawing img { max-width: 340px; }
+}
+@media (max-width: 760px) {
+  .tree-head { padding: 14px 14px 10px; }
+  .tree-body { padding: 12px 14px 14px; }
+  .tree-intro { padding: 14px; }
+  .tree-node { min-height: 40px; }
+  .tree-list ul > li::before { top: 24px; }
+}

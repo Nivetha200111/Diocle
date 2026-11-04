@@ -86,9 +86,9 @@ export default function DependencyGraph({
         <div>
           <h2>
             See the bigger picture
-            <span className="small-tag">Dependency graph</span>
+            <span className="small-tag">Made-up example</span>
           </h2>
-          <p>Understand your system before you change it.</p>
+          <p>An example with made-up programs, not from any analysis. Real trees are on the Dependency tree page.</p>
         </div>
         {compact && (
           <button
@@ -105,7 +105,7 @@ export default function DependencyGraph({
           viewBox="0 0 840 405"
           className="graph-svg"
           role="group"
-          aria-label="Synthetic COBOL dependency graph. Account Main calls Payment Processing and Balance Calculation."
+          aria-label="Made-up example of a dependency graph, not from any analysis. Account Main calls Payment Processing and Balance Calculation."
         >
           <defs>
             <marker
@@ -246,8 +246,8 @@ export default function DependencyGraph({
               {node.kind === "Copybook" ? ".cpy" : ".cbl"}
             </h3>
             <p>
-              {node.kind} · {node.lines.toLocaleString()} lines · Synthetic
-              sample
+              {node.kind} · {node.lines.toLocaleString()} lines · Made-up
+              example
             </p>
           </div>
           <Badge tone={node.risky ? "amber" : "green"}>

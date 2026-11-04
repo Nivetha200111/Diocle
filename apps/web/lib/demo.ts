@@ -14,6 +14,7 @@ export type View =
   | "Bug of the day"
   | "Delivery"
   | "Evidence"
+  | "Dependency tree"
   | "Settings";
 export type Migration = {
   id: string;
