@@ -6,6 +6,7 @@ import { API_URL, caseCount, plural } from "@/lib/runs";
 import { CANONICAL, LINKS, useApiConfig } from "@/lib/config";
 import { Skeleton } from "./ui";
 import { AssuranceBadge } from "./assurance";
+import { DeliveryDependencyTree } from "./delivery-dependency-tree";
 import { fetchDeliveries, fetchDelivery, startDelivery, type CreateTarget, type Delivery, type DeliveryListItem, type DeliveryProgram } from "@/lib/deliveries";
 
 type Led = "off" | "busy" | "ok" | "bad";
@@ -60,13 +61,13 @@ function stages(d: Delivery): { label: string; detail: string; led: Led }[] {
   const ci = ciState(d);
   if (!d.target) {
     return [
-      { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
+      { label: "1. Clone & analyze", detail: d.legacy.commit && d.stage !== "analyzing" ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
       { label: "2. Convert & certify", detail: `${certified}/${d.programs.filter((p) => p.status !== "skipped").length} certified${uncertified(d)}`, led: led(1) },
       { label: "3. Results", detail: d.stage === "done" ? "Java, diffs and traces in Run history" : "waiting", led: d.stage === "done" ? "ok" : "off" },
     ];
   }
   return [
-    { label: "1. Clone & analyze", detail: d.legacy.commit ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
+    { label: "1. Clone & analyze", detail: d.legacy.commit && d.stage !== "analyzing" ? `@${d.legacy.commit.slice(0, 12)} · ${plural(d.programs.length, "program")}` : "reading copybooks and JCL", led: led(0) },
     { label: "2. Convert & certify", detail: `${certified}/${d.programs.length} certified${uncertified(d)}`, led: led(1) },
     { label: "3. Open pull request", detail: d.pullRequest ? "opened" : "waiting", led: d.pullRequest ? "ok" : led(2) },
     d.ciNotAdded
@@ -451,6 +452,9 @@ export default function DeliveryView() {
           </div>
         ))}
       </div>
+
+      <DeliveryDependencyTree key={delivery.id} repository={delivery.legacy.repository} commit={delivery.legacy.commit}
+        tree={delivery.dependencyTree} running={running} analyzing={delivery.stage === "analyzing"} />
 
       <div className="dlv-grid">
         {delivery.programs.map((p) => <ProgramCard key={p.path ?? p.name} p={p} />)}

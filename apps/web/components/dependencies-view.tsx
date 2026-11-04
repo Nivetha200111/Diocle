@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import data from "@/lib/dependency-trees.json";
-import { buildForest, dependentsOf, impactLine, type TreeNode } from "@/lib/dependency-impact";
+import { AnalyzerTree, selfLoopWords } from "./dependency-tree";
 import { useOpenOnHash } from "./ui";
-import "@/app/dependencies/dependencies.css";
 
 type Attempt = (typeof data.trees)[number]["attempts"][number];
 type Tree = (typeof data.trees)[number];
@@ -17,64 +16,6 @@ const repoName = (url: string) => url.replace("https://github.com/", "");
 function linkWords(kinds: string[]) {
   const words: Record<string, string> = { call: "CALLs", copy: "COPYs", job: "JCL job to program" };
   return kinds.map((k) => words[k] ?? k).join(" and ");
-}
-
-function selfLoopWords(tree: Tree) {
-  return tree.kinds.includes("job") ? "a JCL job and a program with this one name" : "the report has it calling itself";
-}
-
-function Node({ node, tree, selected, dependents, pick }: {
-  node: TreeNode;
-  tree: Tree;
-  selected: string | null;
-  dependents: Set<string>;
-  pick: (name: string) => void;
-}) {
-  const isSelected = selected === node.name;
-  const isDependent = dependents.has(node.name);
-  return (
-    <li>
-      <button
-        type="button"
-        className={`tree-node ${isSelected ? "is-selected" : ""} ${isDependent ? "is-dependent" : ""}`}
-        aria-pressed={isSelected}
-        onClick={() => pick(node.name)}
-      >
-        <span className="mono tree-name">{node.name}</span>
-        {isSelected && <span className="tree-tag">selected</span>}
-        {isDependent && <span className="tree-tag">depends on it</span>}
-      </button>
-      {node.selfLoop && <span className="tree-aside">links to itself: {selfLoopWords(tree)}</span>}
-      {node.shownAbove && <span className="tree-aside">links shown above</span>}
-      {node.children.length > 0 && (
-        <ul>
-          {node.children.map((c, i) => <Node key={`${c.name}-${i}`} node={c} tree={tree} selected={selected} dependents={dependents} pick={pick} />)}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-// The analyzer's tree, always exact: it is drawn here from the report's edges and no model is involved.
-function AnalyzerTree({ tree }: { tree: Tree }) {
-  const forest = useMemo(() => buildForest(tree.edges), [tree.edges]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const dependents = useMemo(() => new Set(selected ? dependentsOf(tree.edges, selected) : []), [tree.edges, selected]);
-  return (
-    <div className="tree-analyzer">
-      <h3>From the analyzer&apos;s report</h3>
-      <div className="tree-impact">
-        <p role="status">{selected ? impactLine(tree.edges, selected) : "Select a name to see what depends on it."}</p>
-        {selected && <button type="button" className="link-button" onClick={() => setSelected(null)}>Clear</button>}
-      </div>
-      <ul className="tree-list">
-        {forest.map((root, i) => (
-          <Node key={`${root.name}-${i}`} node={root} tree={tree} selected={selected} dependents={dependents}
-            pick={(name) => setSelected((now) => (now === name ? null : name))} />
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function readBackWords(a: Attempt) {
@@ -147,7 +88,7 @@ function TreeCard({ tree }: { tree: Tree }) {
         {tree.note && <p>{tree.note}</p>}
       </div></div>
       <div className="tree-body">
-        <AnalyzerTree tree={tree} />
+        <AnalyzerTree edges={tree.edges} loopWords={() => selfLoopWords(tree.kinds)} />
         <Drawing tree={tree} />
       </div>
     </section>

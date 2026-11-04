@@ -4,6 +4,15 @@
 
 **The analyzer's links are the source of truth,** and the site draws its own exact tree from them next to any drawing. The site's impact view also uses only those links, in the browser, with no model.
 
+## Every import gets its own tree
+
+Each new delivery, visitor imports included, records the analyzer's links in `dependencyTree` ([`contracts/delivery.schema.json`](../contracts/delivery.schema.json) v0.9) as soon as analysis finishes, before any conversion, even when nothing in the repository can be converted. No model is involved.
+
+- **What is recorded:** kinds `call`, `copy` and `job`, as analyzed; each distinct link once, in analyzer order. The analyzer's `file` links are not part of the tree.
+- **Limits:** the first 1,000 distinct links, with `total` and `truncated` saying so, and the page says so too. Labels are cut at 120 characters, and control and text-direction characters become `?`.
+- **On the page:** the delivery page shows the repository and commit and one collapsed group per program or JCL job. A group's tree is built only when it is opened, so a repository with hundreds of links stays quick (the check script times 1,000 links). Labels come from the imported repository and are rendered as text only.
+- **Impact covers only the links in the report.** It does not cover everything that could break at run time. A delivery from before this field shows one line saying no tree is recorded.
+
 ## Results
 
 Raw records: [`results-dependency-trees.json`](../eval/results-dependency-trees.json), whole graphs, up to 2 attempts each; [`results-dependency-trees-parts.json`](../eval/results-dependency-trees-parts.json), one program at a time, up to 3 attempts each. The generator is `eval/draw_dependency_trees.py`. Every attempt is recorded.

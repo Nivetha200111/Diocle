@@ -76,7 +76,7 @@ On one [synthetic cheque-clearing run](docs/SHOWCASE_CHQCLR.md), Muse Spark desi
 | **Copybooks as SQL** | Tables from the PICs, checked by a SQLite round trip | None |
 | **Private mode, cross-check, guard** | Agents on open weights, plus an optional second attacker and review; thinly tested | Muse Spark Open on Fireworks and Baseten |
 | **Meta vs Meta** | Three models attack the same Java, on 10 synthetic programs, once each: broke 4, 2 and 5. Only one model broke `PKDPOST`. [Not a ranking](docs/META_TOURNAMENT.md) | Muse Spark, Muse Spark Open, Muse Wonder |
-| **Dependency tree and impact view** | The analyzer's links as a tree; click a box to see what depends on it. A drawing is marked as checked only if it is read back and matches exactly; whole-repository drawings did not pass. [Results](docs/DEPENDENCY_TREES.md) | Muse Image, Muse Wonder; the tree itself uses no model |
+| **Dependency tree and impact view** | The analyzer's links as a tree; click a box to see what depends on it. Every new import records its own tree on its delivery page. A drawing is marked as checked only if it is read back and matches exactly; whole-repository drawings did not pass. [Results](docs/DEPENDENCY_TREES.md) | The tree itself uses no model; recorded drawings: Muse Image, Muse Wonder |
 | **Read a printout** | A photo of a listing, bundled or your own (capped), back into COBOL and compared | Muse Wonder |
 | **Ask by voice** | A question, bundled or in your own voice (capped), answered only from what GnuCOBOL confirmed | Muse Voice Transcribe, Muse Spark |
 | **Editors** | A VS Code extension and a Muse Code plugin, both local | Muse Spark; Muse Code |

@@ -308,6 +308,33 @@ def build_section(result: dict | None, delivered_count: int, ci_added: bool = Tr
     return lines
 
 
+TREE_EDGE_KINDS = ("call", "copy", "job")
+MAX_TREE_EDGES = 1000  # contracts/delivery.schema.json dependencyTree: the record is polled by the dashboard, so it stays small
+MAX_TREE_LABEL = 120
+# Control and text-direction characters: labels come from the imported repository (the page renders them as text only).
+_TREE_LABEL_BAD = re.compile("[\\x00-\\x1f\\x7f-\\x9f\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069]")
+
+
+def _tree_label(value: object) -> str:
+    return _TREE_LABEL_BAD.sub("?", value)[:MAX_TREE_LABEL] if isinstance(value, str) else ""
+
+
+def dependency_tree(report: dict) -> dict | None:
+    """contracts/delivery.schema.json dependencyTree: the analyzer's distinct call, copy and job links, first MAX_TREE_EDGES in
+    analyzer order. No model. None when the report has no `dependencies` list."""
+    links = report.get("dependencies")
+    if not isinstance(links, list):
+        return None
+    seen: dict[tuple[str, str, str], None] = {}
+    for link in links:
+        if isinstance(link, dict) and link.get("kind") in TREE_EDGE_KINDS:
+            source, to = _tree_label(link.get("from")), _tree_label(link.get("to"))
+            if source and to:
+                seen[(source, to, link["kind"])] = None
+    edges = [{"from": a, "to": b, "kind": k} for a, b, k in list(seen)[:MAX_TREE_EDGES]]
+    return {"edges": edges, "total": len(seen), "truncated": len(seen) > len(edges)}
+
+
 class Progress:
     """runs/deliveries/<id>/delivery.json (contracts/delivery.schema.json), rewritten at every step."""
 
@@ -904,6 +931,11 @@ def main(argv: list[str] | None = None) -> int:
                     if getattr(e, "returncode", 4) == 4:  # gh's exit status for "not logged in"; a network failure is not that
                         raise SystemExit(_no_github_login(""))
         report, samples = analyze(args.legacy_url, progress.id, convert_anyway)
+        progress.state["legacy"]["commit"] = report["source"]["commit"]
+        tree = dependency_tree(report)  # before any cap, pre-check or conversion: every delivery that got this far has it
+        if tree is not None:
+            progress.state["dependencyTree"] = tree
+        progress.save()
         wanted = set(args.programs.split(",")) if args.programs else None
         refused = _refusals([p for p in report["programs"] if not p["convertible"] and not convert_anyway and (wanted is None or p["name"] in wanted)])
         report["programs"] = [p for p in report["programs"] if (p["convertible"] or convert_anyway) and (wanted is None or p["name"] in wanted)]
@@ -926,7 +958,6 @@ def main(argv: list[str] | None = None) -> int:
         if len(report["programs"]) > max_programs:
             raise SystemExit(f"{len(report['programs'])} programs exceed DIOCLE_MAX_PROGRAMS={max_programs}; "
                              "pass --programs or raise the cap")
-        progress.state["legacy"]["commit"] = report["source"]["commit"]
         if not report["programs"]:
             progress.state["programs"] = (skipped + refused)[:REFUSALS_LISTED]
             raise SystemExit(_nothing_to_convert(refused, skipped, wanted is not None))

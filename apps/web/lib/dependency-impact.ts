@@ -61,6 +61,34 @@ export function buildForest(edges: readonly Edge[]): TreeNode[] {
   return forest;
 }
 
+// One group per name that has links of its own (a program or a JCL job), alphabetical, with its direct links counted once
+// each. The groups stay collapsed on a large repository, so this is all the page computes up front.
+export function groupsOf(edges: readonly Edge[]): { name: string; links: number }[] {
+  const out = new Map<string, Set<string>>();
+  for (const [from, to] of edges) out.set(from, (out.get(from) ?? new Set<string>()).add(to));
+  return [...out.entries()].map(([name, tos]) => ({ name, links: tos.size })).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+}
+
+// The edges reachable from `name`, each once: what one group draws when it is opened.
+export function reachableEdges(edges: readonly Edge[], name: string): [string, string][] {
+  const out = new Map<string, Set<string>>();
+  for (const [from, to] of edges) out.set(from, (out.get(from) ?? new Set<string>()).add(to));
+  const seen = new Set([name]);
+  const found: [string, string][] = [];
+  const todo = [name];
+  while (todo.length) {
+    const from = todo.pop() as string;
+    for (const to of out.get(from) ?? []) {
+      found.push([from, to]);
+      if (!seen.has(to)) {
+        seen.add(to);
+        todo.push(to);
+      }
+    }
+  }
+  return found;
+}
+
 // The one sentence under the tree. It says what the report holds, not what would break at run time.
 export function impactLine(edges: readonly Edge[], node: string): string {
   const deps = dependentsOf(edges, node);

@@ -53,3 +53,16 @@
   .tree-node { min-height: 40px; }
   .tree-list ul > li::before { top: 25px; }
 }
+
+/* A whole imported repository on the delivery page: one collapsed group per program or JCL job. */
+.dep-section .dep-empty, .dep-section .dep-note { padding: 8px 14px; }
+.dep-section .dep-note { margin: 8px 14px 0; background: #ffffc0; box-shadow: var(--w-in); }
+.dep-grouped { padding: 4px 14px 14px; }
+.dep-grouped .tree-impact { position: static; }
+.dep-grouped .tree-impact p { max-height: 7.5em; overflow-y: auto; }
+.dep-groups { max-height: 520px; overflow: auto; display: grid; gap: 4px; align-content: start; }
+.dep-group { min-width: 0; }
+.dep-group > summary { padding: 4px 8px; cursor: pointer; overflow-wrap: anywhere; }
+.dep-group > summary:focus-visible { outline: 2px solid #000; outline-offset: -2px; }
+.dep-group > .tree-list { padding: 0 8px 8px 16px; }
+.app-shell .dep-count { font-size: 13px; }

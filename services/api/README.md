@@ -14,7 +14,7 @@ Status: **working.** It serves runs and deliveries to the dashboard, starts deli
 | `POST /runs/{id}/mutation` | Runs mutation testing on the run's Java; can take minutes, no model |
 | `GET /runs/{id}/reproducers` | Smallest-reproducer records for the run |
 | `GET /runs/{id}/reproducers/{case}/regression` | The regression case saved with one reproducer |
-| `GET /deliveries`, `GET /deliveries/{id}` | Stored deliveries ([`contracts/delivery.schema.json`](../../contracts/delivery.schema.json)) |
+| `GET /deliveries`, `GET /deliveries/{id}` | Stored deliveries ([`contracts/delivery.schema.json`](../../contracts/delivery.schema.json)). One delivery carries `dependencyTree`: the analyzer's distinct call, copy and job links, first 1,000 in analyzer order (`total`, `truncated`), recorded when analysis finishes, with no model ([details](../../docs/DEPENDENCY_TREES.md)); absent on older deliveries |
 | `POST /deliveries` | With the admin passcode: a pull request on an allowed target. Without it: a visitor import of a public repository, sandboxed and capped, with no pull request |
 | `GET /config` | Public settings, caps and live status |
 | `POST /samples/live`, `GET /samples/live/{id}` | The two live buttons and their job status ([`contracts/live-sample.schema.json`](../../contracts/live-sample.schema.json)) |

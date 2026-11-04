@@ -27,6 +27,10 @@ export type DeliveryProgram = {
 // contracts/delivery.schema.json $defs.createTarget (v0.5)
 export type CreateTarget = { name: string; owner?: string | null; visibility?: "private" | "public" };
 
+// contracts/delivery.schema.json dependencyTree (v0.9). Labels come from the imported repository: render as text only.
+export type DependencyEdge = { from: string; to: string; kind: "call" | "copy" | "job" };
+export type DependencyTree = { edges: DependencyEdge[]; total: number; truncated: boolean };
+
 export type Delivery = {
   id: string;
   legacy: { repository: string; commit: string | null };
@@ -45,6 +49,8 @@ export type Delivery = {
   pullRequest: { url: string; checks?: { name: string; state: string; link?: string }[] } | null;
   /** GitHub refused the workflow file, so the delivery was pushed without the re-verify CI: the sentence that says so. */
   ciNotAdded?: string | null;
+  /** The analyzer's links, recorded when analysis finishes: absent on older deliveries. */
+  dependencyTree?: DependencyTree | null;
   /** Whole-repository build check (contracts/build-report.schema.json, summarised): absent on older deliveries. */
   buildCheck?: {
     verdict: "pass" | "fail" | "warn";
