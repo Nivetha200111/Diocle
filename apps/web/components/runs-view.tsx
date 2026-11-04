@@ -457,7 +457,7 @@ function RunDetail({ run }: { run: Run }) {
           {EXPECTED_REVERIFY_FAILURE[run.id] && <p className="dlv-reason">{EXPECTED_REVERIFY_FAILURE[run.id]}</p>}
           {runNote(run.id) && (
             <details className="inline-more run-note">
-              <summary>Read this count with care</summary>
+              <summary>Read this count with care: its generated records were placeholders</summary>
               <p className="dlv-reason">{runNote(run.id)?.replace(/^Read this count with care: /, "")}</p>
             </details>
           )}

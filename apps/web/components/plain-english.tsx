@@ -162,7 +162,7 @@ export function PlainEnglishCard({ run }: { run: Run }) {
   const models = modelLines(run);
   const cost = money(run.usage?.estimatedCostUsd);
   return (
-    <Fold className="plain-card" title={<><MessageSquareText size={14} /> In plain English</>} hint="What this run did and did not establish. Every line comes from this run's record.">
+    <Fold open={!run.certified && run.status !== "running"} className="plain-card" title={<><MessageSquareText size={14} /> In plain English</>} hint="What this run did and did not establish. Every line comes from this run's record.">
       <div className="plain-body">
         {shown.length > 0 ? (
           <div>

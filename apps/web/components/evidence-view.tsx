@@ -47,7 +47,7 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           <div><dt>synthetic programs certified and delivered in one pull request, {CANONICAL.pr}. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
           <div><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in its CI. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.differences}</dd></div>
           <div><dt>translations that passed 1,000 generated records and could be attacked went on to differ, on malformed numbers or the sign of a zero. Synthetic programs. <FoldLink to="measured">Detail</FoldLink></dt><dd className="mono">4 of 10</dd></div>
-          <div><dt>programs of a public course certified at first: 9 on fixed input, 2 against a repaired copy. A third pass, not a blind test, certified 9 more. <FoldLink to="course-estate">Detail</FoldLink></dt><dd className="mono">11 of 32</dd></div>
+          <div><dt>programs of a public course certified at first: 9 on fixed input, 2 against a repaired copy. A third pass, not a blind test, certified 9 more: 8 against a repaired copy, 1 on fixed input. <FoldLink to="course-estate">Detail</FoldLink></dt><dd className="mono">11 of 32</dd></div>
           <div><dt>testable programs from a retired pension system&apos;s repository certified; 2 did not. Whether they ran in production is not established. <FoldLink to="blind-test">Detail</FoldLink></dt><dd className="mono">2 of 4</dd></div>
         </dl>
       </section>

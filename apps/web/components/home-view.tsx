@@ -286,7 +286,7 @@ function Numbers({ go }: { go: Go }) {
         </button>
       </div>
       <p className="pitch-models">
-        Models write and attack; the comparison decides. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
+        Models write and attack; only the comparison can certify. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
       </p>
     </section>
   );

@@ -213,7 +213,7 @@ export default function AskPanel() {
       </div>
       {reason && <p className="live-reason" role="status">{reason.startsWith("Checking") ? reason : `Disabled: ${reason}`}</p>}
       {micAllowed && micReason && <p className="live-reason" role="status">Your own voice is not available now: {micReason}</p>}
-      {micAllowed && HOSTED && !micReason && <p className="live-caps">Your own voice: please leave out names and real account details.</p>}
+      {micAllowed && !micReason && <p className="live-caps">Your own voice goes to Meta&apos;s speech service: please leave out names and real account details.</p>}
       <details className="inline-more live-limits" id="ask-limits">
         <summary>Limits and privacy</summary>
         <p>
