@@ -43,7 +43,7 @@ Already existed and is used, not built here:
 
 ## Voice and narration disclosure
 
-- **Video narration.** The submitted video (https://youtu.be/C-sXQnX6uJ0) is narrated by a synthetic voice (ElevenLabs), not a Meta model and not part of the product. The script is written in the first person and its account of the author's own experience is the author's. This is disclosed in the README and the video description, not in the video itself. Earlier cuts used the author's own recorded voice; this cut has no music or sound effects.
+- **Video narration.** The submitted video (https://youtu.be/7imkDKUrhjc) is narrated by a synthetic voice (ElevenLabs), not a Meta model and not part of the product. The script is written in the first person and its account of the author's own experience is the author's. This is disclosed in the README and the video description, not in the video itself. Earlier cuts used the author's own recorded voice; this cut has no music or sound effects.
 - **Voice clips in the product.** The two spoken-question clips (`services/api/diocle_api/voice_clips/`) are the author's own recorded voice (Nov 1, 2026), replacing earlier macOS `say` clips.
 - **Speech model.** Meta's Muse Voice Transcribe transcribes speech and does not speak; it is not used for the narration.
 - **Video contents.** This repository does not contain the final video. A "Built Oct 27 - Nov 4, 2026" line is on every terminal slide from the first frame and a badge is on every product shot; a caption at about 0:23 says what already existed; the narration says "I built Diocle during this hackathon" at about 0:29.
