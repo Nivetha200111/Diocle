@@ -1763,3 +1763,258 @@ a.nav-item {
 .pitch-numbers > div {
   justify-content: flex-end;
 }
+
+/* ---------- readability: the Windows 98 chrome stays; the reading gets easier ----------
+   Dark text at a normal size on a light window, room to breathe, no shadow or glow on anything meant to be read.
+   The grey faces, bevels, title bars, teal desktop and "Diocle 98" stay. */
+:root {
+  --w-window: #f8f7f2; /* the inside of a window: lighter than the grey chrome around it */
+}
+body {
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: auto;
+}
+.app-shell :is(p, th, td, label, li, dd, dt, .tabs button, .stat-top, .text-button, .button, .count, .filter-select select, .breadcrumbs),
+.modal :is(p, label, .button) {
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+.app-shell :is(small, .badge, .page-eyebrow),
+.modal small {
+  font-size: 13px !important;
+}
+.mono,
+code,
+pre {
+  font-size: 13px !important;
+  font-variant-numeric: tabular-nums;
+}
+/* the inside of every window is light; buttons, tabs and frames keep the grey */
+.panel,
+.stat-card,
+.info-card,
+.modal,
+.bug-card,
+.bug-mutants,
+.mc-banner,
+.mc-agent,
+.mc-empty,
+.pitch-numbers > div,
+.eff-grid > div,
+.dlv-stage,
+.skeleton,
+.hero {
+  background: var(--w-window) !important;
+}
+.mc-agent.is-idle {
+  background: #ecebe4 !important;
+}
+.mc-agent.is-verifier {
+  background: #dcecd6 !important;
+}
+.mc-agent.is-idle :is(h3, p) {
+  color: #303030 !important;
+}
+/* headings: one size per level, nothing that needs a shadow to be seen */
+.page-heading {
+  align-items: flex-start;
+  padding: 14px 18px;
+  background: var(--w-window);
+  box-shadow: var(--w-out);
+}
+.page-heading h1,
+.page-heading p,
+.page-heading .page-eyebrow,
+.report-intro > div,
+.report-intro > div *,
+.view-content > .section-heading,
+.view-content > .section-heading *,
+.page-footer,
+.page-footer *,
+.new-delivery-reason {
+  text-shadow: none;
+}
+.app-shell .page-heading h1,
+.app-shell .page-heading p {
+  color: #000 !important;
+}
+.app-shell .page-heading .page-eyebrow {
+  color: var(--w-navy) !important;
+}
+.page-heading h1 {
+  font-size: 40px !important;
+}
+.app-shell .page-heading p {
+  font-size: 15px !important;
+  margin-top: 4px;
+  max-width: 78ch;
+}
+.panel > .panel-heading {
+  padding: 7px 10px !important;
+}
+.app-shell .panel-heading h2,
+.modal-header h2 {
+  font-size: 15px !important;
+  line-height: 1.35;
+}
+.app-shell .panel-heading p,
+.modal-header p {
+  color: #fff !important;
+  font-size: 14px !important;
+}
+.app-shell .fold-head h2 {
+  font-size: 15px !important;
+}
+.fold-hint {
+  font-size: 13px;
+}
+.fold-body {
+  padding: 12px 0 8px;
+}
+.nav-item {
+  font-size: 13px;
+}
+.app-shell .nav-label {
+  color: #303030 !important;
+  font-size: 12px !important;
+}
+.sidebar-bottom > .nav-item {
+  font-size: 13px;
+}
+/* body copy inside windows */
+.home-list,
+.home-pr,
+.home-more,
+.mutation-note,
+.trap,
+.inline-more,
+.inline-more > h4,
+.plain-card .plain-body,
+.sb-assume, .sb-result, .sb-not,
+.repro-card p,
+.bug-card,
+.bug-mutants {
+  font-size: 14px;
+  line-height: 1.55;
+}
+.app-shell .pitch-claim .pitch-line,
+.app-shell .pitch .pitch-models {
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+.app-shell .pitch-catch .pitch-input,
+.app-shell .pitch-catch .pitch-fixed,
+.pitch-pipeline span,
+.pitch-numbers dt,
+.pitch-card {
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+/* numbers and tables: no glow, more room, one clear rule between rows */
+.stat-value,
+.stat-value * {
+  text-shadow: none;
+}
+.trace-cert.pass {
+  text-shadow: none;
+}
+.trace-result {
+  opacity: 1;
+}
+.data-table th,
+.migration-table th {
+  font-weight: 700;
+  padding: 6px 10px !important;
+}
+.data-table td,
+.migration-table td {
+  background: #fff;
+  border-bottom: 1px solid #d8d8d8 !important;
+  padding: 7px 10px !important;
+}
+.tournament-table {
+  border-collapse: collapse;
+  margin: 4px 24px 12px;
+  width: calc(100% - 48px);
+  background: #fff;
+}
+.tournament-table th {
+  background: var(--w-face);
+  box-shadow: var(--w-out);
+  padding: 6px 10px;
+  text-align: left;
+}
+.tournament-table td {
+  border-bottom: 1px solid #d8d8d8;
+  padding: 7px 10px;
+}
+/* code stays a terminal, at a size you can read */
+.source-code,
+.diff-block,
+.trace-list,
+.editor-cmd,
+.live-source {
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+.trace-tool,
+.trace-why,
+.dlv-log .trace-tool,
+.dlv-log .trace-why {
+  font-size: 13px !important;
+}
+.mc-lede,
+.mc-agent p,
+.mc-note,
+.mc-tiers li small,
+.mc-cost-of,
+.live-what,
+.live-caps,
+.live-reason,
+.live-nums > div,
+.bug-note,
+.bug-src {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mc-lede {
+  font-size: 14px;
+}
+.mc-ev {
+  font-size: 13px;
+}
+/* a line that sits straight on the desktop gets a window behind it: black on teal is too dim */
+.mc-lede,
+.try-next,
+.mc-embedded > .mc-note,
+.view-content > .mc-note {
+  background: var(--w-window);
+  box-shadow: var(--w-out);
+  padding: 8px 12px;
+}
+.badge {
+  background: #fff !important;
+}
+/* the sidebar: labels clear of the logo and of the group above */
+nav {
+  gap: 2px;
+  margin-top: 16px;
+}
+.app-shell .nav-label {
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+.nav-item {
+  padding: 7px 10px;
+}
+/* code in a real monospace: the font variable lives on body, so the token that uses it has to as well */
+body {
+  --w-mono: var(--font-plex-mono), "Courier New", monospace;
+}
+.view-content > p.live-caps,
+.now-view > p.live-caps {
+  background: var(--w-window);
+  box-shadow: var(--w-out);
+  padding: 8px 12px;
+}
