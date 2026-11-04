@@ -977,8 +977,8 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
             </span>
             <strong>What Diocle does</strong>
             <p>
-              COBOL in, Java out, with a
-              <br />proof that both behave the same.
+              COBOL in, Java out, then a byte
+              <br />comparison on the same inputs.
             </p>
             <button onClick={() => setModal("help")}>
               How Diocle works

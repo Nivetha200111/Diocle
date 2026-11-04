@@ -9,6 +9,10 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v16 (https://youtu.be/glTLob7S-60), uses only the owner's own recorded voice; no synthetic voice is in it.
 
+## Nov 4: pre-submission wording (branch `pre-submit-wording`, local, not pushed)
+- **README:** the "Start here" table moved directly under the opening line. No line was changed or removed, only reordered.
+- **Sidebar source:** `workspace.tsx` no longer says "a proof that both behave the same". The block is hidden by `retro.css`, so nothing visible changes; the old sentence was only in the page's HTML.
+
 ## Nov 3: video v16
 - **Why:** a review of v15 found two shots too dense to read and a refusal line spoken over panels of certified programs.
 - **What:** https://youtu.be/glTLob7S-60, 2:59.6, replaces v15 as the linked video. It adds an "It also says no." card, the analyzer's report on CardDemo at the imported commit (44 programs, 4 it can check, 40 refused, seven shortened examples, labelled as an analyzer report rather than the live page), a push-in on the Muse Spark Open table, and a longer end card. 1.35 s of pauses came out; the owner's words and takes are unchanged. The pipeline is local only and not committed.
