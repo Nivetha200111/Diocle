@@ -75,5 +75,11 @@ Two real runs filmed for the demo video, on this Mac, with Muse Spark, GnuCOBOL 
 - **TXNPOST, in the local frontend, as a delivery dry run with the breaker (nothing pushed):** 1,024/1,024; the breaker broke it with 2 of 10 inputs, both the sign of a zero (same value, different bytes); repaired; 1,026/1,026; the breaker then tried 12 and all matched. Certified, 19 model calls, about $0.024.
 - **CHQCLR, from the command line, with the breaker and no fix memory:** 1,004/1,004; the Java crashed on the breaker's inputs, so all 12 failed together rather than being 12 separate bugs; repaired; 1,016/1,016; 4 of 4 new inputs broke it, with a malformed sign byte turning a debit of -100.00 into +100.00. Not certified, 14 model calls, about $0.02.
 
-One run of each. They show the loop running, not how often either outcome happens.
+Four more real calls, also filmed, on a local engine ([record](../eval/film-runs-nov4/other-meta-models.json)):
 
+- **Muse Spark Open:** translated ADDFEE on open weights, 1,005/1,005, guard review passed, certified, about $0.035.
+- **Muse Wonder as the attacker:** a direct attack on Java that Muse Spark had translated and repaired for PKDPOST (1,042/1,042): all 7 designed inputs matched, and 5 more were rejected as invalid for the layout, about $0.40. The first attempt, inside a full run, hit a time limit before it finished attacking.
+- **Muse Image, read back by Muse Wonder:** a drawing of one part of the `quillmark-legacy` tree matched on attempt 1, read-back about $0.02.
+- **Muse Code:** called Diocle's tools itself, analyzed INTACCR and re-verified its stored Java, 527 of 527.
+
+One run of each. They show the loop and the models running, not how often any outcome happens.

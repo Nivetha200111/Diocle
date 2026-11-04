@@ -1,0 +1,140 @@
+{
+ "how": "real calls on a local engine, Nov 5 2026 IST, code at 846674d, synthetic samples, nothing edited",
+ "museSparkOpen": {
+  "log": [
+   [
+    0.5,
+    "model: accounts/fireworks/models/muse-spark-open (private), reasoning_effort=medium, caps: 60 calls/run, 20/round, 3 rounds"
+   ],
+   [
+    0.5,
+    "guard: policy on every run; review by accounts/fireworks/models/muse-spark-open (2 calls/run)"
+   ],
+   [
+    0.5,
+    "run started runs/addfee-20261105-011254"
+   ],
+   [
+    0.5,
+    "[stage] Translating ADDFEE with accounts/fireworks/models/muse-spark-open"
+   ],
+   [
+    179.6,
+    "wrote Addfee.java; translator notes: ADDFEE: LINE SEQUENTIAL 15-byte in (X8+9(5)V99 implied) and 20-byte out (X8+9(5)V99+9(3)V99). Amount parsed as integer/100, fee = amount*0.015 rounded HALF_UP to 2 decimals, formatted as zero-padded DISPLAY digits with TRUNC-style modulo on overflow. Paragraphs m"
+   ],
+   [
+    179.6,
+    "[stage] Running GnuCOBOL and the Java on the same inputs"
+   ],
+   [
+    180.5,
+    "[stage] Starting point: 205/205 cases match; repair agent takes over"
+   ],
+   [
+    181.4,
+    "conversion already passes, including held-out inputs: no repair needed"
+   ],
+   [
+    181.4,
+    "=== round 0 certification on held-out inputs: PASS"
+   ],
+   [
+    181.4,
+    "    1005/1005 cases match; stdout matches."
+   ],
+   [
+    181.4,
+    "[stage] Guard agent (accounts/fireworks/models/muse-spark-open) reviews the final Java against the COBOL"
+   ],
+   [
+    208.2,
+    "[guard] Guard review: PASS \u00b7 Reviewed Addfee.java against COBOL ADDFEE: reads only DD_ACCTIN/DD_ACCTOUT via env, writes only DD_ACCTOUT, reads only allowed env vars DIOCLE_CLOCK/DIOCLE_COLLATION, no network/process/reflection/native/other file access/threads/obfuscation/test-gaming found. Determinis"
+   ],
+   [
+    208.2,
+    ""
+   ],
+   [
+    208.2,
+    "CERTIFIED  \u00b7  2 model calls, 3587 in (0 cached) / 7241 out tokens, est. $0.035258"
+   ],
+   [
+    208.2,
+    "run saved to runs/addfee-20261105-011254"
+   ]
+  ]
+ },
+ "museWonderAttacker": {
+  "certifyAndRepairRunStoppedByTimeLimit": [
+   [
+    0.5,
+    "[stage] Translating PKDPOST with muse-spark-1.3-contributor"
+   ],
+   [
+    175.8,
+    "[stage] Running GnuCOBOL and the Java on the same inputs"
+   ],
+   [
+    176.8,
+    "[stage] Starting point: 0/242 cases match; repair agent takes over"
+   ],
+   [
+    438.3,
+    "    -> 4/242 cases match; stdout matches."
+   ],
+   [
+    1006.8,
+    "    -> 242/242 cases match; stdout matches."
+   ],
+   [
+    1017.8,
+    "[stage] Round 1: certifying on 1000 held-out inputs the agent has not seen"
+   ],
+   [
+    1018.7,
+    "=== round 1 certification on held-out inputs: PASS"
+   ],
+   [
+    1018.7,
+    "    1042/1042 cases match; stdout matches."
+   ],
+   [
+    1018.7,
+    "[stage] Breaker is designing inputs to break the certified Java"
+   ]
+  ],
+  "directAttack": [
+   [
+    0.3,
+    "[stage] Muse Wonder attacks the certified Java: muse-wonder-1.0"
+   ],
+   [
+    152.7,
+    "Breaker round 1: all 7 designed inputs match the COBOL (5 rejected as invalid for the layout)"
+   ],
+   [
+    152.7,
+    "{\"tried\": 7, \"broke\": 0, \"cost\": 0.4014, \"calls\": 1, \"diffs\": []}"
+   ]
+  ]
+ },
+ "museImageWithWonderReadBack": {
+  "log": [
+   [
+    24.7,
+    "attempt 1: match, read cost $0.0186"
+   ],
+   [
+    24.7,
+    "tree-draw: passed"
+   ]
+  ]
+ },
+ "museCode": {
+  "tools": [
+   "diocle_analyze",
+   "diocle_verify_stored"
+  ],
+  "answer": "Analysis found program `INTACCR` convertible \u2014 `ACCTIN` (5 fields) to `INTOUT` (5 fields), with high-severity silent-overflow risks on `COMPUTE` statements lacking `ON SIZE ERROR` \u2014 and re-verification (seed 4243, no conversion) matched the stored Java against GnuCOBOL on 527 of 527 generated inputs.\\n\\nCaveat: this is a match on the tested inputs only, not proof of equivalence, and GnuCOBOL as oracle can differ from IBM COBOL in edge cases."
+ }
+}
