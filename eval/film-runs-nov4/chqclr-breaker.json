@@ -1,0 +1,287 @@
+{
+ "rounds": 2,
+ "tried": 28,
+ "broke": 16,
+ "repairCycles": 1,
+ "fixed": false,
+ "counterexamples": [
+  {
+   "input": "CACCT00000100000001+99999999920240101XXX",
+   "why": "Max cheque amount 9999999.99 tests upper boundary debit and total.",
+   "diff": "output record 1: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "CACCT00000100000001-99999999920240101XXX",
+   "why": "Max negative cheque amount flips debit sign to large credit.",
+   "diff": "output record 2: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "CACCT00000100000001+00000000020240101XXX",
+   "why": "Positive zero amount tests zero sign on COMPUTE debit.",
+   "diff": "output record 3: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "CACCT00000100000001-00000000020240101XXX",
+   "why": "Negative zero amount tests ZERO minus negative zero sign.",
+   "diff": "output record 4: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "CACCT00000100000001-00001234520240101XXX",
+   "why": "Negative amount -123.45 makes debit a positive credit.",
+   "diff": "output record 5: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "RACCT00000200000002NS99999XXXXXXXXXXXXXX",
+   "why": "NSF fee 999.99 doubled to 1999.98 overflows 3-digit fee.",
+   "diff": "output record 6: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "RACCT00000200000002NS50000XXXXXXXXXXXXXX",
+   "why": "NSF fee 500.00 doubled to exact 1000.00 wraps to zero.",
+   "diff": "output record 7: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "RACCT00000200000002SP99999XXXXXXXXXXXXXX",
+   "why": "Stopped reason with max fee must not double.",
+   "diff": "output record 8: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "RACCT00000200000002NS00000XXXXXXXXXXXXXX",
+   "why": "NSF zero fee tests doubling of zero.",
+   "diff": "output record 9: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "RACCT00000200000002ns00100XXXXXXXXXXXXXX",
+   "why": "Lowercase ns must not trigger NSF doubling.",
+   "diff": "output record 10: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "why": "Unknown type tests reject path with spaces and zeros.",
+   "diff": "output record 11: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "RACCT00000200000002NS12.50XXXXXXXXXXXXXX",
+   "why": "Non-numeric fee with dot crashes Java parse versus COBOL handling.",
+   "diff": "output record 12: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "input": "CACC000000100000001`00001000020240101   ",
+   "why": "Backtick 0x60 is treated as minus by Java but as plus by COBOL so debit sign flips.",
+   "diff": "CL-DEBIT: original -100.00 converted 100.00"
+  },
+  {
+   "input": "CACC000000200000002`99999999920240102   ",
+   "why": "Backtick sign with max magnitude flips large debit from negative to positive.",
+   "diff": "CL-DEBIT: original -9999999.99 converted 9999999.99"
+  },
+  {
+   "input": "CACC000000300000003`00000000120240103   ",
+   "why": "Backtick sign with smallest penny flips tiny debit sign and net total.",
+   "diff": "CL-DEBIT: original -0.01 converted 0.01"
+  },
+  {
+   "input": "CACC000000400000004`12345678920240104   ",
+   "why": "Backtick sign with arbitrary amount causes opposite debit and net.",
+   "diff": "CL-DEBIT: original -1234567.89 converted 1234567.89"
+  }
+ ],
+ "attempts": [
+  {
+   "id": "breaker-attack-r1-01",
+   "input": "CACCT00000100000001+99999999920240101XXX",
+   "why": "Max cheque amount 9999999.99 tests upper boundary debit and total.",
+   "broke": true,
+   "diff": "output record 1: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-02",
+   "input": "CACCT00000100000001-99999999920240101XXX",
+   "why": "Max negative cheque amount flips debit sign to large credit.",
+   "broke": true,
+   "diff": "output record 2: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-03",
+   "input": "CACCT00000100000001+00000000020240101XXX",
+   "why": "Positive zero amount tests zero sign on COMPUTE debit.",
+   "broke": true,
+   "diff": "output record 3: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-04",
+   "input": "CACCT00000100000001-00000000020240101XXX",
+   "why": "Negative zero amount tests ZERO minus negative zero sign.",
+   "broke": true,
+   "diff": "output record 4: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-05",
+   "input": "CACCT00000100000001-00001234520240101XXX",
+   "why": "Negative amount -123.45 makes debit a positive credit.",
+   "broke": true,
+   "diff": "output record 5: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-06",
+   "input": "RACCT00000200000002NS99999XXXXXXXXXXXXXX",
+   "why": "NSF fee 999.99 doubled to 1999.98 overflows 3-digit fee.",
+   "broke": true,
+   "diff": "output record 6: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-07",
+   "input": "RACCT00000200000002NS50000XXXXXXXXXXXXXX",
+   "why": "NSF fee 500.00 doubled to exact 1000.00 wraps to zero.",
+   "broke": true,
+   "diff": "output record 7: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-08",
+   "input": "RACCT00000200000002SP99999XXXXXXXXXXXXXX",
+   "why": "Stopped reason with max fee must not double.",
+   "broke": true,
+   "diff": "output record 8: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-09",
+   "input": "RACCT00000200000002NS00000XXXXXXXXXXXXXX",
+   "why": "NSF zero fee tests doubling of zero.",
+   "broke": true,
+   "diff": "output record 9: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-10",
+   "input": "RACCT00000200000002ns00100XXXXXXXXXXXXXX",
+   "why": "Lowercase ns must not trigger NSF doubling.",
+   "broke": true,
+   "diff": "output record 10: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-11",
+   "input": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "why": "Unknown type tests reject path with spaces and zeros.",
+   "broke": true,
+   "diff": "output record 11: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-12",
+   "input": "RACCT00000200000002NS12.50XXXXXXXXXXXXXX",
+   "why": "Non-numeric fee with dot crashes Java parse versus COBOL handling.",
+   "broke": true,
+   "diff": "output record 12: the converted program wrote 0 records, the other wrote more"
+  },
+  {
+   "id": "breaker-attack-r1-01",
+   "input": "CACCT00000100000001+99999999920240101XXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-02",
+   "input": "CACCT00000100000001-99999999920240101XXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-03",
+   "input": "CACCT00000100000001+00000000020240101XXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-04",
+   "input": "CACCT00000100000001-00000000020240101XXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-05",
+   "input": "CACCT00000100000001-00001234520240101XXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-06",
+   "input": "RACCT00000200000002NS99999XXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-07",
+   "input": "RACCT00000200000002NS50000XXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-08",
+   "input": "RACCT00000200000002SP99999XXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-09",
+   "input": "RACCT00000200000002NS00000XXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-10",
+   "input": "RACCT00000200000002ns00100XXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-11",
+   "input": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-12",
+   "input": "RACCT00000200000002NS12.50XXXXXXXXXXXXXX",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-01",
+   "input": "CACC000000100000001`00001000020240101   ",
+   "why": "Backtick 0x60 is treated as minus by Java but as plus by COBOL so debit sign flips.",
+   "broke": true,
+   "diff": "CL-DEBIT: original -100.00 converted 100.00"
+  },
+  {
+   "id": "breaker-recheck1-r1-02",
+   "input": "CACC000000200000002`99999999920240102   ",
+   "why": "Backtick sign with max magnitude flips large debit from negative to positive.",
+   "broke": true,
+   "diff": "CL-DEBIT: original -9999999.99 converted 9999999.99"
+  },
+  {
+   "id": "breaker-recheck1-r1-03",
+   "input": "CACC000000300000003`00000000120240103   ",
+   "why": "Backtick sign with smallest penny flips tiny debit sign and net total.",
+   "broke": true,
+   "diff": "CL-DEBIT: original -0.01 converted 0.01"
+  },
+  {
+   "id": "breaker-recheck1-r1-04",
+   "input": "CACC000000400000004`12345678920240104   ",
+   "why": "Backtick sign with arbitrary amount causes opposite debit and net.",
+   "broke": true,
+   "diff": "CL-DEBIT: original -1234567.89 converted 1234567.89"
+  }
+ ]
+}

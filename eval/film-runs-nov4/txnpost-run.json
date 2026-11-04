@@ -1,0 +1,272 @@
+{
+ "runId": "txnpost-20261104-224943",
+ "how": "local, nothing edited, code at 846674d, sample synthetic",
+ "run": {
+  "program": "TXNPOST",
+  "status": "certified",
+  "certified": true,
+  "rounds": [
+   {
+    "round": 1,
+    "finishedByAgent": true,
+    "certified": true,
+    "seed": 4243,
+    "summary": {
+     "total": 1026,
+     "passed": 1026,
+     "failed": 0
+    }
+   }
+  ],
+  "certificationSeed": 4243,
+  "usage": {
+   "calls": 19,
+   "inputTokens": 165946,
+   "cachedInputTokens": 125072,
+   "outputTokens": 99914,
+   "estimatedCostUsd": 0.02432,
+   "modelCalls": [
+    {
+     "role": "translator",
+     "round": 0,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 2428,
+     "cachedInputTokens": 0,
+     "outputTokens": 14916,
+     "reasoningTokens": 12177,
+     "latencyMs": 121136
+    },
+    {
+     "role": "breaker",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 4452,
+     "cachedInputTokens": 0,
+     "outputTokens": 19068,
+     "reasoningTokens": 17908,
+     "latencyMs": 153652
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 1236,
+     "cachedInputTokens": 113,
+     "outputTokens": 106,
+     "reasoningTokens": 5,
+     "latencyMs": 2544
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 3113,
+     "cachedInputTokens": 113,
+     "outputTokens": 61,
+     "reasoningTokens": 5,
+     "latencyMs": 2496
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 5449,
+     "cachedInputTokens": 3057,
+     "outputTokens": 6876,
+     "reasoningTokens": 6621,
+     "latencyMs": 59942
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 5878,
+     "cachedInputTokens": 1137,
+     "outputTokens": 4639,
+     "reasoningTokens": 4583,
+     "latencyMs": 43788
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 8233,
+     "cachedInputTokens": 5873,
+     "outputTokens": 4079,
+     "reasoningTokens": 3900,
+     "latencyMs": 36138
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 8534,
+     "cachedInputTokens": 8177,
+     "outputTokens": 6385,
+     "reasoningTokens": 5961,
+     "latencyMs": 57935
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 9238,
+     "cachedInputTokens": 8433,
+     "outputTokens": 4415,
+     "reasoningTokens": 4070,
+     "latencyMs": 41240
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 9814,
+     "cachedInputTokens": 9201,
+     "outputTokens": 2525,
+     "reasoningTokens": 2300,
+     "latencyMs": 28852
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 10175,
+     "cachedInputTokens": 9713,
+     "outputTokens": 204,
+     "reasoningTokens": 0,
+     "latencyMs": 1975
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 10529,
+     "cachedInputTokens": 5361,
+     "outputTokens": 3890,
+     "reasoningTokens": 3749,
+     "latencyMs": 40623
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 10788,
+     "cachedInputTokens": 10097,
+     "outputTokens": 98,
+     "reasoningTokens": 20,
+     "latencyMs": 2527
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 13266,
+     "cachedInputTokens": 10481,
+     "outputTokens": 3669,
+     "reasoningTokens": 3492,
+     "latencyMs": 37539
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 13564,
+     "cachedInputTokens": 13169,
+     "outputTokens": 5670,
+     "reasoningTokens": 5037,
+     "latencyMs": 54589
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 14726,
+     "cachedInputTokens": 10737,
+     "outputTokens": 4019,
+     "reasoningTokens": 3954,
+     "latencyMs": 39150
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 14813,
+     "cachedInputTokens": 14705,
+     "outputTokens": 4001,
+     "reasoningTokens": 3961,
+     "latencyMs": 35028
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 14896,
+     "cachedInputTokens": 14705,
+     "outputTokens": 229,
+     "reasoningTokens": 6,
+     "latencyMs": 4640
+    },
+    {
+     "role": "breaker",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 4814,
+     "cachedInputTokens": 0,
+     "outputTokens": 15064,
+     "reasoningTokens": 13677,
+     "latencyMs": 130204
+    }
+   ]
+  },
+  "breaker": {
+   "rounds": 2,
+   "tried": 24,
+   "broke": 2,
+   "repairCycles": 1,
+   "fixed": true,
+   "counterexamples": [
+    {
+     "input": "OVERFLOW1F+800000000-9920000000000000",
+     "why": "Fee gives exactly -1000000000.00, overflow to zero preserves - sign in COBOL but Java returns +0.",
+     "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+    },
+    {
+     "input": "OVERFLOW2F+800000001-9919999999900000",
+     "why": "Second exact -1e9 overflow variant to catch negative-zero new-balance formatting.",
+     "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+    }
+   ]
+  },
+  "guard": {
+   "blocked": false,
+   "stopped": 0,
+   "policy": [],
+   "sourceFlags": [],
+   "review": {
+    "model": "accounts/fireworks/models/muse-spark-open",
+    "verdict": "error",
+    "summary": "review failed: InternalServerError (HTTP 503)",
+    "findings": []
+   }
+  }
+ }
+}

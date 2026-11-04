@@ -1,0 +1,282 @@
+{
+ "runId": "chqclr-20261104-222606",
+ "how": "local, nothing edited, code at 846674d, sample synthetic",
+ "run": {
+  "program": "CHQCLR",
+  "status": "not-certified",
+  "certified": false,
+  "rounds": [
+   {
+    "round": 1,
+    "finishedByAgent": true,
+    "certified": true,
+    "seed": 4243,
+    "summary": {
+     "total": 1016,
+     "passed": 1016,
+     "failed": 0
+    }
+   }
+  ],
+  "certificationSeed": 4243,
+  "usage": {
+   "calls": 14,
+   "inputTokens": 84881,
+   "cachedInputTokens": 47835,
+   "outputTokens": 79865,
+   "estimatedCostUsd": 0.019773,
+   "modelCalls": [
+    {
+     "role": "translator",
+     "round": 0,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 1739,
+     "cachedInputTokens": 0,
+     "outputTokens": 21508,
+     "reasoningTokens": 18939,
+     "latencyMs": 203034
+    },
+    {
+     "role": "breaker",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 3463,
+     "cachedInputTokens": 0,
+     "outputTokens": 19454,
+     "reasoningTokens": 18713,
+     "latencyMs": 199566
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 1690,
+     "cachedInputTokens": 113,
+     "outputTokens": 108,
+     "reasoningTokens": 8,
+     "latencyMs": 2967
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 2877,
+     "cachedInputTokens": 1649,
+     "outputTokens": 82,
+     "reasoningTokens": 4,
+     "latencyMs": 1499
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 5021,
+     "cachedInputTokens": 2801,
+     "outputTokens": 2745,
+     "reasoningTokens": 2705,
+     "latencyMs": 30487
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 5240,
+     "cachedInputTokens": 113,
+     "outputTokens": 4386,
+     "reasoningTokens": 3546,
+     "latencyMs": 49401
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 6615,
+     "cachedInputTokens": 4977,
+     "outputTokens": 2851,
+     "reasoningTokens": 2813,
+     "latencyMs": 33494
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 6675,
+     "cachedInputTokens": 5233,
+     "outputTokens": 1944,
+     "reasoningTokens": 1884,
+     "latencyMs": 24460
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 6849,
+     "cachedInputTokens": 113,
+     "outputTokens": 6554,
+     "reasoningTokens": 6497,
+     "latencyMs": 72112
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 9215,
+     "cachedInputTokens": 6513,
+     "outputTokens": 4826,
+     "reasoningTokens": 3923,
+     "latencyMs": 50462
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 10572,
+     "cachedInputTokens": 9201,
+     "outputTokens": 2129,
+     "reasoningTokens": 2071,
+     "latencyMs": 23443
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 10652,
+     "cachedInputTokens": 6641,
+     "outputTokens": 1491,
+     "reasoningTokens": 1451,
+     "latencyMs": 16591
+    },
+    {
+     "role": "repair",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 10735,
+     "cachedInputTokens": 10481,
+     "outputTokens": 405,
+     "reasoningTokens": 59,
+     "latencyMs": 6667
+    },
+    {
+     "role": "breaker",
+     "round": 1,
+     "mode": "hosted",
+     "model": "muse-spark-1.3-contributor",
+     "inputTokens": 3538,
+     "cachedInputTokens": 0,
+     "outputTokens": 11382,
+     "reasoningTokens": 11107,
+     "latencyMs": 117377
+    }
+   ]
+  },
+  "breaker": {
+   "rounds": 2,
+   "tried": 28,
+   "broke": 16,
+   "repairCycles": 1,
+   "fixed": false,
+   "counterexamples": [
+    {
+     "input": "CACCT00000100000001+99999999920240101XXX",
+     "why": "Max cheque amount 9999999.99 tests upper boundary debit and total.",
+     "diff": "output record 1: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "CACCT00000100000001-99999999920240101XXX",
+     "why": "Max negative cheque amount flips debit sign to large credit.",
+     "diff": "output record 2: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "CACCT00000100000001+00000000020240101XXX",
+     "why": "Positive zero amount tests zero sign on COMPUTE debit.",
+     "diff": "output record 3: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "CACCT00000100000001-00000000020240101XXX",
+     "why": "Negative zero amount tests ZERO minus negative zero sign.",
+     "diff": "output record 4: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "CACCT00000100000001-00001234520240101XXX",
+     "why": "Negative amount -123.45 makes debit a positive credit.",
+     "diff": "output record 5: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "RACCT00000200000002NS99999XXXXXXXXXXXXXX",
+     "why": "NSF fee 999.99 doubled to 1999.98 overflows 3-digit fee.",
+     "diff": "output record 6: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "RACCT00000200000002NS50000XXXXXXXXXXXXXX",
+     "why": "NSF fee 500.00 doubled to exact 1000.00 wraps to zero.",
+     "diff": "output record 7: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "RACCT00000200000002SP99999XXXXXXXXXXXXXX",
+     "why": "Stopped reason with max fee must not double.",
+     "diff": "output record 8: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "RACCT00000200000002NS00000XXXXXXXXXXXXXX",
+     "why": "NSF zero fee tests doubling of zero.",
+     "diff": "output record 9: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "RACCT00000200000002ns00100XXXXXXXXXXXXXX",
+     "why": "Lowercase ns must not trigger NSF doubling.",
+     "diff": "output record 10: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+     "why": "Unknown type tests reject path with spaces and zeros.",
+     "diff": "output record 11: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "RACCT00000200000002NS12.50XXXXXXXXXXXXXX",
+     "why": "Non-numeric fee with dot crashes Java parse versus COBOL handling.",
+     "diff": "output record 12: the converted program wrote 0 records, the other wrote more"
+    },
+    {
+     "input": "CACC000000100000001`00001000020240101   ",
+     "why": "Backtick 0x60 is treated as minus by Java but as plus by COBOL so debit sign flips.",
+     "diff": "CL-DEBIT: original -100.00 converted 100.00"
+    },
+    {
+     "input": "CACC000000200000002`99999999920240102   ",
+     "why": "Backtick sign with max magnitude flips large debit from negative to positive.",
+     "diff": "CL-DEBIT: original -9999999.99 converted 9999999.99"
+    },
+    {
+     "input": "CACC000000300000003`00000000120240103   ",
+     "why": "Backtick sign with smallest penny flips tiny debit sign and net total.",
+     "diff": "CL-DEBIT: original -0.01 converted 0.01"
+    },
+    {
+     "input": "CACC000000400000004`12345678920240104   ",
+     "why": "Backtick sign with arbitrary amount causes opposite debit and net.",
+     "diff": "CL-DEBIT: original -1234567.89 converted 1234567.89"
+    }
+   ]
+  },
+  "guard": {
+   "blocked": false,
+   "stopped": 0,
+   "policy": [],
+   "sourceFlags": [],
+   "review": null
+  }
+ }
+}

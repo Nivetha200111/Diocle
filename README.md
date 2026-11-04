@@ -1,4 +1,4 @@
-**Demo video (under 3 min): https://youtu.be/yvRSCfbmb9s**
+**Demo video (under 3 min): https://youtu.be/_prn6jpvoFM**
 
 <p align="center"><img src="docs/assets/logo.svg" alt="Diocle logo" width="96" height="96"></p>
 
@@ -10,7 +10,7 @@
 
 | Start here | |
 |---|---|
-| **Watch** | [The demo video](https://youtu.be/yvRSCfbmb9s) |
+| **Watch** | [The demo video](https://youtu.be/_prn6jpvoFM) |
 | **Try** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model) |
 | **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
 | **Check** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [a public repository we did not write](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), [a blind test on code no fix had seen](docs/BLIND_TEST.md), [each claim and how to verify it](docs/CLAIMS_TO_EVIDENCE.md), [a delivered pull request](https://github.com/Nivetha200111/quillmark-modern/pull/4) and [its CI run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870), [the build log](docs/BUILD_LOG.md) |
@@ -33,7 +33,7 @@
 **For the bonus categories:** Best Agentic Use-Case (the repair agent and the breaker) and Best Build on Meta Open Weight Models (private mode on partner inference; optional and thinly tested, with Muse Spark as the default).
 
 - **Why it's hard:** COBOL batch programs calculate interest, fees and postings, so one small difference repeats on every record that hits it. Java can compile, run and still differ.
-- **One catch:** on a synthetic returned cheque with a space in its fee field, the COBOL charged `20.00` and the AI's Java charged `0.00`. The repair agent fixed that difference in that run, but that Java still differs on another malformed record, and this program certified in only 4 of 7 runs. The record is malformed, and this is GnuCOBOL, not IBM's compiler.
+- **One catch:** on a synthetic returned cheque with a space in its fee field, the COBOL charged `20.00` and the AI's Java charged `0.00`. The repair agent fixed that difference in that run, but that Java still differs on another malformed record, and this program certified in only 4 of 7 runs, plus a [further local run on Nov 4, shown in the video](docs/EVIDENCE.md#film-runs-nov-4-2026), that did not. The record is malformed, and this is GnuCOBOL, not IBM's compiler.
 - **Measured:** on 15 synthetic programs, 4 of the 10 attackable translations that passed 1,000 generated records then differed from the original under attack: 1 on malformed numbers, 3 on the sign of a zero at an overflow boundary (same value, different bytes). No stored break shows a wrong amount on a well-formed record, and this is not a defect-detection rate.
 - **On code we didn't write:** every program in a public COBOL course. 11 of 32 certified at first (9 on fixed input, 2 against a repaired copy). 13 ran and did not certify; the other 8 were refused, did not compile or were duplicates. After a fix that those failures prompted, a third pass, not a blind test, certified 9 of the 13 (8 against a repaired copy, 1 on fixed input).
 - **On outside COBOL, blind:** the COBOL sources in the public repository of [Norway's retired national pension system](docs/BLIND_TEST.md) (`navikt/DSF`, MIT), most of which is PL/I. Whether these programs ran in production is not established. 2 of the 4 Diocle could test certified with no patch to the COBOL, after the repair agent fixed the first Java, and 2 did not. They are small programs on generated inputs, varying 1 of 7 and 6 of 10 input fields, with no breaker. Separately, `fzn0x/core-banking-system` certified 0 of 2 and `ibmdbbdev/Samples` only 11 very small programs. These repositories were chosen because the analyzer could test them; blind means only that no fix or tuning was made for them.

@@ -1,0 +1,189 @@
+{
+ "rounds": 2,
+ "tried": 24,
+ "broke": 2,
+ "repairCycles": 1,
+ "fixed": true,
+ "counterexamples": [
+  {
+   "input": "OVERFLOW1F+800000000-9920000000000000",
+   "why": "Fee gives exactly -1000000000.00, overflow to zero preserves - sign in COBOL but Java returns +0.",
+   "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+  },
+  {
+   "input": "OVERFLOW2F+800000001-9919999999900000",
+   "why": "Second exact -1e9 overflow variant to catch negative-zero new-balance formatting.",
+   "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+  }
+ ],
+ "attempts": [
+  {
+   "id": "breaker-attack-r1-01",
+   "input": "NEGZERO01I-000000001+0000000000000000",
+   "why": "Interest -0.01/12 rounds to negative zero, Java normalizes to +0 while COBOL keeps -0.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-02",
+   "input": "NEGZERO02I-000000004+0000000000000000",
+   "why": "Interest -0.04/12 rounds to negative zero on zero balance, exposing sign-of-zero display difference.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-03",
+   "input": "OVERFLOW1F+800000000-9920000000000000",
+   "why": "Fee gives exactly -1000000000.00, overflow to zero preserves - sign in COBOL but Java returns +0.",
+   "broke": true,
+   "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+  },
+  {
+   "id": "breaker-attack-r1-04",
+   "input": "OVERFLOW2F+800000001-9919999999900000",
+   "why": "Second exact -1e9 overflow variant to catch negative-zero new-balance formatting.",
+   "broke": true,
+   "diff": "POST-NEW-BAL: original '-00000000000' converted '+00000000000' (same value, different bytes)"
+  },
+  {
+   "id": "breaker-attack-r1-05",
+   "input": "PAYFLOOR1P+000009877+0000000000000100",
+   "why": "Payment with truncated surcharge 1.23 lands exactly on floor -100.00, testing truncation and NOT-below boundary.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-06",
+   "input": "PAYTRUNC1P+000000040+0000001000000000",
+   "why": "Surcharge 0.005 must truncate to 0.00, rounding would give 0.01 and different balance.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-07",
+   "input": "INTTIEPOSI+000000006+0000000000000000",
+   "why": "Interest 0.06/12 is exact tie 0.005, must round half away to 0.01.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-08",
+   "input": "INTTIENEGI-000000006+0000000000000000",
+   "why": "Interest -0.06/12 is exact negative tie -0.005, must round away to -0.01.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-09",
+   "input": "PAYREJCT1P+000000000+0000001000000000",
+   "why": "Zero payment amount must reject with NOT-GT-ZERO rule.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-10",
+   "input": "CAPTEST01P+000200000+0000050000000000",
+   "why": "Large payment surcharge 25.00 must cap to 15.00.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-03",
+   "input": "OVERFLOW1F+800000000-9920000000000000",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-attack-r1-04",
+   "input": "OVERFLOW2F+800000001-9919999999900000",
+   "why": "",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-01",
+   "input": "BRK000001I-000000006+0000000000000000",
+   "why": "Interest tie -0.06/12=-0.005 tests HALF_UP away-from-zero vs COBOL ROUNDED on negatives.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-02",
+   "input": "BRK000002I-000000018+0000000000000000",
+   "why": "Interest tie -0.18/12=-0.015 tests second-decimal half-away rounding for negatives.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-03",
+   "input": "BRK000003I-000000005+0000000000000000",
+   "why": "Small negative interest rounds to zero cents, exposing negative-zero credit and balance sign.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-04",
+   "input": "BRK000004P+008040000+0001000000099999",
+   "why": "Surcharge 1005.00 overflows S9(3)V99 and wraps to 5.00 in Java, avoiding the 15.00 cap.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-05",
+   "input": "BRK000005P+008000000+0001000000099999",
+   "why": "Surcharge 1000.00 overflows to 0.00 in Java, avoiding the cap and changing new balance.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-06",
+   "input": "BRK000006F-999999999+9999999999900000",
+   "why": "Fee addition overflows S9(9)V99, testing silent high-order wrap to 9999999.98.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-07",
+   "input": "BRK000007I+999999999+9999999999900000",
+   "why": "Interest credit plus max balance overflows 9 integer digits, testing wrap and rounding interaction.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-08",
+   "input": "BRK000008P+000000000+0000000000000000",
+   "why": "Rejected payment preserves input negative zero, testing sign of zero in DISPLAY output.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-09",
+   "input": "BRK000009F+000000000+0000000000000000",
+   "why": "Fee computed zero from -0.00 balance tests whether COMPUTE normalizes negative zero to positive.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-10",
+   "input": "BRK000010I+000000000+0000000000000000",
+   "why": "Interest with zero amount and -0.00 balance tests credit-zero sign propagation to new balance.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-11",
+   "input": "BRK000011P+000009877+0000000000000100",
+   "why": "Payment lands exactly on -OD-LIMIT after truncated surcharge, testing < vs <= floor check.",
+   "broke": false,
+   "diff": ""
+  },
+  {
+   "id": "breaker-recheck1-r1-12",
+   "input": "BRK000012P+000009878+0000000000000100",
+   "why": "Payment one cent beyond floor after truncation, testing NS refusal boundary and charge reset.",
+   "broke": false,
+   "diff": ""
+  }
+ ]
+}
