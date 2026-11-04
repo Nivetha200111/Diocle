@@ -72,7 +72,7 @@ the live site on a fresh seed: 1027/1027).
 
 Two real runs filmed for the demo video, on this Mac, with Muse Spark, GnuCOBOL and code at `846674d`, on synthetic programs, with nothing edited. Records: [`eval/film-runs-nov4/`](../eval/film-runs-nov4/).
 
-- **TXNPOST, in the local frontend, as a delivery dry run with the breaker (nothing pushed):** 1,024/1,024; the breaker broke it with 2 of 10 inputs, both the sign of a zero (same value, different bytes); repaired; 1,026/1,026; the breaker then tried 12 and all matched. Certified, 19 model calls, about $0.024. The optional guard review failed with an HTTP 503 from its host, and the run says so.
+- **TXNPOST, in the local frontend, as a delivery dry run with the breaker (nothing pushed):** 1,024/1,024; the breaker broke it with 2 of 10 inputs, both the sign of a zero (same value, different bytes); repaired; 1,026/1,026; the breaker then tried 12 and all matched. Certified, 19 model calls, about $0.024.
 - **CHQCLR, from the command line, with the breaker and no fix memory:** 1,004/1,004; the Java crashed on the breaker's inputs, so all 12 failed together rather than being 12 separate bugs; repaired; 1,016/1,016; 4 of 4 new inputs broke it, with a malformed sign byte turning a debit of -100.00 into +100.00. Not certified, 14 model calls, about $0.02.
 
 One run of each. They show the loop running, not how often either outcome happens.
