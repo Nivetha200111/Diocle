@@ -33,7 +33,8 @@ The caps are constants in the code, not settings. Muse Image's price is not publ
 
 - **What is kept:** only a drawing that passed, at most 4 MB, in the delivery's own directory under a fixed name, served by `GET /deliveries/{id}/dependency-drawing`. A drawing that did not pass is not kept, so it cannot be looked at afterwards. Its counts stay in the record.
 - **On the page:** a pass says so and names the attempt. A drawing that did not pass shows one line, and so does a delivery with no drawing. A rejection can be wrong, as below, and a pass is not a proof.
-- **One real run through this job** (Nov 4, not on the live engine): the 3 links of `BANK-MAIN` from `fzn0x/core-banking-system`, 1 image, passed on attempt 1, read-back about $0.03. One run shows it works; it says nothing about how often it passes.
+- **One real run through this job** (Nov 4, local): the 3 links of `BANK-MAIN` from `fzn0x/core-banking-system`, 1 image, passed on attempt 1, read-back about $0.03.
+- **On the live engine** (Nov 4, with `TREE_IMAGE_MODEL_ID` set): `delivery-20261104-072240`, the same repository, passed on attempt 1. `delivery-20261104-084325` (AWS CardDemo) was not drawn because of the visitor cap, as designed. These show it works there; they say nothing about how often it passes.
 
 ## Results
 
