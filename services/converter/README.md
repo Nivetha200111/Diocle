@@ -2,7 +2,7 @@
 
 Status: **working** (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)). Implemented: Meta model client with call and dollar caps and cost logging, whole-program translator (structured output), tool-using repair agent, breaker, independent cross-check, guard, fix memory, verified documentation, printout intake, voice questions, convert-anyway and the whole-job pipeline (`run-job`). Not built: Class Designer, per-paragraph translation, rule extractor, a judge model (the verifier's comparison decides) and SonarQube issues. The SQL schema comes from `services/verifier` (`sqlschema`). The `conversion-output` contract is emitted only as the `run-job` manifest (`jobPipelines[]`); a normal run writes `run.json`.
 
-Meta models only (CLAUDE.md rule 9), through the OpenAI-compatible Chat Completions API of the [Meta Model API](https://dev.meta.ai) at `https://api.meta.ai/v1`. Muse Spark Open runs on the inference partners Fireworks and Baseten.
+Meta models only, through the OpenAI-compatible Chat Completions API of the [Meta Model API](https://dev.meta.ai) at `https://api.meta.ai/v1`. Muse Spark Open runs on the inference partners Fireworks and Baseten.
 
 ## Repair agent
 Tools: `run_differential_test`, `read_cobol_source`, `list_java_files`, `read_java_file`, `patch_java` (exact unique replacement, with a required rationale), `compile_java`, `finish`.

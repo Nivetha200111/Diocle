@@ -364,7 +364,7 @@ converter yourself:
    about a hundredth of a cent). A first full run on a sample costs a few cents; every model loop has hard call caps
    (`MODEL_MAX_CALLS_PER_RUN` and the others in `.env.example`).
 
-See [CLAUDE.md](../CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](ARCHITECTURE.md) for the design.
+See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for the design.
 
 ## Editors
 
@@ -372,7 +372,7 @@ See [CLAUDE.md](../CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](A
 - **Muse Code** (Meta's coding agent): `editors/muse-code`, a local plugin (stdio MCP server in standard-library Python, a skill and four slash commands): analyze, re-verify against GnuCOBOL, read runs, and a gated, capped `diocle_convert` that is off by default and uses your own key. Tested with Muse Code 1.4.14 on macOS: validation, install, approval and the server handshake (7 tools) were seen in the real binary; **five real model-driven Muse Code runs are recorded** (Oct 31): Muse Code picked and called the tools and reported their output (the prompts named the tools, and conversion was enabled and capped by the owner), including a capped conversion that certified INTACCR 1027 of 1027 for an estimated USD 0.017, and it was refused outside the repo and when conversion was not enabled (transcripts in `editors/muse-code/transcripts/`). A local plugin, not an official Meta integration, not published. See `editors/muse-code/README.md`.
 - **Notepad++** (Windows): `editors/notepadpp`, a PythonScript plugin script (or NppExec scripts) around the same CLI: check with annotations on the reported lines, convert with a cost prompt and the same honest labels. Built on macOS: the logic and the CLI path are tested, **the Notepad++ API calls are untested**. See `editors/notepadpp/README.md`.
 
-See [CLAUDE.md](../CLAUDE.md) for contributor rules and [docs/ARCHITECTURE.md](ARCHITECTURE.md) for the design.
+See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for the design.
 
 ## License
 

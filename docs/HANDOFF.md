@@ -2,7 +2,7 @@
 
 > **Internal working log, not a user guide.** It is the notes the build sessions kept for each other, newest first; later dated entries supersede earlier ones, and some early entries (branch names, "not pushed", "unverified") are historical. For the current, checked picture read the [root README](../README.md), [LIVE_CHECK.md](LIVE_CHECK.md) and [MEASUREMENT.md](MEASUREMENT.md). Docs index: [README.md](README.md).
 
-Read this first in every session; update it as you build (see CLAUDE.md, "Session hand-off").
+Read this first in every session; update it as you build.
 Newest state at the top of each section. Dates are 2026, times IST unless marked UTC.
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
@@ -10,6 +10,7 @@ This repository is public: never write secrets, passcodes, personal details or e
 > the Nov 4 final cut (https://youtu.be/3tEmLs0jrT4), has a synthetic narration voice (ElevenLabs), disclosed in the README and the video description.
 
 ## Nov 4: final video cut
+- **Repo:** the owner removed `CLAUDE.md` from the tree as the last step; its rules stay in git history and in `docs/HACKATHON_RULES.md`.
 - **What:** https://youtu.be/3tEmLs0jrT4 (v26), 2:51, replaces v16 and four earlier Nov 4 cuts (v22, https://youtu.be/6pk5W6bsaQ4; v23, https://youtu.be/C-sXQnX6uJ0; v24, https://youtu.be/7imkDKUrhjc; v25, https://youtu.be/vRP0VrplJu4) as the linked video. v26 has v25's picture with the narration regenerated after the owner subscribed to the ElevenLabs Starter plan on Nov 4. v25 added a sentence on what pre-existed from the first frame, swaps most slides for real site pages (about three quarters of the time is now product), adds the Meta roles table and burns in captions. The CI log lines stay on a slide because GitHub hides logs from logged-out visitors. After a critique that secondary features competed with the acceptance workflow, it adds the delivered pull request and its CI re-check as the climax, and cuts the agent replay and the Evidence page. The first commit of that pull request failed its re-verify; the final commit passed, and that is what is shown. 1980s to 90s terminal slides in 3270 colours, real site footage in a laptop frame, and a new opening: twenty became zero, COBOL developers retiring, and their work falling to junior engineers.
 - **Narration:** a synthetic voice (ElevenLabs), the owner's decision. Disclosed in the README and the video description, not in the video.
 - **Compliance:** the docs now describe this cut. CardDemo is no longer shown in the video, though its recorded run stays linked as evidence.

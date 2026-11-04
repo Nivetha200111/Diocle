@@ -1,4 +1,4 @@
-"""Checks that span the services: contracts, recorded results and the rules every checkout must keep (CLAUDE.md rule 4)."""
+"""Checks that span the services: contracts, recorded results and the rules every checkout must keep."""
 
 import hashlib
 import json

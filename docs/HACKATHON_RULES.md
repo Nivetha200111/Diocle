@@ -25,7 +25,7 @@ Meta Global AI Developer Hackathon. Kickoff Oct 26; building period **Oct 27 to 
 ## Credits and cost
 - Meta Model API: $150 credits. A card is required (temporary pre-authorization hold). **Set a $150 Spend Limit on the Billing page before any call.** Claim by Nov 4 9 PM ET.
 - Baseten ($100) and Modal ($100) credits for Muse Spark Open: request early, per individual, not guaranteed.
-- Every model loop is capped (CLAUDE.md rule 10).
+- Every model loop is capped.
 
 ## Useful sessions
 - Oct 27, 12 PM ET: Agents 101: Build a Multimodal AI Agent.

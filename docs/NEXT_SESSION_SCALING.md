@@ -30,7 +30,7 @@ Run many conversions and verifications at the same time, for many users, without
 
 ## Rules that do not change
 
-- Follow `CLAUDE.md` (contracts first, small commits, tests, no secrets in the repo, synthetic data only, Meta models only in the product, hard cost caps) and `docs/HANDOFF.md`.
+- Follow the project rules (contracts first, small commits, tests, no secrets in the repo, synthetic data only, Meta models only in the product, hard cost caps) and `docs/HANDOFF.md`.
 - A scaled path must produce byte-identical verdicts to the single-node path on the golden programs. The existing suites (`make test`, CI) must stay green on every commit.
 - Never claim a number that was not measured. Label stubs as stubs.
 - A reviewer-agent pass before every push; check `git log origin/main..HEAD` first; push only your own commits.
@@ -42,7 +42,7 @@ Copy everything below the line into a fresh Claude Code session in a new clone o
 
 ---
 
-You are continuing Diocle, a verification layer for AI-written COBOL to Java conversion (github.com/Nivetha200111/Diocle, public, MIT). Read, in this order: `CLAUDE.md`, `docs/HANDOFF.md`, `docs/NEXT_SESSION_SCALING.md` (this plan), `docs/ARCHITECTURE.md`, `README.md`, and `docs/CLAIMS_TO_EVIDENCE.md`.
+You are continuing Diocle, a verification layer for AI-written COBOL to Java conversion (github.com/Nivetha200111/Diocle, public, MIT). Read, in this order: `docs/HANDOFF.md`, `docs/NEXT_SESSION_SCALING.md` (this plan), `docs/ARCHITECTURE.md`, `README.md`, and `docs/CLAIMS_TO_EVIDENCE.md`.
 
 Your task: make Diocle scale, following the phases in `docs/NEXT_SESSION_SCALING.md`, starting with phase 0 (a measured baseline). Work only on a new branch (for example `scale/phase-0-baseline`) in a separate git worktree. Do not merge to `main`, push to `main`, or deploy anything until the owner says the hackathon submission and judging window is over; the product on `main` is feature-locked. You may push your branch for backup.
 
