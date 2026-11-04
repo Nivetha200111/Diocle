@@ -14,6 +14,8 @@ Written during the hackathon building period (Oct 27 to Nov 4, 2026). Last revie
 | [EVIDENCE.md](EVIDENCE.md) | Runs, deliveries and CI results with links to the live traces. |
 | [EVALUATION.md](EVALUATION.md) | The frozen evaluation on four unseen programs, failures included. |
 | [BLIND_TEST.md](BLIND_TEST.md) | A blind test on repositories no fix had seen, including Norway's retired national pension system |
+| [META_TOURNAMENT.md](META_TOURNAMENT.md) | Three Meta models attack the same Java, with GnuCOBOL deciding |
+| [DEPENDENCY_TREES.md](DEPENDENCY_TREES.md) | Dependency trees drawn by Muse Image and checked |
 | [EXTERNAL_ESTATE.md](EXTERNAL_ESTATE.md) | Every program in a public COBOL course we did not write, in three dated passes under protocols pinned first: tables, failures and limits. The third pass is not a blind test. |
 | [LIVE_CHECK.md](LIVE_CHECK.md) | Which README claims were exercised on the live site on Oct 30, 2026, and which were not. |
 | [CLAIMS_TO_EVIDENCE.md](CLAIMS_TO_EVIDENCE.md) | One row per headline claim: where it is evidenced and how to check it in under a minute. |

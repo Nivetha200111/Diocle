@@ -70,6 +70,11 @@ What was built during the Meta Global AI Developer Hackathon (Oct 27 to Nov 4 20
 ## Nov 3 to 4: a blind test
 - Pinned three repositories no fix had seen, then ran them in the sandbox for $0.29. On COBOL from the repository of Norway's retired national pension system, 2 of 4 testable programs certified with no patch to the COBOL, after the repair agent fixed the first Java, on narrow generated inputs, and 2 did not. Results: [BLIND_TEST.md](BLIND_TEST.md).
 
+## Nov 4: Meta vs Meta, dependency trees, a shorter site
+- Three models attacked the same Java under a pinned protocol, for $5.48: [META_TOURNAMENT.md](META_TOURNAMENT.md).
+- Muse Image draws dependency trees from the analyzer's links, and Muse Wonder reads them back: [DEPENDENCY_TREES.md](DEPENDENCY_TREES.md).
+- The site's text was cut heavily, its retro theme replaced, and a page added for banks' teams, with its limits as visible as the rest.
+
 ## Still open (as of Nov 2, 2026)
 - A review of the converted Java by an experienced COBOL maintainer (not done).
 - Breaker test on a narrow defect that ordinary testing misses (`samples/loyalty-waiver`): the breaker found nothing on LOYWAIVE in the headline measurement (0 broke of 24 tried); no narrow defect was planted, so this stays open.

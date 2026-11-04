@@ -123,7 +123,7 @@ Diocle is built around a control a bank already understands: the party that writ
 | Muse Voice Transcribe | Spoken question about a program | One live public ask |
 | Muse Code | Local plugin for the agent | Five recorded runs, prompts named the tools |
 
-Not used: Muse Image, SAM 3.1, Muse Glimmer. File paths, run ids and the full table: [docs/META_MODELS.md](META_MODELS.md). No non-Meta model is called by the product.
+Not used by the product: SAM 3.1, Muse Glimmer (one tuning experiment, no improvement). Muse Image draws dependency trees offline ([results](DEPENDENCY_TREES.md)). File paths, run ids and the full table: [docs/META_MODELS.md](META_MODELS.md). No non-Meta model is called by the product.
 
 ## Built here vs pre-existing
 
