@@ -17,7 +17,7 @@ Each new delivery, visitor imports included, records the analyzer's links in `de
 
 A delivery can also get one Muse Image drawing, by the same check as the results below. It is off unless the engine sets `TREE_IMAGE_MODEL_ID`; with that empty, nothing is called or written and the page shows one neutral line. It runs as its own job after the analyzer's tree is recorded (`services/converter/diocle_converter/treedraw.py`, record `dependencyDrawing` in the contract, v0.10). A failed or capped drawing never fails or delays a delivery.
 
-- **What is drawn:** the first program or job in analyzer order with 2 to 8 links of its own, those links only, never a whole repository. A link from a name to itself is not drawn. A part with a label outside `^[A-Z0-9#@$-]{1,30}( [A-Z0-9#@$-]{1,30})?$` after upper-casing is skipped and the next one is considered, so a repository's text cannot reach the image prompt as instructions.
+- **What is drawn:** the first program or job in analyzer order with 2 to 8 links of its own, those links only, never a whole repository. A link from a name to itself is not drawn. A part with a label outside `^[A-Z0-9#@$-]{1,30}( [A-Z0-9#@$-]{1,30})?$` after upper-casing is skipped and the next one is considered, so a repository's text reaches the image prompt only as short upper-case labels; such a label can still be worded as an instruction.
 - **The read-back** gets the picture and a fixed prompt, never the graph. Its reply is parsed as data only and goes through the exact comparison.
 - **Caps, each checked before the call it limits, failing closed:**
 
@@ -29,7 +29,7 @@ A delivery can also get one Muse Image drawing, by the same check as the results
 | At one time | 1 | A file lock; a second job records `busy` and draws nothing |
 | Read-back spend per delivery | $0.15 | The job, at the Muse Wonder list price; the worst case of a read (4,000 input and 3,500 output tokens, the output capped in the request) must fit before an image is drawn. A read with no usage, or one lost to a dropped connection, is charged that worst case |
 
-The caps are constants in the code, not settings. Muse Image's price is not published, so it is not given one: images are counted, and the token usage it returns is recorded. This spend is separate from the public budget for imports (`DIOCLE_PUBLIC_DAILY_USD`): it does not draw from it and is not stopped by it, so **Muse Image's cost is limited only by the image count.**
+The caps are constants in the code, not settings. Muse Image's price is not published, so it is not given one: images are counted, and the token usage it returns is recorded. This spend is separate from the public budget for imports (`DIOCLE_PUBLIC_DAILY_USD`): it does not draw from it; an import that budget refuses starts no drawing, but a drawing already started is not stopped by it. So **Muse Image's cost is limited only by the image count.**
 
 - **What is kept:** only a drawing that passed, at most 4 MB, in the delivery's own directory under a fixed name, served by `GET /deliveries/{id}/dependency-drawing`. A drawing that did not pass is not kept, so it cannot be looked at afterwards. Its counts stay in the record.
 - **On the page:** a pass says so and names the attempt. A drawing that did not pass shows one line, and so does a delivery with no drawing. A rejection can be wrong, as below, and a pass is not a proof.

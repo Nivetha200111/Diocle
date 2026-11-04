@@ -11,7 +11,7 @@ every cap below is checked BEFORE the call it limits and fails closed (rule 10).
 is the owner's decision. Muse Image's price is not published, so images are counted, not priced. The read-back has its own dollar
 cap at the Muse Wonder list price. None of this counts against, or is limited by, the public budget for imports.
 
-Text from a repository cannot steer this: only labels matching LABEL enter the image prompt. The read-back gets the picture and a
+Repository text reaches the image prompt only as labels matching LABEL: at most 9 upper-case labels of up to two words each, with no other punctuation. The read-back gets the picture and a
 fixed prompt, never the graph; its reply is only parsed as data and compared by code.
 """
 
@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import binascii
 import fcntl
+import http.client
 import json
 import os
 import re
@@ -127,7 +128,7 @@ def _post(url: str, key: str, body: dict, timeout: int) -> dict:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
     except urllib.error.HTTPError as e:
         raise CallFailed(e.code, maybe_billed=False) from None
-    except OSError:  # a timeout or a dropped connection: the call may have been billed
+    except (OSError, http.client.HTTPException):  # a timeout or a dropped connection: the call may have been billed
         raise CallFailed(None, maybe_billed=True) from None
     if len(raw) > MAX_RESPONSE_BYTES:
         raise CallFailed(None, maybe_billed=True)

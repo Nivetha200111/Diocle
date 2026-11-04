@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { buildForest, dependentsOf, groupsOf, impactLine, reachableEdges, type Edge, type TreeNode } from "@/lib/dependency-impact";
 import "@/app/dependencies/dependencies.css";
 
-// The analyzer's tree, always exact: it is drawn here from the report's edges and no model is involved. Names come from the
+// The analyzer's tree, drawn from the report's edges with no model.
 // analyzed repository, so they are only ever rendered as text.
 
 export function selfLoopWords(kinds: string[]) {

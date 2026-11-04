@@ -9,10 +9,10 @@ This repository is public: never write secrets, passcodes, personal details or e
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
 > v16 (https://youtu.be/glTLob7S-60), uses only the owner's own recorded voice; no synthetic voice is in it.
 
-## Nov 4: dependency trees on imports (branch `import-trees`, local, not pushed or deployed)
+## Nov 4: dependency trees on imports (on `main`; the owner approved the push and deploy directly)
 - **Tree:** every new delivery records the analyzer's call, copy and job links as `dependencyTree` (delivery contract v0.9) when analysis finishes, and the delivery page shows them grouped and collapsed. No model.
 - **Drawing:** optional and off unless the server sets `TREE_IMAGE_MODEL_ID` (contract v0.10, `services/converter/diocle_converter/treedraw.py`). One small part per delivery, hard caps in the code, separate from the import budget. One real run: the 3 links of `BANK-MAIN`, 1 image, passed on attempt 1, read-back about $0.03. It has not run on the engine, and no real image failure or rejection has gone through this job. [DEPENDENCY_TREES.md](DEPENDENCY_TREES.md) has the limits.
-- **Open:** this is new product code under the Oct 31 feature lock, built on a request relayed as the owner's decision; the owner decides whether and when it merges. Going live needs the merge, `sh deploy/update-engine.sh` and the two lines in `deploy/diocle.env`.
+- **Going live:** the owner approved this exception to the Oct 31 feature lock directly, on Nov 4. It needs `sh deploy/update-engine.sh`. For drawings, add only `TREE_IMAGE_MODEL_ID=muse-image-1.0` to `deploy/diocle.env` and keep `VISION_MODEL_ID=muse-wonder-1.0`. Do not paste the example file's blank `VISION_MODEL_ID=`, which would switch off the printout button. Editing the file later needs `docker compose -f docker-compose.api.yml up -d api`, because `restart` does not re-read it.
 
 ## Nov 4: pre-submission wording (branch `pre-submit-wording`, local, not pushed)
 - **README:** the "Start here" table moved directly under the opening line. No line was changed or removed, only reordered.
