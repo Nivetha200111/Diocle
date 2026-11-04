@@ -187,3 +187,44 @@ export function Skeleton({ rows = 3, label = "Loading" }: { rows?: number; label
     </div>
   );
 }
+
+// A panel that reads as one heading until opened. The content stays in the DOM, so find-in-page, screen readers and old
+// links can still reach it. `hint` is plain text: a summary must not hold links, and it keeps any qualifier a number needs.
+export function Fold({ id, title, hint, className = "", children }: { id?: string; title: ReactNode; hint?: ReactNode; className?: string; children: ReactNode }) {
+  return (
+    <details className={`panel fold ${className}`} id={id}>
+      <summary className="fold-head">
+        <h2>{title}</h2>
+        {hint && <span className="fold-hint">{hint}</span>}
+      </summary>
+      <div className="fold-body">{children}</div>
+    </details>
+  );
+}
+
+// Opens every <details> around an element, so a link to something folded lands on it open.
+export function openAnchor(id: string) {
+  const el = document.getElementById(id);
+  if (el instanceof HTMLDetailsElement) el.open = true;
+  for (let d = el?.parentElement?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
+  return el;
+}
+
+// Old and new "#section" links on a page of folds: on load and on every hash change, open the target and go to it.
+export function useOpenOnHash() {
+  useEffect(() => {
+    const go = () => {
+      const id = window.location.hash.slice(1);
+      if (!id || id.includes("=")) return;  // "#run=<id>" belongs to the workspace
+      openAnchor(id)?.scrollIntoView();
+    };
+    go();
+    window.addEventListener("hashchange", go);
+    return () => window.removeEventListener("hashchange", go);
+  }, []);
+}
+
+// A link to a folded section: opens it first, then lets the browser jump there (also when the hash has not changed).
+export function FoldLink({ to, also, children }: { to: string; also?: string; children: ReactNode }) {
+  return <a href={`#${to}`} onClick={() => { if (also) openAnchor(also); openAnchor(to); }}>{children}</a>;
+}

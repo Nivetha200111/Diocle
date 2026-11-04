@@ -113,7 +113,7 @@ const descriptions: Record<View, string> = {
   Verification: "Original and converted program run on the same inputs; every output field compared.",
   Reports: "Per-migration summaries you can download as JSON.",
   "Live runs": "Every recorded run: what broke, what the agents did, and the evidence. Pick one to see its trace and re-verify it.",
-  "Try it live": "Real Meta model calls on fixed, bundled synthetic samples, capped in dollars. Each one runs once, live, and is checked by GnuCOBOL.",
+  "Try it live": "Real Meta model calls, capped in dollars. GnuCOBOL checks each result.",
   "Current run": "Whatever the engine is doing right now: an import, a live button, or a spoken question.",
   "Agent replay": "One recorded run replayed step by step: the six roles working as a team. Nothing here is live and no model is called.",
   "Bug of the day": "Real mistakes in AI-written Java that running the original COBOL side by side exposed, each read from a stored run.",
@@ -1553,7 +1553,7 @@ export default function Workspace({ initialView = "Home" }: { initialView?: View
             <div className="view-content try-live">
               <LiveSamples />
               <AskPanel />
-              <p className="try-next">While a button runs it also shows on <button type="button" className="link-button" onClick={() => navigate("Current run")}>Current run</button>. To see a whole repository converted, use <button type="button" className="link-button" onClick={() => navigate("Delivery")}>Import a repository</button>.</p>
+              <p className="try-next">Also: <button type="button" className="link-button" onClick={() => navigate("Current run")}>Current run</button> shows a running button. <button type="button" className="link-button" onClick={() => navigate("Delivery")}>Import a repository</button> converts a whole repository.</p>
             </div>
           )}
 

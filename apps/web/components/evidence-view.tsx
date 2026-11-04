@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { CANONICAL, CANONICAL_FRESH_INPUTS, GLOSSARY, LINKS, MODELS, SAMPLE_RUN } from "@/lib/config";
 import { fetchRuns, isInterrupted, type RunListItem } from "@/lib/runs";
-import { Skeleton, Term } from "./ui";
+import { Fold, FoldLink, Skeleton, Term, useOpenOnHash } from "./ui";
+import { MEASURED_HINT, MEASURED_TITLE, MeasuredBody } from "./measured";
 import { TRAPS, type Evidence } from "@/lib/cobol-traps";
 import ScoreboardPanel from "./scoreboard-panel";
 import CoverageMatrix from "./coverage-matrix";
@@ -17,6 +18,7 @@ const runLink = (id: string) => `#run=${encodeURIComponent(id)}`;
 export default function EvidenceView({ openRun }: { openRun: (id: string) => void }) {
   const [runs, setRuns] = useState<RunListItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  useOpenOnHash();
   useEffect(() => {
     fetchRuns().then(setRuns).catch(() => { setRuns([]); setFailed(true); });
   }, []);
@@ -40,13 +42,18 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
   };
   return (
     <>
-      <section className="panel evidence-summary">
-        <div className="panel-heading">
-          <div>
-            <h2>Canonical delivery: {CANONICAL.pr}</h2>
-            <p>Six COBOL programs from quillmark-legacy, certified under one pinned verifier and delivered as one pull request.</p>
-          </div>
-        </div>
+      <section className="panel" aria-label="Summary">
+        <dl className="pitch-numbers evidence-numbers">
+          <div><dt>synthetic programs certified and delivered in one pull request, {CANONICAL.pr}. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
+          <div><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in its CI. <FoldLink to="canonical">Detail</FoldLink></dt><dd className="mono">{CANONICAL.differences}</dd></div>
+          <div><dt>translations that passed 1,000 generated records and could be attacked went on to differ, on malformed numbers or the sign of a zero. Synthetic programs. <FoldLink to="measured">Detail</FoldLink></dt><dd className="mono">4 of 10</dd></div>
+          <div><dt>programs of a public course certified at first: 9 on fixed input, 2 against a repaired copy. A third pass, not a blind test, certified 9 more. <FoldLink to="course-estate">Detail</FoldLink></dt><dd className="mono">11 of 32</dd></div>
+          <div><dt>testable programs from a retired pension system&apos;s repository certified; 2 did not. Whether they ran in production is not established. <FoldLink to="blind-test">Detail</FoldLink></dt><dd className="mono">2 of 4</dd></div>
+        </dl>
+      </section>
+
+      <div className="fold-list">
+      <Fold id="canonical" className="evidence-summary" title={`Canonical delivery: ${CANONICAL.pr}`} hint="Six COBOL programs from quillmark-legacy, certified under one pinned verifier and delivered as one pull request.">
         <dl className="eff-grid home-evidence">
           <div><dt>Programs</dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
           <div><dt>Fresh output records in CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
@@ -69,17 +76,15 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           {" · "}<a href={LINKS.evidenceDoc} target="_blank" rel="noreferrer">docs/EVIDENCE.md <ExternalLink size={11} /></a>
           {" · "}CI re-runs both programs from a seed Diocle never used. Costs are estimates from list prices.
         </p>
-      </section>
+      </Fold>
+
+      <Fold id="measured" title={MEASURED_TITLE} hint={MEASURED_HINT}>
+        <MeasuredBody />
+      </Fold>
 
       <ScoreboardPanel runs={failed ? null : runs} failed={failed} />
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>The breaker agent found what 1,000 inputs missed</h2>
-            <p>{SAMPLE_RUN.program}, an unseen program from the frozen evaluation.</p>
-          </div>
-        </div>
+      <Fold id="breaker" title="The breaker agent found what 1,000 inputs missed" hint={`${SAMPLE_RUN.program}, an unseen program from the frozen evaluation. Both inputs are malformed, not ordinary transactions.`}>
         <ol className="home-list">
           <li>Muse Spark translated it; the Java matched on 1,004 of 1,004 <Term tip={GLOSSARY["held-out"]}>held-out</Term> output records, from one run of each program.</li>
           <li>The breaker agent (also Muse Spark) designed 10 inputs in its first attack round. Two made the Java differ. First, the return fee for a cheque bounced for insufficient funds (NSF; the base fee is doubled, and the unit is not stated in the COBOL), with a space in the numeric fee field. The COBOL charged <span className="mono">20.00</span>; the AI-written Java charged <span className="mono">0.00</span>. Second, a debit of <span className="mono">-121.23</span> in COBOL vs <span className="mono">0.00</span> in Java, with letters in the numeric amount field.</li>
@@ -88,48 +93,27 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           <li><strong>A weakness we found in our own check (Nov 1):</strong> this program&apos;s records share one body through REDEFINES, and the generator filled it with a placeholder, so those 1,004 records had zero amounts and fees and only 3 distinct outputs. The generator is fixed. A free audit of the seven stored Javas on 1,000 valid records, 906 of them cheques and returns with real amounts: six matched, including the Java from the controlled run that was not certified. The seventh, a private-mode run that was not certified, prints a wrong total on ordinary returns. The attack had not noticed, because until Nov 1 it compared output records only. That is now fixed. The audit also found a malformed record this certified Java still gets different from the COBOL (a return with a blank body), which no attack tried. <a href={LINKS.showcase} target="_blank" rel="noreferrer">Reproduce it <ExternalLink size={11} /></a>.</li>
         </ol>
         <p className="home-more"><a href={runLink(SAMPLE_RUN.id)} onClick={open(SAMPLE_RUN.id)}>Open the run, with its trace and a re-verify button</a></p>
-      </section>
+      </Fold>
 
-      <div className="home-columns">
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Unseen programs (frozen evaluation)</h2>
-              <p>Four programs written after the converter was frozen.</p>
-            </div>
-          </div>
+      <Fold id="frozen" title="Unseen programs (frozen evaluation)" hint="Four programs written after the converter was frozen.">
           <ul className="home-list">
             <li><strong>eval-freeze-1: 2 of 4 certified.</strong> Both failures turned out to be a verifier bug: it rejected aggregation and fan-out programs.</li>
             <li><strong>eval-freeze-2: 4 of 4 certified, about $0.11</strong>, with the corrected verifier and fix memory off; each program also passed five fresh seeds.</li>
             <li>Both runs are published, failures included.</li>
           </ul>
           <p className="home-more"><a href={LINKS.evaluation} target="_blank" rel="noreferrer">docs/EVALUATION.md</a></p>
-        </section>
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Private mode on open weights</h2>
-              <p>The same agents on Muse Spark Open, served by Fireworks.</p>
-            </div>
-          </div>
+      </Fold>
+      <Fold id="private-mode" title="Private mode on open weights" hint="The same agents on Muse Spark Open, served by Fireworks.">
           <ul className="home-list">
             <li>Model: <span className="mono">{MODELS.open}</span>. Open weights can run on infrastructure you control.</li>
             <li>INTACCR translated from scratch and certified first time on 1,027 held-out inputs; the breaker designed 21 inputs and none broke it.</li>
           </ul>
           {privateRun && <p className="home-more"><a href={runLink(privateRun.id)} onClick={open(privateRun.id)}>Open the private-mode run</a></p>}
-        </section>
-      </div>
-
+      </Fold>
 
       <CoverageMatrix />
 
-      <section className="panel" id="course-estate">
-        <div className="panel-heading">
-          <div>
-            <h2>Every program in a public repository we did not write</h2>
-            <p>All 32 programs of the Open Mainframe Project&apos;s COBOL course, at a pinned commit, under protocols written before each run. Three dated passes, $2.07 of model spend.</p>
-          </div>
-        </div>
+      <Fold id="course-estate" title="Every program in a public repository we did not write" hint="All 32 programs of the Open Mainframe Project's COBOL course, at a pinned commit, under protocols written before each run. Three dated passes, $2.07 of model spend.">
         <ul className="home-list">
           <li><strong>First two passes, 11 certified:</strong> 9 as distributed, each on fixed input, and 2 against a repaired copy whose patch is published. 13 were not certified, 3 could not be patched to compile, 4 were refused and 1 was not converted. These results stand as recorded.</li>
           <li><strong>What the failures shared:</strong> 11 of the 13 use <span className="mono">WRITE ... AFTER ADVANCING</span>. GnuCOBOL writes the advancing into the file as bytes, and our verifier refused even identical Java while our prompts had no rule for it. We fixed both in the repository, and the next pass ran on that commit.</li>
@@ -139,15 +123,9 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         <p className="home-pr">
           <a href="https://github.com/Nivetha200111/Diocle/blob/main/docs/EXTERNAL_ESTATE.md" target="_blank" rel="noreferrer">Results, patches and protocol <ExternalLink size={11} /></a>
         </p>
-      </section>
+      </Fold>
 
-      <section className="panel" id="blind-test">
-        <div className="panel-heading">
-          <div>
-            <h2>A blind test, including COBOL from a retired pension system&apos;s repository</h2>
-            <p>Code no fix had seen, with the protocol pinned before the run, and every program run in the sandbox. $0.29 of model spend.</p>
-          </div>
-        </div>
+      <Fold id="blind-test" title="A blind test, including COBOL from a retired pension system's repository" hint="Code no fix had seen, with the protocol pinned before the run, and every program run in the sandbox. $0.29 of model spend.">
         <ul className="home-list">
           <li><strong>Norway&apos;s retired national pension system (navikt/DSF, public, MIT):</strong> 2 of the 4 COBOL programs Diocle could test certified with no patch to the COBOL, after the repair agent fixed the first Java, and 2 did not.</li>
           <li>They are small programs, and whether they ran in production is not established. Most of that system is PL/I. Inputs are generated, varying 1 of 7 and 6 of 10 fields, and the breaker could not run. Nobody at NAV was involved.</li>
@@ -156,15 +134,9 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
         <p className="home-pr">
           <a href="https://github.com/Nivetha200111/Diocle/blob/main/docs/BLIND_TEST.md" target="_blank" rel="noreferrer">Results and protocol <ExternalLink size={11} /></a>
         </p>
-      </section>
+      </Fold>
 
-      <section className="panel" id="course-import">
-        <div className="panel-heading">
-          <div>
-            <h2>A public course repository, imported by a visitor</h2>
-            <p>Not our code: the Open Mainframe Project&apos;s COBOL course, imported with the public import (delivery-20261030-022234).</p>
-          </div>
-        </div>
+      <Fold id="course-import" title="A public course repository, imported by a visitor" hint="Not our code: the Open Mainframe Project's COBOL course, imported with the public import (delivery-20261030-022234).">
         <ul className="home-list">
           <li><strong>2 certified, 1 not, 21 skipped, under a cent of model spend ($0.0074).</strong> The programs are tiny teaching programs (13 to 23 lines) that print to the screen, so each is checked on one run of its output, not on a thousand inputs.</li>
           <li><strong>CBL0013 and CBL0014 certified</strong>: the Java printed exactly what the COBOL printed, and the exit code matched.</li>
@@ -176,16 +148,10 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a> by its authors
           (the Open Mainframe Project community). We converted the programs to Java; the originals are unchanged in that repository.
         </p>
-      </section>
+      </Fold>
 
       {runs === null ? <Skeleton rows={3} label="Loading this engine's runs" /> : (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Everything this engine has kept, live</h2>
-              <p>Counted from the API just now, not typed in.</p>
-            </div>
-          </div>
+        <Fold id="kept" title="Everything this engine has kept, live" hint="Counted from the API just now, not typed in.">
           <dl className="eff-grid home-evidence">
             <div><dt>Runs certified</dt><dd className="mono">{certified}/{kept.length}</dd></div>
             <div><dt>Model spend, all runs (est.)</dt><dd className="mono">{usd(spend)}</dd></div>
@@ -196,16 +162,10 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
             superseded runs. The {CANONICAL.programs.length}/{CANONICAL.programs.length} above is one delivery.
             Every certified run (except visitor imports) can be re-verified by anyone in Run history.
           </p>
-        </section>
+        </Fold>
       )}
 
-      <section className="panel cobol-traps" id="for-cobol-people">
-        <div className="panel-heading">
-          <div>
-            <h2>For COBOL people</h2>
-            <p>Traps that make a plausible Java port wrong, and what Diocle does about each. &quot;Caught&quot; always means on the inputs tried.</p>
-          </div>
-        </div>
+      <Fold id="for-cobol-people" className="cobol-traps" title="For COBOL people" hint={"Traps that make a plausible Java port wrong, and what Diocle does about each. \"Caught\" always means on the inputs tried."}>
         <ul className="trap-list">
           {TRAPS.map((t) => (
             <li key={t.key} className="trap">
@@ -220,15 +180,15 @@ export default function EvidenceView({ openRun }: { openRun: (id: string) => voi
           ))}
         </ul>
         <p className="home-more"><a href={`${LINKS.diocle}/blob/main/docs/DETAILS.md#not-supported-yet`} target="_blank" rel="noreferrer">Everything not supported yet</a></p>
-      </section>
+      </Fold>
 
-      <section className="panel">
-        <div className="panel-heading"><div><h2>Corrections we published</h2></div></div>
+      <Fold id="corrections" title="Corrections we published">
         <ul className="home-list">
           <li>Oct 28: the comparator compared numbers by value, so <span className="mono">+00</span> equalled <span className="mono">-00</span>. Fixed to byte-exact; re-checking found one INTACCR (quillmark-modern#3) that should not have passed. It was re-delivered in {CANONICAL.pr}, where the repair agent fixed the sign of zero itself.</li>
           <li>The full list, with what we got wrong: <a href={LINKS.buildLog} target="_blank" rel="noreferrer">docs/BUILD_LOG.md</a>.</li>
         </ul>
-      </section>
+      </Fold>
+      </div>
     </>
   );
 }

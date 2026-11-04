@@ -1476,3 +1476,216 @@ a.nav-item {
   font-weight: 700;
   margin: 6px 0;
 }
+
+/* ---------- folds: a page reads as a list of headings; the detail is one click away and stays in the DOM ---------- */
+.fold-list {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.fold-head {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: start;
+  min-height: 44px; /* a thumb-sized target on a phone */
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+  user-select: text;
+}
+.fold-head::-webkit-details-marker {
+  display: none;
+}
+/* the plus and minus box of a Windows 9x tree view */
+.fold-head::before {
+  content: "+";
+  grid-row: 1 / span 2;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  font: 700 13px/1 var(--w-mono);
+  color: #000;
+  background: #fff;
+  border: 1px solid #808080;
+}
+.fold[open] > .fold-head::before {
+  content: "\2212";
+}
+.fold-head:focus-visible {
+  outline: 2px dotted #000;
+  outline-offset: -3px;
+}
+.app-shell .fold-head h2 {
+  grid-column: 2;
+  margin: 0;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.3;
+}
+.fold-hint {
+  grid-column: 2;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.fold[open] > .fold-head {
+  background: var(--w-title);
+}
+.fold[open] > .fold-head h2,
+.fold[open] > .fold-head .fold-hint {
+  color: #fff !important;
+}
+.fold-body {
+  padding: 8px 0 8px;
+  min-width: 0;
+}
+/* a small inline fold inside a panel, such as "Limits and privacy" */
+.inline-more {
+  margin: 0 21px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.inline-more > summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 6px 0;
+  min-height: 32px;
+}
+.inline-more > p,
+.inline-more > h4 {
+  margin: 0 0 8px;
+}
+.inline-more > h4 {
+  font-size: 12px;
+  font-weight: 700;
+}
+.sample-more {
+  margin: 0 8px 10px;
+}
+
+/* the first screen: one big button, two quiet ones, two small lines */
+.app-shell .pitch-actions .pitch-try {
+  font-size: 19px !important;
+  padding: 14px 26px;
+  flex: 1 1 100%;
+  justify-content: center;
+}
+.app-shell .pitch-claim .pitch-line {
+  margin: 8px 0 0;
+  font-size: 12px !important;
+  line-height: 1.4;
+}
+.pitch-claim .pitch-line + .pitch-line {
+  margin-top: 2px;
+}
+.pitch-line a {
+  text-decoration: underline;
+}
+.pitch-result {
+  margin-top: 10px;
+}
+.pitch-result .verdict-strip {
+  margin: 0;
+}
+.app-shell .pitch-catch .pitch-fixed {
+  margin: 8px 0 6px;
+}
+.pitch-step b + span {
+  margin-top: 2px;
+}
+/* a list you can skim down: the number, then what makes it true */
+.pitch-numbers.evidence-numbers {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin: 8px;
+}
+.evidence-numbers > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  padding: 6px 10px;
+}
+.evidence-numbers dd {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+.evidence-numbers dt {
+  grid-column: 2;
+  grid-row: 1;
+}
+.app-shell .evidence-numbers dd.mono {
+  font-size: 32px !important;
+}
+.live-cards {
+  align-items: start;
+}
+.live-printout {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  object-position: top left;
+}
+.app-shell .pitch-numbers dt a,
+.fold-body a {
+  text-decoration: underline;
+}
+.ask-actions .button {
+  white-space: normal;
+  height: auto;
+}
+@media (max-width: 760px) {
+  .app-shell .pitch-claim h1 {
+    font-size: 29px !important;
+    margin-bottom: 8px;
+  }
+  .app-shell .pitch-claim .pitch-sub {
+    font-size: 15px !important;
+  }
+  .pitch-actions {
+    margin-top: 10px;
+    gap: 6px;
+  }
+  .app-shell .pitch-actions .button {
+    font-size: 13px !important;
+    padding: 8px 10px;
+    flex: 1 1 40%;
+    justify-content: center;
+    text-align: center;
+  }
+  .app-shell .pitch-actions .pitch-try {
+    font-size: 17px !important;
+    padding: 12px 10px;
+    flex: 1 1 100%;
+  }
+  .pitch-catch {
+    padding: 8px 12px;
+  }
+  .pitch-catch figcaption {
+    font-size: 18px;
+  }
+  .app-shell .pitch-row strong.mono {
+    font-size: 40px !important;
+  }
+  .pitch-row {
+    padding: 2px 0;
+    font-size: 13px;
+  }
+  .inline-more {
+    margin-inline: 12px;
+  }
+  .evidence-numbers > div {
+    grid-template-columns: 100px minmax(0, 1fr);
+    column-gap: 10px;
+  }
+  .app-shell .evidence-numbers dd.mono {
+    font-size: 24px !important;
+    padding-inline: 4px;
+  }
+}

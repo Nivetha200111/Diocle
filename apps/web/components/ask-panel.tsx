@@ -177,13 +177,7 @@ export default function AskPanel() {
       <div className="panel-heading">
         <div>
           <h2 id="ask-h">Ask the original program</h2>
-          <p>
-            Play a question, press Ask, and watch it travel: <strong>Muse Voice Transcribe</strong> writes down what was said,
-            a <strong>Muse Spark</strong> model turns it into claims about the COBOL program with concrete examples, and then
-            <strong> GnuCOBOL runs the original program</strong> on those examples. The answer below is put together only from
-            claims GnuCOBOL confirmed; the models propose, they never decide. Use one of two bundled clips, or ask in your own voice
-            about the same program. Your words are treated as data, never as instructions, and they cannot change what GnuCOBOL decides.
-          </p>
+          <p>Ask out loud: Muse Spark proposes claims about the program, and GnuCOBOL runs the original to check them.</p>
         </div>
       </div>
       <div className="live-cards">
@@ -218,21 +212,32 @@ export default function AskPanel() {
         )}
       </div>
       {reason && <p className="live-reason" role="status">{reason.startsWith("Checking") ? reason : `Disabled: ${reason}`}</p>}
-      <p className="live-caps">
-        At most {cap(s?.maxUsd ?? 0.01)} per question.{" "}
-        {s ? `${s.visitorLeft} left for you now. Limits per 24 hours: ${s.perVisitorPerDay} per visitor and ${s.perDay} overall (${s.usedToday} used in the last 24 hours).` : "Loading limits."}
-        {" "}One live job runs at a time.
-      </p>
-      {micAllowed && (
-        <p className="live-caps">
-          <strong>Your own voice:</strong> recording starts only when you press the button.{" "}
-          {s?.uploadPerVisitorPerDay !== undefined && <>{s.uploadPerVisitorPerDay} recorded questions per visitor per day, {s.uploadPerDay} a day overall ({s.uploadVisitorLeft} left for you), at most {usd(s.maxUsd)} each. </>}
-          {HOSTED
-            ? <>The clip goes to Meta&apos;s speech service. Only you can read the answer here; the clip is deleted when the job ends, and the transcript an hour later. Please leave out names and real account details.</>
-            : <>This is your local engine: the clip goes to Meta&apos;s speech service with your key and stays in this machine&apos;s runs folder.</>}
-          {micReason && <> Not available now: {micReason}</>}
+      {micAllowed && micReason && <p className="live-reason" role="status">Your own voice is not available now: {micReason}</p>}
+      {micAllowed && HOSTED && !micReason && <p className="live-caps">Your own voice: please leave out names and real account details.</p>}
+      <details className="inline-more live-limits" id="ask-limits">
+        <summary>Limits and privacy</summary>
+        <p>
+          Play a question, press Ask, and watch it travel: <strong>Muse Voice Transcribe</strong> writes down what was said,
+          a <strong>Muse Spark</strong> model turns it into claims about the COBOL program with concrete examples, and then
+          <strong> GnuCOBOL runs the original program</strong> on those examples. The answer below is put together only from
+          claims GnuCOBOL confirmed; the models propose, they never decide. Use one of two bundled clips, or ask in your own voice
+          about the same program. Your words are treated as data, never as instructions, and they cannot change what GnuCOBOL decides.
         </p>
-      )}
+        <p>
+          At most {cap(s?.maxUsd ?? 0.01)} per question.{" "}
+          {s ? `${s.visitorLeft} left for you now. Limits per 24 hours: ${s.perVisitorPerDay} per visitor and ${s.perDay} overall (${s.usedToday} used in the last 24 hours).` : "Loading limits."}
+          {" "}One live job runs at a time.
+        </p>
+        {micAllowed && (
+          <p>
+            <strong>Your own voice:</strong> recording starts only when you press the button.{" "}
+            {s?.uploadPerVisitorPerDay !== undefined && <>{s.uploadPerVisitorPerDay} recorded questions per visitor per day, {s.uploadPerDay} a day overall ({s.uploadVisitorLeft} left for you), at most {usd(s.maxUsd)} each. </>}
+            {HOSTED
+              ? <>The clip goes to Meta&apos;s speech service. Only you can read the answer here; the clip is deleted when the job ends, and the transcript an hour later. Please leave out names and real account details.</>
+              : <>This is your local engine: the clip goes to Meta&apos;s speech service with your key and stays in this machine&apos;s runs folder.</>}
+          </p>
+        )}
+      </details>
       {error && <p className="live-error" role="alert">{error}</p>}
       {job && (viewKey(job.id) && job.status !== "running" && !job.result && !job.error
         ? <p className="live-caps" role="status">The answer to this question has been removed: results are kept for an hour.</p>

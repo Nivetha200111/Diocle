@@ -7,7 +7,8 @@ import { fetchRun, fetchRunSchema, fetchRunSource, fetchRuns, reverifyRun, schem
 import { SAMPLE_COBOL, SAMPLE_RECORDED } from "@/lib/sample";
 import { printoutImageUrl } from "@/lib/live";
 import { SourcePane } from "./runs-view";
-import { Term } from "./ui";
+import { MEASURED_HINT, MEASURED_TITLE, MeasuredBody } from "./measured";
+import { Fold, FoldLink, Term, useOpenOnHash } from "./ui";
 
 type Go = (view: "Delivery" | "Live runs" | "Evidence" | "Try it live" | "Current run") => void;
 
@@ -26,6 +27,49 @@ function explainDiff(diff: string | undefined): string {
   return `Field ${field}: the COBOL wrote ${was}; the AI-written Java wrote ${now}.`;
 }
 
+// "Try the sample": a free re-check of the stored Java, no model. One state, so the button on the first screen and the one
+// beside the source show the same result.
+type SampleCheck = { check: Reverify | null; busy: boolean; error: string; tryIt: () => void };
+function useSampleCheck(): SampleCheck {
+  const [check, setCheck] = useState<Reverify | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function tryIt() {
+    setBusy(true);
+    setError("");
+    try {
+      setCheck(await reverifyRun(SAMPLE_RUN.id));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return { check, busy, error, tryIt };
+}
+
+function CheckResult({ check }: { check: Reverify }) {
+  return (
+    <div className={`verdict-strip verdict-${check.allMatch ? "ok" : "bad"}`} role="status">
+      <strong>{check.allMatch ? "RE-VERIFIED NOW" : "DIFFERENCE FOUND"}</strong>
+      <span>
+        seed {check.seed} · {check.passed.toLocaleString()}/{check.total.toLocaleString()} output records match ·
+        stdout {check.stdoutMatch ? "matches" : "differs"} · byte for byte · {check.seconds}s · no model involved · on these records; a malformed blank return is known to differ
+        {check.firstMismatch ? ` · first difference: ${check.firstMismatch}` : ""}
+      </span>
+    </div>
+  );
+}
+
+// The catch's two amounts: from the stored run, or the recorded result if the engine cannot be reached.
+function catchAmounts(run: Run | null): [string, string] {
+  const diff = run?.breaker?.counterexamples[0]?.diff ?? SAMPLE_RECORDED.broke[0];
+  const m = diff.match(/^([\w-]+): original (.+?) converted (.+)$/);
+  return m ? [m[2], m[3]] : ["20.00", "0.00"];
+}
+
+const tryLabel = (busy: boolean) => (busy ? "Running COBOL and Java on fresh records…" : `▶ Try the sample (${SAMPLE_RUN.program})`);
+
 // The verdict strip tells the sample's real story: certified, broken by the breaker agent, repaired, re-certified.
 function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boolean; check: Reverify | null }) {
   const broke = run?.breaker?.counterexamples.map((c) => c.diff) ?? SAMPLE_RECORDED.broke;
@@ -42,18 +86,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
     const t = setInterval(() => setAt((i) => (i + 1) % frames.length), 2600);
     return () => clearInterval(t);
   }, [check, frames.length]);
-  if (check) {
-    return (
-      <div className={`verdict-strip verdict-${check.allMatch ? "ok" : "bad"}`} role="status">
-        <strong>{check.allMatch ? "RE-VERIFIED NOW" : "DIFFERENCE FOUND"}</strong>
-        <span>
-          seed {check.seed} · {check.passed.toLocaleString()}/{check.total.toLocaleString()} output records match ·
-          stdout {check.stdoutMatch ? "matches" : "differs"} · byte for byte · {check.seconds}s · no model involved · on these records; a malformed blank return is known to differ
-          {check.firstMismatch ? ` · first difference: ${check.firstMismatch}` : ""}
-        </span>
-      </div>
-    );
-  }
+  if (check) return <CheckResult check={check} />;
   const f = frames[at];
   return (
     <div className={`verdict-strip verdict-${f.tone}`} role="status" aria-live="off">
@@ -67,7 +100,7 @@ function VerdictStrip({ run, offline, check }: { run: Run | null; offline: boole
   );
 }
 
-function SampleHero({ go }: { go: Go }) {
+function SampleHero({ go, sample }: { go: Go; sample: SampleCheck }) {
   const [run, setRun] = useState<Run | null>(null);
   const [offline, setOffline] = useState(false);
   const [cobol, setCobol] = useState<SourceFile[]>(SAMPLE_COBOL);
@@ -75,9 +108,7 @@ function SampleHero({ go }: { go: Go }) {
   const [sql, setSql] = useState<SourceFile | null>(null);
   const [cobolAt, setCobolAt] = useState(0);
   const [javaAt, setJavaAt] = useState(0);
-  const [check, setCheck] = useState<Reverify | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const { check, busy, error, tryIt } = sample;
   useEffect(() => {
     fetchRun(SAMPLE_RUN.id).then(setRun).catch(() => setOffline(true));
     fetchRunSource(SAMPLE_RUN.id)
@@ -88,23 +119,12 @@ function SampleHero({ go }: { go: Go }) {
       .catch(() => setJava([]));
     fetchRunSchema(SAMPLE_RUN.id).then((s) => setSql(schemaFile(s))).catch(() => setSql(null));  // older engines: Java only
   }, []);
-  async function tryIt() {
-    setBusy(true);
-    setError("");
-    try {
-      setCheck(await reverifyRun(SAMPLE_RUN.id));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
-    <section className="panel sample-hero">
+    <section className="panel sample-hero" id="sample">
       <div className="panel-heading">
         <div>
           <h2>{SAMPLE_RUN.program}: cheque clearing, COBOL → Java</h2>
-          <p>A synthetic program Muse Spark had never seen. Left: the original. Right: the Java Diocle certified{sql ? ", and its copybooks as SQL tables (schema.sql)" : ""}.</p>
+          <p>A synthetic program Muse Spark had never seen. Left: the original. Right: the Java Diocle certified{sql ? ", and its copybooks as SQL tables" : ""}.</p>
         </div>
       </div>
       <div className="source-split">
@@ -116,18 +136,21 @@ function SampleHero({ go }: { go: Go }) {
       <VerdictStrip run={run} offline={offline} check={check} />
       <div className="home-actions sample-actions">
         <button className="button primary sample-try" disabled={busy} onClick={tryIt}>
-          {busy ? "Running COBOL and Java on fresh records…" : `▶ Try the sample (${SAMPLE_RUN.program})`}
+          {tryLabel(busy)}
         </button>
         <button className="button secondary" onClick={() => {
           window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
           go("Live runs");
         }}>Open the full run</button>
         <a className="button secondary" href="/bugs">Bug of the day</a>
-        <span className="sample-note">
+      </div>
+      <details className="inline-more sample-more">
+        <summary>What Try the sample does</summary>
+        <p>
           Runs the original under <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> and the certified Java once each on a file of about
           1,000 valid records from a seed chosen now, and compares every output byte. A re-check of stored Java: no model runs. Takes a few seconds.
-        </span>
-      </div>
+        </p>
+      </details>
       {error && <p className="dlv-error sample-error">{error}</p>}
     </section>
   );
@@ -142,13 +165,7 @@ function Evidence({ go }: { go: Go }) {
   const repaired = runs?.filter((r) => r.assurance === "certified-against-repaired-cobol").length ?? 0;  // never inside "certified"
   const unverified = runs?.filter((r) => r.assurance === "compiled-unverified").length ?? 0;
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <h2>Evidence</h2>
-          <p>One delivery to check end to end, and every attempt this engine has kept.</p>
-        </div>
-      </div>
+    <Fold title="Evidence" hint="One delivery to check end to end, and every attempt this engine has kept.">
       <dl className="eff-grid home-evidence">
         <div><dt>Programs in {CANONICAL.pr}</dt><dd className="mono">{CANONICAL.programs.length}/{CANONICAL.programs.length}</dd></div>
         <div><dt>Fresh output records in its CI</dt><dd className="mono">{CANONICAL_FRESH_INPUTS.toLocaleString()}</dd></div>
@@ -170,45 +187,32 @@ function Evidence({ go }: { go: Go }) {
         {" "}<strong>{runs ? `${certified}/${runs.length}` : "…"}</strong> counts every run this engine has kept,
         including failed and interrupted attempts. <button type="button" className="link-button" onClick={() => go("Evidence")}>All evidence</button>
       </p>
-    </section>
+    </Fold>
   );
 }
 
-const COBOL_KEY = "diocle.whatIsCobol.open";
-
-// A 20-second primer for visitors who do not know COBOL. Open on a first visit; the choice is remembered (localStorage may
-// be unavailable, so every access is guarded and the box simply stays open).
+// A 20-second primer for visitors who do not know COBOL.
 function WhatIsCobol() {
-  const [open, setOpen] = useState(true);
-  useEffect(() => {
-    try {
-      if (window.localStorage.getItem(COBOL_KEY) === "closed") setOpen(false);
-    } catch { /* storage blocked: keep the default */ }
-  }, []);
-  function toggle() {
-    const next = !open;
-    setOpen(next);
-    try { window.localStorage.setItem(COBOL_KEY, next ? "open" : "closed"); } catch { /* ignore */ }
-  }
   return (
-    <section className="panel cobol-primer" aria-label="What is COBOL">
-      <button type="button" className="cobol-primer-toggle" aria-expanded={open} aria-controls="cobol-primer-body" onClick={toggle}>
-        <strong>What is COBOL? (20 seconds)</strong>
-        <span aria-hidden="true">{open ? "hide" : "show"}</span>
-      </button>
-      {open && (
-        <p id="cobol-primer-body" className="cobol-primer-body">
-          COBOL is a programming language from 1959 that still runs the nightly <em>batch jobs</em> (programs that
-          process a whole day of records at once) at banks: adding interest, charging fees, posting transactions.
-          These programs are decades old and hold rules nobody fully remembers, so nobody wants to touch them. AI can
-          now rewrite one in Java in minutes; the risk is a silent difference on some input. Diocle runs the old
-          program (on GnuCOBOL) and the new Java on the same inputs and compares every output byte.
-        </p>
-      )}
-    </section>
+    <Fold title="What is COBOL? (20 seconds)" className="cobol-primer">
+      <p className="home-pr">
+        COBOL is a programming language from 1959 that still runs the nightly <em>batch jobs</em> (programs that
+        process a whole day of records at once) at banks: adding interest, charging fees, posting transactions.
+        These programs are decades old and hold rules nobody fully remembers, so nobody wants to touch them. AI can
+        now rewrite one in Java in minutes; the risk is a silent difference on some input. Diocle runs the old
+        program (on GnuCOBOL) and the new Java on the same inputs and compares every output byte.
+      </p>
+    </Fold>
   );
 }
 
+// One glance on the first screen; the same steps in full sit in the "How it works" fold.
+const STEPS: [string, string][] = [
+  ["Translate", "Muse Spark writes the Java"],
+  ["Compare", "Same inputs. No model decides"],
+  ["Attack", "Muse Spark hunts differences, then repairs"],
+  ["Deliver", "Pull request; its CI re-checks"],
+];
 
 const PIPELINE: [string, string, string][] = [
   ["Translate", "Muse Spark, as translator", "writes the Java from the COBOL; it never certifies"],
@@ -217,16 +221,9 @@ const PIPELINE: [string, string, string][] = [
   ["Deliver", "Pull request", "the target repository's own CI re-runs the comparison on generated inputs"],
 ];
 
-// The first screen: one real catch a judge can read without sound, the pipeline, and the numbers that back it.
-function Pitch({ go }: { go: Go }) {
-  const [run, setRun] = useState<Run | null>(null);
-  useEffect(() => {
-    fetchRun(SAMPLE_RUN.id).then(setRun).catch(() => setRun(null));
-  }, []);
-  const diff = run?.breaker?.counterexamples[0]?.diff ?? SAMPLE_RECORDED.broke[0];
-  const m = diff.match(/^([\w-]+): original (.+?) converted (.+)$/);
-  const [was, now] = m ? [m[2], m[3]] : ["20.00", "0.00"];
-  const final = run?.after?.total ?? SAMPLE_RECORDED.finalHeldOut;
+// The first screen: the question, one sentence, the actions, one real catch. Everything longer is one click away, below.
+function Pitch({ go, sample, run }: { go: Go; sample: SampleCheck; run: Run | null }) {
+  const [was, now] = catchAmounts(run);
   function openRun() {
     window.history.pushState(null, "", `/runs#run=${encodeURIComponent(SAMPLE_RUN.id)}`);
     go("Live runs");
@@ -234,37 +231,48 @@ function Pitch({ go }: { go: Go }) {
   return (
     <section className="panel pitch" aria-label="What Diocle does">
       <div className="panel-heading">
-        <div><h2>DIOCLE.EXE</h2><p>For a modernization lead deciding whether to accept AI-written Java for a COBOL batch program</p></div>
+        <div><h2>DIOCLE.EXE</h2></div>
       </div>
       <div className="pitch-top">
         <div className="pitch-claim">
           <h1>AI can rewrite COBOL in minutes. How do you know the Java still gives the same answer?</h1>
-          <p className="pitch-sub">Diocle runs both programs on the same inputs and compares their output byte for byte (trailing spaces on text lines aside). Then a model attacks the Java: on synthetic programs, of 10 translations that passed 1,000 generated records and could be attacked, 4 went on to differ from the original, on malformed numbers or the sign of a zero. What differs goes to repair, and the evidence can be re-run. It is testing on stated inputs under GnuCOBOL, not a formal proof.</p>
+          <p className="pitch-sub">Diocle runs both on the same inputs and compares the output.</p>
           <div className="pitch-actions">
-            <button type="button" className="button primary" onClick={() => go("Try it live")}>▶ Try it live</button>
+            <button type="button" className="button primary pitch-try" disabled={sample.busy} onClick={sample.tryIt}>{tryLabel(sample.busy)}</button>
             <button type="button" className="button secondary" onClick={() => go("Delivery")}>Import a COBOL repository</button>
             <a className="button secondary" href="/mission">Watch the agents work</a>
           </div>
+          {sample.check && <div className="pitch-result"><CheckResult check={sample.check} /></div>}
+          {sample.error && <p className="dlv-error pitch-result" role="alert">{sample.error}</p>}
+          <p className="pitch-line">Testing on stated inputs under GnuCOBOL, not a formal proof. <FoldLink to="certified" also="not-certified">What certified means</FoldLink></p>
+          <p className="pitch-line">Built Oct 27 to Nov 4, 2026, for the Meta Global AI Developer Hackathon. <a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a></p>
         </div>
         <figure className="pitch-catch">
           <figcaption>THE CATCH · {SAMPLE_RUN.program}, cheque clearing</figcaption>
-          <p className="pitch-input">Muse Spark designed this input: a cheque returned for insufficient funds whose fee is <span className="mono">␣1000</span>, a space where <span className="mono">PIC 9</span> expects a digit. Malformed data, not an ordinary transaction.</p>
-          <div className="pitch-row"><span>Original COBOL on GnuCOBOL charged</span><strong className="pitch-ok mono">{was}</strong></div>
-          <div className="pitch-row"><span>AI-written Java charged</span><strong className="pitch-bad mono">{now}</strong></div>
-          <p className="pitch-fixed">Fixed by the repair agent · matched again on {final.toLocaleString()} output records · a stored run · IBM Enterprise COBOL was not tested and may treat this record differently</p>
+          <div className="pitch-row"><span>Original COBOL, on GnuCOBOL</span><strong className="pitch-ok mono">{was}</strong></div>
+          <div className="pitch-row"><span>AI-written Java</span><strong className="pitch-bad mono">{now}</strong></div>
+          <p className="pitch-fixed">Return fee on a malformed record, under GnuCOBOL. IBM&apos;s compiler not tested.</p>
           <button type="button" className="link-button" onClick={openRun}>Open this run and check it yourself</button>
         </figure>
       </div>
       <ol className="pitch-pipeline">
-        {PIPELINE.map(([step, who, what], i) => [
+        {STEPS.map(([step, what], i) => [
           i > 0 && <li key={`${step}-arrow`} className="pitch-arrow" aria-hidden="true" />,
-          <li key={step} className="pitch-step"><b>{i + 1}. {step}</b><em>{who}</em><span>{what}</span></li>,
+          <li key={step} className="pitch-step"><b>{i + 1}. {step}</b><span>{what}</span></li>,
         ])}
       </ol>
+    </section>
+  );
+}
+
+// What backs the catch: a number and a line each, the method one click away. Below the source, not on the first screen.
+function Numbers({ go }: { go: Go }) {
+  return (
+    <section className="panel pitch" aria-label="The numbers">
       <dl className="pitch-numbers">
-        <div><dd className="mono">4 of 10</dd><dt>attackable translations that passed then differed under attack; by the breaker&apos;s stated reasons, 1 on malformed numbers, 3 on a negative-zero sign byte at overflow (15 synthetic programs, one model)</dt></div>
-        <div><dd className="mono">{CANONICAL.programs.length}</dd><dt>programs certified and delivered in one pull request, <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a></dt></div>
-        <div><dd className="mono">0</dd><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in <a href={LINKS.evidenceCi} target="_blank" rel="noreferrer">its CI run</a></dt></div>
+        <div><dt>translations that passed 1,000 generated records and could be attacked went on to differ, on malformed numbers or the sign of a zero. Synthetic programs. <FoldLink to="measured">How it was measured</FoldLink></dt><dd className="mono">4 of 10</dd></div>
+        <div><dt>synthetic programs certified and delivered in one pull request, <a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a></dt><dd className="mono">{CANONICAL.programs.length}</dd></div>
+        <div><dt>differences on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records in <a href={LINKS.evidenceCi} target="_blank" rel="noreferrer">its CI run</a></dt><dd className="mono">0</dd></div>
       </dl>
       <div className="pitch-multi">
         <button type="button" className="pitch-card" onClick={() => go("Try it live")}>
@@ -278,107 +286,96 @@ function Pitch({ go }: { go: Go }) {
         </button>
       </div>
       <p className="pitch-models">
-        Models write and attack; the byte comparison decides. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
-        {" "}<strong>Limits:</strong> &ldquo;certified&rdquo; means matched on the inputs tried, not proven equivalent. Trailing spaces on text lines are not compared. GnuCOBOL is not IBM Enterprise COBOL; SQLite and Berkeley DB stand in for the DB2 and VSAM subsets; the breaker attacks single-file record programs only; optional guard and cross-check steps can be skipped, and a run says so. Synthetic programs only (<a href={LINKS.certified} target="_blank" rel="noreferrer">full limits</a>).
-        {" "}<strong>For risk and audit teams:</strong> the party that writes the change does not approve it (<a href={`${LINKS.diocle}#for-engineering-risk-and-audit-teams`} target="_blank" rel="noreferrer">what a reviewer can check</a>).
+        Models write and attack; the comparison decides. Meta models only: <strong>Muse Spark</strong>, plus, in some runs, <strong>Muse Spark Open</strong> and <strong>Muse Wonder</strong>.
       </p>
     </section>
   );
 }
 
 export default function HomeView({ go }: { go: Go }) {
+  const sample = useSampleCheck();
+  const [run, setRun] = useState<Run | null>(null);
+  useEffect(() => {
+    fetchRun(SAMPLE_RUN.id).then(setRun).catch(() => setRun(null));
+  }, []);
+  useOpenOnHash();
+  const final = run?.after?.total ?? SAMPLE_RECORDED.finalHeldOut;
+  const [was, now] = catchAmounts(run);
   return (
     <div className="view-content home">
-      <Pitch go={go} />
+      <Pitch go={go} sample={sample} run={run} />
 
-      <section className="panel home-headline" aria-label="Measured result">
-        <div className="panel-heading">
-          <div>
-            <h2>Measured: passing a large test is not the same as matching everywhere</h2>
-            <p>15 synthetic COBOL programs, Muse Spark, GnuCOBOL as the judge</p>
-          </div>
-        </div>
-        <dl className="eff-grid home-evidence">
-          <div><dt>First translations passing the held-out check of 1,000 random records (3 tries x 15 programs)</dt><dd className="mono">37/45</dd></div>
-          <div><dt>Attackable, test-passing translations that differed under attack</dt><dd className="mono">4/10</dd></div>
-          <div><dt>Programs certified by a full Diocle run</dt><dd className="mono">14/15</dd></div>
-        </dl>
-        <p className="home-pr">
-          In a separate attack run (one fresh translation per program), the breaker&apos;s designed inputs made four of the ten
-          attackable translations that passed the check differ from the original: CHQCLR on malformed numeric fields, and DAYCTRL, INTACCR
-          and TXNPOST on the sign of a zero at an overflow boundary (same value, different bytes), by the breaker&apos;s stated reasons. No stored record-level break is a wrong amount on a
-          well-formed record; value errors on well-formed records showed up in first translations and in one private-mode run&apos;s printed total. Until Nov 1 the attack compared output records only, so a surviving translation was not checked on its display output under attack. Three of those four had passed all three first-try trials. The three figures count
-          different things, so they are not a &ldquo;model alone vs Diocle&rdquo; score. One program, CHQCLR, was not certified in that run. Small sample, one model, synthetic
-          programs, about $0.69 of model spend: <a href={LINKS.measurement} target="_blank" rel="noreferrer">method, per-program table and caveats <ExternalLink size={11} /></a>. Re-measured Nov 2 with two flaws in our own check fixed: 4 of 10 again, the same four programs. This is not a defect-detection rate.
-        </p>
-      </section>
+      <SampleHero go={go} sample={sample} />
 
-      <SampleHero go={go} />
+      <Numbers go={go} />
 
-      <Evidence go={go} />
-
-      <WhatIsCobol />
-
-
-      <section className="panel" aria-label="Use Diocle from your editor">
-        <div className="panel-heading">
-          <div>
-            <h2>Use it from your editor</h2>
-            <p>Two local installs from this repository. Neither is on a marketplace, and neither is an official Meta product.</p>
-          </div>
-        </div>
-        <div className="home-columns">
-          <div className="editor-col">
-            <h3>VS Code (forks such as Cursor should work)</h3>
-            <p className="home-pr">Check a COBOL file compiles under GnuCOBOL, then convert and verify it from the editor. Needs Python, GnuCOBOL 3.2 and JDK 21 (run <span className="mono">sh scripts/quickstart.sh --no-key</span> once in the clone to set up the converter, and have <span className="mono">code</span> on your PATH). A conversion uses your own Meta key and asks before it spends. A local build, not yet tested in a clean editor.</p>
-            <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
-cd Diocle/editors/vscode
-npm install && npm run package
-code --install-extension diocle-0.1.0.vsix`}</pre>
-            <p className="home-pr"><a href={LINKS.vscode} target="_blank" rel="noreferrer">Install notes and settings <ExternalLink size={11} /></a></p>
-          </div>
-          <div className="editor-col">
-            <h3>Muse Code (Meta&apos;s coding agent)</h3>
-            <p className="home-pr">A local plugin: Muse Code can analyze COBOL, re-verify a conversion against the original, and read run records through Diocle tools. A real conversion is off unless you turn it on. Tested with Muse Code 1.4.14 on macOS: in five recorded headless runs Muse Code picked and called the Diocle tools and reported their output, including a capped conversion that certified a sample (1027 of 1027 inputs, about two cents) and a refusal outside the repository. The prompts named the tools, and conversion was enabled and capped by the owner.</p>
-            <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
-cd Diocle
-sh editors/muse-code/install.sh
-muse plugins approve diocle:mcp_server:diocle`}</pre>
-            <p className="home-pr"><a href={LINKS.museCode} target="_blank" rel="noreferrer">Install notes, tools and limits <ExternalLink size={11} /></a></p>
-          </div>
-        </div>
-      </section>
-
-      <div className="home-columns">
-        <section className="panel">
-          <div className="panel-heading"><div><h2>What “certified” means</h2></div></div>
+      <div className="fold-list">
+        <Fold id="certified" title="What “certified” means">
           <ul className="home-list">
             <li>On every input tried, the Java’s records, display output and exit code equal the original’s. Each check is one run of each program on one generated file; the counts are output records compared.</li>
             <li>The original is compiled with <Term tip={GLOSSARY.GnuCOBOL}>GnuCOBOL</Term> 3.2 under IBM’s <Term tip={GLOSSARY["TRUNC(STD)"]}>TRUNC(STD)</Term> and DISPLAY defaults, in <Term tip={GLOSSARY.EBCDIC}>EBCDIC</Term> collating order.</li>
             <li>Where captured mainframe output exists, the mainframe is the judge instead.</li>
           </ul>
-        </section>
-        <section className="panel">
-          <div className="panel-heading"><div><h2>What it does not mean</h2></div></div>
+        </Fold>
+        <Fold id="not-certified" title="What it does not mean">
           <ul className="home-list">
             <li>Equivalence for every possible input: testing cannot show that.</li>
             <li>Equivalence to IBM COBOL where GnuCOBOL differs and no mainframe output was captured.</li>
             <li>Support for <Term tip={GLOSSARY.CICS}>CICS</Term>, <Term tip={GLOSSARY.DB2}>DB2</Term> or <Term tip={GLOSSARY.VSAM}>VSAM</Term> beyond the stated subsets (DB2 and keyed files are verified on stand-ins): those programs are reported, not converted.</li>
           </ul>
+          <p className="home-pr">
+            <strong>Limits:</strong> &ldquo;certified&rdquo; means matched on the inputs tried, not proven equivalent. Trailing spaces on text lines are not compared. GnuCOBOL is not IBM Enterprise COBOL; SQLite and Berkeley DB stand in for the DB2 and VSAM subsets; the breaker attacks single-file record programs only; optional guard and cross-check steps can be skipped, and a run says so. Synthetic programs only.
+            {" "}<strong>For risk and audit teams:</strong> the party that writes the change does not approve it (<a href={`${LINKS.diocle}#for-engineering-risk-and-audit-teams`} target="_blank" rel="noreferrer">what a reviewer can check</a>).
+          </p>
           <p className="home-more"><a href={LINKS.certified} target="_blank" rel="noreferrer">Full definition and limits</a></p>
-        </section>
+        </Fold>
+        <Fold id="measured" title={MEASURED_TITLE} hint={MEASURED_HINT}>
+          <MeasuredBody />
+        </Fold>
+        <Fold id="catch" title={`The ${SAMPLE_RUN.program} catch in full`} hint="A malformed record, not an ordinary transaction">
+          <p className="home-pr">Muse Spark designed this input: a cheque returned for insufficient funds whose fee is <span className="mono">␣1000</span>, a space where <span className="mono">PIC 9</span> expects a digit. Malformed data, not an ordinary transaction. Original COBOL on GnuCOBOL charged <span className="mono">{was}</span>; AI-written Java charged <span className="mono">{now}</span>.</p>
+          <p className="home-pr">Fixed by the repair agent · matched again on {final.toLocaleString()} output records · a stored run · IBM Enterprise COBOL was not tested and may treat this record differently.</p>
+        </Fold>
+        <Fold id="how-it-works" title="How it works, step by step" hint="For a modernization lead deciding whether to accept AI-written Java for a COBOL batch program">
+          <ol className="home-list">
+            {PIPELINE.map(([step, who, what]) => <li key={step}><strong>{step}</strong> ({who}): {what}.</li>)}
+          </ol>
+          <p className="home-pr">Diocle compares output byte for byte, trailing spaces on text lines aside. What differs goes to repair, and the evidence can be re-run.</p>
+        </Fold>
+        <Evidence go={go} />
+        <WhatIsCobol />
+        <Fold title="Use it from your editor" hint="Two local installs from this repository. Neither is on a marketplace, and neither is an official Meta product.">
+          <div className="home-columns">
+            <div className="editor-col">
+              <h3>VS Code (forks such as Cursor should work)</h3>
+              <p className="home-pr">Check a COBOL file compiles under GnuCOBOL, then convert and verify it from the editor. Needs Python, GnuCOBOL 3.2 and JDK 21 (run <span className="mono">sh scripts/quickstart.sh --no-key</span> once in the clone to set up the converter, and have <span className="mono">code</span> on your PATH). A conversion uses your own Meta key and asks before it spends. A local build, not yet tested in a clean editor.</p>
+              <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
+cd Diocle/editors/vscode
+npm install && npm run package
+code --install-extension diocle-0.1.0.vsix`}</pre>
+              <p className="home-pr"><a href={LINKS.vscode} target="_blank" rel="noreferrer">Install notes and settings <ExternalLink size={11} /></a></p>
+            </div>
+            <div className="editor-col">
+              <h3>Muse Code (Meta&apos;s coding agent)</h3>
+              <p className="home-pr">A local plugin: Muse Code can analyze COBOL, re-verify a conversion against the original, and read run records through Diocle tools. A real conversion is off unless you turn it on. Tested with Muse Code 1.4.14 on macOS: in five recorded headless runs Muse Code picked and called the Diocle tools and reported their output, including a capped conversion that certified a sample (1027 of 1027 inputs, about two cents) and a refusal outside the repository. The prompts named the tools, and conversion was enabled and capped by the owner.</p>
+              <pre className="mono editor-cmd">{`git clone ${LINKS.diocle}.git
+cd Diocle
+sh editors/muse-code/install.sh
+muse plugins approve diocle:mcp_server:diocle`}</pre>
+              <p className="home-pr"><a href={LINKS.museCode} target="_blank" rel="noreferrer">Install notes, tools and limits <ExternalLink size={11} /></a></p>
+            </div>
+          </div>
+        </Fold>
+        <Fold title="Sample estate" hint="Quillmark Trust & Savings is a fictional bank shipped with Diocle so you can see it work end to end. Its programs and data are synthetic.">
+          <ul className="home-list home-links">
+            <li><a href={LINKS.legacy} target="_blank" rel="noreferrer">quillmark-mainframe</a>: an export of z/OS libraries (COBOL, copybooks, JCL, procedures, DB2, CICS, IMS, EBCDIC extracts).</li>
+            <li><a href={LINKS.target} target="_blank" rel="noreferrer">quillmark-java</a>: starts empty; Diocle delivers certified programs as pull requests and its CI re-checks them.</li>
+            <li><a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>: re-delivers INTACCR, and the repository&apos;s CI re-verifies all six programs under one pinned verifier on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records.</li>
+            <li><a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a>: what was built during the hackathon, including the mistakes we found.</li>
+          </ul>
+          <p className="home-more"><a href={LINKS.diocle} target="_blank" rel="noreferrer">Source on GitHub <ExternalLink size={11} /></a></p>
+        </Fold>
       </div>
-
-      <section className="panel">
-        <div className="panel-heading"><div><h2>Sample estate</h2><p>Quillmark Trust &amp; Savings is a fictional bank shipped with Diocle so you can see it work end to end. Its programs and data are synthetic.</p></div></div>
-        <ul className="home-list home-links">
-          <li><a href={LINKS.legacy} target="_blank" rel="noreferrer">quillmark-mainframe</a>: an export of z/OS libraries (COBOL, copybooks, JCL, procedures, DB2, CICS, IMS, EBCDIC extracts).</li>
-          <li><a href={LINKS.target} target="_blank" rel="noreferrer">quillmark-java</a>: starts empty; Diocle delivers certified programs as pull requests and its CI re-checks them.</li>
-          <li><a href={LINKS.evidence} target="_blank" rel="noreferrer">{CANONICAL.pr}</a>: re-delivers INTACCR, and the repository&apos;s CI re-verifies all six programs under one pinned verifier on {CANONICAL_FRESH_INPUTS.toLocaleString()} fresh output records.</li>
-          <li><a href={LINKS.buildLog} target="_blank" rel="noreferrer">Build log</a>: what was built during the hackathon, including the mistakes we found.</li>
-        </ul>
-        <p className="home-more"><a href={LINKS.diocle} target="_blank" rel="noreferrer">Source on GitHub <ExternalLink size={11} /></a></p>
-      </section>
     </div>
   );
 }

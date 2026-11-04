@@ -123,13 +123,7 @@ export default function LiveSamples() {
       <div className="panel-heading">
         <div>
           <h2 id="live-h">Try it live</h2>
-          <p>
-            <strong>Try the sample on the home page is free and calls no model.</strong> The buttons here call a real Meta model, which
-            costs money, so each has a small daily limit. Two run on fixed, bundled, synthetic samples and take no input from
-            you. A third reads a picture you send: it goes only to the vision model, and what it writes is compiled and run only in
-            the sandbox. If a button has reached its limit, the evidence on the home and Evidence pages still works.
-            {s && <> Limit for this page: {cap(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} used in the last 24 hours (estimated at list prices).</>}
-          </p>
+          <p>Free, with no model: Try the sample on the <a href="/">home page</a>.</p>
         </div>
       </div>
       <div className="live-cards">
@@ -140,8 +134,7 @@ export default function LiveSamples() {
           b={s?.convert}
           reason={reasonOf(s?.convert)}
           onStart={start}
-          what="Muse Spark translates the small COBOL program ADDFEE (a fee added to account records) to Java, then GnuCOBOL and the Java run on the same generated inputs in the sandbox and a held-out check is run on fresh ones. A normal run, labelled as a live sample run."
-          unit="conversions"
+          what="Muse Spark translates the small COBOL program ADDFEE to Java, then both run on the same generated inputs."
         />
         <Card
           title="Read a printout"
@@ -150,8 +143,7 @@ export default function LiveSamples() {
           b={s?.printout}
           reason={reasonOf(s?.printout)}
           onStart={start}
-          what="Muse Wonder reads the picture of a COBOL listing below and writes the COBOL. It is compiled and run in the sandbox against the original LOYWAIVE on about a thousand inputs. A model reading a printout certifies nothing: the comparison decides."
-          unit="printout reads"
+          what="Muse Wonder reads this listing and writes the COBOL; the comparison with the original decides."
           image
         />
       </div>
@@ -162,6 +154,35 @@ export default function LiveSamples() {
           catch (e) { setError(e instanceof Error ? e.message : "The request failed."); refresh(); }
           finally { setStarting(false); }
         }} />}
+      <details className="inline-more live-limits" id="live-limits">
+        <summary>Limits and privacy</summary>
+        <p>
+          <strong>Try the sample on the home page is free and calls no model.</strong> The buttons here call a real Meta model, which
+          costs money, so each has a small daily limit. Two run on fixed, bundled, synthetic samples and take no input from
+          you. A third reads a picture you send: it goes only to the vision model, and what it writes is compiled and run only in
+          the sandbox. If a button has reached its limit, the evidence on the home and Evidence pages still works.
+          {s && <> Limit for this page: {cap(s.budgetUsd)} a day; {usd(s.spentTodayUsd)} used in the last 24 hours (estimated at list prices).</>}
+        </p>
+        <h4>Convert a sample now</h4>
+        <p>Muse Spark translates the small COBOL program ADDFEE (a fee added to account records) to Java, then GnuCOBOL and the Java run on the same generated inputs in the sandbox and a held-out check is run on fresh ones. A normal run, labelled as a live sample run.</p>
+        <Caps sample="addfee" b={s?.convert} unit="conversions" />
+        <h4>Read a printout</h4>
+        <p>Muse Wonder reads the picture of a COBOL listing below and writes the COBOL. It is compiled and run in the sandbox against the original LOYWAIVE on about a thousand inputs. A model reading a printout certifies nothing: the comparison decides.</p>
+        <Caps sample="loyalty-waiver-printout" b={s?.printout} unit="printout reads" />
+        {s?.upload?.enabled && (<>
+          <h4>Read your own image</h4>
+          <p>
+            Send a photo or screenshot of a COBOL listing. Muse Wonder writes the COBOL it sees; it is compiled and run in the sandbox against
+            the bundled LOYWAIVE program. To see it match, photograph <a href={printoutImageUrl} target="_blank" rel="noreferrer">this listing</a>.
+            Any other program will show as different or refused, which says nothing about how well it was read: compare the text yourself.
+          </p>
+          <p>
+            Your browser shrinks the picture and removes its metadata first. It goes to Meta&apos;s vision model; only you can read the result here. The
+            image is deleted when the job ends, and the transcription an hour later. Send synthetic or public code only, never your employer&apos;s or a client&apos;s.
+          </p>
+          <p>At most {cap(s.upload.maxUsd)} per image. Caps: {s.upload.perVisitorPerDay} per visitor per day, {s.upload.perDay} a day overall ({s.upload.usedToday} used in the last 24 hours, {s.upload.visitorLeft} left for you).</p>
+        </>)}
+      </details>
       {error && <p className="live-error" role="alert">{error}</p>}
       {job && job.sample === "addfee" && <ConvertProgress job={job} run={run} />}
       {job && job.sample === "loyalty-waiver-printout" && (viewKey(job.id) && job.status !== "running" && !job.printout && !job.error
@@ -178,15 +199,7 @@ function ImageUpload(p: { status: UploadStatus; busy: boolean; onStart: (file: F
   return (
     <div className="live-card live-upload">
       <h3>Read your own image</h3>
-      <p className="live-what">
-        Send a photo or screenshot of a COBOL listing. Muse Wonder writes the COBOL it sees; it is compiled and run in the sandbox against
-        the bundled LOYWAIVE program. To see it match, photograph <a href={printoutImageUrl} target="_blank" rel="noreferrer">this listing</a>.
-        Any other program will show as different or refused, which says nothing about how well it was read: compare the text yourself.
-      </p>
-      <p className="live-caps">
-        Your browser shrinks the picture and removes its metadata first. It goes to Meta&apos;s vision model; only you can read the result here. The
-        image is deleted when the job ends, and the transcription an hour later. Send synthetic or public code only, never your employer&apos;s or a client&apos;s.
-      </p>
+      <p className="live-what">Send a photo of a synthetic or public COBOL listing, never your employer&apos;s or a client&apos;s; Muse Wonder writes the COBOL it sees, compared with LOYWAIVE.</p>
       <div className="ask-actions">
         <input ref={input} type="file" accept="image/png,image/jpeg" aria-label="Choose an image of a COBOL listing"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -199,14 +212,13 @@ function ImageUpload(p: { status: UploadStatus; busy: boolean; onStart: (file: F
           }}>Read my image</button>
       </div>
       {why && <p className="live-reason" role="status">Disabled: {why}</p>}
-      <p className="live-caps">At most {cap(p.status.maxUsd)} per image. Caps: {p.status.perVisitorPerDay} per visitor per day, {p.status.perDay} a day overall ({p.status.usedToday} used in the last 24 hours, {p.status.visitorLeft} left for you).</p>
     </div>
   );
 }
 
 function Card(p: {
   title: string; sample: LiveSample; label: string; b: ButtonStatus | undefined; reason: string | null;
-  onStart: (s: LiveSample) => void; what: string; unit: string; image?: boolean;
+  onStart: (s: LiveSample) => void; what: string; image?: boolean;
 }) {
   const id = `live-${p.sample}`;
   const disabled = p.reason !== null;
@@ -214,21 +226,29 @@ function Card(p: {
     <div className="live-card">
       <h3>{p.title}</h3>
       <p className="live-what">{p.what}</p>
-      {p.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="live-printout" src={printoutImageUrl} width={520}
-          alt="A printed fixed-format COBOL listing of the program LOYWAIVE, with a gutter of line numbers on the left" />
-      )}
       <button type="button" className="button primary" disabled={disabled} aria-describedby={`${id}-note ${id}-caps`}
         onClick={() => p.onStart(p.sample)}>▶ {p.label}</button>
       {p.reason && <p id={`${id}-note`} className="live-reason" role="status">{p.reason.startsWith("Checking") ? p.reason : `Disabled: ${p.reason}`}</p>}
       {!p.reason && <p id={`${id}-note`} className="sr-only">Ready.</p>}
-      <p id={`${id}-caps`} className="live-caps">
-        At most {cap(p.b?.maxUsd ?? (p.sample === "addfee" ? 0.05 : 0.1))} per press.{" "}
-        {p.b ? `${p.b.visitorLeft} left for you now. Limits per 24 hours: ${p.b.perVisitorPerDay} ${p.unit} per visitor and ${p.b.perDay} overall (${p.b.usedToday} used in the last 24 hours).` : "Loading limits."}
-        {" "}One live job runs at a time.
-      </p>
+      {p.image && (
+        <a href={printoutImageUrl} target="_blank" rel="noreferrer" title="Open the whole listing">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="live-printout" src={printoutImageUrl} width={520}
+            alt="A printed fixed-format COBOL listing of the program LOYWAIVE, with a gutter of line numbers on the left" />
+        </a>
+      )}
     </div>
+  );
+}
+
+// Inside "Limits and privacy"; each button still names this line through aria-describedby.
+function Caps({ sample, b, unit }: { sample: LiveSample; b: ButtonStatus | undefined; unit: string }) {
+  return (
+    <p id={`live-${sample}-caps`}>
+      At most {cap(b?.maxUsd ?? (sample === "addfee" ? 0.05 : 0.1))} per press.{" "}
+      {b ? `${b.visitorLeft} left for you now. Limits per 24 hours: ${b.perVisitorPerDay} ${unit} per visitor and ${b.perDay} overall (${b.usedToday} used in the last 24 hours).` : "Loading limits."}
+      {" "}One live job runs at a time.
+    </p>
   );
 }
 

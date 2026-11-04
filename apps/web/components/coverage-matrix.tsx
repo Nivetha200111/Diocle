@@ -1,4 +1,4 @@
-import { Badge } from "./ui";
+import { Badge, Fold } from "./ui";
 
 // What Diocle can and cannot verify today, by kind of mainframe artifact. Static, dated, and kept honest: a row says "in progress"
 // until the work is merged and deployed. Status as of Oct 30, 2026.
@@ -25,13 +25,7 @@ const WRAP = { whiteSpace: "normal", verticalAlign: "top", minWidth: 220 } as co
 
 export default function CoverageMatrix() {
   return (
-    <section className="panel" aria-labelledby="coverage-heading">
-      <div className="panel-heading">
-        <div>
-          <h2 id="coverage-heading">What Diocle verifies today, and what it does not</h2>
-          <p>By kind of mainframe artifact, as of Oct 30, 2026. In progress means not merged or deployed yet. Certified always means on the inputs tried.</p>
-        </div>
-      </div>
+    <Fold id="coverage" title="What Diocle verifies today, and what it does not" hint="By kind of mainframe artifact, as of Oct 30, 2026. In progress means not merged or deployed yet. Certified always means on the inputs tried.">
       <div className="table-scroll">
         <table className="data-table">
           <caption className="sr-only">Coverage by kind of mainframe artifact</caption>
@@ -50,6 +44,6 @@ export default function CoverageMatrix() {
           </tbody>
         </table>
       </div>
-    </section>
+    </Fold>
   );
 }
