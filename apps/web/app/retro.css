@@ -1759,3 +1759,7 @@ a.nav-item {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+/* numbers line up along the top of their row, whatever the length of the line under them */
+.pitch-numbers > div {
+  justify-content: flex-end;
+}
