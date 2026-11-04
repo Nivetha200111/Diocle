@@ -20,12 +20,13 @@
 .tree-list ul { margin-left: 12px; padding-left: 14px; border-left: 1px dotted #000; }
 .tree-list li { padding-top: 5px; position: relative; }
 .tree-list ul > li::before { content: ""; position: absolute; left: -14px; top: 20px; width: 12px; border-top: 1px dotted #000; }
-.tree-node { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 30px; padding: 3px 10px; background: var(--w-face); box-shadow: var(--w-out); text-align: left; cursor: pointer; }
+.tree-node { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 30px; padding: 3px 10px; background: var(--w-face); box-shadow: var(--w-out); text-align: left; cursor: pointer; transition: none; }
 .tree-node:active { box-shadow: var(--w-in); }
 .tree-name { overflow-wrap: anywhere; }
 .app-shell .tree-tag { font-size: 13px; font-weight: 700; }
+.app-shell .tree-node.is-selected { background: var(--w-navy); }
 .app-shell .tree-node.is-selected,
-.app-shell .tree-node.is-selected * { background: var(--w-navy); color: #fff !important; }
+.app-shell .tree-node.is-selected * { color: #fff !important; }
 .tree-node.is-selected { box-shadow: var(--w-in); font-weight: 700; }
 .tree-node.is-dependent { background: #ffffc0; outline: 2px solid #000; outline-offset: -2px; font-weight: 700; }
 .tree-node:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
