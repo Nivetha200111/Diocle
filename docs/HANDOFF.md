@@ -7,10 +7,10 @@ Newest state at the top of each section. Dates are 2026, times IST unless marked
 This repository is public: never write secrets, passcodes, personal details or employer names here.
 
 > **Video note:** entries dated before Nov 1 describe video drafts, some with synthetic narration. The video now linked,
-> the Nov 4 final cut (https://youtu.be/6pk5W6bsaQ4), has a synthetic narration voice (ElevenLabs), disclosed in the README and the video description.
+> the Nov 4 final cut (https://youtu.be/C-sXQnX6uJ0), has a synthetic narration voice (ElevenLabs), disclosed in the README and the video description.
 
 ## Nov 4: final video cut
-- **What:** https://youtu.be/6pk5W6bsaQ4, 2:58, replaces v16 as the linked video. 1980s to 90s terminal slides in 3270 colours, real site footage in a laptop frame, and a new opening: twenty became zero, COBOL developers retiring, and their work falling to junior engineers.
+- **What:** https://youtu.be/C-sXQnX6uJ0 (v23), 2:51, replaces v16 and the earlier Nov 4 cut (v22, https://youtu.be/6pk5W6bsaQ4) as the linked video. After a critique that secondary features competed with the acceptance workflow, it adds the delivered pull request and its CI re-check as the climax, and cuts the agent replay and the Evidence page. The first commit of that pull request failed its re-verify; the final commit passed, and that is what is shown. 1980s to 90s terminal slides in 3270 colours, real site footage in a laptop frame, and a new opening: twenty became zero, COBOL developers retiring, and their work falling to junior engineers.
 - **Narration:** a synthetic voice (ElevenLabs), the owner's decision. Disclosed in the README and the video description, not in the video.
 - **Compliance:** the docs now describe this cut. CardDemo is no longer shown in the video, though its recorded run stays linked as evidence.
 - **Submitted:** the owner reports the entry is submitted and the X post is up (Nov 4, about 16:00 IST). Make no repo changes after the deadline (Nov 4, 9 PM ET) until judging ends.
