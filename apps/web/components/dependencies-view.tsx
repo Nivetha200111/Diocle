@@ -137,7 +137,7 @@ function TreeCard({ tree }: { tree: Tree }) {
   const short = tree.commit.slice(0, 7);
   return (
     <section className={`panel tree-card ${tree.image ? "has-drawing" : "no-drawing"}`} id={tree.slug}>
-      <header className="tree-head">
+      <div className="panel-heading tree-head"><div>
         <h2>{tree.title}</h2>
         <p>
           <a href={tree.repository} target="_blank" rel="noreferrer">{repoName(tree.repository)} <ExternalLink size={11} /></a>
@@ -145,7 +145,7 @@ function TreeCard({ tree }: { tree: Tree }) {
           {" · "}{linkWords(tree.kinds)}{" · "}{count(tree.edges.length, "link")}
         </p>
         {tree.note && <p>{tree.note}</p>}
-      </header>
+      </div></div>
       <div className="tree-body">
         <AnalyzerTree tree={tree} />
         <Drawing tree={tree} />
