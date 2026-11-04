@@ -43,7 +43,7 @@ verifier with zero model calls** (it already passed). All six equivalence report
 [quillmark-modern#4](https://github.com/Nivetha200111/quillmark-modern/pull/4), whose CI re-verifies them with one
 pinned verifier. **CI passed on fresh inputs (output records):** ACCTMTCH 1601/1601, DAYCTRL 1017/1017, FEESCHD 1021/1021,
 INTACCR 1019/1019, PKDPOST 1037/1037, TXNPOST 1024/1024, stdout matching for each
-([run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870)).
+([run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870)). **Re-run on Nov 4, new seed, same pinned verifier:** 6,700 output records, 0 differences ([run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/41856483110)), and on `quillmark-java`, 6,709 output records, 0 differences ([run](https://github.com/Nivetha200111/quillmark-java/actions/runs/41856492547)). The history rewrites took the pinned commits off Diocle's `main`, so these workflows now read them from `verifier-pin-*` branches.
 
 ## Test suites (Oct 31, 2026)
 
