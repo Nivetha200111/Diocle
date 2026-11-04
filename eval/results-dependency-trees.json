@@ -1,0 +1,914 @@
+{
+ "drawnBy": "muse-image-1.0",
+ "readBackBy": "muse-wonder-1.0",
+ "decidedBy": "exact comparison with the analyzer's report",
+ "maxAttempts": 2,
+ "trees": [
+  {
+   "slug": "navikt-dsf",
+   "title": "Norway's retired pension system: the COBOL sources in its public repository",
+   "kinds": [
+    "call",
+    "copy"
+   ],
+   "repository": "https://github.com/navikt/DSF",
+   "commit": "faade4961e316c89e8c312456bae411c63f1c482",
+   "edges": [
+    [
+     "FO04F1X1",
+     "R001NAC"
+    ],
+    [
+     "FO04F1X1",
+     "R001NRC"
+    ],
+    [
+     "R001BYDL",
+     "CBLTDLI"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "navikt-dsf-1.webp",
+     "imageTokens": {
+      "input_tokens": 27593,
+      "output_tokens": 2178,
+      "total_tokens": 29771
+     },
+     "readUsd": 0.026456,
+     "seconds": 31.6,
+     "match": false,
+     "missingEdges": [
+      [
+       "FO04F1X1",
+       "R001NAC"
+      ],
+      [
+       "FO04F1X1",
+       "R001NRC"
+      ]
+     ],
+     "inventedEdges": [
+      [
+       "F004F1X1",
+       "R001NAC"
+      ],
+      [
+       "F004F1X1",
+       "R001NRC"
+      ]
+     ],
+     "missingNodes": [
+      "FO04F1X1"
+     ],
+     "inventedNodes": [
+      "F004F1X1"
+     ]
+    },
+    {
+     "attempt": 2,
+     "image": "navikt-dsf-2.webp",
+     "imageTokens": {
+      "input_tokens": 10176,
+      "output_tokens": 926,
+      "total_tokens": 11102
+     },
+     "readUsd": 0.085736,
+     "seconds": 50.2,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "navikt-dsf-2.webp"
+  },
+  {
+   "slug": "core-banking",
+   "title": "fzn0x/core-banking-system",
+   "kinds": [
+    "call"
+   ],
+   "repository": "https://github.com/fzn0x/core-banking-system",
+   "commit": "770860d4a11f1d203b0369456d867108097a550f",
+   "edges": [
+    [
+     "BANK-MAIN",
+     "INIT-DB"
+    ],
+    [
+     "BANK-MAIN",
+     "REPORT-GEN"
+    ],
+    [
+     "BANK-MAIN",
+     "TRANS-PROC"
+    ],
+    [
+     "TRANS-PROC",
+     "SYSTEM"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "core-banking-1.webp",
+     "imageTokens": {
+      "input_tokens": 55917,
+      "output_tokens": 3106,
+      "total_tokens": 59023
+     },
+     "readUsd": 0.021476,
+     "seconds": 40.4,
+     "match": false,
+     "missingEdges": [
+      [
+       "TRANS-PROC",
+       "SYSTEM"
+      ]
+     ],
+     "inventedEdges": [
+      [
+       "REPORT-GEN",
+       "SYSTEM"
+      ]
+     ],
+     "missingNodes": [],
+     "inventedNodes": []
+    },
+    {
+     "attempt": 2,
+     "image": "core-banking-2.webp",
+     "imageTokens": {
+      "input_tokens": 9967,
+      "output_tokens": 721,
+      "total_tokens": 10688
+     },
+     "readUsd": 0.021176,
+     "seconds": 12.0,
+     "match": true,
+     "missingEdges": [],
+     "inventedEdges": [],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": true,
+   "image": "core-banking-2.webp"
+  },
+  {
+   "slug": "quillmark-legacy",
+   "title": "Quillmark Trust & Savings (fictional, synthetic)",
+   "kinds": [
+    "job",
+    "copy"
+   ],
+   "repository": "https://github.com/Nivetha200111/quillmark-legacy",
+   "commit": "733a1b059a641002587b565d283ee2c3e803bbba",
+   "edges": [
+    [
+     "ACCTMTCH",
+     "ACCTMTCH"
+    ],
+    [
+     "ACCTMTCH",
+     "EXCREC"
+    ],
+    [
+     "ACCTMTCH",
+     "MSTREC"
+    ],
+    [
+     "ACCTMTCH",
+     "NEWMST"
+    ],
+    [
+     "ACCTMTCH",
+     "TXREC"
+    ],
+    [
+     "DAYCTRL",
+     "CTLREC"
+    ],
+    [
+     "DAYCTRL",
+     "DAYCTRL"
+    ],
+    [
+     "DAYCTRL",
+     "DAYREC"
+    ],
+    [
+     "FEESCHD",
+     "CHGREC"
+    ],
+    [
+     "FEESCHD",
+     "FEEREC"
+    ],
+    [
+     "FEESCHD",
+     "FEESCHD"
+    ],
+    [
+     "INTACCR",
+     "ACCTREC"
+    ],
+    [
+     "INTACCR",
+     "INTACCR"
+    ],
+    [
+     "INTACCR",
+     "INTREC"
+    ],
+    [
+     "PKDPOST",
+     "PKACCT"
+    ],
+    [
+     "PKDPOST",
+     "PKDPOST"
+    ],
+    [
+     "PKDPOST",
+     "PKOUT"
+    ],
+    [
+     "TXNPOST",
+     "POSTREC"
+    ],
+    [
+     "TXNPOST",
+     "TXNPOST"
+    ],
+    [
+     "TXNPOST",
+     "TXNREC"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "quillmark-legacy-1.webp",
+     "imageTokens": {
+      "input_tokens": 40174,
+      "output_tokens": 3164,
+      "total_tokens": 43338
+     },
+     "readUsd": 0.061116,
+     "seconds": 45.6,
+     "match": false,
+     "missingEdges": [
+      [
+       "ACCTMTCH",
+       "EXCREC"
+      ],
+      [
+       "ACCTMTCH",
+       "NEWMST"
+      ],
+      [
+       "ACCTMTCH",
+       "TXREC"
+      ],
+      [
+       "DAYCTRL",
+       "DAYCTRL"
+      ],
+      [
+       "FEESCHD",
+       "FEEREC"
+      ],
+      [
+       "FEESCHD",
+       "FEESCHD"
+      ],
+      [
+       "INTACCR",
+       "INTACCR"
+      ],
+      [
+       "PKDPOST",
+       "PKDPOST"
+      ],
+      [
+       "TXNPOST",
+       "TXNPOST"
+      ]
+     ],
+     "inventedEdges": [
+      [
+       "ACCTREC",
+       "INTACCR"
+      ],
+      [
+       "CHGREC",
+       "FEEREC"
+      ],
+      [
+       "CTLREC",
+       "DAYCTRL"
+      ],
+      [
+       "FEEREC",
+       "FEESCHD"
+      ],
+      [
+       "MSTREC",
+       "NEWMST"
+      ],
+      [
+       "NEWMST",
+       "TXREC"
+      ],
+      [
+       "PKACCT",
+       "PKDPOST"
+      ],
+      [
+       "POSTREC",
+       "TXNPOST"
+      ]
+     ],
+     "missingNodes": [
+      "EXCREC"
+     ],
+     "inventedNodes": []
+    },
+    {
+     "attempt": 2,
+     "image": "quillmark-legacy-2.webp",
+     "imageTokens": {
+      "input_tokens": 30944,
+      "output_tokens": 3426,
+      "total_tokens": 34370
+     },
+     "readUsd": 0.317556,
+     "seconds": 182.6,
+     "match": false,
+     "missingEdges": [
+      [
+       "ACCTMTCH",
+       "MSTREC"
+      ],
+      [
+       "ACCTMTCH",
+       "NEWMST"
+      ],
+      [
+       "ACCTMTCH",
+       "TXREC"
+      ],
+      [
+       "DAYCTRL",
+       "DAYCTRL"
+      ],
+      [
+       "FEESCHD",
+       "FEEREC"
+      ],
+      [
+       "FEESCHD",
+       "FEESCHD"
+      ],
+      [
+       "INTACCR",
+       "INTACCR"
+      ],
+      [
+       "PKDPOST",
+       "PKDPOST"
+      ],
+      [
+       "TXNPOST",
+       "TXNPOST"
+      ]
+     ],
+     "inventedEdges": [
+      [
+       "ACCTREC",
+       "INTACCR"
+      ],
+      [
+       "CHGREC",
+       "FEEREC"
+      ],
+      [
+       "CTLREC",
+       "DAYCTRL"
+      ],
+      [
+       "EXCREC",
+       "MSTREC"
+      ],
+      [
+       "FEEREC",
+       "FEESCHD"
+      ],
+      [
+       "MSTREC",
+       "NEWMST"
+      ],
+      [
+       "NEWMST",
+       "TXREC"
+      ],
+      [
+       "PKACCT",
+       "PKDPOST"
+      ],
+      [
+       "PKOUT",
+       "TXNPOST"
+      ],
+      [
+       "POSTREC",
+       "TXNPOST"
+      ]
+     ],
+     "missingNodes": [],
+     "inventedNodes": []
+    }
+   ],
+   "verified": false,
+   "image": null
+  },
+  {
+   "slug": "harbor-trust",
+   "title": "Harbor Trust (fictional, synthetic): CALLs across 47 programs",
+   "kinds": [
+    "call"
+   ],
+   "repository": "https://github.com/Nivetha200111/harbor-trust-mainframe",
+   "commit": "cee9da8c58771d66f16fa716d55f02cae2bf81c3",
+   "edges": [
+    [
+     "HTAUDT",
+     "CEE3ABD"
+    ],
+    [
+     "HTAUDT",
+     "HTAUDT"
+    ],
+    [
+     "HTCHQCLR",
+     "HTDATEUT"
+    ],
+    [
+     "HTCTRLBR",
+     "HTDATEUT"
+    ],
+    [
+     "HTDATE",
+     "CEE3ABD"
+    ],
+    [
+     "HTDATE",
+     "HTAUDT"
+    ],
+    [
+     "HTDORMSW",
+     "HTAUDT"
+    ],
+    [
+     "HTDORMSW",
+     "HTDATE"
+    ],
+    [
+     "HTDORMSW",
+     "HTPOST"
+    ],
+    [
+     "HTDYNAC",
+     "CEE3ABD"
+    ],
+    [
+     "HTDYNAC",
+     "HTDATEUT"
+    ],
+    [
+     "HTFEEP",
+     "CEE3ABD"
+    ],
+    [
+     "HTFEEP",
+     "HTAUDT"
+    ],
+    [
+     "HTFXCONV",
+     "HTAUDT"
+    ],
+    [
+     "HTFXCONV",
+     "HTFXRT"
+    ],
+    [
+     "HTFXRT",
+     "CEE3ABD"
+    ],
+    [
+     "HTFXRT",
+     "HTAUDT"
+    ],
+    [
+     "HTGLRECO",
+     "HTDATEUT"
+    ],
+    [
+     "HTIACR",
+     "HTDATE"
+    ],
+    [
+     "HTINTACC",
+     "HTAUDT"
+    ],
+    [
+     "HTINTACC",
+     "HTDATE"
+    ],
+    [
+     "HTINTACC",
+     "HTPOST"
+    ],
+    [
+     "HTLOANAM",
+     "HTAUDT"
+    ],
+    [
+     "HTLOANAM",
+     "HTDATE"
+    ],
+    [
+     "HTLOANAM",
+     "HTPOST"
+    ],
+    [
+     "HTOVDFEE",
+     "HTAUDT"
+    ],
+    [
+     "HTOVDFEE",
+     "HTFEEP"
+    ],
+    [
+     "HTOVDFEE",
+     "HTPOST"
+    ],
+    [
+     "HTPOST",
+     "CEE3ABD"
+    ],
+    [
+     "HTPOST",
+     "HTAUDT"
+    ],
+    [
+     "HTROUT",
+     "CEE3ABD"
+    ],
+    [
+     "HTROUT",
+     "HTAUDT"
+    ],
+    [
+     "HTSORTMG",
+     "HTDATEUT"
+    ],
+    [
+     "HTSTMTM",
+     "HTDATEUT"
+    ]
+   ],
+   "attempts": [
+    {
+     "attempt": 1,
+     "image": "harbor-trust-1.webp",
+     "imageTokens": {
+      "input_tokens": 64975,
+      "output_tokens": 5958,
+      "total_tokens": 70933
+     },
+     "readUsd": 0.346596,
+     "seconds": 224.8,
+     "match": false,
+     "missingEdges": [
+      [
+       "HTCHQCLR",
+       "HTDATEUT"
+      ],
+      [
+       "HTCTRLBR",
+       "HTDATEUT"
+      ],
+      [
+       "HTDORMSW",
+       "HTAUDT"
+      ],
+      [
+       "HTDORMSW",
+       "HTPOST"
+      ],
+      [
+       "HTDYNAC",
+       "CEE3ABD"
+      ],
+      [
+       "HTDYNAC",
+       "HTDATEUT"
+      ],
+      [
+       "HTFEEP",
+       "CEE3ABD"
+      ],
+      [
+       "HTFEEP",
+       "HTAUDT"
+      ],
+      [
+       "HTFXCONV",
+       "HTAUDT"
+      ],
+      [
+       "HTFXRT",
+       "HTAUDT"
+      ],
+      [
+       "HTGLRECO",
+       "HTDATEUT"
+      ],
+      [
+       "HTINTACC",
+       "HTAUDT"
+      ],
+      [
+       "HTINTACC",
+       "HTDATE"
+      ],
+      [
+       "HTLOANAM",
+       "HTDATE"
+      ],
+      [
+       "HTLOANAM",
+       "HTPOST"
+      ],
+      [
+       "HTOVDFEE",
+       "HTAUDT"
+      ],
+      [
+       "HTOVDFEE",
+       "HTFEEP"
+      ],
+      [
+       "HTOVDFEE",
+       "HTPOST"
+      ],
+      [
+       "HTROUT",
+       "CEE3ABD"
+      ],
+      [
+       "HTROUT",
+       "HTAUDT"
+      ],
+      [
+       "HTSORTMG",
+       "HTDATEUT"
+      ],
+      [
+       "HTSTMTM",
+       "HTDATEUT"
+      ]
+     ],
+     "inventedEdges": [
+      [
+       "HTCHQCLR",
+       "HTDORMSW"
+      ],
+      [
+       "HTCTRLBR",
+       "HTFEEP"
+      ],
+      [
+       "HTDATEUT",
+       "HTAUDT"
+      ],
+      [
+       "HTDATEUT",
+       "HTDATE"
+      ],
+      [
+       "HTDYNAC",
+       "HTFEEP"
+      ],
+      [
+       "HTFEEP",
+       "HTDATE"
+      ],
+      [
+       "HTGLRECO",
+       "HTOVDFEE"
+      ],
+      [
+       "HTLOANAM",
+       "CEE3ABD"
+      ],
+      [
+       "HTOVDFEE",
+       "HTDATEUT"
+      ],
+      [
+       "HTPOST",
+       "HTPOST"
+      ],
+      [
+       "HTROUT",
+       "HTFXRT"
+      ],
+      [
+       "HTSORTMG",
+       "HTINTACC"
+      ],
+      [
+       "HTSTMTM",
+       "HTLOANAM"
+      ]
+     ],
+     "missingNodes": [],
+     "inventedNodes": []
+    },
+    {
+     "attempt": 2,
+     "image": "harbor-trust-2.webp",
+     "imageTokens": {
+      "input_tokens": 52437,
+      "output_tokens": 5652,
+      "total_tokens": 58089
+     },
+     "readUsd": 0.070016,
+     "seconds": 69.2,
+     "match": false,
+     "missingEdges": [
+      [
+       "HTCHQCLR",
+       "HTDATEUT"
+      ],
+      [
+       "HTCTRLBR",
+       "HTDATEUT"
+      ],
+      [
+       "HTDATE",
+       "CEE3ABD"
+      ],
+      [
+       "HTDORMSW",
+       "HTAUDT"
+      ],
+      [
+       "HTDORMSW",
+       "HTDATE"
+      ],
+      [
+       "HTDORMSW",
+       "HTPOST"
+      ],
+      [
+       "HTDYNAC",
+       "CEE3ABD"
+      ],
+      [
+       "HTDYNAC",
+       "HTDATEUT"
+      ],
+      [
+       "HTFEEP",
+       "HTAUDT"
+      ],
+      [
+       "HTFXCONV",
+       "HTAUDT"
+      ],
+      [
+       "HTFXCONV",
+       "HTFXRT"
+      ],
+      [
+       "HTFXRT",
+       "HTAUDT"
+      ],
+      [
+       "HTGLRECO",
+       "HTDATEUT"
+      ],
+      [
+       "HTIACR",
+       "HTDATE"
+      ],
+      [
+       "HTINTACC",
+       "HTAUDT"
+      ],
+      [
+       "HTINTACC",
+       "HTDATE"
+      ],
+      [
+       "HTINTACC",
+       "HTPOST"
+      ],
+      [
+       "HTLOANAM",
+       "HTAUDT"
+      ],
+      [
+       "HTLOANAM",
+       "HTPOST"
+      ],
+      [
+       "HTOVDFEE",
+       "HTAUDT"
+      ],
+      [
+       "HTOVDFEE",
+       "HTFEEP"
+      ],
+      [
+       "HTPOST",
+       "CEE3ABD"
+      ],
+      [
+       "HTPOST",
+       "HTAUDT"
+      ],
+      [
+       "HTROUT",
+       "CEE3ABD"
+      ],
+      [
+       "HTROUT",
+       "HTAUDT"
+      ],
+      [
+       "HTSORTMG",
+       "HTDATEUT"
+      ],
+      [
+       "HTSTMTM",
+       "HTDATEUT"
+      ]
+     ],
+     "inventedEdges": [
+      [
+       "HTCHQCLR",
+       "HTIACR"
+      ],
+      [
+       "HTCTRLBR",
+       "HTINTACC"
+      ],
+      [
+       "HTDORMSW",
+       "HTLOANAM"
+      ],
+      [
+       "HTFXCONV",
+       "HTOVDFEE"
+      ],
+      [
+       "HTGLRECO",
+       "HTSTMTM"
+      ],
+      [
+       "HTIACR",
+       "HTFXRT"
+      ],
+      [
+       "HTINTACC",
+       "HTFEEP"
+      ],
+      [
+       "HTPOST",
+       "HTDATEUT"
+      ],
+      [
+       "HTSTMTM",
+       "HTROUT"
+      ]
+     ],
+     "missingNodes": [
+      "HTSORTMG"
+     ],
+     "inventedNodes": []
+    }
+   ],
+   "verified": false,
+   "image": null
+  }
+ ]
+}

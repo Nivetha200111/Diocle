@@ -2,7 +2,7 @@
 
   eval/draw_dependency_trees.py SPEC.json --out-dir apps/web/public/trees --results eval/results-dependency-trees.json
 
-SPEC is a list of {"slug", "title", "report" (an analyzer report), "kinds"}. No model sees the expected graph at the reading step, and only an
+SPEC is a list of {"slug", "title", "report" (an analyzer report), and "kinds", or "edges" to draw one part of that report}. No model sees the expected graph at the reading step, and only an
 exact match is marked verified. Every attempt is recorded, including failures. Reads the Meta key from the environment (never printed).
 """
 
@@ -20,7 +20,7 @@ import urllib.request
 from pathlib import Path
 
 IMAGE_MODEL, READ_MODEL = "muse-image-1.0", "muse-wonder-1.0"
-MAX_ATTEMPTS = 2
+MAX_ATTEMPTS = 3
 READ_PRICE = (4.00, 20.00)  # USD per million tokens, input and output, as services/converter/diocle_converter/config.py PRICES
 
 
@@ -75,16 +75,22 @@ def main() -> int:
     ap.add_argument("spec", type=Path)
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--results", type=Path, required=True)
+    ap.add_argument("--max-images", type=int, default=16, help="hard limit on images drawn in this run")
     args = ap.parse_args()
     if args.results.exists():
         raise SystemExit(f"{args.results} exists: results are never overwritten")
-    out = {"drawnBy": IMAGE_MODEL, "readBackBy": READ_MODEL, "decidedBy": "exact comparison with the analyzer's report", "maxAttempts": MAX_ATTEMPTS, "trees": []}
+    out = {"drawnBy": IMAGE_MODEL, "readBackBy": READ_MODEL, "decidedBy": "exact comparison with the analyzer's report", "maxAttempts": MAX_ATTEMPTS, "maxImages": args.max_images, "trees": []}
+    drawn = 0
     for item in json.loads(args.spec.read_text()):
         report = json.loads(Path(item["report"]).read_text())
-        edges = edges_of(report, item["kinds"])
-        tree = {**{k: item[k] for k in ("slug", "title", "kinds")}, "repository": report["source"]["location"], "commit": report["source"]["commit"],
+        edges = [tuple(e) for e in item["edges"]] if "edges" in item else edges_of(report, item["kinds"])
+        tree = {**{k: item[k] for k in ("slug", "title")}, "repository": report["source"]["location"], "commit": report["source"]["commit"],
                 "edges": edges, "attempts": [], "verified": False, "image": None}
         for n in range(1, MAX_ATTEMPTS + 1):
+            if drawn >= args.max_images:
+                tree["attempts"].append({"attempt": n, "error": "not drawn: the image limit was reached"})
+                break
+            drawn += 1
             started = time.time()
             try:
                 image, usage = draw(edges)
