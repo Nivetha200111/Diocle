@@ -1,4 +1,4 @@
-**Demo video (under 3 min): https://youtu.be/vRP0VrplJu4**
+**Demo video (under 3 min): https://youtu.be/3tEmLs0jrT4**
 
 Narration: a synthetic voice (ElevenLabs), not a Meta model and not part of the product.
 
@@ -12,7 +12,7 @@ Narration: a synthetic voice (ElevenLabs), not a Meta model and not part of the 
 
 | Start here | |
 |---|---|
-| **Watch** | [The demo video](https://youtu.be/vRP0VrplJu4) |
+| **Watch** | [The demo video](https://youtu.be/3tEmLs0jrT4) |
 | **Try** | [diocle.vercel.app](https://diocle.vercel.app): press **Try the sample** to re-check stored Java on fresh records (free, no model) |
 | **See** | [Every feature, with screenshots](docs/WALKTHROUGH.md), including VS Code and Muse Code |
 | **Check** | [One run end to end](docs/SHOWCASE_CHQCLR.md), [the measurement](docs/MEASUREMENT.md), [a public repository we did not write](docs/EXTERNAL_ESTATE.md#conversion-phase-nov-2-to-3-2026-mac), [a blind test on code no fix had seen](docs/BLIND_TEST.md), [each claim and how to verify it](docs/CLAIMS_TO_EVIDENCE.md), [a delivered pull request](https://github.com/Nivetha200111/quillmark-modern/pull/4) and [its CI run](https://github.com/Nivetha200111/quillmark-modern/actions/runs/40811476870), [the build log](docs/BUILD_LOG.md) |
