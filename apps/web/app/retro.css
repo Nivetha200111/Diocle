@@ -2018,3 +2018,22 @@ body {
   box-shadow: var(--w-out);
   padding: 8px 12px;
 }
+/* the last small text, and focus on a native audio control */
+.page-footer,
+.page-footer * {
+  font-size: 13px;
+}
+.app-shell .page-footer,
+.app-shell .page-footer * {
+  color: #fff !important;
+}
+.bug-tag,
+.source-tabs button,
+.meta-badge,
+.topbar-link {
+  font-size: 13px;
+}
+audio:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
