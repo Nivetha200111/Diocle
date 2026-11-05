@@ -44,7 +44,7 @@ Already existed and is used, not built here:
 
 ## History and removed files
 
-Solo entry: the GitHub accounts `Nivetha200111` and `Nivetha2001X` are both the author's. Commits made under the first account's email show as the second.
+Solo entry: both GitHub accounts are the author's, and each profile links to the other: [Nivetha200111](https://github.com/Nivetha200111), [Nivetha2001X](https://github.com/Nivetha2001X). Commits made under the first account's email show as the second.
 
 Commit messages were rewritten twice, on Oct 31 and Nov 2, to drop co-author lines, at the owner's request. Code, dates and authors did not change, but commit ids did. The history before the Nov 2 rewrite stays at tag `pre-rewrite-20261102`, and tags `pin-e286cdb` and `pin-697ad34` keep the older commits that the target repositories' certificates pin. `CLAUDE.md` and `.claude/agents/`, the instructions for the coding agents used to build Diocle, were removed from the tree on Nov 4 and remain in git history.
 
