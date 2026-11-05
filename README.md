@@ -4,6 +4,8 @@
 
 # Diocle
 
+[![test](https://github.com/Nivetha200111/Diocle/actions/workflows/test.yml/badge.svg)](https://github.com/Nivetha200111/Diocle/actions/workflows/test.yml)
+
 **AI writes the code. Diocle checks it against the original, and then attacks it, before anyone has to trust it.**
 
 | Start here | |
