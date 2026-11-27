@@ -4,14 +4,15 @@ import type { NextConfig } from "next";
 // (DIOCLE_API_ORIGIN, e.g. https://api.example.com), so the browser never talks to another host.
 const apiOrigin = process.env.DIOCLE_API_ORIGIN;
 
+// The portfolio at nivetha.info shows Diocle live on a workshop screen, so it (and only it)
+// may frame the site. X-Frame-Options can't list an origin, so frame-ancestors does the job.
 const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=31536000" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "X-Frame-Options", value: "DENY" },
   {
     key: "Content-Security-Policy",
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self' https://nivetha.info https://www.nivetha.info",
   },
 ];
 
